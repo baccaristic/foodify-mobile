@@ -16,6 +16,12 @@ const HEADER_MIN_HEIGHT = 100;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 const { width } = Dimensions.get("window");
+const navItems = [
+  { icon: Home, label: "Home", active: true },
+  { icon: Search, label: "Search", active: false },
+  { icon: ShoppingBag, label: "Orders", active: false },
+  { icon: User, label: "Account", active: false },
+];
 
 interface MainLayoutProps {
   showHeader?: boolean;
@@ -108,26 +114,34 @@ export default function MainLayout({
       </Animated.ScrollView>
 
       {/* FOOTER */}
-      {showFooter && <>
-        <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex-row justify-around py-2">
-        <TouchableOpacity className="items-center">
-          <Home size={24} color="blue" />
-          <Text className="text-xs">Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity className="items-center">
-          <Search size={24} color="gray" />
-          <Text className="text-xs">Search</Text>
-        </TouchableOpacity>
-        <TouchableOpacity className="items-center">
-          <ShoppingBag size={24} color="gray" />
-          <Text className="text-xs">Orders</Text>
-        </TouchableOpacity>
-        <TouchableOpacity className="items-center">
-          <User size={24} color="gray" />
-          <Text className="text-xs">Account</Text>
-        </TouchableOpacity>
-      </View>
-      </>}
+      {showFooter && (
+       <View className="absolute bottom-0 left-0 right-0 bg-[#17213A] px-6 py-4 rounded-t-3xl w-full shadow-2xl">
+          <View className="flex-row justify-around items-center">
+            {navItems.map((item, index) => {
+              const Icon = item.icon;
+              const color = item.active ? "#CA251B" : "#D9D9D9"; 
+
+              return (
+                <TouchableOpacity
+                  key={index}
+                  className="flex-col items-center justify-center gap-1 min-w-0 p-1"
+                  activeOpacity={0.7}
+                >
+                  <Icon
+                    size={24}
+                    color={color}
+                  />
+                  <Text
+                    className={`text-xs font-medium ${item.active ? "text-[#CA251B]" : "text-[#D9D9D9]"}`}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
