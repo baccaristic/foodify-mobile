@@ -9,10 +9,7 @@
     "experiments": {
       "tsconfigPaths": true
     },
-    "plugins": [
-      "expo-secure-store",
-      "expo-font"
-    ],
+    "plugins": ["expo-secure-store", "expo-font"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,13 +18,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "allowBackup": false,
+      "userInterfaceStyle": "light",
+      "softwareKeyboardLayoutMode": "pan",
+      "resizeMode": "contain",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

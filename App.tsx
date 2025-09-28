@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import Cart from '~/screens/Cart';
 import AuthScreen from '~/screens/Auth/AuthScreen';
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {

@@ -21,7 +21,7 @@ const AuthScreen = () => {
           />
 
           {/* Enter mobile number text */}
-          <Text className="text-xl font-bold mb-6 text-gray-800">
+          <Text allowFontScaling={false} className="text-xl font-bold mb-6 text-gray-800">
             Enter your mobile number
           </Text>
 
@@ -38,26 +38,26 @@ const AuthScreen = () => {
 
           {/* Continue button */}
           <TouchableOpacity className="w-full h-12 bg-blue-950 rounded-lg justify-center items-center mb-4">
-            <Text className="text-white font-semibold text-lg">Continue</Text>
+            <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
           </TouchableOpacity>
 
           {/* Or separator */}
           <View className="flex-row items-center w-full mb-4">
             <View className="flex-1 h-px bg-gray-300" />
-            <Text className="mx-4 text-gray-500">or</Text>
+            <Text allowFontScaling={false} className="mx-4 text-gray-500">or</Text>
             <View className="flex-1 h-px bg-gray-300" />
           </View>
 
           {/* Continue with Google */}
           <TouchableOpacity className="w-full h-12 bg-red-600 rounded-lg flex-row justify-center items-center mb-4">
             <FontAwesome name="google" size={20} color="white" className="mr-2" />
-            <Text className="text-white font-semibold text-lg">Continue with Google</Text>
+            <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue with Google</Text>
           </TouchableOpacity>
 
           {/* Continue with email */}
           <TouchableOpacity className="w-full h-12 bg-white border border-gray-400 rounded-lg flex-row justify-center items-center mb-6">
             <Mail size={20} color="gray" className="mr-2" />
-            <Text className="text-gray-800 font-semibold text-lg">Continue with e-mail</Text>
+            <Text allowFontScaling={false} className="text-gray-800 font-semibold text-lg">Continue with e-mail</Text>
           </TouchableOpacity>
         </View>
 

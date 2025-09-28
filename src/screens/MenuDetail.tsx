@@ -4,6 +4,7 @@ import { X, Heart, Check, Plus, Minus, ArrowLeft } from "lucide-react-native";
 import { Image } from "expo-image";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 const primaryColor = "#CA251B";
@@ -40,12 +41,12 @@ const OptionRow: React.FC<OptionRowProps> = ({
       className="flex-row justify-between items-center mb-4"
     >
       <View className="flex-row items-center flex-1">
-        <Text className="text-gray-800 text-base font-semibold">
+        <Text allowFontScaling={false} className="text-gray-800 text-base font-semibold">
           {displayItem}
         </Text>
         {price !== undefined && (
           <View className="bg-red-700 rounded-lg px-2 py-1 ml-2">
-            <Text className="text-white text-xs font-bold">
+            <Text allowFontScaling={false} className="text-white text-xs font-bold">
               +{formatPrice(price)} DT
             </Text>
           </View>
@@ -83,6 +84,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
   const [selectedToppings, setSelectedToppings] = useState<string[]>(["Onion"]);
   const [selectedMeats, setSelectedMeats] = useState<string[]>([]);
   const [selectedSupplements, setSelectedSupplements] = useState<string[]>([]);
+    const insets = useSafeAreaInsets();
 
   const toppingsList = ["Lettuce", "Caramelised onion", "Onion"];
   const meatsList = ["Cordon bleu", "Toasted escalope", "Kebab", "Nuggets"];
@@ -135,7 +137,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
       <TouchableOpacity className="p-2" onPress={() => navigation.goBack()}>
         <ArrowLeft size={20} color={primaryColor} />
       </TouchableOpacity>
-      <Text className="text-lg font-bold text-gray-800 flex-1 text-center">
+      <Text allowFontScaling={false} className="text-lg font-bold text-gray-800 flex-1 text-center">
         Di Napoli
       </Text>
       <TouchableOpacity className="p-2">
@@ -146,15 +148,15 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
 
   const mainContent = (
     <ScrollView className="px-4 -mt-4 bg-white rounded-t-2xl pt-4">
-      <Text className="text-3xl font-bold text-[#17213A] mt-2">Tacos XL</Text>
-      <Text className="text-xl font-bold text-[#CA251B] mt-1">
+      <Text allowFontScaling={false} className="text-3xl font-bold text-[#17213A] mt-2">Tacos XL</Text>
+      <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B] mt-1">
         {formatPrice(basePrice)} DT
       </Text>
-      <Text className="text-sm text-[#17213A] mt-2 mb-6">
+      <Text allowFontScaling={false} className="text-sm text-[#17213A] mt-2 mb-6">
         {initialDescription}
       </Text>
 
-      <Text className="text-xl font-bold mb-1">Choose your toppings</Text>
+      <Text allowFontScaling={false} className="text-xl font-bold mb-1">Choose your toppings</Text>
       {toppingsList.map((item) => (
         <OptionRow
           key={item}
@@ -171,7 +173,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
 
       <View className="h-[1px] bg-gray-200 my-4" />
 
-      <Text className="text-xl font-bold mb-1">Choose your meat</Text>
+      <Text allowFontScaling={false} className="text-xl font-bold mb-1">Choose your meat</Text>
       {meatsList.map((item) => (
         <OptionRow
           key={item}
@@ -188,7 +190,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
 
       <View className="h-[1px] bg-gray-200 my-4" />
 
-      <Text className="text-xl font-bold mb-1">Supplements</Text>
+      <Text allowFontScaling={false} className="text-xl font-bold mb-1">Supplements</Text>
       {supplementsList.map((item) => (
         <OptionRow
           key={item.name}
@@ -209,7 +211,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
   );
 
   const orderBar = (
-    <View className="absolute bottom-0 left-0 right-0 w-full bg-white p-4 shadow-2xl border-t border-gray-100">
+    <View style={{paddingBottom: insets.bottom}} className="absolute bottom-0 left-0 right-0 w-full bg-white p-4 shadow-2xl border-t border-gray-100">
       <View className="flex-row items-center justify-center mb-4">
         <TouchableOpacity
           onPress={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -220,7 +222,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
         >
           <Minus size={24} color={quantity > 1 ? "white" : primaryColor} />
         </TouchableOpacity>
-        <Text className="text-2xl font-bold mx-6">{quantity}</Text>
+        <Text allowFontScaling={false} className="text-2xl font-bold mx-6">{quantity}</Text>
         <TouchableOpacity
           onPress={() => setQuantity((q) => q + 1)}
           className="bg-[#CA251B] p-2 rounded-full border border-[#CA251B]"
@@ -233,7 +235,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
         className="w-full bg-[#CA251B] py-4 rounded-xl shadow-lg"
         onPress={handleAdd}
       >
-        <Text className="text-white text-lg font-bold text-center">
+        <Text allowFontScaling={false} className="text-white text-lg font-bold text-center">
           Add {quantity} for {formatPrice(total)} DT
         </Text>
       </TouchableOpacity>

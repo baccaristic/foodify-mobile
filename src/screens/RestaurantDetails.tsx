@@ -6,8 +6,9 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import MenuDetail from './MenuDetail';
+import { vs } from "react-native-size-matters";
 
-const { width, height: screenHeight } = Dimensions.get('window');
+const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
 
 interface FixedOrderBarProps {
@@ -28,12 +29,12 @@ interface MenuItem {
 
 const FixedOrderBar: React.FC<FixedOrderBarProps> = ({ total,onSeeCart }) => (
     <View className="absolute  mb-4 bottom-16 left-0 right-0 bg-white px-4 py-3 flex-row justify-between shadow-lg  overflow-hidden items-center z-50">
-        <Text className="text-[#CA251B] text-base font-bold">Order : {total}</Text>
+        <Text allowFontScaling={false} className="text-[#CA251B] text-base font-bold">Order : {total}</Text>
         <TouchableOpacity 
             onPress={onSeeCart}
             className="bg-[#CA251B] rounded-lg px-8 py-2"
         >
-            <Text className="text-white text-base font-['roboto']">See my Cart</Text>
+            <Text allowFontScaling={false} className="text-white text-base font-['roboto']">See my Cart</Text>
         </TouchableOpacity>
     </View>
 );
@@ -50,11 +51,11 @@ const MenuItemCard: React.FC<{ item: MenuItem, onOpenModal: () => void }> = ({ i
         />
         
         <View className="p-3 flex flex-col gap-1">
-            <Text className="text-sm font-bold text-[#17213A]" numberOfLines={1}>{item.name}</Text>
-            <Text className="text-xs text-gray-500" numberOfLines={2}>{item.description}</Text>
+            <Text allowFontScaling={false} className="text-sm font-bold text-[#17213A]" numberOfLines={1}>{item.name}</Text>
+            <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>{item.description}</Text>
             
             <View className="mt-2 flex-row items-center justify-between">
-                <Text className="font-bold text-[#CA251B]">{item.price}</Text>
+                <Text allowFontScaling={false} className="font-bold text-[#CA251B]">{item.price}</Text>
                 
                 <TouchableOpacity
                     className="bg-[#CA251B] text-white p-1.5 rounded-full shadow-md"
@@ -126,25 +127,25 @@ export default function RestaurantDetails() {
     const mainContent = (
         <ScrollView className="flex-1"> 
             <View className="px-4 ">
-                <Text className="text-2xl font-bold ml-2 mt-4 text-[#17213A]">Di Napoli</Text>
-                <Text className="text-sm ml-2 mt-4 text-[#17213A]">Pizzas en tranches, Plats exquis, sandwich!!</Text>
+                <Text allowFontScaling={false} className="text-2xl font-bold ml-2 mt-4 text-[#17213A]">Di Napoli</Text>
+                <Text allowFontScaling={false} className="text-sm ml-2 mt-4 text-[#17213A]">Pizzas en tranches, Plats exquis, sandwich!!</Text>
                 
                 <View className="flex flex-row items-center text-xs text-[#17213A] mt-2 justify-center">
                     <View className="flex flex-row items-center gap-4 bg-white px-4 py-2 rounded-md border-2 border-black/10 shadow-lg">
                         
                         <View className="flex flex-row items-center gap-1 font-sans">
                             <Clock7 size={16} color="#CA251B" />
-                            <Text className="text-sm text-gray-700">25 - 30 mins</Text>
+                            <Text allowFontScaling={false} className="text-sm text-gray-700">25 - 30 mins</Text>
                         </View>
                         
                         <View className="flex flex-row items-center gap-1 font-sans">
-                            <Text className="text-sm text-gray-700">4.9</Text>
+                            <Text allowFontScaling={false} className="text-sm text-gray-700">4.9</Text>
                             <Star size={16} color="#CA251B" fill="#CA251B" />
                         </View>
 
                         <View className="flex flex-row items-center gap-1 font-sans">
                             <MapPin size={16} color="#CA251B" />
-                            <Text className="text-sm text-gray-700">1,5 DT</Text>
+                            <Text allowFontScaling={false} className="text-sm text-gray-700">1,5 DT</Text>
                         </View>
                     </View>
                 </View>
@@ -152,15 +153,15 @@ export default function RestaurantDetails() {
 
             <View className="mb-4 rounded-lg bg-gray-100 mt-4">
                 <View className="p-3 px-4">
-                    <Text className="mb-1 font-semibold text-[#17213A]">Restaurant Info</Text>
-                    <Text className="text-sm text-[#17213A]">
+                    <Text allowFontScaling={false} className="mb-1 font-semibold text-[#17213A]">Restaurant Info</Text>
+                    <Text allowFontScaling={false} className="text-sm text-[#17213A]">
                         Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
                         ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
                         ullamco laboris nisi ut aliquip ex ea commodo consequat.
                     </Text>
                     <View className="mt-2 ml-2 flex flex-row items-center text-[#17213A]/40">
                         <MapPin size={20} />
-                        <Text className="text-[#17213A] ml-2">Rue Mustapha Abdessalem, Ariana 2091</Text>
+                        <Text allowFontScaling={false} className="text-[#17213A] ml-2">Rue Mustapha Abdessalem, Ariana 2091</Text>
                     </View>
                 </View>
             </View>
@@ -169,12 +170,12 @@ export default function RestaurantDetails() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex overflow-x-auto gap-2 py-2 scrollbar-hide p-4">
                     {TABS.map((cat, idx) => (
                         <TouchableOpacity key={idx} className={`mr-2 rounded-xl border border-[#CA251B] px-4 py-2 ${idx === 0 ? 'bg-[#CA251B]' : 'bg-white'}`}>
-                            <Text className={`text-sm font-semibold font-['roboto'] ${idx === 0 ? 'text-white' : 'text-[#CA251B]'}`}>{cat}</Text>
+                            <Text allowFontScaling={false} className={`text-sm font-semibold font-['roboto'] ${idx === 0 ? 'text-white' : 'text-[#CA251B]'}`}>{cat}</Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
             
-                <Text className="text-lg font-semibold text-black/60 mb-4">Top Sales ({STATIC_MENU_ITEMS.length})</Text>
+                <Text allowFontScaling={false} className="text-lg font-semibold text-black/60 mb-4">Top Sales ({STATIC_MENU_ITEMS.length})</Text>
                 
                 <View className="flex-row flex-wrap justify-between gap-y-4 mb-4"> 
                     {STATIC_MENU_ITEMS.map((item, idx) => (
@@ -212,7 +213,7 @@ export default function RestaurantDetails() {
             <TouchableOpacity className="p-2" onPress={() => navigation.goBack()}>
                 <ArrowLeft size={20} color="#CA251B" />
             </TouchableOpacity>
-            <Text className="text-lg font-bold text-gray-800 flex-1 text-center">Di Napoli</Text>
+            <Text allowFontScaling={false} className="text-lg font-bold text-gray-800 flex-1 text-center">Di Napoli</Text>
             <TouchableOpacity className="p-2">
                 <Heart size={20} color="#CA251B" />
             </TouchableOpacity>

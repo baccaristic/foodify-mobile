@@ -64,13 +64,13 @@ const CartItemRow: React.FC<{
             </View>
 
             <View className="flex-1 justify-center">
-                <Text className="text-sm font-bold text-[#17213A] pr-6" numberOfLines={1}>
+                <Text allowFontScaling={false} className="text-sm font-bold text-[#17213A] pr-6" numberOfLines={1}>
                     {item.name}
                 </Text>
-                <Text className="text-xs text-gray-500" numberOfLines={2}>
+                <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
                     {item.description}
                 </Text>
-                <Text className="font-bold text-sm text-[#CA251B] mt-1">{item.price}</Text>
+                <Text allowFontScaling={false} className="font-bold text-sm text-[#CA251B] mt-1">{item.price}</Text>
             </View>
 
             <View className="flex-col items-center ml-2">
@@ -83,7 +83,7 @@ const CartItemRow: React.FC<{
                         <Minus size={16} color="white" />
                     </TouchableOpacity>
 
-                    <Text className="text-lg text-[#CA251B] font-semibold mx-3 w-4 text-center">
+                    <Text allowFontScaling={false} className="text-lg text-[#CA251B] font-semibold mx-3 w-4 text-center">
                         {item.quantity}
                     </Text>
 
@@ -114,12 +114,12 @@ export default function Cart() {
 
     const cartContent = (
         <View className="px-4">
-            <Text className="text-2xl font-bold text-[#17213A] mt-6 mb-4 text-center">My cart</Text>
+            <Text allowFontScaling={false} className="text-2xl font-bold text-[#17213A] mt-6 mb-4 text-center">My cart</Text>
 
             <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-sm font-semibold text-[#CA251B]">
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
                     {totalItems} Product from{" "}
-                    <Text className="font-bold text-xl text-[#CA251B]">{restaurantName}</Text>
+                    <Text allowFontScaling={false} className="font-bold text-xl text-[#CA251B]">{restaurantName}</Text>
                 </Text>
                 <TouchableOpacity>
                     <Trash2 size={42} color="#CA251B" style={{ borderWidth: 2, borderColor: "gray-600", borderRadius: 16, padding: 6 }} />
@@ -131,7 +131,7 @@ export default function Cart() {
             ))}
 
             <TouchableOpacity className="bg-[#CA251B] rounded-xl px-2 py-2 my-4 mx-auto">
-                <Text className="text-white text-lg text-center">Add more items</Text>
+                <Text allowFontScaling={false} className="text-white text-lg text-center">Add more items</Text>
             </TouchableOpacity>
 
             <View style={{ height: 160 }} />
@@ -149,7 +149,7 @@ export default function Cart() {
                 </TouchableOpacity>
 
                 <TouchableOpacity className="flex-row items-center gap-2 px-5 py-3 max-w-[70%] mx-auto">
-                    <Text className="text-white text-lg truncate font-semibold" numberOfLines={1}>
+                    <Text allowFontScaling={false} className="text-white text-lg truncate font-semibold" numberOfLines={1}>
                         San Francisco Bay Area
                     </Text>
                     <ChevronDown color="white" size={20} />
@@ -160,14 +160,14 @@ export default function Cart() {
 
     const fixedOrderBar = (
         <View className="absolute bottom-[80px] left-0 right-0 bg-white px-4 py-3 flex-row justify-between items-center z-50 rounded-t-xl shadow-2xl border-t border-gray-100">
-            <Text className="text-[#CA251B] text-base font-semibold">
+            <Text allowFontScaling={false} className="text-[#CA251B] text-base font-semibold">
                 Order : {totalOrderPrice}
             </Text>
             <TouchableOpacity
                 className="bg-[#CA251B] rounded-lg px-8 py-3"
                 onPress={() => console.log("Proceed to Checkout")}
             >
-                <Text className="text-white text-base">Order</Text>
+                <Text allowFontScaling={false} className="text-white text-base">Order</Text>
             </TouchableOpacity>
         </View>
     );
