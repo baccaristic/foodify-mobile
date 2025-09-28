@@ -56,7 +56,8 @@ const CartItemRow: React.FC<{
     return (
         <View className="flex-row items-center mb-4 bg-white rounded-3xl border border-gray-200">
             <View className="w-1/4 h-20 overflow-hidden mr-3 relative rounded-3xl">
-                <Image source={item.imageSource} className="w-full h-full object-cover" />
+                <Image source={item.imageSource} style={{ width: "100%", height: '100%' }}
+              contentFit="cover" />
                 <TouchableOpacity className="absolute top-1 left-1 bg-white p-1 rounded-full items-center justify-center shadow-sm">
                     <Trash2 size={12} color={primaryColor} />
                 </TouchableOpacity>

@@ -3,10 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-
+    "types": ["./env.d.ts"],
     "baseUrl": ".",
     "paths": {
-      "~/*": ["src/*"],
+      "~/*": ["src/*"]
     }
   }
 }

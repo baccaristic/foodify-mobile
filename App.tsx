@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import Cart from '~/screens/Cart';
+import AuthScreen from '~/screens/Auth/AuthScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -12,6 +13,9 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
       <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Guest" component={AuthScreen} options={{headerShown: false}}>
+
+        </Stack.Screen>
         <Stack.Screen 
           name="Home" 
           component={Home} 

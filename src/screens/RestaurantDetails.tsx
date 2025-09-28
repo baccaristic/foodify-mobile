@@ -114,10 +114,7 @@ export default function RestaurantDetails() {
             });
             setCartVisible(true);
         }
-
-        translateY.value = withTiming(modalHeight, { duration: 300 }, () => {
-            setIsModalVisible(false);
-        });
+        setIsModalVisible(false);
     }, [cartTotal, translateY]);
     
     const handleSeeCart = () => {
