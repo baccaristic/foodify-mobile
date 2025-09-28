@@ -5,8 +5,13 @@ import { Image } from 'expo-image';
 
 const { width } = Dimensions.get("window");
 
+interface CartItemDetails {
+    quantity: number;
+    total: number;
+}
+
 interface MenuDetailProps {
-    handleOnClose: () => void;
+    handleAddItem: (itemDetails: CartItemDetails) => void;
 }
 
 interface OptionRowProps {
@@ -18,7 +23,6 @@ interface OptionRowProps {
 }
 
 const OptionRow: React.FC<OptionRowProps> = ({ item, displayItem, isSelected, onToggle, price }) => {
-    const isSupplements = price !== undefined;
     const primaryColor = "#CA251B";
 
     const checkBgColor = isSelected ? primaryColor : "transparent";
@@ -42,7 +46,7 @@ const OptionRow: React.FC<OptionRowProps> = ({ item, displayItem, isSelected, on
         >
             <View className="flex-row items-center flex-1">
                 <Text className="text-gray-800 text-base font-semibold">{displayItem}</Text>
-                {isSupplements && <SupplementBadge />}
+                {price !== undefined && <SupplementBadge />}
             </View>
 
             <View
@@ -67,7 +71,7 @@ const OptionRow: React.FC<OptionRowProps> = ({ item, displayItem, isSelected, on
 };
 
 
-export default function MenuDetail({ handleOnClose }: MenuDetailProps) {
+export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
     const basePrice = 19.300;
     const initialDescription = "2 galette tortillas à la farine de blé, 2 viandes au choix, sauce fromagère, garniture et frites.";
     const primaryColor = "#CA251B";
@@ -134,17 +138,21 @@ export default function MenuDetail({ handleOnClose }: MenuDetailProps) {
         }
     };
 
+    const handleAdd = () => {
+        handleAddItem({ quantity, total });
+    };
+
     const Header = () => (
         <View style={{ width: width, height: 160 }} className="relative">
             <Image
-                source={require("../../assets/TEST.png")}
+                source={require("../../assets/TEST.png")} 
                 style={{ width: '100%', height: '100%' }}
                 contentFit="cover"
             />
             <View className="absolute inset-0 bg-[#17213A]/30" />
             
             <View className="absolute top-8 left-4">
-                <TouchableOpacity className="bg-white/80 p-2 rounded-full" onPress={handleOnClose}>
+                <TouchableOpacity className="bg-white/80 p-2 rounded-full" onPress={() => handleAddItem({ quantity: 0, total: 0 })}>
                     <X size={20} color={primaryColor} />
                 </TouchableOpacity>
             </View>
@@ -239,9 +247,10 @@ export default function MenuDetail({ handleOnClose }: MenuDetailProps) {
                     </TouchableOpacity>
                 </View>
 
+                {/* FIXED: The core add button correctly calls handleAdd, which calls the parent prop */}
                 <TouchableOpacity
                     className="w-full bg-[#CA251B] text-white font-bold py-4 rounded-xl shadow-lg"
-                    onPress={handleOnClose}
+                    onPress={handleAdd} 
                 >
                     <Text className="text-white text-lg font-bold text-center">
                         Add {quantity} for {formatPrice(total)} DT

@@ -4,6 +4,7 @@ import RestaurantDetails from '~/screens/RestaurantDetails';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
+import Cart from '~/screens/Cart';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -20,6 +21,11 @@ export default function App() {
           name="RestaurantDetails" 
           component={RestaurantDetails} 
           options={{ headerShown: false }} // Hide header if using custom header in MainLayout
+        />
+        <Stack.Screen
+        name="Cart"
+        component={Cart}
+        options={{headerShown:false}}
         />
       </Stack.Navigator>
     </NavigationContainer>

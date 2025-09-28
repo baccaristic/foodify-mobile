@@ -1,16 +1,72 @@
 import { Clock7, Plus, Star, MapPin, Heart, ArrowLeft } from "lucide-react-native";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import MainLayout from '~/layouts/MainLayout';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { Image } from 'expo-image';
-import MenuDetail from './MenuDetail'; 
+import MenuDetail from './MenuDetail';
 
 const { width, height: screenHeight } = Dimensions.get('window');
 const modalHeight = screenHeight;
 
-const STATIC_MENU_ITEMS = [
+interface FixedOrderBarProps {
+    total: string;
+    onSeeCart: () => void;
+}
+
+interface CartItemDetails {
+    quantity: number;
+    total: number;
+}
+
+interface MenuItem {
+    name: string;
+    description: string;
+    price: string;
+}
+
+const FixedOrderBar: React.FC<FixedOrderBarProps> = ({ total,onSeeCart }) => (
+    <View className="absolute  mb-4 bottom-16 left-0 right-0 bg-white px-4 py-3 flex-row justify-between shadow-lg  overflow-hidden items-center z-50">
+        <Text className="text-[#CA251B] text-base font-bold">Order : {total}</Text>
+        <TouchableOpacity 
+            onPress={onSeeCart}
+            className="bg-[#CA251B] rounded-lg px-8 py-2"
+        >
+            <Text className="text-white text-base font-['roboto']">See my Cart</Text>
+        </TouchableOpacity>
+    </View>
+);
+
+const MenuItemCard: React.FC<{ item: MenuItem, onOpenModal: () => void }> = ({ item, onOpenModal }) => (
+    <View
+        style={{ width: (width / 2) - 24 }} 
+        className="flex flex-col bg-white rounded-xl shadow-md overflow-hidden"
+    >
+        <Image
+            source={require('../../assets/baguette.png')}
+            style={{ width: '100%', height: 100 }}
+            contentFit="cover"
+        />
+        
+        <View className="p-3 flex flex-col gap-1">
+            <Text className="text-sm font-bold text-[#17213A]" numberOfLines={1}>{item.name}</Text>
+            <Text className="text-xs text-gray-500" numberOfLines={2}>{item.description}</Text>
+            
+            <View className="mt-2 flex-row items-center justify-between">
+                <Text className="font-bold text-[#CA251B]">{item.price}</Text>
+                
+                <TouchableOpacity
+                    className="bg-[#CA251B] text-white p-1.5 rounded-full shadow-md"
+                    onPress={onOpenModal}>
+                    <Plus size={18} color="white" />
+                </TouchableOpacity>
+            </View>
+        </View>
+    </View>
+);
+
+const STATIC_MENU_ITEMS: MenuItem[] = [
     { name: "Pizza 1/4 Plateau Thon Fromage", description: "Sauce tomate, thon, fromage, persil - Portion 2 Personnes", price: "19,300 DT" },
     { name: "Sandwich Tunisien Complet", description: "Merguez, œuf, salade méchouia, harissa, frites", price: "8,500 DT" },
     { name: "Lablebi Classique", description: "Pois chiches, cumin, huile d'olive, œufs pochés", price: "5,000 DT" },
@@ -22,8 +78,11 @@ const TABS = ['Top Sales', 'Pizza Tranches', 'Pizza', 'Sandwich'];
 
 export default function RestaurantDetails() {
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [cartVisible, setCartVisible] = useState(false); 
+    const [cartTotal, setCartTotal] = useState({ price: "0,000 DT", count: 0 }); 
+    
     const translateY = useSharedValue(modalHeight);
-    const navigation = useNavigation();
+    const navigation = useNavigation<NavigationProp<ParamListBase>>();
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: translateY.value }],
@@ -33,25 +92,45 @@ export default function RestaurantDetails() {
         if (isModalVisible) {
             translateY.value = withTiming(0, { duration: 300 });
         }
-    }, [isModalVisible]);
+    }, [isModalVisible, translateY]);
 
-    const handleOpen = () => {
+    const handleOpen = useCallback(() => {
         setIsModalVisible(true);
-    };
+    }, []);
 
-    const handleClose = () => {
+    
+
+    const handleUpdateCartAndClose = useCallback((itemDetails: CartItemDetails) => {
+        
+        if (itemDetails.quantity > 0) {
+            // Convert price string to number for calculation
+            const currentTotalNum = parseFloat(cartTotal.price.replace(',', '.')) || 0;
+            const newTotalNum = currentTotalNum + itemDetails.total;
+            const newCount = cartTotal.count + itemDetails.quantity;
+            
+            setCartTotal({
+                price: newTotalNum.toFixed(3).replace('.', ','),
+                count: newCount
+            });
+            setCartVisible(true);
+        }
+
         translateY.value = withTiming(modalHeight, { duration: 300 }, () => {
             setIsModalVisible(false);
         });
+    }, [cartTotal, translateY]);
+    
+    const handleSeeCart = () => {
+         navigation.navigate('Cart'); 
     };
 
-    const modalContent = <MenuDetail handleOnClose={handleClose} />;
+    const modalContent = <MenuDetail handleAddItem={handleUpdateCartAndClose} />;
 
     const mainContent = (
-        <View className="flex-1"> 
+        <ScrollView className="flex-1"> 
             <View className="px-4 ">
-                <Text className="text-2xl font-bold  ml-2 mt-4 text-[#17213A]">Di Napoli</Text>
-                <Text className="text-sm  ml-2 mt-4 text-[#17213A]">Pizzas en tranches, Plats exquis, sandwich!!</Text>
+                <Text className="text-2xl font-bold ml-2 mt-4 text-[#17213A]">Di Napoli</Text>
+                <Text className="text-sm ml-2 mt-4 text-[#17213A]">Pizzas en tranches, Plats exquis, sandwich!!</Text>
                 
                 <View className="flex flex-row items-center text-xs text-[#17213A] mt-2 justify-center">
                     <View className="flex flex-row items-center gap-4 bg-white px-4 py-2 rounded-md border-2 border-black/10 shadow-lg">
@@ -83,8 +162,8 @@ export default function RestaurantDetails() {
                         ullamco laboris nisi ut aliquip ex ea commodo consequat.
                     </Text>
                     <View className="mt-2 ml-2 flex flex-row items-center text-[#17213A]/40">
-                        <MapPin size={20}  />
-                        <Text className="text-[#17213A]  ml-2">Rue Mustapha Abdessalem, Ariana 2091</Text>
+                        <MapPin size={20} />
+                        <Text className="text-[#17213A] ml-2">Rue Mustapha Abdessalem, Ariana 2091</Text>
                     </View>
                 </View>
             </View>
@@ -100,39 +179,15 @@ export default function RestaurantDetails() {
             
                 <Text className="text-lg font-semibold text-black/60 mb-4">Top Sales ({STATIC_MENU_ITEMS.length})</Text>
                 
-                <View className="flex-row flex-wrap justify-between gap-y-4"> 
+                <View className="flex-row flex-wrap justify-between gap-y-4 mb-4"> 
                     {STATIC_MENU_ITEMS.map((item, idx) => (
-                        <View
-                            key={idx}
-                            style={{ width: (width / 2) - 24 }} 
-                            className="flex flex-col bg-white rounded-xl shadow-md overflow-hidden">
-                            
-                            <Image
-                                source={require('../../assets/baguette.png')}
-                                style={{ width: '100%', height: 100 }}
-                                contentFit="cover"
-                            />
-                            
-                            <View className="p-3 flex flex-col gap-1">
-                                <Text className="text-sm font-bold text-[#17213A]" numberOfLines={1}>{item.name}</Text>
-                                <Text className="text-xs text-gray-500" numberOfLines={2}>{item.description}</Text>
-                                
-                                <View className="mt-2 flex-row items-center justify-between">
-                                    <Text className="font-bold text-[#CA251B]">{item.price}</Text>
-                                    
-                                    <TouchableOpacity
-                                        className="bg-[#CA251B] text-white p-1.5 rounded-full shadow-md"
-                                        onPress={handleOpen}>
-                                        <Plus size={18} color="white" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </View>
+                        <MenuItemCard key={idx} item={item} onOpenModal={handleOpen} />
                     ))}
                 </View>
-
+                
+                <View style={{ height: cartVisible ? 120 : 20 }} /> 
             </View>
-        </View>
+        </ScrollView>
     );
 
     const customHeader = (
@@ -176,11 +231,19 @@ export default function RestaurantDetails() {
                 collapsedHeader={collapsedHeader}
                 mainContent={mainContent}
             />
+
+            {cartVisible && cartTotal.count > 0 && !isModalVisible && (
+                <FixedOrderBar 
+                    total={cartTotal.price} 
+                    onSeeCart={handleSeeCart}
+                />
+            )}
+
             {isModalVisible && (
                 <>
                     <TouchableOpacity
                         activeOpacity={1}
-                        onPress={handleClose}
+                        onPress={() => handleUpdateCartAndClose({ quantity: 0, total: 0 })}
                         className="absolute inset-0 bg-black/50"
                     />
                     <Animated.View
