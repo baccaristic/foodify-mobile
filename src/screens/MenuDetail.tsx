@@ -130,48 +130,19 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
     </View>
   );
 
-  const detailHeader = (
-  <View className="flex-1">
-    <Image
-      source={require("../../assets/TEST.png")}
-      style={{ width, height: 160 }}
-      contentFit="cover"
-    />
-    {/* X button */}
-    <View className="absolute left-4 top-8">
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: "white",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <X size={20} color={primaryColor} />
+  const collapsedHeader = (
+    <View className="flex-1 justify-center bg-white px-4 flex-row items-center">
+      <TouchableOpacity className="p-2" onPress={() => navigation.goBack()}>
+        <ArrowLeft size={20} color={primaryColor} />
       </TouchableOpacity>
-    </View>
-
-    {/* Heart button */}
-    <View className="absolute right-4 top-8">
-      <TouchableOpacity
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: "white",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <Text className="text-lg font-bold text-gray-800 flex-1 text-center">
+        Di Napoli
+      </Text>
+      <TouchableOpacity className="p-2">
         <Heart size={20} color={primaryColor} />
       </TouchableOpacity>
     </View>
-  </View>
-);
-
+  );
 
   const mainContent = (
     <ScrollView className="px-4 -mt-4 bg-white rounded-t-2xl pt-4">
