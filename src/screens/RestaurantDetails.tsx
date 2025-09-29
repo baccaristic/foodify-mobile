@@ -27,6 +27,8 @@ interface MenuItem {
     price: string;
 }
 
+
+
 const FixedOrderBar: React.FC<FixedOrderBarProps> = ({ total,onSeeCart }) => (
     <View className="absolute  mb-4 bottom-16 left-0 right-0 bg-white px-4 py-3 flex-row justify-between shadow-lg  overflow-hidden items-center z-50">
         <Text allowFontScaling={false} className="text-[#CA251B] text-base font-bold">Order : {total}</Text>
@@ -105,7 +107,6 @@ export default function RestaurantDetails() {
     const handleUpdateCartAndClose = useCallback((itemDetails: CartItemDetails) => {
         
         if (itemDetails.quantity > 0) {
-            // Convert price string to number for calculation
             const currentTotalNum = parseFloat(cartTotal.price.replace(',', '.')) || 0;
             const newTotalNum = currentTotalNum + itemDetails.total;
             const newCount = cartTotal.count + itemDetails.quantity;
@@ -132,7 +133,7 @@ export default function RestaurantDetails() {
                 <Text allowFontScaling={false} className="text-sm ml-2 mt-4 text-[#17213A]">Pizzas en tranches, Plats exquis, sandwich!!</Text>
                 
                 <View className="flex flex-row items-center text-xs text-[#17213A] mt-2 justify-center">
-                    <View className="flex flex-row items-center gap-4 bg-white px-4 py-2 rounded-md border-2 border-black/10 shadow-lg">
+                    <View className="flex flex-row items-center gap-4 bg-white px-4 py-2 rounded-xl border-1 border-black/5 shadow-xl mt-2">
                         
                         <View className="flex flex-row items-center gap-1 font-sans">
                             <Clock7 size={16} color="#CA251B" />
@@ -178,9 +179,11 @@ export default function RestaurantDetails() {
             
                 <Text allowFontScaling={false} className="text-lg font-semibold text-black/60 mb-4">Top Sales ({STATIC_MENU_ITEMS.length})</Text>
                 
-                <View className="flex-row flex-wrap justify-between gap-y-4 mb-4"> 
+                <View className="flex-row flex-wrap justify-between gap-y-4 mb-4 "> 
                     {STATIC_MENU_ITEMS.map((item, idx) => (
-                        <MenuItemCard key={idx} item={item} onOpenModal={handleOpen} />
+                        <View key={idx} className="rounded-3xl overflow-hidden shadow-3xl " >
+                        <MenuItemCard  item={item} onOpenModal={handleOpen}    />
+                        </View>
                     ))}
                 </View>
                 
