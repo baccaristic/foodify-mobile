@@ -7,6 +7,7 @@ import {
   ImageBackground,
   StyleSheet,
   Dimensions,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -82,13 +83,13 @@ export default function MainLayout({
       [MAX_HEIGHT, MIN_HEIGHT],
       Extrapolate.CLAMP
     );
-    return { height };
+    return { height: height + 20 };
   });
 
   return (
     <SafeAreaView style={styles.container}>
       {showHeader && (
-        <Animated.View style={[headerHeightStyle, { width: '100%', overflow: 'hidden' }]}>
+        <Animated.View style={[headerHeightStyle, { width: '100%', overflow: 'hidden'}]}>
           {showHeader && (
             <>
               {headerBackgroundImage ? (
@@ -138,6 +139,7 @@ export default function MainLayout({
       )}
 
       <Animated.ScrollView
+        style={styles.scrollView}
         contentContainerStyle={{
           paddingTop: vs(20),
           paddingBottom: showFooter ? vs(80) : vs(20),
@@ -182,12 +184,16 @@ const styles = ScaledSheet.create({
     right: 0,
     bottom: 0,
   },
-  mainContent: {
+  scrollView: {
     flex: 1,
     backgroundColor: 'white',
     borderTopLeftRadius: '24@ms',
     borderTopRightRadius: '24@ms',
-    marginTop: '-12@vs',
+    marginTop: '-20@vs',
+    zIndex: 1,
+  },
+  mainContent: {
+    flex: 1,
   },
   footer: {
     position: 'absolute',
@@ -199,6 +205,7 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '24@s',
     borderTopLeftRadius: '24@ms',
     borderTopRightRadius: '24@ms',
+    zIndex: 2,
   },
   navRow: {
     flexDirection: 'row',

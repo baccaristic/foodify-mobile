@@ -110,10 +110,10 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
   };
 
   const detailHeader = (
-    <View className="flex-1">
+    <View>
       <Image
         source={require("../../assets/TEST.png")}
-        style={{ width, height: 160 }}
+        style={{ width, height: '100%' }}
         contentFit="cover"
       />
       <View className="absolute left-4 top-8">
@@ -134,7 +134,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
 
   const collapsedHeader = (
     <View className="flex-1 justify-center bg-white px-4 flex-row items-center">
-      <TouchableOpacity className="p-2" onPress={() => navigation.goBack()}>
+      <TouchableOpacity className="p-2" onPress={() =>console.log('here')}>
         <ArrowLeft size={20} color={primaryColor} />
       </TouchableOpacity>
       <Text allowFontScaling={false} className="text-lg font-bold text-gray-800 flex-1 text-center">

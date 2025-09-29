@@ -8,6 +8,7 @@ import { Image } from 'expo-image';
 import MenuDetail from './MenuDetail';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FixedOrderBar from '~/components/FixedOrderBar';
+import { vs } from 'react-native-size-matters';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -234,7 +235,7 @@ export default function RestaurantDetails() {
   );
 
   const customHeader = (
-    <View style={{ width: '100%', height: 160 }}>
+    <View style={{ width: '100%', height: '100%' }}>
       {/* Background image */}
       <Image
         source={require('../../assets/TEST.png')}
