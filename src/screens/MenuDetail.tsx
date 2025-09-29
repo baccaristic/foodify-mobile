@@ -147,7 +147,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
   );
 
   const mainContent = (
-    <ScrollView className="px-4 -mt-4 bg-white rounded-t-2xl pt-4">
+    <ScrollView className="px-4 -mt-4 bg-white rounded-t-2xl pt-4" contentContainerStyle={{paddingBottom: 50}}>
       <Text allowFontScaling={false} className="text-3xl font-bold text-[#17213A] mt-2">Tacos XL</Text>
       <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B] mt-1">
         {formatPrice(basePrice)} DT

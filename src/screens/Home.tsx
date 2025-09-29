@@ -4,7 +4,7 @@ import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
-import { ScaledSheet, s, vs, ms } from "react-native-size-matters";
+import { ScaledSheet, s, vs } from "react-native-size-matters";
 
 export default function HomePage() {
   const navigation = useNavigation();

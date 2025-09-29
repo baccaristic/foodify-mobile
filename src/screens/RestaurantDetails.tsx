@@ -1,12 +1,12 @@
 import { Clock7, Plus, Star, MapPin, Heart, ArrowLeft } from "lucide-react-native";
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import MainLayout from '~/layouts/MainLayout';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import MenuDetail from './MenuDetail';
-import { vs } from "react-native-size-matters";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -81,6 +81,7 @@ export default function RestaurantDetails() {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [cartVisible, setCartVisible] = useState(false); 
     const [cartTotal, setCartTotal] = useState({ price: "0,000 DT", count: 0 }); 
+    const insets = useSafeAreaInsets();
     
     const translateY = useSharedValue(modalHeight);
     const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -189,23 +190,47 @@ export default function RestaurantDetails() {
     );
 
     const customHeader = (
-        <View className="flex-1">
-            <Image
-                source={require('../../assets/TEST.png')}
-                style={{ width: width, height: 160 }}
-                contentFit="cover"
-            />
-            <View className="absolute left-4 top-8">
-                <TouchableOpacity className="rounded-full bg-white p-2" onPress={() => navigation.goBack()}>
-                    <ArrowLeft size={24} color="#CA251B" />
-                </TouchableOpacity>
-            </View>
-            <View className="absolute right-4 top-8">
-                <TouchableOpacity className="rounded-full bg-white p-2">
-                    <Heart size={24} color="#CA251B" />
-                </TouchableOpacity>
-            </View>
-        </View>
+    <View style={{ width: "100%", height: 160 }}>
+      {/* Background image */}
+      <Image
+        source={require("../../assets/TEST.png")}
+        style={StyleSheet.absoluteFillObject} // fills parent
+        contentFit="cover"
+      />
+
+      {/* Foreground row */}
+      <View
+        style={{
+            paddingTop: 0 + insets.top,
+          flex: 1,
+          paddingHorizontal: 16,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            borderRadius: 9999,
+            backgroundColor: "white",
+            padding: 8,
+          }}
+          onPress={() => navigation.goBack()}
+        >
+          <ArrowLeft size={24} color="#CA251B" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            borderRadius: 9999,
+            backgroundColor: "white",
+            padding: 8,
+          }}
+        >
+          <Heart size={24} color="#CA251B" />
+        </TouchableOpacity>
+      </View>
+    </View>
     );
 
     const collapsedHeader = (

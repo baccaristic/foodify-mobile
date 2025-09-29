@@ -41,12 +41,12 @@ export default function MainLayout({
   headerBackgroundImage,
 }: MainLayoutProps) {
     const screenHeight = Dimensions.get('screen').height;
+      const insets = useSafeAreaInsets();
   const MAX_HEIGHT = headerMaxHeight ?? screenHeight * 0.2; // 20% of screen height
   const MIN_HEIGHT = headerMinHeight ?? screenHeight * 0.12; // 12% of screen height
-  const SCROLL_DISTANCE = MAX_HEIGHT - MIN_HEIGHT;
+  const SCROLL_DISTANCE = (MAX_HEIGHT - MIN_HEIGHT) + insets.top;
 
   const scrollY = useSharedValue(0);
-  const insets = useSafeAreaInsets();
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;

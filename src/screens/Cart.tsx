@@ -122,7 +122,7 @@ export default function Cart() {
                     <Text allowFontScaling={false} className="font-bold text-xl text-[#CA251B]">{restaurantName}</Text>
                 </Text>
                 <TouchableOpacity>
-                    <Trash2 size={42} color="#CA251B" style={{ borderWidth: 2, borderColor: "gray-600", borderRadius: 16, padding: 6 }} />
+                    <Trash2 size={42} color="#CA251B" />
                 </TouchableOpacity>
             </View>
 
