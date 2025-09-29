@@ -1,12 +1,20 @@
 import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import { ReactNode } from 'react';
-import { View, TouchableOpacity, Text, ImageBackground, StyleSheet, Dimensions } from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  ImageBackground,
+  StyleSheet,
+  Dimensions,
+} from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   interpolate,
   Extrapolate,
   useAnimatedScrollHandler,
+  Extrapolation,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
@@ -40,11 +48,11 @@ export default function MainLayout({
   headerMinHeight,
   headerBackgroundImage,
 }: MainLayoutProps) {
-    const screenHeight = Dimensions.get('screen').height;
-      const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('screen').height;
+  const insets = useSafeAreaInsets();
   const MAX_HEIGHT = headerMaxHeight ?? screenHeight * 0.2; // 20% of screen height
   const MIN_HEIGHT = headerMinHeight ?? screenHeight * 0.12; // 12% of screen height
-  const SCROLL_DISTANCE = (MAX_HEIGHT - MIN_HEIGHT) + insets.top;
+  const SCROLL_DISTANCE = MAX_HEIGHT - MIN_HEIGHT + insets.top;
 
   const scrollY = useSharedValue(0);
 
@@ -62,7 +70,7 @@ export default function MainLayout({
       scrollY.value,
       [SCROLL_DISTANCE / 2, SCROLL_DISTANCE],
       [0, 1],
-      Extrapolate.CLAMP
+      Extrapolation.CLAMP
     );
     return { opacity };
   });
@@ -90,10 +98,17 @@ export default function MainLayout({
                   resizeMode="cover">
                   <View style={styles.overlay} />
                   {customHeader && (
-                    <Animated.View style={fullHeaderStyle}>{customHeader}</Animated.View>
+                    <Animated.View
+                      style={fullHeaderStyle}
+                      pointerEvents={scrollY.value < SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
+                      {customHeader}
+                    </Animated.View>
                   )}
+
                   {collapsedHeader && (
-                    <Animated.View style={[styles.collapsedHeader, collapsedHeaderStyle]}>
+                    <Animated.View
+                      style={[styles.collapsedHeader, collapsedHeaderStyle]}
+                      pointerEvents={scrollY.value >= SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
                       {collapsedHeader}
                     </Animated.View>
                   )}
@@ -101,10 +116,17 @@ export default function MainLayout({
               ) : (
                 <>
                   {customHeader && (
-                    <Animated.View style={fullHeaderStyle}>{customHeader}</Animated.View>
+                    <Animated.View
+                      style={fullHeaderStyle}
+                      pointerEvents={scrollY.value < SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
+                      {customHeader}
+                    </Animated.View>
                   )}
+
                   {collapsedHeader && (
-                    <Animated.View style={[styles.collapsedHeader, collapsedHeaderStyle]}>
+                    <Animated.View
+                      style={[styles.collapsedHeader, collapsedHeaderStyle]}
+                      pointerEvents={scrollY.value >= SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
                       {collapsedHeader}
                     </Animated.View>
                   )}
