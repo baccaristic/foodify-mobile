@@ -4,9 +4,18 @@ import { Image } from 'expo-image';
 import { FontAwesome } from '@expo/vector-icons'; // For Google icon
 import { Mail } from 'lucide-react-native'; // For email icon
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
+
 
 const AuthScreen = () => {
   const textInputRef = useRef(null);
+
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+
+
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -55,7 +64,8 @@ const AuthScreen = () => {
           </TouchableOpacity>
 
           {/* Continue with email */}
-          <TouchableOpacity className="w-full h-12 bg-white border border-gray-400 rounded-lg flex-row justify-center items-center mb-6">
+          <TouchableOpacity onPress={handleLogin}
+            className="w-full h-12 bg-white border border-gray-400 rounded-lg flex-row justify-center items-center mb-6">
             <Mail size={20} color="gray" className="mr-2" />
             <Text allowFontScaling={false} className="text-gray-800 font-semibold text-lg">Continue with e-mail</Text>
           </TouchableOpacity>

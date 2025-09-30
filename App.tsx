@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import Cart from '~/screens/Cart';
 import AuthScreen from '~/screens/Auth/AuthScreen';
+import EmailLogin from '~/screens/Auth/AuthWithEmail.tsx/EmailLogin';
 
 const Stack = createNativeStackNavigator();
 
@@ -13,8 +14,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
+      <Stack.Navigator initialRouteName="Guest">
         <Stack.Screen name="Guest" component={AuthScreen} options={{headerShown: false}}>
+        </Stack.Screen>
+
+        <Stack.Screen name="Login" component={EmailLogin} options={{headerShown: false}}>
 
         </Stack.Screen>
         <Stack.Screen 
