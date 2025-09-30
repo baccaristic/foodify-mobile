@@ -6,6 +6,8 @@ import MainLayout from '~/layouts/MainLayout';
 import { Image } from 'expo-image';
 import FixedOrderBar from '~/components/FixedOrderBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { vs } from 'react-native-size-matters';
+import Header from '~/components/Header';
 
 const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
@@ -173,26 +175,14 @@ export default function Cart() {
   );
 
   const cartHeader = (
-    <View className="p-4">
-      <View className="flex-row items-center justify-between">
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className="items-center justify-center rounded-full border-2 border-white/40 p-2">
-          <ArrowLeft size={20} color="white" />
-        </TouchableOpacity>
-
-        <TouchableOpacity className="mx-auto max-w-[70%] flex-row items-center gap-2 px-5 py-3">
-          <Text
-            allowFontScaling={false}
-            className="truncate text-lg font-semibold text-white"
-            numberOfLines={1}>
-            San Francisco Bay Area
-          </Text>
-          <ChevronDown color="white" size={20} />
-        </TouchableOpacity>
-      </View>
-    </View>
+    <Header
+    title="San Francisco Bay Area"
+    onBack={() => navigation.goBack()}
+    onLocationPress={() => console.log("Location pressed")}
+  />
   );
+
+  
 
   return (
     <View className="flex-1 bg-white">
@@ -200,7 +190,7 @@ export default function Cart() {
         headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader={true}
         showFooter={true}
-        headerMaxHeight={80}
+        headerMaxHeight={vs(70)}
         customHeader={cartHeader}
         mainContent={cartContent}
       />

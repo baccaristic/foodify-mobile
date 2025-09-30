@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
+import Header from "~/components/Header";
 
 export default function HomePage() {
   const navigation = useNavigation();
@@ -41,22 +42,21 @@ export default function HomePage() {
   const customHeader = (
     <Animated.View entering={FadeIn.duration(500)}>
       <View style={styles.headerWrapper}>
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity>
-            <ArrowLeft size={s(22)} color="white" />
-          </TouchableOpacity>
-          <Text allowFontScaling={false} style={styles.headerTitle}>San Francisco Bay Area</Text>
-          <View style={{ width: s(22) }} />
-        </View>
+        <Header
+          title="San Francisco Bay Area"
+          onBack={() => console.log("not working now !")}
+          onLocationPress={() => console.log("Location pressed")}
+          compact
+        />
         <View style={styles.searchBar}>
           <Text allowFontScaling={false} style={styles.searchPlaceholder}>Ready to eat?</Text>
-          <Search size={s(18)} color="gray" />
+          <Search size={s(18)} color="black" />
         </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ marginTop: vs(20) }}
-          contentContainerStyle={{ paddingHorizontal: s(12), alignItems: "center" }}
+          style={{ marginTop: vs(10) }}
+          contentContainerStyle={{}}
         >
           {[
             { icon: Percent, label: "Discount" },
@@ -65,11 +65,19 @@ export default function HomePage() {
             { icon: Pizza, label: "Pizza" },
             { icon: Hamburger, label: "Burger" },
           ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={styles.categoryButton}>
+            <TouchableOpacity key={idx} style={styles.categoryEqualWidth}>
               <View style={styles.categoryIconWrapper}>
-                <item.icon size={s(22)} color="red" />
+                <item.icon size={s(32)} color="red" />
               </View>
-              <Text allowFontScaling={false} style={styles.categoryLabel}>{item.label}</Text>
+              <View style={styles.categoryTextContainer}>
+                <Text
+                  allowFontScaling={false}
+                  style={styles.categoryLabelFixed}
+                  numberOfLines={2}
+                >
+                  {item.label}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -124,22 +132,21 @@ const styles = ScaledSheet.create({
   ratingText: { fontSize: "12@ms", marginLeft: "4@s" },
   deliveryTime: { color: "red", fontSize: "12@ms", marginTop: "4@vs" },
 
-  headerWrapper: { padding: "12@s", paddingBottom: "20@vs" },
+  headerWrapper: { padding: "6@s", paddingBottom: "20@vs" },
   headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  headerTitle: { color: "white", fontSize: "16@ms", fontWeight: "700" },
+  headerTitle: { color: "white", fontSize: "16@ms", fontWeight: "400", marginLeft: "20@ms" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
-    borderRadius: "50@ms",
+    borderRadius: "12@ms",
     paddingHorizontal: "12@s",
     paddingVertical: "8@vs",
-    marginTop: "12@vs",
+    marginTop: "6@vs",
   },
   searchPlaceholder: { color: "gray", flex: 1, fontSize: "13@ms" },
 
   categoryButton: { alignItems: "center", marginHorizontal: "8@s" },
-  categoryIconWrapper: { backgroundColor: "white", borderRadius: "50@ms", padding: "8@s" },
   categoryLabel: { color: "white", fontSize: "11@ms", marginTop: "4@vs", textAlign: "center" },
 
   collapsedHeader: {
@@ -170,4 +177,39 @@ const styles = ScaledSheet.create({
     marginLeft: "8@s",
   },
   filterText: { color: "#333", fontSize: "12@ms", marginRight: "4@s" },
+  categoryEqualWidth: {
+    alignItems: "center",
+    width: "25%",
+  },
+
+  categoryLabelFixed: {
+    color: "white",
+    fontSize: "11@ms",
+    textAlign: "center"
+  },
+
+  categoryIconWrapper: {
+    backgroundColor: "white",
+    borderRadius: "50@ms",
+    padding: "8@s"
+  },
+  categoryTextContainer: {
+    height: "20@vs",
+    justifyContent: 'center',
+    width: '150%',
+  },
+  centeredHeaderGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    justifyContent: 'center',
+  },
+  leftHeaderButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "50@ms",
+    borderWidth: "0.5@s",
+    borderColor: "white",
+    padding: "4@ms"
+  }
 });

@@ -3,38 +3,42 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
 
 interface HeaderProps {
+  title: string;
   onBack?: () => void;
   onLocationPress?: () => void;
+  compact?: boolean; 
 }
 
 export default function Header({
+  title,
   onBack,
   onLocationPress,
+  compact = false,
 }: HeaderProps) {
   return (
-    <View className="px-5 py-5 flex-row items-center justify-between relative">
-      {/* Back Button */}
-      <TouchableOpacity
-        onPress={onBack}
-        className="rounded-full border-2 border-white/40 items-center justify-center p-2"
-      >
-        <ArrowLeft color="white" size={20} />
-      </TouchableOpacity>
-
-      {/* Location */}
-      <TouchableOpacity
-        onPress={onLocationPress}
-        className="flex-row items-center gap-2 px-5 py-3 max-w-[70%]"
-      >
-        <Text
-          className="text-white truncate"
-          numberOfLines={1}
-          ellipsizeMode="tail"
+    <View className={compact ? "px-3 py-1" : "px-5 py-5"}>
+      <View className="flex-row items-center justify-between">
+        <TouchableOpacity
+          onPress={onBack}
+          className="items-center justify-center rounded-full border-2 border-white/40 p-2"
         >
-          Av. 8 New York, City
-        </Text>
-        <ChevronDown color="white" size={20} />
-      </TouchableOpacity>
+          <ArrowLeft color="white" size={20} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onLocationPress}
+          className="mx-auto max-w-[70%] flex-row items-center gap-2"
+        >
+          <Text
+            allowFontScaling={false}
+            className="truncate text-lg font-semibold text-white"
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          <ChevronDown color="white" size={20} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

@@ -141,7 +141,7 @@ export default function MainLayout({
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={{
-          paddingTop: vs(20),
+          paddingTop: vs(10),
           paddingBottom: showFooter ? vs(80) : vs(20),
         }}
         scrollEventThrottle={16}
@@ -189,7 +189,7 @@ const styles = ScaledSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: '24@ms',
     borderTopRightRadius: '24@ms',
-    marginTop: '-20@vs',
+    marginTop: '-14@vs',
     zIndex: 1,
   },
   mainContent: {
