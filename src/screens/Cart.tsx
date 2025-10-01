@@ -177,6 +177,7 @@ export default function Cart() {
   const cartHeader = (
     <Header
     title="San Francisco Bay Area"
+    compact={false}
     onBack={() => navigation.goBack()}
     onLocationPress={() => console.log("Location pressed")}
   />
@@ -190,7 +191,7 @@ export default function Cart() {
         headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader={true}
         showFooter={true}
-        headerMaxHeight={vs(70)}
+        headerMaxHeight={vs(50)}
         customHeader={cartHeader}
         mainContent={cartContent}
       />

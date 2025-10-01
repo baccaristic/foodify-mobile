@@ -1,15 +1,21 @@
 import axios from "axios";
 import { BASE_API_URL } from "@env";
 
+let accessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
 const client = axios.create({
   baseURL: BASE_API_URL,
   timeout: 10000,
 });
 
 client.interceptors.request.use(async (config) => {
-  const token = null;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (accessToken) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });

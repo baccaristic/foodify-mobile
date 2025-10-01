@@ -251,7 +251,7 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
         collapsedHeader={collapsedHeader}
         mainContent={mainContent}
         headerMaxHeight={160}
-        headerMinHeight={120}
+        headerMinHeight={140}
       />
       {orderBar}
     </View>
