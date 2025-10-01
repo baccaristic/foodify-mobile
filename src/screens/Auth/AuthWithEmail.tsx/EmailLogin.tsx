@@ -1,12 +1,15 @@
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 
-
 const EmailLogin = () => {
-
     const navigation = useNavigation<NavigationProp<ParamListBase>>();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
+    const isFormValid = email.trim().length > 0 && password.trim().length > 0;
+    const buttonBgClass = isFormValid ? 'bg-[#17213A]' : 'bg-gray-400';
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -35,6 +38,8 @@ const EmailLogin = () => {
                         autoCapitalize="none"
                         returnKeyType="next"
                         onSubmitEditing={Keyboard.dismiss}
+                        onChangeText={setEmail}
+                        value={email}
                     />
 
                     <Text allowFontScaling={false} className="text-xl font-medium mb-2 text-[#17213A]">
@@ -49,9 +54,14 @@ const EmailLogin = () => {
                         keyboardType="default"
                         returnKeyType="done"
                         onSubmitEditing={Keyboard.dismiss}
+                        onChangeText={setPassword}
+                        value={password}
                     />
 
-                    <TouchableOpacity className="w-full h-14 bg-[#17213A] rounded-lg justify-center items-center mb-6">
+                    <TouchableOpacity
+                        className={`w-full h-14 rounded-lg justify-center items-center mb-6 ${buttonBgClass}`}
+                        disabled={!isFormValid}
+                    >
                         <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
                     </TouchableOpacity>
 
@@ -59,7 +69,7 @@ const EmailLogin = () => {
                         <Text allowFontScaling={false} className="text-base text-[#17213A] font-['Roboto']">
                             you don&apos;t have an account?
                         </Text>
-                        <TouchableOpacity onPress={() => console.log('Sign Up Pressed')}>
+                        <TouchableOpacity onPress={() => navigation.navigate('SignUpEmailPassword')}>
                             <Text allowFontScaling={false} className="text-base font-semibold ml-1 text-[#CA251B]" >
                                 Sign up
                             </Text>
