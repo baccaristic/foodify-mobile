@@ -957,21 +957,28 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                             pressed && styles.savedRowPressed,
                           ]}
                         >
-                          <View style={[styles.savedIconBadge, { backgroundColor: withOpacity(address.accent, 0.22) }]}>
-                            <Icon size={s(20)} color={address.accent} />
-                          </View>
-                          <View style={styles.savedCopy}>
-                            <Text allowFontScaling={false} style={styles.savedRowTitle}>
-                              {address.title}
-                            </Text>
-                            <Text allowFontScaling={false} style={styles.savedRowSubtitle} numberOfLines={1}>
-                              {address.subtitle}
-                            </Text>
-                            {address.details ? (
-                              <Text allowFontScaling={false} style={styles.savedRowDetails} numberOfLines={1}>
-                                {address.details}
+                          <View style={styles.savedRowInfo}>
+                            <View
+                              style={[
+                                styles.savedIconBadge,
+                                { backgroundColor: withOpacity(address.accent, 0.22) },
+                              ]}
+                            >
+                              <Icon size={s(20)} color={address.accent} />
+                            </View>
+                            <View style={styles.savedCopy}>
+                              <Text allowFontScaling={false} style={styles.savedRowTitle}>
+                                {address.title}
                               </Text>
-                            ) : null}
+                              <Text allowFontScaling={false} style={styles.savedRowSubtitle} numberOfLines={1}>
+                                {address.subtitle}
+                              </Text>
+                              {address.details ? (
+                                <Text allowFontScaling={false} style={styles.savedRowDetails} numberOfLines={1}>
+                                  {address.details}
+                                </Text>
+                              ) : null}
+                            </View>
                           </View>
                           <View style={styles.savedRowActions}>
                             {isActive ? (
@@ -1448,7 +1455,7 @@ const styles = ScaledSheet.create({
   },
   savedAddressRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     borderRadius: '18@ms',
     borderWidth: '1@s',
     borderColor: palette.divider,
@@ -1456,6 +1463,12 @@ const styles = ScaledSheet.create({
     paddingVertical: '14@vs',
     marginBottom: '12@vs',
     backgroundColor: palette.surface,
+  },
+  savedRowInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: '12@s',
   },
   savedRowPressed: {
     opacity: 0.92,
@@ -1470,6 +1483,7 @@ const styles = ScaledSheet.create({
   },
   savedCopy: {
     flex: 1,
+    justifyContent: 'center',
   },
   savedRowTitle: {
     color: palette.textPrimary,
@@ -1489,6 +1503,8 @@ const styles = ScaledSheet.create({
   savedRowActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    alignSelf: 'stretch',
     marginLeft: '12@s',
   },
   selectedBadge: {
