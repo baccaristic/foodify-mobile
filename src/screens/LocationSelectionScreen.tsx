@@ -1,25 +1,49 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { MapStyleElement, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
+import {
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import type { KeyboardTypeOptions } from 'react-native';
+import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { GOOGLE_MAPS_API_KEY } from '@env';
 import MainLayout from '~/layouts/MainLayout';
 import type { LucideIcon } from 'lucide-react-native';
-import { ArrowLeft, MapPin, Navigation, Home, Building2, BriefcaseBusiness, School, Sparkles, Search } from 'lucide-react-native';
+import {
+  Navigation,
+  Home,
+  Building2,
+  BriefcaseBusiness,
+  Sparkles,
+  Search,
+  MapPin,
+  ChevronRight,
+  ArrowLeft,
+} from 'lucide-react-native';
+import FoodifyPin from '~/components/icons/FoodifyPin';
 import LocationSearchOverlay, { LocationPrediction } from './LocationSearchOverlay';
+import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
 
 const palette = {
-  surface: '#17213A',
-  surfaceAlt: '#1E2A44',
-  sheet: '#10182B',
-  textPrimary: '#F9FAFB',
-  textSecondary: '#94A3B8',
-  accent: '#CA251B',
-  accentMuted: 'rgba(202, 37, 27, 0.18)',
+  background: '#FFFFFF',
+  surface: '#F5F7FA',
+  surfaceAlt: '#FFFFFF',
+  sheet: '#FFFFFF',
+  textPrimary: '#0F172A',
+  textSecondary: '#64748B',
+  accent: '#E03131',
+  accentMuted: 'rgba(224, 49, 49, 0.12)',
+  divider: '#E2E8F0',
 };
 
 const initialAddress = 'Q5RP+JVP, Tunis, Tunisia';
@@ -31,87 +55,153 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.01,
 };
 
-const DARK_MAP_STYLE: MapStyleElement[] = [
-  {
-    elementType: 'geometry',
-    stylers: [{ color: '#1f2937' }],
-  },
-  {
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#f9fafb' }],
-  },
-  {
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#111827' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#111827' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#1f2937' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'labels.icon',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'water',
-    stylers: [{ color: '#0f172a' }],
-  },
-  {
-    featureType: 'poi',
-    stylers: [{ visibility: 'off' }],
-  },
-];
+type AddressField = {
+  id: string;
+  label: string;
+  placeholder?: string;
+  keyboardType?: KeyboardTypeOptions;
+};
 
-type PlaceOption = {
+type EntranceOption = {
+  id: string;
+  label: string;
+  helper: string;
+};
+
+type AddressTypeConfig = {
   id: string;
   label: string;
   description: string;
   icon: LucideIcon;
   accent: string;
+  detailFields: AddressField[];
+  entranceOptions: EntranceOption[];
 };
 
-const PLACE_OPTIONS: PlaceOption[] = [
+const ADDRESS_TYPES: AddressTypeConfig[] = [
   {
-    id: 'house',
-    label: 'House',
-    description: 'Single family home or villa',
+    id: 'home',
+    label: 'Home',
+    description: 'House, villa or standalone property',
     icon: Home,
-    accent: '#F59E0B',
+    accent: '#F97316',
+    detailFields: [
+      { id: 'houseNumber', label: 'House number', placeholder: 'e.g. 24 or Villa Nour' },
+      { id: 'directions', label: 'Directions for the rider', placeholder: 'Landmarks, gate color…' },
+    ],
+    entranceOptions: [
+      { id: 'leaveAtDoor', label: 'Leave at the door', helper: 'Ideal when someone is home' },
+      { id: 'callOnArrival', label: 'Call when outside', helper: 'We will ring you as we arrive' },
+      { id: 'meetOutside', label: 'Meet me outside', helper: 'I will meet the rider at the gate' },
+    ],
   },
   {
     id: 'apartment',
     label: 'Apartment',
-    description: 'Building or complex',
+    description: 'Multi-unit building or residence',
     icon: Building2,
     accent: '#6366F1',
+    detailFields: [
+      { id: 'building', label: 'Building', placeholder: 'Tower, block or residence name' },
+      { id: 'floor', label: 'Floor', placeholder: 'e.g. 5th', keyboardType: 'number-pad' },
+      { id: 'unit', label: 'Apartment', placeholder: 'e.g. 5B or 17' },
+      { id: 'complement', label: 'Complementary info', placeholder: 'How to reach the buzzer, etc.' },
+    ],
+    entranceOptions: [
+      { id: 'buzz', label: 'Ring the buzzer', helper: 'Provide code or apartment name if needed' },
+      { id: 'security', label: 'Check in with security', helper: 'Rider will leave ID if required' },
+    ],
   },
   {
-    id: 'office',
-    label: 'Office',
-    description: 'Workspace or business',
+    id: 'work',
+    label: 'Work',
+    description: 'Office, co-working or store front',
     icon: BriefcaseBusiness,
     accent: '#0EA5E9',
-  },
-  {
-    id: 'school',
-    label: 'School',
-    description: 'Campus or education',
-    icon: School,
-    accent: '#22C55E',
+    detailFields: [
+      { id: 'company', label: 'Company or organization', placeholder: 'Foodify, Inc.' },
+      { id: 'department', label: 'Department', placeholder: 'e.g. Product, HR' },
+      { id: 'contact', label: 'Reception contact', placeholder: 'Name or phone for handoff' },
+    ],
+    entranceOptions: [
+      { id: 'reception', label: 'Drop at reception', helper: 'Front desk signs off the delivery' },
+      { id: 'securityDesk', label: 'Leave with security', helper: 'Perfect when access is limited' },
+      { id: 'callUponArrival', label: 'Call when outside', helper: 'We ring you before heading up' },
+    ],
   },
   {
     id: 'other',
     label: 'Other',
-    description: 'Something different',
+    description: 'Any other type of location',
     icon: Sparkles,
     accent: '#F472B6',
+    detailFields: [
+      { id: 'label', label: 'Give it a name', placeholder: 'Friend, gym, studio…' },
+      { id: 'notes', label: 'Notes for the rider', placeholder: 'Describe the entrance or drop point' },
+    ],
+    entranceOptions: [
+      { id: 'call', label: 'Call me on arrival', helper: 'Best for one-off meetups' },
+      { id: 'text', label: 'Send a text update', helper: 'Get a quick SMS when close' },
+    ],
+  },
+];
+
+type SavedAddress = {
+  id: string;
+  title: string;
+  subtitle: string;
+  details?: string;
+  icon: LucideIcon;
+  accent: string;
+  region: Region;
+  typeId: AddressTypeConfig['id'];
+};
+
+const SAVED_ADDRESSES: SavedAddress[] = [
+  {
+    id: 'home',
+    title: 'Home',
+    subtitle: 'Rue Monji Slim, Ariana',
+    details: 'Apartment 12B, Building Atlas',
+    icon: Home,
+    accent: '#F97316',
+    region: {
+      latitude: 36.8665,
+      longitude: 10.1645,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    },
+    typeId: 'home',
+  },
+  {
+    id: 'work',
+    title: 'Work',
+    subtitle: 'Technopark El Ghazela',
+    details: 'Level 5, Foodify HQ',
+    icon: BriefcaseBusiness,
+    accent: '#0EA5E9',
+    region: {
+      latitude: 36.9009,
+      longitude: 10.1879,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    },
+    typeId: 'work',
+  },
+  {
+    id: 'parents',
+    title: "Parent's place",
+    subtitle: 'La Marsa, Tunis',
+    details: 'Behind Safir Hotel, white gate',
+    icon: Sparkles,
+    accent: '#6366F1',
+    region: {
+      latitude: 36.8913,
+      longitude: 10.3231,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    },
+    typeId: 'other',
   },
 ];
 
@@ -133,11 +223,16 @@ type LocationSelectionScreenProps = {
 } & Record<string, unknown>;
 
 export default function LocationSelectionScreen({ onClose }: LocationSelectionScreenProps) {
-  const [activeOption, setActiveOption] = useState<PlaceOption | null>(null);
-  const [showSummary, setShowSummary] = useState(false);
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const insets = useSafeAreaInsets();
+  const [screenState, setScreenState] = useState<'list' | 'compose' | 'details'>('list');
+  const [activeType, setActiveType] = useState<AddressTypeConfig | null>(null);
+  const [detailForm, setDetailForm] = useState<Record<string, string>>({});
+  const [entranceChoice, setEntranceChoice] = useState<string | null>(null);
+  const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null);
+  const [customLabel, setCustomLabel] = useState('');
   const [currentRegion, setCurrentRegion] = useState<Region>(DEFAULT_REGION);
   const [formattedAddress, setFormattedAddress] = useState(initialAddress);
-  const [headerVisible, setHeaderVisible] = useState(true);
   const [hasConfirmedPoint, setHasConfirmedPoint] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
@@ -147,23 +242,31 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const insets = useSafeAreaInsets();
-
   const screenHeight = useMemo(() => Dimensions.get('screen').height, []);
-  const expandedHeaderHeight = useMemo(() => Math.min(screenHeight * 0.48, vs(420)), [screenHeight]);
-  const compactHeaderHeight = useMemo(() => Math.max(screenHeight * 0.26, vs(240)), [screenHeight]);
+  const expandedHeaderHeight = useMemo(() => Math.min(screenHeight * 0.52, vs(460)), [screenHeight]);
+  const compactHeaderHeight = useMemo(() => Math.max(screenHeight * 0.28, vs(250)), [screenHeight]);
 
-  const collapseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialRegionSettledRef = useRef(false);
+  const programmaticChangeRef = useRef(false);
 
   const mapRef = useRef<MapView | null>(null);
-  const mapVisibility = useSharedValue(1);
   const mapCompactProgress = useSharedValue(0);
   const pinOffset = useSharedValue(0);
 
   const pinLiftOffset = vs(12);
-  const mapCollapseOffset = vs(90);
   const mapCompactOffset = vs(36);
+
+  const handleClose = useCallback(() => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation, onClose]);
 
 
   const fetchAddress = useCallback(
@@ -202,32 +305,12 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   useEffect(() => {
     fetchAddress(DEFAULT_REGION);
   }, [fetchAddress]);
-
   useEffect(() => {
-    mapVisibility.value = withTiming(showSummary ? 0 : 1, { duration: 380 });
-
-    if (collapseTimeout.current) {
-      clearTimeout(collapseTimeout.current);
-      collapseTimeout.current = null;
-    }
-
-    if (showSummary) {
-      collapseTimeout.current = setTimeout(() => setHeaderVisible(false), 360);
-    } else {
-      setHeaderVisible(true);
-    }
-
-    return () => {
-      if (collapseTimeout.current) {
-        clearTimeout(collapseTimeout.current);
-        collapseTimeout.current = null;
-      }
-    };
-  }, [showSummary, mapVisibility]);
-
-  useEffect(() => {
-    mapCompactProgress.value = withTiming(hasConfirmedPoint || showSummary ? 1 : 0, { duration: 320, easing: Easing.out(Easing.quad) });
-  }, [hasConfirmedPoint, mapCompactProgress, showSummary]);
+    mapCompactProgress.value = withTiming(hasConfirmedPoint ? 1 : 0, {
+      duration: 320,
+      easing: Easing.out(Easing.quad),
+    });
+  }, [hasConfirmedPoint, mapCompactProgress]);
 
   useEffect(() => {
     return () => {
@@ -239,16 +322,30 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   }, []);
 
   const handleRegionChange = useCallback(() => {
+    if (!initialRegionSettledRef.current) {
+      return;
+    }
+
+    if (programmaticChangeRef.current) {
+      return;
+    }
+
     pinOffset.value = withTiming(-pinLiftOffset, { duration: 150 });
     setHasConfirmedPoint(false);
-    setShowSummary(false);
-    setHeaderVisible(true);
+    setScreenState('compose');
+    setSelectedSavedId(null);
+    setActiveType(null);
+    setEntranceChoice(null);
     setGeocodeError(null);
     setIsGeocoding(true);
-  }, [pinOffset, pinLiftOffset]);
+  }, [pinLiftOffset, pinOffset, setScreenState]);
 
   const handleRegionChangeComplete = useCallback(
     (region: Region) => {
+      initialRegionSettledRef.current = true;
+      if (programmaticChangeRef.current) {
+        programmaticChangeRef.current = false;
+      }
       setCurrentRegion(region);
       setFormattedAddress(formatRegion(region));
       pinOffset.value = withTiming(0, { duration: 180 });
@@ -262,35 +359,95 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
       return;
     }
     setHasConfirmedPoint(true);
-    setShowSummary(false);
-    setHeaderVisible(true);
+    setScreenState('details');
+    setSelectedSavedId(null);
+    setActiveType((current) => current ?? ADDRESS_TYPES[0]);
+    setDetailForm({});
+    setEntranceChoice(null);
+    setCustomLabel('');
   }, [isGeocoding]);
 
-  const handleSelectOption = useCallback((option: PlaceOption) => {
-    setActiveOption(option);
-    setShowSummary(true);
-  }, []);
-
-  const handleChangeType = useCallback(() => {
-    setShowSummary(false);
-  }, []);
-
   const recenterToDefault = useCallback(() => {
+    programmaticChangeRef.current = true;
     mapRef.current?.animateToRegion(DEFAULT_REGION, 280);
     setCurrentRegion(DEFAULT_REGION);
     setHasConfirmedPoint(false);
-    setShowSummary(false);
-    setHeaderVisible(true);
+    setScreenState('compose');
+    setSelectedSavedId(null);
+    setActiveType(null);
+    setEntranceChoice(null);
     fetchAddress(DEFAULT_REGION);
   }, [fetchAddress]);
 
+  const handleSelectType = useCallback((type: AddressTypeConfig) => {
+    setScreenState('details');
+    setHasConfirmedPoint(true);
+    setActiveType(type);
+    setDetailForm((previous) => {
+      const next: Record<string, string> = {};
+      type.detailFields.forEach((field) => {
+        next[field.id] = previous[field.id] ?? '';
+      });
+      return next;
+    });
+    setEntranceChoice(null);
+    if (type.id !== 'other') {
+      setCustomLabel('');
+    }
+  }, []);
+
+  const handleDetailChange = useCallback((fieldId: string, value: string) => {
+    setDetailForm((previous) => ({
+      ...previous,
+      [fieldId]: value,
+    }));
+  }, []);
+
+  const handleEntranceSelect = useCallback((optionId: string) => {
+    setEntranceChoice((current) => (current === optionId ? null : optionId));
+  }, []);
+
+  const handleSelectSavedAddress = useCallback(
+    (address: SavedAddress) => {
+      programmaticChangeRef.current = true;
+      setScreenState('list');
+      setSelectedSavedId(address.id);
+      setHasConfirmedPoint(false);
+      setEntranceChoice(null);
+      const typeForAddress = ADDRESS_TYPES.find((type) => type.id === address.typeId) ?? null;
+      setActiveType(typeForAddress);
+      if (typeForAddress?.id === 'other') {
+        setCustomLabel(address.title);
+      } else {
+        setCustomLabel('');
+      }
+      setDetailForm({});
+      setFormattedAddress(address.subtitle);
+      setCurrentRegion(address.region);
+      setGeocodeError(null);
+      setIsGeocoding(true);
+      mapRef.current?.animateToRegion(address.region, 320);
+      fetchAddress(address.region);
+    },
+    [fetchAddress]
+  );
+
+  const handleSaveAddress = useCallback(() => {
+    setScreenState('list');
+    setHasConfirmedPoint(false);
+    setSelectedSavedId(null);
+    setActiveType(null);
+    setEntranceChoice(null);
+    setDetailForm({});
+    setCustomLabel('');
+  }, []);
+
   const mapAnimatedStyle = useAnimatedStyle(() => {
-    const hideProgress = 1 - mapVisibility.value;
     const compactProgress = mapCompactProgress.value;
-    const translateY = -(hideProgress * mapCollapseOffset + compactProgress * mapCompactOffset);
-    const scale = 1 - compactProgress * 0.05 - hideProgress * 0.05;
+    const translateY = -(compactProgress * mapCompactOffset);
+    const scale = 1 - compactProgress * 0.05;
     return {
-      opacity: mapVisibility.value,
+      opacity: 1,
       transform: [
         { translateY },
         { scale: Math.max(scale, 0.88) },
@@ -302,10 +459,12 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     transform: [{ translateY: pinOffset.value }],
   }));
 
-  const SelectedIcon = activeOption?.icon;
-  const confirmDisabled = isGeocoding && !hasConfirmedPoint;
+  const SelectedType = activeType;
+  const confirmDisabled = isGeocoding;
 
   const openSearch = useCallback(() => {
+    setScreenState('compose');
+    setSelectedSavedId(null);
     setSearchActive(true);
     setSearchQuery('');
     setSearchPredictions([]);
@@ -413,8 +572,12 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
           };
           setCurrentRegion(nextRegion);
           setHasConfirmedPoint(false);
-          setShowSummary(false);
-          setHeaderVisible(true);
+          setScreenState('compose');
+          setSelectedSavedId(null);
+          setActiveType(null);
+          setEntranceChoice(null);
+          setDetailForm({});
+          programmaticChangeRef.current = true;
           setFormattedAddress(data.result.formatted_address ?? prediction.primaryText);
           setGeocodeError(null);
           mapRef.current?.animateToRegion(nextRegion, 320);
@@ -432,164 +595,300 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     [closeSearch, fetchAddress]
   );
 
+  const isListMode = screenState === 'list';
+  const isComposeMode = screenState === 'compose';
+  const isDetailsMode = screenState === 'details';
+
   return (
     <>
       <MainLayout
-        showHeader={headerVisible && !hasConfirmedPoint}
-        headerCollapsed={showSummary || hasConfirmedPoint}
+        showHeader
+        headerCollapsed={hasConfirmedPoint}
         headerMaxHeight={expandedHeaderHeight}
         headerMinHeight={compactHeaderHeight}
         showFooter={false}
         enableHeaderCollapse={false}
         customHeader={
-          headerVisible ? (
-            <Animated.View style={[styles.mapContainer, mapAnimatedStyle]}>
-              <MapView
-                ref={mapRef}
-                style={StyleSheet.absoluteFillObject}
-                provider={PROVIDER_GOOGLE}
-                initialRegion={currentRegion}
-                customMapStyle={DARK_MAP_STYLE}
-                onRegionChange={handleRegionChange}
-                onRegionChangeComplete={handleRegionChangeComplete}
-                showsCompass={false}
-                showsPointsOfInterest={false}
-                showsTraffic={false}
-              />
-              <View style={[StyleSheet.absoluteFillObject, styles.mapOverlay]}>
-                <Animated.View style={[styles.pinWrapper, pinAnimatedStyle]}>
-                  <MapPin size={s(46)} color={palette.accent} fill={palette.accent} strokeWidth={1} />
-                </Animated.View>
-                <View style={styles.pinShadow} />
-              </View>
-              <View style={styles.addressCard}>
-                <View style={styles.addressIcon}>
-                  <MapPin size={s(18)} color={palette.textPrimary} />
-                </View>
-                <View style={styles.addressDetails}>
-                  <Text allowFontScaling={false} style={styles.addressTitle} numberOfLines={1}>
-                    {isGeocoding ? 'Pinning exact spot...' : formattedAddress}
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={handleConfirmPoint}
-                    disabled={confirmDisabled}
-                  >
-                    {isGeocoding ? (
-                      <ActivityIndicator size="small" color={palette.accent} style={{ marginTop: vs(6) }} />
-                    ) : (
-                      <Text allowFontScaling={false} style={styles.addressActionLink}>
-                        {hasConfirmedPoint ? 'Point selected' : 'Use this point'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                  {geocodeError && (
-                    <Text allowFontScaling={false} style={styles.addressError} numberOfLines={1}>
-                      {geocodeError}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <View style={styles.mapActions}>
-                <TouchableOpacity activeOpacity={0.85} style={styles.locateButton} onPress={recenterToDefault}>
-                  <Navigation size={s(18)} color={palette.surface} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.googleBrand}>
-                <Text allowFontScaling={false} style={styles.googleLabel}>
-                  Google
+          <Animated.View style={[styles.mapContainer, mapAnimatedStyle]}>
+            <MapView
+              ref={mapRef}
+              style={StyleSheet.absoluteFillObject}
+              provider={PROVIDER_GOOGLE}
+              initialRegion={currentRegion}
+              onRegionChange={handleRegionChange}
+              onRegionChangeComplete={handleRegionChangeComplete}
+              showsCompass={false}
+              showsPointsOfInterest={false}
+              showsTraffic={false}
+            />
+            <View style={[styles.backButtonContainer, { top: insets.top + vs(8) }]}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleClose}
+                style={styles.backButton}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <ArrowLeft size={s(18)} color="white" />
+              </TouchableOpacity>
+            </View>
+            <View style={[StyleSheet.absoluteFillObject, styles.mapOverlay]}>
+              <Animated.View style={[styles.pinWrapper, pinAnimatedStyle]}>
+                <FoodifyPin width={s(44)} height={s(60)} color={palette.accent} />
+              </Animated.View>
+              <View style={styles.pinShadow} />
+            </View>
+            <View style={styles.addressCard}>
+              <View style={styles.addressBadge}>
+                <Text allowFontScaling={false} style={styles.addressBadgeText}>
+                  DELIVERY LOCATION
                 </Text>
               </View>
-            </Animated.View>
-          ) : undefined
+              <Text allowFontScaling={false} style={styles.addressTitle} numberOfLines={2}>
+                {isGeocoding ? 'Pinning exact spot…' : formattedAddress}
+              </Text>
+              {geocodeError && (
+                <Text allowFontScaling={false} style={styles.addressError} numberOfLines={1}>
+                  {geocodeError}
+                </Text>
+              )}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={handleConfirmPoint}
+                disabled={confirmDisabled}
+                style={[styles.addressActionButton, confirmDisabled && styles.addressActionButtonDisabled]}
+              >
+                {isGeocoding ? (
+                  <ActivityIndicator size="small" color={palette.surfaceAlt} />
+                ) : (
+                  <Text allowFontScaling={false} style={styles.addressActionText}>
+                    {hasConfirmedPoint && isDetailsMode ? 'KEEP EDITING DETAILS' : 'USE THIS ADDRESS'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            <View style={styles.mapActions}>
+              <TouchableOpacity activeOpacity={0.85} style={styles.locateButton} onPress={recenterToDefault}>
+                <Navigation size={s(18)} color={palette.accent} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.googleBrand}>
+              <Text allowFontScaling={false} style={styles.googleLabel}>
+                Google
+              </Text>
+            </View>
+          </Animated.View>
         }
         mainContent={
           <View style={styles.content}>
+            {(isComposeMode || isDetailsMode) && (
+              <Animated.View entering={FadeIn.duration(220)} style={styles.locationSummary}>
+                <Text allowFontScaling={false} style={styles.summaryLabel}>
+                  Pinned location
+                </Text>
+                <Text allowFontScaling={false} style={styles.summaryAddress}>
+                  {formattedAddress}
+                </Text>
+                <View style={styles.coordinatesPill}>
+                  <MapPin size={s(16)} color={palette.textSecondary} />
+                  <Text allowFontScaling={false} style={styles.coordinatesText}>
+                    {formatRegion(currentRegion)}
+                  </Text>
+                </View>
+                <Text allowFontScaling={false} style={styles.summaryHint}>
+                  Drag the pin or use the search bar to fine tune your drop-off point.
+                </Text>
+              </Animated.View>
+            )}
+
             <View style={styles.cardStack}>
-              {!hasConfirmedPoint && !showSummary && (
-                <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(180)} style={styles.searchPrompt}>
+              {isListMode && (
+                <Animated.View entering={FadeIn.duration(220)} style={styles.savedAddressesCard}>
+                  <Text allowFontScaling={false} style={styles.savedTitle}>
+                    Saved addresses
+                  </Text>
+                  <Text allowFontScaling={false} style={styles.savedSubtitle}>
+                    Choose a frequent spot or add a brand new location.
+                  </Text>
+
+                  {SAVED_ADDRESSES.map((address) => {
+                    const Icon = address.icon;
+                    const isActive = selectedSavedId === address.id;
+                    return (
+                      <TouchableOpacity
+                        key={address.id}
+                        activeOpacity={0.85}
+                        onPress={() => handleSelectSavedAddress(address)}
+                        style={[
+                          styles.savedAddressRow,
+                          isActive && {
+                            borderColor: withOpacity(address.accent, 0.5),
+                            backgroundColor: withOpacity(address.accent, 0.14),
+                          },
+                        ]}
+                      >
+                        <View style={[styles.savedIconBadge, { backgroundColor: withOpacity(address.accent, 0.22) }]}>
+                          <Icon size={s(20)} color={address.accent} />
+                        </View>
+                        <View style={styles.savedCopy}>
+                          <Text allowFontScaling={false} style={styles.savedRowTitle}>
+                            {address.title}
+                          </Text>
+                          <Text allowFontScaling={false} style={styles.savedRowSubtitle} numberOfLines={1}>
+                            {address.subtitle}
+                          </Text>
+                          {address.details ? (
+                            <Text allowFontScaling={false} style={styles.savedRowDetails} numberOfLines={1}>
+                              {address.details}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <ChevronRight size={s(18)} color={palette.textSecondary} />
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  <TouchableOpacity activeOpacity={0.9} style={styles.addAddressButton} onPress={openSearch}>
+                    <Text allowFontScaling={false} style={styles.addAddressLabel}>
+                      Add new address
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+
+              {isComposeMode && (
+                <Animated.View entering={FadeIn.duration(220)} style={styles.searchPrompt}>
                   <Text allowFontScaling={false} style={styles.searchPromptTitle}>
-                    Trouble locating your address?
+                    Search for a different spot
                   </Text>
                   <Text allowFontScaling={false} style={styles.searchPromptSubtitle}>
-                    Try using search instead.
+                    Drag the pin on the map above or look up an exact street, building or landmark.
                   </Text>
                   <TouchableOpacity activeOpacity={0.85} onPress={openSearch} style={styles.searchLaunchBar}>
                     <Search size={s(18)} color={palette.textSecondary} style={{ marginRight: s(8) }} />
                     <Text allowFontScaling={false} style={styles.searchLaunchPlaceholder}>
-                      Search street, city, district...
+                      Search your delivery location
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>
               )}
 
-              {hasConfirmedPoint && !showSummary && (
-                <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(200)} style={styles.selectionCard}>
-                  <Text allowFontScaling={false} style={styles.selectionTitle}>
-                    What kind of place is this?
+              {isDetailsMode && SelectedType && (
+                <Animated.View entering={FadeIn.duration(220)} style={styles.detailsCard}>
+                  <Text allowFontScaling={false} style={styles.detailsTitle}>
+                    Label this address as
                   </Text>
-                  <Text allowFontScaling={false} style={styles.selectionSubtitle}>
-                    Choose the label that fits best so we remember for next time.
-                  </Text>
-
-                  <View style={styles.optionsGrid}>
-                    {PLACE_OPTIONS.map((option) => {
-                      const isActive = activeOption?.id === option.id;
-                      const Icon = option.icon;
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.typeChipRow}
+                  >
+                    {ADDRESS_TYPES.map((type) => {
+                      const Icon = type.icon;
+                      const isActive = SelectedType.id === type.id;
                       return (
                         <TouchableOpacity
-                          key={option.id}
+                          key={type.id}
                           activeOpacity={0.85}
                           style={[
-                            styles.optionButton,
+                            styles.typeChip,
                             {
-                              borderColor: withOpacity(option.accent, isActive ? 0.6 : 0.2),
-                              backgroundColor: withOpacity(option.accent, isActive ? 0.18 : 0.08),
+                              borderColor: withOpacity(type.accent, isActive ? 0.6 : 0.25),
+                              backgroundColor: withOpacity(type.accent, isActive ? 0.16 : 0.08),
                             },
                           ]}
-                          onPress={() => handleSelectOption(option)}
+                          onPress={() => handleSelectType(type)}
                         >
-                          <View style={[styles.optionIconWrapper, { backgroundColor: withOpacity(option.accent, 0.22) }]}>
-                            <Icon size={s(24)} color={option.accent} />
-                          </View>
-                          <Text allowFontScaling={false} style={styles.optionLabel}>
-                            {option.label}
-                          </Text>
-                          <Text allowFontScaling={false} style={styles.optionDescription}>
-                            {option.description}
+                          <Icon size={s(18)} color={type.accent} />
+                          <Text allowFontScaling={false} style={styles.typeChipLabel}>
+                            {type.label}
                           </Text>
                         </TouchableOpacity>
                       );
                     })}
-                  </View>
-                </Animated.View>
-              )}
+                  </ScrollView>
 
-              {showSummary && activeOption && SelectedIcon && (
-                <Animated.View
-                  entering={FadeIn.duration(220)}
-                  exiting={FadeOut.duration(200)}
-                  style={[styles.detailCard, { borderColor: withOpacity(activeOption.accent, 0.45) }]}
-                >
-                  <View style={[styles.detailIconShell, { backgroundColor: withOpacity(activeOption.accent, 0.18) }]}>
-                    <SelectedIcon size={s(28)} color={activeOption.accent} />
-                  </View>
-                  <Text allowFontScaling={false} style={styles.detailTitle}>
-                    Saved as {activeOption.label}
-                  </Text>
-                  <Text allowFontScaling={false} style={styles.detailDescription}>
-                    We will keep this location marked as your {activeOption.label.toLowerCase()} so you can check out faster next time.
-                  </Text>
+                  <View style={styles.detailsSection}>
+                    <Text allowFontScaling={false} style={styles.sectionHeading}>
+                      Address details
+                    </Text>
+                    {SelectedType.detailFields.map((field) => (
+                      <View key={field.id} style={styles.inputGroup}>
+                        <Text allowFontScaling={false} style={styles.inputLabel}>
+                          {field.label}
+                        </Text>
+                        <TextInput
+                          value={detailForm[field.id] ?? ''}
+                          onChangeText={(value) => handleDetailChange(field.id, value)}
+                          placeholder={field.placeholder}
+                          placeholderTextColor={palette.textSecondary}
+                          style={styles.textInput}
+                          keyboardType={field.keyboardType}
+                        />
+                      </View>
+                    ))}
 
-                  <TouchableOpacity activeOpacity={0.9} style={[styles.primaryButton, { backgroundColor: activeOption.accent }]}>
-                    <Text allowFontScaling={false} style={styles.primaryButtonLabel}>
-                      Confirm {activeOption.label}
+                    {SelectedType.id === 'other' && (
+                      <View style={styles.inputGroup}>
+                        <Text allowFontScaling={false} style={styles.inputLabel}>
+                          Custom label
+                        </Text>
+                        <TextInput
+                          value={customLabel}
+                          onChangeText={setCustomLabel}
+                          placeholder="Give this place a friendly name"
+                          placeholderTextColor={palette.textSecondary}
+                          style={styles.textInput}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.detailsSection}>
+                    <Text allowFontScaling={false} style={styles.sectionHeading}>
+                      Mark the entrance
+                    </Text>
+                    <Text allowFontScaling={false} style={styles.sectionHelper}>
+                      Help our rider find you faster and more safely.
+                    </Text>
+                    <View style={styles.entranceGrid}>
+                      {SelectedType.entranceOptions.map((option) => {
+                        const isActive = entranceChoice === option.id;
+                        return (
+                          <TouchableOpacity
+                            key={option.id}
+                            activeOpacity={0.9}
+                            onPress={() => handleEntranceSelect(option.id)}
+                            style={[
+                              styles.entranceOption,
+                              isActive && styles.entranceOptionActive,
+                            ]}
+                          >
+                            <Text allowFontScaling={false} style={styles.entranceLabel}>
+                              {option.label}
+                            </Text>
+                            <Text allowFontScaling={false} style={styles.entranceHelper}>
+                              {option.helper}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  <TouchableOpacity activeOpacity={0.9} style={styles.primaryButton} onPress={handleSaveAddress}>
+                    <Text allowFontScaling={false} style={styles.primaryButtonText}>
+                      Save and continue
                     </Text>
                   </TouchableOpacity>
-
-                  <TouchableOpacity activeOpacity={0.9} style={styles.secondaryButton} onPress={handleChangeType}>
-                    <Text allowFontScaling={false} style={styles.secondaryButtonLabel}>
-                      Choose a different type
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={styles.secondaryButton}
+                    onPress={() => setScreenState('compose')}
+                  >
+                    <Text allowFontScaling={false} style={styles.secondaryButtonText}>
+                      Adjust pin location
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>
@@ -598,16 +897,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
           </View>
         }
       />
-
-      {onClose ? (
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={onClose}
-          style={[styles.closeOverlayButton, { top: insets.top + vs(12) }]}
-        >
-          <ArrowLeft size={s(20)} color="#FFFFFF" />
-        </TouchableOpacity>
-      ) : null}
 
       <LocationSearchOverlay
         visible={searchActive}
@@ -622,6 +911,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
       />
     </>
   );
+
 }
 
 const styles = ScaledSheet.create({
@@ -630,11 +920,27 @@ const styles = ScaledSheet.create({
     borderBottomLeftRadius: '32@ms',
     borderBottomRightRadius: '32@ms',
     overflow: 'hidden',
-    backgroundColor: palette.surface,
+    backgroundColor: palette.surfaceAlt,
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    left: '16@s',
+    zIndex: 10,
+  },
+  backButton: {
+    width: '44@s',
+    height: '44@s',
+    borderRadius: '22@ms',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   mapOverlay: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingBottom: '40@vs',
   },
   closeOverlayButton: {
     position: 'absolute',
@@ -642,10 +948,10 @@ const styles = ScaledSheet.create({
     width: '44@s',
     height: '44@s',
     borderRadius: '22@ms',
-    backgroundColor: 'rgba(16, 24, 43, 0.88)',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: '1@s',
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   pinWrapper: {
@@ -655,52 +961,71 @@ const styles = ScaledSheet.create({
   pinShadow: {
     position: 'absolute',
     bottom: '40@vs',
-    width: '80@s',
-    height: '80@vs',
-    borderRadius: '40@ms',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    opacity: 0.4,
-    transform: [{ scaleY: 0.3 }],
+    width: '74@s',
+    height: '74@vs',
+    borderRadius: '37@ms',
+    backgroundColor: 'rgba(15, 23, 42, 0.16)',
+    opacity: 0.32,
+    transform: [{ scaleY: 0.28 }],
   },
   addressCard: {
     position: 'absolute',
-    top: '32@vs',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: '10@vs',
-    paddingHorizontal: '16@s',
-    borderRadius: '18@ms',
-    backgroundColor: palette.sheet,
+    bottom: '28@vs',
+    left: '56@s',
+    right: '56@s',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: '22@ms',
+    paddingVertical: '14@vs',
+    paddingHorizontal: '18@s',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: '12@ms',
+    elevation: 6,
   },
-  addressIcon: {
-    width: '32@s',
-    height: '32@s',
-    borderRadius: '16@ms',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.accentMuted,
-    marginRight: '10@s',
+  addressBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: '10@s',
+    paddingVertical: '3@vs',
+    borderRadius: '999@ms',
+    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    marginBottom: '8@vs',
   },
-  addressDetails: {
-    flexShrink: 1,
-    maxWidth: '200@s',
+  addressBadgeText: {
+    color: palette.textPrimary,
+    fontSize: '10@ms',
+    fontWeight: '600',
+    letterSpacing: 0.8,
   },
   addressTitle: {
     color: palette.textPrimary,
-    fontSize: '14@ms',
+    fontSize: '15@ms',
     fontWeight: '600',
-  },
-  addressActionLink: {
-    color: palette.accent,
-    fontSize: '12@ms',
-    fontWeight: '700',
-    marginTop: '6@vs',
+    lineHeight: '21@vs',
   },
   addressError: {
-    color: '#FCA5A5',
-    fontSize: '10@ms',
-    marginTop: '4@vs',
+    color: '#ef4444',
+    fontSize: '11@ms',
+    marginTop: '6@vs',
+  },
+  addressActionButton: {
+    marginTop: '12@vs',
+    borderRadius: '16@ms',
+    backgroundColor: palette.accent,
+    paddingVertical: '11@vs',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressActionButtonDisabled: {
+    opacity: 0.7,
+  },
+  addressActionText: {
+    color: '#FFFFFF',
+    fontSize: '12.5@ms',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   mapActions: {
     position: 'absolute',
@@ -711,7 +1036,7 @@ const styles = ScaledSheet.create({
     width: '44@s',
     height: '44@s',
     borderRadius: '22@ms',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: palette.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -731,15 +1056,18 @@ const styles = ScaledSheet.create({
   },
   content: {
     paddingHorizontal: '16@s',
-    paddingTop: '18@vs',
-    paddingBottom: '24@vs',
+    paddingTop: '24@vs',
+    paddingBottom: '32@vs',
+    backgroundColor: palette.background,
   },
   locationSummary: {
-    backgroundColor: palette.surface,
+    backgroundColor: palette.surfaceAlt,
     borderRadius: '24@ms',
     paddingHorizontal: '20@s',
     paddingVertical: '18@vs',
     marginBottom: '18@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   summaryLabel: {
     color: palette.textSecondary,
@@ -758,7 +1086,7 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '12@s',
     paddingVertical: '6@vs',
     borderRadius: '999@ms',
-    backgroundColor: 'rgba(23, 33, 58, 0.85)',
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -779,118 +1107,216 @@ const styles = ScaledSheet.create({
   },
   searchPrompt: {
     backgroundColor: palette.surfaceAlt,
-    borderRadius: '28@ms',
+    borderRadius: '24@ms',
     paddingHorizontal: '20@s',
-    paddingVertical: '24@vs',
+    paddingVertical: '22@vs',
     marginBottom: '18@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   searchPromptTitle: {
     color: palette.textPrimary,
     fontSize: '16@ms',
     fontWeight: '600',
   },
-  searchPromptSubtitle: {
-    color: palette.textSecondary,
-    fontSize: '12@ms',
-    marginTop: '6@vs',
-  },
   searchLaunchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(148, 163, 184, 0.15)',
-    borderRadius: '18@ms',
-    paddingHorizontal: '14@s',
-    paddingVertical: '12@vs',
+    backgroundColor: palette.surface,
+    borderRadius: '16@ms',
+    paddingHorizontal: '16@s',
+    paddingVertical: '14@vs',
     marginTop: '18@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   searchLaunchPlaceholder: {
     color: palette.textSecondary,
     fontSize: '13@ms',
   },
-  selectionCard: {
+  searchPromptSubtitle: {
+    color: palette.textSecondary,
+    fontSize: '13@ms',
+    marginTop: '10@vs',
+    lineHeight: '20@vs',
+  },
+  savedAddressesCard: {
     backgroundColor: palette.surfaceAlt,
-    borderRadius: '28@ms',
+    borderRadius: '24@ms',
     paddingHorizontal: '20@s',
     paddingVertical: '24@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
-  selectionTitle: {
+  savedTitle: {
     color: palette.textPrimary,
     fontSize: '18@ms',
     fontWeight: '700',
   },
-  selectionSubtitle: {
+  savedSubtitle: {
     color: palette.textSecondary,
     fontSize: '13@ms',
     marginTop: '6@vs',
+    marginBottom: '18@vs',
   },
-  optionsGrid: {
+  savedAddressRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginTop: '20@vs',
-  },
-  optionButton: {
-    width: '48%',
-    borderRadius: '20@ms',
-    paddingHorizontal: '14@s',
-    paddingVertical: '16@vs',
+    alignItems: 'center',
+    borderRadius: '18@ms',
     borderWidth: '1@s',
-    marginBottom: '14@vs',
+    borderColor: palette.divider,
+    paddingHorizontal: '14@s',
+    paddingVertical: '14@vs',
+    marginBottom: '12@vs',
+    backgroundColor: palette.surface,
   },
-  optionIconWrapper: {
+  savedIconBadge: {
     width: '40@s',
     height: '40@s',
     borderRadius: '20@ms',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '10@vs',
+    marginRight: '12@s',
   },
-  optionLabel: {
+  savedCopy: {
+    flex: 1,
+  },
+  savedRowTitle: {
     color: palette.textPrimary,
     fontSize: '15@ms',
     fontWeight: '600',
   },
-  optionDescription: {
+  savedRowSubtitle: {
+    color: palette.textSecondary,
+    fontSize: '12.5@ms',
+    marginTop: '4@vs',
+  },
+  savedRowDetails: {
+    color: palette.textSecondary,
+    fontSize: '12@ms',
+    marginTop: '2@vs',
+  },
+  addAddressButton: {
+    marginTop: '8@vs',
+    paddingVertical: '14@vs',
+    borderRadius: '16@ms',
+    alignItems: 'center',
+    borderWidth: '1@s',
+    borderColor: withOpacity(palette.accent, 0.4),
+    backgroundColor: withOpacity(palette.accent, 0.12),
+  },
+  addAddressLabel: {
+    color: palette.accent,
+    fontSize: '14@ms',
+    fontWeight: '600',
+  },
+  detailsCard: {
+    backgroundColor: palette.surfaceAlt,
+    borderRadius: '24@ms',
+    paddingHorizontal: '20@s',
+    paddingVertical: '24@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
+  },
+  detailsTitle: {
+    color: palette.textPrimary,
+    fontSize: '17@ms',
+    fontWeight: '700',
+    marginBottom: '14@vs',
+  },
+  typeChipRow: {
+    paddingVertical: '4@vs',
+    paddingRight: '12@s',
+  },
+  typeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: '16@ms',
+    borderWidth: '1@s',
+    paddingHorizontal: '14@s',
+    paddingVertical: '10@vs',
+    marginRight: '12@s',
+  },
+  typeChipLabel: {
+    color: palette.textPrimary,
+    fontSize: '13@ms',
+    fontWeight: '600',
+    marginLeft: '8@s',
+  },
+  detailsSection: {
+    marginTop: '22@vs',
+  },
+  sectionHeading: {
+    color: palette.textPrimary,
+    fontSize: '14@ms',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: '12@vs',
+  },
+  sectionHelper: {
+    color: palette.textSecondary,
+    fontSize: '12.5@ms',
+    marginBottom: '14@vs',
+    lineHeight: '18@vs',
+  },
+  inputGroup: {
+    marginBottom: '14@vs',
+  },
+  inputLabel: {
+    color: palette.textSecondary,
+    fontSize: '12@ms',
+    marginBottom: '6@vs',
+  },
+  textInput: {
+    backgroundColor: palette.surface,
+    borderRadius: '14@ms',
+    paddingHorizontal: '14@s',
+    paddingVertical: '12@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
+    color: palette.textPrimary,
+    fontSize: '14@ms',
+  },
+  entranceGrid: {
+    marginTop: '2@vs',
+  },
+  entranceOption: {
+    backgroundColor: palette.surface,
+    borderRadius: '18@ms',
+    borderWidth: 1,
+    borderColor: palette.divider,
+    paddingHorizontal: '18@s',
+    paddingVertical: '14@vs',
+    marginBottom: '12@vs',
+  },
+  entranceOptionActive: {
+    borderColor: withOpacity(palette.accent, 0.7),
+    backgroundColor: withOpacity(palette.accent, 0.14),
+  },
+  entranceLabel: {
+    color: palette.textPrimary,
+    fontSize: '13.5@ms',
+    fontWeight: '600',
+  },
+  entranceHelper: {
     color: palette.textSecondary,
     fontSize: '12@ms',
     marginTop: '6@vs',
-  },
-  detailCard: {
-    backgroundColor: palette.surfaceAlt,
-    borderRadius: '28@ms',
-    paddingHorizontal: '20@s',
-    paddingVertical: '26@vs',
-    borderWidth: '1@s',
-  },
-  detailIconShell: {
-    width: '64@s',
-    height: '64@s',
-    borderRadius: '32@ms',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '18@vs',
-  },
-  detailTitle: {
-    color: palette.textPrimary,
-    fontSize: '20@ms',
-    fontWeight: '700',
-  },
-  detailDescription: {
-    color: palette.textSecondary,
-    fontSize: '13@ms',
-    marginTop: '10@vs',
-    lineHeight: '20@vs',
+    lineHeight: '18@vs',
   },
   primaryButton: {
     marginTop: '28@vs',
     paddingVertical: '14@vs',
     borderRadius: '18@ms',
     alignItems: 'center',
+    backgroundColor: palette.accent,
   },
-  primaryButtonLabel: {
-    color: palette.textPrimary,
+  primaryButtonText: {
+    color: '#FFFFFF',
     fontSize: '15@ms',
     fontWeight: '700',
+    letterSpacing: 0.4,
   },
   secondaryButton: {
     marginTop: '14@vs',
@@ -898,10 +1324,12 @@ const styles = ScaledSheet.create({
     borderRadius: '16@ms',
     alignItems: 'center',
     borderWidth: '1@s',
-    borderColor: 'rgba(148, 163, 184, 0.3)',
+    borderColor: palette.divider,
+    backgroundColor: palette.surfaceAlt,
   },
-  secondaryButtonLabel: {
+  secondaryButtonText: {
     color: palette.textPrimary,
     fontSize: '14@ms',
+    fontWeight: '600',
   },
 });
