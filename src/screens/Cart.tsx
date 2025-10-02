@@ -188,10 +188,12 @@ export default function Cart() {
   return (
     <View className="flex-1 bg-white">
       <MainLayout
+      enableHeaderCollapse={false}
         headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader={true}
         showFooter={true}
-        headerMaxHeight={vs(50)}
+        headerMaxHeight={vs(10)}
+        headerMinHeight={vs(10)}
         customHeader={cartHeader}
         mainContent={cartContent}
       />

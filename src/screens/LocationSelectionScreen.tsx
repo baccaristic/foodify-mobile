@@ -682,26 +682,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
         }
         mainContent={
           <View style={styles.content}>
-            {(isComposeMode || isDetailsMode) && (
-              <Animated.View entering={FadeIn.duration(220)} style={styles.locationSummary}>
-                <Text allowFontScaling={false} style={styles.summaryLabel}>
-                  Pinned location
-                </Text>
-                <Text allowFontScaling={false} style={styles.summaryAddress}>
-                  {formattedAddress}
-                </Text>
-                <View style={styles.coordinatesPill}>
-                  <MapPin size={s(16)} color={palette.textSecondary} />
-                  <Text allowFontScaling={false} style={styles.coordinatesText}>
-                    {formatRegion(currentRegion)}
-                  </Text>
-                </View>
-                <Text allowFontScaling={false} style={styles.summaryHint}>
-                  Drag the pin or use the search bar to fine tune your drop-off point.
-                </Text>
-              </Animated.View>
-            )}
-
             <View style={styles.cardStack}>
               {isListMode && (
                 <Animated.View entering={FadeIn.duration(220)} style={styles.savedAddressesCard}>
