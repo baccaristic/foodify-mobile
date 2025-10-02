@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text } from "react-native";
+import { View, TouchableOpacity, Text, StyleProp, ViewStyle } from "react-native";
 
 
 export interface FixedOrderBarProps {

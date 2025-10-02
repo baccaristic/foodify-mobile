@@ -85,7 +85,7 @@ const SignUpEmailPassword = () => {
                     <Text allowFontScaling={false} className="text-base text-gray-600">
                         you already have an account?
                     </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('EmailLogin')}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
                         <Text allowFontScaling={false} className="text-base font-semibold ml-1 text-[#CA251B]" >
                             Log In
                         </Text>

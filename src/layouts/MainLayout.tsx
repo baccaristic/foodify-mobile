@@ -1,5 +1,6 @@
 import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
-import { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react-native';
+import { ReactNode, useEffect } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -16,17 +17,41 @@ import Animated, {
   Extrapolate,
   useAnimatedScrollHandler,
   Extrapolation,
+  withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
 import { Image } from 'expo-image';
 
-const navItems = [
-  { icon: Home, label: 'Home', active: true },
-  { icon: Search, label: 'Search', active: false },
-  { icon: ShoppingBag, label: 'Orders', active: false },
-  { icon: User, label: 'Account', active: false },
+type NavItem = {
+  icon: LucideIcon;
+  label: string;
+  route: string;
+};
+
+const defaultNavItems: NavItem[] = [
+  { icon: Home, label: 'Home', route: 'Home' },
+  { icon: Search, label: 'Search', route: 'Search' },
+  { icon: ShoppingBag, label: 'Orders', route: 'Cart' },
+  { icon: User, label: 'Account', route: 'Profile' },
 ];
+
+const useOptionalNavigation = () => {
+  try {
+    return useNavigation<NavigationProp<Record<string, object | undefined>>>();
+  } catch (error) {
+    return undefined;
+  }
+};
+
+const useOptionalRoute = () => {
+  try {
+    return useRoute();
+  } catch (error) {
+    return undefined;
+  }
+};
 
 interface MainLayoutProps {
   showHeader?: boolean;
@@ -37,6 +62,11 @@ interface MainLayoutProps {
   headerMaxHeight?: number;
   headerMinHeight?: number;
   headerBackgroundImage?: any;
+  headerCollapsed?: boolean;
+  enableHeaderCollapse?: boolean;
+  navItems?: NavItem[];
+  activeTab?: string;
+  onTabPress?: (route: string) => void;
 }
 
 export default function MainLayout({
@@ -48,25 +78,51 @@ export default function MainLayout({
   headerMaxHeight,
   headerMinHeight,
   headerBackgroundImage,
+  headerCollapsed = false,
+  enableHeaderCollapse = true,
+  navItems,
+  activeTab,
+  onTabPress,
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
-  const MAX_HEIGHT = headerMaxHeight ?? screenHeight * 0.2; // 20% of screen height
-  const MIN_HEIGHT = headerMinHeight ?? screenHeight * 0.12; // 12% of screen height
+  const defaultMax = screenHeight * 0.28;
+  const minResponsiveMax = screenHeight * 0.2;
+  const MAX_HEIGHT = Math.max(headerMaxHeight ?? defaultMax, minResponsiveMax);
+  const MIN_HEIGHT = headerMinHeight ?? screenHeight * 0.12;
   const SCROLL_DISTANCE = MAX_HEIGHT - MIN_HEIGHT + insets.top;
+  const collapseEnabled = enableHeaderCollapse && showHeader;
 
+  const navigation = useOptionalNavigation();
+  const route = useOptionalRoute();
   const scrollY = useSharedValue(0);
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
+    if (!collapseEnabled) {
+      return;
+    }
     scrollY.value = event.contentOffset.y;
   });
 
+  useEffect(() => {
+    if (!collapseEnabled) {
+      return;
+    }
+    scrollY.value = withTiming(headerCollapsed ? SCROLL_DISTANCE : 0, { duration: 350 });
+  }, [collapseEnabled, headerCollapsed, SCROLL_DISTANCE, scrollY]);
+
   const fullHeaderStyle = useAnimatedStyle(() => {
+    if (!collapseEnabled) {
+      return { opacity: 1 };
+    }
     const opacity = interpolate(scrollY.value, [0, SCROLL_DISTANCE / 2], [1, 0], Extrapolate.CLAMP);
     return { opacity };
   });
 
   const collapsedHeaderStyle = useAnimatedStyle(() => {
+    if (!collapseEnabled) {
+      return { opacity: 0 };
+    }
     const opacity = interpolate(
       scrollY.value,
       [SCROLL_DISTANCE / 2, SCROLL_DISTANCE],
@@ -77,6 +133,9 @@ export default function MainLayout({
   });
 
   const headerHeightStyle = useAnimatedStyle(() => {
+    if (!collapseEnabled) {
+      return { height: MAX_HEIGHT + 20 };
+    }
     const height = interpolate(
       scrollY.value,
       [0, SCROLL_DISTANCE],
@@ -86,81 +145,120 @@ export default function MainLayout({
     return { height: height + 20 };
   });
 
+  const renderHeaderContent = (isAnimated: boolean) => {
+    if (!customHeader && !collapsedHeader && !headerBackgroundImage) {
+      return null;
+    }
+
+    const fullNode = customHeader
+      ? isAnimated
+        ? (
+            <Animated.View
+              style={fullHeaderStyle}
+              pointerEvents={
+                collapseEnabled
+                  ? scrollY.value < SCROLL_DISTANCE / 2
+                    ? 'auto'
+                    : 'none'
+                  : 'auto'
+              }
+            >
+              {customHeader}
+            </Animated.View>
+          )
+        : (
+            <View style={{ flex: 1 }}>{customHeader}</View>
+          )
+      : null;
+
+    const collapsedNode =
+      isAnimated && collapseEnabled && collapsedHeader ? (
+        <Animated.View
+          style={[styles.collapsedHeader, collapsedHeaderStyle]}
+          pointerEvents={scrollY.value >= SCROLL_DISTANCE / 2 ? 'auto' : 'none'}
+        >
+          {collapsedHeader}
+        </Animated.View>
+      ) : null;
+
+    if (headerBackgroundImage) {
+      return (
+        <ImageBackground
+          source={headerBackgroundImage}
+          style={{ flex: 1, width: '100%', height: '100%' }}
+          resizeMode="cover"
+        >
+          <View style={styles.overlay} />
+          {fullNode}
+          {collapsedNode}
+        </ImageBackground>
+      );
+    }
+
+    return (
+      <>
+        {fullNode}
+        {collapsedNode}
+      </>
+    );
+  };
+
+  const resolvedNavItems = navItems ?? defaultNavItems;
+  const routeName = route?.name;
+  const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
+
+  const headerNode = !showHeader
+    ? null
+    : collapseEnabled
+    ? (
+        <Animated.View style={[headerHeightStyle, { width: '100%', overflow: 'hidden' }]}>
+          {renderHeaderContent(true)}
+        </Animated.View>
+      )
+    : (
+        <View style={{ width: '100%', overflow: 'hidden', height: MAX_HEIGHT + 20 }}>
+          {renderHeaderContent(false)}
+        </View>
+      );
+
   return (
     <SafeAreaView style={styles.container}>
-      {showHeader && (
-        <Animated.View style={[headerHeightStyle, { width: '100%', overflow: 'hidden'}]}>
-          {showHeader && (
-            <>
-              {headerBackgroundImage ? (
-                <ImageBackground
-                  source={headerBackgroundImage}
-                  style={{ flex: 1, width: '100%', height: '100%' }}
-                  resizeMode="cover">
-                  <View style={styles.overlay} />
-                  {customHeader && (
-                    <Animated.View
-                      style={fullHeaderStyle}
-                      pointerEvents={scrollY.value < SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
-                      {customHeader}
-                    </Animated.View>
-                  )}
-
-                  {collapsedHeader && (
-                    <Animated.View
-                      style={[styles.collapsedHeader, collapsedHeaderStyle]}
-                      pointerEvents={scrollY.value >= SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
-                      {collapsedHeader}
-                    </Animated.View>
-                  )}
-                </ImageBackground>
-              ) : (
-                <>
-                  {customHeader && (
-                    <Animated.View
-                      style={fullHeaderStyle}
-                      pointerEvents={scrollY.value < SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
-                      {customHeader}
-                    </Animated.View>
-                  )}
-
-                  {collapsedHeader && (
-                    <Animated.View
-                      style={[styles.collapsedHeader, collapsedHeaderStyle]}
-                      pointerEvents={scrollY.value >= SCROLL_DISTANCE / 2 ? 'auto' : 'none'}>
-                      {collapsedHeader}
-                    </Animated.View>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </Animated.View>
-      )}
+      {headerNode}
 
       <Animated.ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, !collapseEnabled && styles.staticScrollView]}
         contentContainerStyle={{
-          paddingTop: vs(10),
+          paddingTop: collapseEnabled ? vs(10) : vs(20),
           paddingBottom: showFooter ? vs(80) : vs(20),
         }}
         scrollEventThrottle={16}
-        onScroll={scrollHandler}>
+        onScroll={collapseEnabled ? scrollHandler : undefined}>
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>
 
       {showFooter && (
         <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
           <View style={styles.navRow}>
-            {navItems.map((item, index) => {
+            {resolvedNavItems.map((item) => {
               const Icon = item.icon;
-              const color = item.active ? '#CA251B' : '#D9D9D9';
+              const isActive = resolvedActiveTab === item.route;
+              const color = isActive ? '#CA251B' : '#D9D9D9';
+
+              const handlePress = () => {
+                if (onTabPress) {
+                  onTabPress(item.route);
+                  return;
+                }
+                if (!navigation || item.route === routeName) {
+                  return;
+                }
+                navigation.navigate(item.route as never);
+              };
+
               return (
-                <TouchableOpacity key={index} activeOpacity={0.7} style={styles.navButton}>
+                <TouchableOpacity key={item.route} activeOpacity={0.7} style={styles.navButton} onPress={handlePress}>
                   <Icon size={s(22)} color={color} />
-                  <Text allowFontScaling={false} style={[styles.navLabel, { color }]}>
-                    {item.label}
-                  </Text>
+                  <Text allowFontScaling={false} style={[styles.navLabel, { color }]}>{item.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -191,6 +289,9 @@ const styles = ScaledSheet.create({
     borderTopRightRadius: '24@ms',
     marginTop: '-14@vs',
     zIndex: 1,
+  },
+  staticScrollView: {
+    marginTop: 0,
   },
   mainContent: {
     flex: 1,
@@ -224,3 +325,7 @@ const styles = ScaledSheet.create({
     marginTop: '2@vs',
   },
 });
+
+
+
+

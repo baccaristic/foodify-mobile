@@ -2,11 +2,13 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
 
+import useLocationOverlay from '~/hooks/useLocationOverlay';
+
 interface HeaderProps {
   title: string;
   onBack?: () => void;
   onLocationPress?: () => void;
-  compact?: boolean; 
+  compact?: boolean;
 }
 
 export default function Header({
@@ -15,6 +17,13 @@ export default function Header({
   onLocationPress,
   compact = false,
 }: HeaderProps) {
+  const { open } = useLocationOverlay();
+
+  const handleLocationPress = () => {
+    open();
+    onLocationPress?.();
+  };
+
   return (
     <View className={compact ? "px-3 py-1" : "px-5 py-5"}>
       <View className="flex-row items-center justify-between">
@@ -26,7 +35,7 @@ export default function Header({
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={onLocationPress}
+          onPress={handleLocationPress}
           className="mx-auto max-w-[70%] flex-row items-center gap-2"
         >
           <Text

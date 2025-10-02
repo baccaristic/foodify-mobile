@@ -20,13 +20,19 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": ""
+      }
     },
     "android": {
       "allowBackup": false,
       "userInterfaceStyle": "light",
       "softwareKeyboardLayoutMode": "pan",
       "resizeMode": "contain",
+      "config": {
+        "googleMapsApiKey": ""
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

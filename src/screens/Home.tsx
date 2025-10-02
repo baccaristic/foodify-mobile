@@ -43,7 +43,7 @@ export default function HomePage() {
     <Animated.View entering={FadeIn.duration(500)}>
       <View style={styles.headerWrapper}>
         <Header
-          title="San Francisco Bay Area"
+          title="San Francisco Bay "Area
           onBack={() => console.log("not working now !")}
           onLocationPress={() => console.log("Location pressed")}
           compact
