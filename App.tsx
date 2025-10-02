@@ -29,6 +29,7 @@ import PhoneEmailEntry from '~/screens/Auth/AuthWithPhone.tsx/EmailEntry';
 import PhoneNameEntry from '~/screens/Auth/AuthWithPhone.tsx/NameEntry';
 import PhoneAcceptTerms from '~/screens/Auth/AuthWithPhone.tsx/AcceptTerms';
 import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
+import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -92,11 +93,13 @@ export default function App() {
         <NavigationContainer>
           <AuthProvider>
             <PhoneSignupProvider>
-          <LocationOverlayProvider>
-                <RootNavigator />
-              </LocationOverlayProvider>
+              <SelectedAddressProvider>
+                <LocationOverlayProvider>
+                  <RootNavigator />
+                </LocationOverlayProvider>
+              </SelectedAddressProvider>
             </PhoneSignupProvider>
-      </AuthProvider>
+          </AuthProvider>
         </NavigationContainer>
       </QueryClientProvider>
     </SafeAreaProvider>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,13 +25,18 @@ import {
   Sparkles,
   Search,
   MapPin,
-  ChevronRight,
   ArrowLeft,
+  SquarePen,
+  Check,
 } from 'lucide-react-native';
 import FoodifyPin from '~/components/icons/FoodifyPin';
 import LocationSearchOverlay, { LocationPrediction } from './LocationSearchOverlay';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { createAddress, getMySavedAddresses, updateAddress } from '~/api/addresses';
+import type { AddressType as AddressTypeApi, SaveAddressRequest, SavedAddressResponse } from '~/interfaces/Address';
+import { getErrorMessage } from '~/helper/apiError';
+import useSelectedAddress from '~/hooks/useSelectedAddress';
 
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
 
@@ -55,6 +61,8 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.01,
 };
 
+type AddressKind = 'home' | 'apartment' | 'work' | 'other';
+
 type AddressField = {
   id: string;
   label: string;
@@ -69,7 +77,8 @@ type EntranceOption = {
 };
 
 type AddressTypeConfig = {
-  id: string;
+  id: AddressKind;
+  serverType: AddressTypeApi;
   label: string;
   description: string;
   icon: LucideIcon;
@@ -81,6 +90,7 @@ type AddressTypeConfig = {
 const ADDRESS_TYPES: AddressTypeConfig[] = [
   {
     id: 'home',
+    serverType: 'HOME',
     label: 'Home',
     description: 'House, villa or standalone property',
     icon: Home,
@@ -97,6 +107,7 @@ const ADDRESS_TYPES: AddressTypeConfig[] = [
   },
   {
     id: 'apartment',
+    serverType: 'APARTMENT',
     label: 'Apartment',
     description: 'Multi-unit building or residence',
     icon: Building2,
@@ -114,6 +125,7 @@ const ADDRESS_TYPES: AddressTypeConfig[] = [
   },
   {
     id: 'work',
+    serverType: 'WORK',
     label: 'Work',
     description: 'Office, co-working or store front',
     icon: BriefcaseBusiness,
@@ -131,6 +143,7 @@ const ADDRESS_TYPES: AddressTypeConfig[] = [
   },
   {
     id: 'other',
+    serverType: 'OTHER',
     label: 'Other',
     description: 'Any other type of location',
     icon: Sparkles,
@@ -146,7 +159,7 @@ const ADDRESS_TYPES: AddressTypeConfig[] = [
   },
 ];
 
-type SavedAddress = {
+type SavedAddressListItem = {
   id: string;
   title: string;
   subtitle: string;
@@ -154,56 +167,9 @@ type SavedAddress = {
   icon: LucideIcon;
   accent: string;
   region: Region;
-  typeId: AddressTypeConfig['id'];
+  config: AddressTypeConfig;
+  raw: SavedAddressResponse;
 };
-
-const SAVED_ADDRESSES: SavedAddress[] = [
-  {
-    id: 'home',
-    title: 'Home',
-    subtitle: 'Rue Monji Slim, Ariana',
-    details: 'Apartment 12B, Building Atlas',
-    icon: Home,
-    accent: '#F97316',
-    region: {
-      latitude: 36.8665,
-      longitude: 10.1645,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    },
-    typeId: 'home',
-  },
-  {
-    id: 'work',
-    title: 'Work',
-    subtitle: 'Technopark El Ghazela',
-    details: 'Level 5, Foodify HQ',
-    icon: BriefcaseBusiness,
-    accent: '#0EA5E9',
-    region: {
-      latitude: 36.9009,
-      longitude: 10.1879,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    },
-    typeId: 'work',
-  },
-  {
-    id: 'parents',
-    title: "Parent's place",
-    subtitle: 'La Marsa, Tunis',
-    details: 'Behind Safir Hotel, white gate',
-    icon: Sparkles,
-    accent: '#6366F1',
-    region: {
-      latitude: 36.8913,
-      longitude: 10.3231,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    },
-    typeId: 'other',
-  },
-];
 
 function withOpacity(hex: string, opacity: number): string {
   const sanitized = hex.replace('#', '');
@@ -229,7 +195,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const [activeType, setActiveType] = useState<AddressTypeConfig | null>(null);
   const [detailForm, setDetailForm] = useState<Record<string, string>>({});
   const [entranceChoice, setEntranceChoice] = useState<string | null>(null);
-  const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null);
+  const [selectedSavedAddress, setSelectedSavedAddress] = useState<SavedAddressResponse | null>(null);
   const [customLabel, setCustomLabel] = useState('');
   const [currentRegion, setCurrentRegion] = useState<Region>(DEFAULT_REGION);
   const [formattedAddress, setFormattedAddress] = useState(initialAddress);
@@ -241,6 +207,14 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const [searchPredictions, setSearchPredictions] = useState<LocationPrediction[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddressResponse[]>([]);
+  const [savedAddressesLoading, setSavedAddressesLoading] = useState(false);
+  const [savedAddressesError, setSavedAddressesError] = useState<string | null>(null);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [placeId, setPlaceId] = useState<string | null>(null);
+
+  const { selectedAddress: globallySelectedAddress, setSelectedAddress } = useSelectedAddress();
 
   const screenHeight = useMemo(() => Dimensions.get('screen').height, []);
   const expandedHeaderHeight = useMemo(() => Math.min(screenHeight * 0.52, vs(460)), [screenHeight]);
@@ -249,6 +223,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialRegionSettledRef = useRef(false);
   const programmaticChangeRef = useRef(false);
+  const componentMountedRef = useRef(true);
 
   const mapRef = useRef<MapView | null>(null);
   const mapCompactProgress = useSharedValue(0);
@@ -256,6 +231,59 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
 
   const pinLiftOffset = vs(12);
   const mapCompactOffset = vs(36);
+
+  const savedAddressItems = useMemo(() => {
+    return savedAddresses
+      .map<SavedAddressListItem | null>((address) => {
+        const typeConfig = ADDRESS_TYPES.find((type) => type.serverType === address.type);
+        if (!typeConfig) {
+          return null;
+        }
+
+        const latitudeCandidate = Number(address.coordinates?.latitude);
+        const longitudeCandidate = Number(address.coordinates?.longitude);
+        const region: Region = {
+          latitude: Number.isFinite(latitudeCandidate) ? latitudeCandidate : DEFAULT_REGION.latitude,
+          longitude: Number.isFinite(longitudeCandidate) ? longitudeCandidate : DEFAULT_REGION.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+
+        const preferredTitle = address.label?.trim().length ? address.label.trim() : typeConfig.label;
+
+        const typeDetailsValue = (() => {
+          const details = address.typeDetails;
+          if (details && typeof details === 'object') {
+            const values = Object.values(details);
+            const firstString = values.find(
+              (value): value is string => typeof value === 'string' && value.trim().length > 0,
+            );
+            return firstString?.trim();
+          }
+          return undefined;
+        })();
+
+        const candidateDetails = [
+          address.directions,
+          address.notes,
+          address.entranceNotes,
+          typeDetailsValue,
+        ].find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+        return {
+          id: address.id,
+          title: preferredTitle,
+          subtitle: address.formattedAddress,
+          details: candidateDetails?.trim(),
+          icon: typeConfig.icon,
+          accent: typeConfig.accent,
+          region,
+          config: typeConfig,
+          raw: address,
+        };
+      })
+      .filter((item): item is SavedAddressListItem => Boolean(item));
+  }, [savedAddresses]);
 
   const handleClose = useCallback(() => {
     if (onClose) {
@@ -321,6 +349,38 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      componentMountedRef.current = false;
+    };
+  }, []);
+
+  const refreshSavedAddresses = useCallback(async () => {
+    setSavedAddressesLoading(true);
+    setSavedAddressesError(null);
+    try {
+      const addresses = await getMySavedAddresses();
+      if (!componentMountedRef.current) {
+        return;
+      }
+      setSavedAddresses(addresses);
+    } catch (error) {
+      if (!componentMountedRef.current) {
+        return;
+      }
+      setSavedAddressesError(getErrorMessage(error, 'Could not load your saved addresses.'));
+    } finally {
+      if (!componentMountedRef.current) {
+        return;
+      }
+      setSavedAddressesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSavedAddresses();
+  }, [refreshSavedAddresses]);
+
   const handleRegionChange = useCallback(() => {
     if (!initialRegionSettledRef.current) {
       return;
@@ -333,11 +393,13 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     pinOffset.value = withTiming(-pinLiftOffset, { duration: 150 });
     setHasConfirmedPoint(false);
     setScreenState('compose');
-    setSelectedSavedId(null);
+    setSelectedSavedAddress(null);
     setActiveType(null);
     setEntranceChoice(null);
     setGeocodeError(null);
     setIsGeocoding(true);
+    setPlaceId(null);
+    setSaveError(null);
   }, [pinLiftOffset, pinOffset, setScreenState]);
 
   const handleRegionChangeComplete = useCallback(
@@ -360,11 +422,12 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     }
     setHasConfirmedPoint(true);
     setScreenState('details');
-    setSelectedSavedId(null);
+    setSelectedSavedAddress(null);
     setActiveType((current) => current ?? ADDRESS_TYPES[0]);
     setDetailForm({});
     setEntranceChoice(null);
     setCustomLabel('');
+    setSaveError(null);
   }, [isGeocoding]);
 
   const recenterToDefault = useCallback(() => {
@@ -373,9 +436,13 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     setCurrentRegion(DEFAULT_REGION);
     setHasConfirmedPoint(false);
     setScreenState('compose');
-    setSelectedSavedId(null);
+    setSelectedSavedAddress(null);
     setActiveType(null);
     setEntranceChoice(null);
+    setDetailForm({});
+    setCustomLabel('');
+    setPlaceId(null);
+    setSaveError(null);
     fetchAddress(DEFAULT_REGION);
   }, [fetchAddress]);
 
@@ -394,6 +461,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     if (type.id !== 'other') {
       setCustomLabel('');
     }
+    setSaveError(null);
   }, []);
 
   const handleDetailChange = useCallback((fieldId: string, value: string) => {
@@ -407,40 +475,189 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     setEntranceChoice((current) => (current === optionId ? null : optionId));
   }, []);
 
-  const handleSelectSavedAddress = useCallback(
-    (address: SavedAddress) => {
-      programmaticChangeRef.current = true;
-      setScreenState('list');
-      setSelectedSavedId(address.id);
-      setHasConfirmedPoint(false);
-      setEntranceChoice(null);
-      const typeForAddress = ADDRESS_TYPES.find((type) => type.id === address.typeId) ?? null;
-      setActiveType(typeForAddress);
-      if (typeForAddress?.id === 'other') {
-        setCustomLabel(address.title);
+  const handleEditSavedAddress = useCallback((item: SavedAddressListItem) => {
+    programmaticChangeRef.current = true;
+    setScreenState('details');
+    setSelectedSavedAddress(item.raw);
+    setHasConfirmedPoint(true);
+    setActiveType(item.config);
+
+    const nextDetailForm: Record<string, string> = {};
+    const detailsSource = item.raw.typeDetails;
+    item.config.detailFields.forEach((field) => {
+      if (detailsSource && typeof detailsSource === 'object' && field.id in detailsSource) {
+        const value = (detailsSource as Record<string, unknown>)[field.id];
+        nextDetailForm[field.id] = value !== undefined && value !== null ? String(value) : '';
       } else {
-        setCustomLabel('');
+        nextDetailForm[field.id] = '';
       }
+    });
+    setDetailForm(nextDetailForm);
+    setEntranceChoice(item.raw.entrancePreference ?? null);
+    if (item.config.id === 'other') {
+      setCustomLabel(item.raw.label ?? '');
+    } else {
+      setCustomLabel('');
+    }
+    setFormattedAddress(item.raw.formattedAddress);
+    setCurrentRegion(item.region);
+    setGeocodeError(null);
+    setIsGeocoding(false);
+    setPlaceId(item.raw.placeId ?? null);
+    setSaveError(null);
+    mapRef.current?.animateToRegion(item.region, 320);
+  }, []);
+
+  const handleChooseSavedAddress = useCallback(
+    (item: SavedAddressListItem) => {
+      programmaticChangeRef.current = true;
+      setSelectedAddress(item.raw);
+      setSelectedSavedAddress(null);
+      setActiveType(null);
       setDetailForm({});
-      setFormattedAddress(address.subtitle);
-      setCurrentRegion(address.region);
+      setEntranceChoice(null);
+      setCustomLabel('');
+      setSaveError(null);
+      setScreenState('list');
+      setHasConfirmedPoint(false);
+      setFormattedAddress(item.raw.formattedAddress);
+      setCurrentRegion(item.region);
+      setPlaceId(item.raw.placeId ?? null);
       setGeocodeError(null);
-      setIsGeocoding(true);
-      mapRef.current?.animateToRegion(address.region, 320);
-      fetchAddress(address.region);
+      setIsGeocoding(false);
+      mapRef.current?.animateToRegion(item.region, 320);
+      handleClose();
     },
-    [fetchAddress]
+    [handleClose, setSelectedAddress],
   );
 
-  const handleSaveAddress = useCallback(() => {
-    setScreenState('list');
-    setHasConfirmedPoint(false);
-    setSelectedSavedId(null);
-    setActiveType(null);
-    setEntranceChoice(null);
-    setDetailForm({});
-    setCustomLabel('');
-  }, []);
+  const handleSaveAddress = useCallback(async () => {
+    if (!SelectedType) {
+      return;
+    }
+
+    setIsSavingAddress(true);
+    setSaveError(null);
+
+    const sanitizedDetails: Record<string, string> = {};
+    Object.entries(detailForm).forEach(([key, value]) => {
+      if (typeof value !== 'string') {
+        return;
+      }
+      const trimmed = value.trim();
+      if (trimmed.length > 0) {
+        sanitizedDetails[key] = trimmed;
+      }
+    });
+
+    const resolvedLabel = (() => {
+      const existingLabel = selectedSavedAddress?.label?.trim();
+      if (SelectedType.id === 'other') {
+        const custom = customLabel.trim();
+        if (custom.length > 0) {
+          return custom;
+        }
+        if (existingLabel && existingLabel.length > 0) {
+          return existingLabel;
+        }
+        return SelectedType.label;
+      }
+      if (existingLabel && existingLabel.length > 0) {
+        return existingLabel;
+      }
+      return SelectedType.label;
+    })();
+
+    const typeDetails: Record<string, string> = { ...sanitizedDetails };
+
+    const requestPayload: SaveAddressRequest = {
+      type: SelectedType.serverType,
+      label: resolvedLabel?.trim().length ? resolvedLabel.trim() : undefined,
+      coordinates: {
+        latitude: currentRegion.latitude,
+        longitude: currentRegion.longitude,
+      },
+      formattedAddress,
+      placeId: placeId ?? undefined,
+      entrancePreference: entranceChoice ?? undefined,
+      entranceNotes: selectedSavedAddress?.entranceNotes ?? undefined,
+      directions: typeDetails.directions ?? undefined,
+      notes: typeDetails.notes ?? undefined,
+      isPrimary: selectedSavedAddress ? selectedSavedAddress.primary : savedAddresses.length === 0 ? true : undefined,
+    };
+
+    if (typeDetails.directions) {
+      delete typeDetails.directions;
+    }
+    if (typeDetails.notes) {
+      delete typeDetails.notes;
+    }
+    if (SelectedType.id === 'other' && typeDetails.label) {
+      delete typeDetails.label;
+    }
+
+    if (Object.keys(typeDetails).length > 0) {
+      requestPayload.typeDetails = typeDetails;
+    }
+
+    try {
+      let response: SavedAddressResponse;
+      if (selectedSavedAddress) {
+        response = await updateAddress(selectedSavedAddress.id, requestPayload);
+      } else {
+        response = await createAddress(requestPayload);
+      }
+
+      setSavedAddresses((previous) => {
+        const exists = previous.some((address) => address.id === response.id);
+        if (exists) {
+          return previous.map((address) => (address.id === response.id ? response : address));
+        }
+        return [response, ...previous];
+      });
+
+      const latitudeCandidate = Number(response.coordinates?.latitude);
+      const longitudeCandidate = Number(response.coordinates?.longitude);
+      const nextRegion: Region = {
+        latitude: Number.isFinite(latitudeCandidate) ? latitudeCandidate : DEFAULT_REGION.latitude,
+        longitude: Number.isFinite(longitudeCandidate) ? longitudeCandidate : DEFAULT_REGION.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+
+      setSelectedAddress(response);
+      setSelectedSavedAddress(null);
+      setHasConfirmedPoint(false);
+      setScreenState('list');
+      setActiveType(null);
+      setEntranceChoice(null);
+      setDetailForm({});
+      setCustomLabel('');
+      setPlaceId(null);
+      setSaveError(null);
+      setGeocodeError(null);
+      setIsGeocoding(false);
+      setCurrentRegion(nextRegion);
+      setFormattedAddress(response.formattedAddress);
+      mapRef.current?.animateToRegion(nextRegion, 320);
+    } catch (error) {
+      setSaveError(getErrorMessage(error, 'Could not save this address. Please try again.'));
+    } finally {
+      setIsSavingAddress(false);
+    }
+  }, [
+    SelectedType,
+    customLabel,
+    currentRegion.latitude,
+    currentRegion.longitude,
+    detailForm,
+    entranceChoice,
+    formattedAddress,
+    placeId,
+    savedAddresses.length,
+    selectedSavedAddress,
+    setSelectedAddress,
+  ]);
 
   const mapAnimatedStyle = useAnimatedStyle(() => {
     const compactProgress = mapCompactProgress.value;
@@ -464,11 +681,13 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
 
   const openSearch = useCallback(() => {
     setScreenState('compose');
-    setSelectedSavedId(null);
+    setSelectedSavedAddress(null);
     setSearchActive(true);
     setSearchQuery('');
     setSearchPredictions([]);
     setSearchError(null);
+    setPlaceId(null);
+    setSaveError(null);
   }, []);
 
   const closeSearch = useCallback(() => {
@@ -573,13 +792,15 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
           setCurrentRegion(nextRegion);
           setHasConfirmedPoint(false);
           setScreenState('compose');
-          setSelectedSavedId(null);
+          setSelectedSavedAddress(null);
           setActiveType(null);
           setEntranceChoice(null);
           setDetailForm({});
           programmaticChangeRef.current = true;
           setFormattedAddress(data.result.formatted_address ?? prediction.primaryText);
           setGeocodeError(null);
+          setPlaceId(prediction.placeId);
+          setSaveError(null);
           mapRef.current?.animateToRegion(nextRegion, 320);
           fetchAddress(nextRegion);
           closeSearch();
@@ -712,42 +933,101 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                     Choose a frequent spot or add a brand new location.
                   </Text>
 
-                  {SAVED_ADDRESSES.map((address) => {
-                    const Icon = address.icon;
-                    const isActive = selectedSavedId === address.id;
-                    return (
-                      <TouchableOpacity
-                        key={address.id}
-                        activeOpacity={0.85}
-                        onPress={() => handleSelectSavedAddress(address)}
-                        style={[
-                          styles.savedAddressRow,
-                          isActive && {
-                            borderColor: withOpacity(address.accent, 0.5),
-                            backgroundColor: withOpacity(address.accent, 0.14),
-                          },
-                        ]}
-                      >
-                        <View style={[styles.savedIconBadge, { backgroundColor: withOpacity(address.accent, 0.22) }]}>
-                          <Icon size={s(20)} color={address.accent} />
-                        </View>
-                        <View style={styles.savedCopy}>
-                          <Text allowFontScaling={false} style={styles.savedRowTitle}>
-                            {address.title}
-                          </Text>
-                          <Text allowFontScaling={false} style={styles.savedRowSubtitle} numberOfLines={1}>
-                            {address.subtitle}
-                          </Text>
-                          {address.details ? (
-                            <Text allowFontScaling={false} style={styles.savedRowDetails} numberOfLines={1}>
-                              {address.details}
-                            </Text>
-                          ) : null}
-                        </View>
-                        <ChevronRight size={s(18)} color={palette.textSecondary} />
-                      </TouchableOpacity>
-                    );
-                  })}
+                  {savedAddressesLoading ? (
+                    <View style={styles.savedLoadingContainer}>
+                      <ActivityIndicator size="small" color={palette.accent} />
+                    </View>
+                  ) : savedAddressItems.length > 0 ? (
+                    savedAddressItems.map((address) => {
+                      const Icon = address.icon;
+                      const isActive = globallySelectedAddress?.id === address.id;
+                      const rowBaseStyle = [
+                        styles.savedAddressRow,
+                        isActive && {
+                          borderColor: withOpacity(address.accent, 0.55),
+                          backgroundColor: withOpacity(address.accent, 0.16),
+                        },
+                      ];
+                      return (
+                        <Pressable
+                          key={address.id}
+                          onPress={() => handleChooseSavedAddress(address)}
+                          style={({ pressed }) => [
+                            ...rowBaseStyle,
+                            pressed && styles.savedRowPressed,
+                          ]}
+                        >
+                          <View style={styles.savedRowInfo}>
+                            <View
+                              style={[
+                                styles.savedIconBadge,
+                                { backgroundColor: withOpacity(address.accent, 0.22) },
+                              ]}
+                            >
+                              <Icon size={s(20)} color={address.accent} />
+                            </View>
+                            <View style={styles.savedCopy}>
+                              <Text allowFontScaling={false} style={styles.savedRowTitle}>
+                                {address.title}
+                              </Text>
+                              <Text allowFontScaling={false} style={styles.savedRowSubtitle} numberOfLines={1}>
+                                {address.subtitle}
+                              </Text>
+                              {address.details ? (
+                                <Text allowFontScaling={false} style={styles.savedRowDetails} numberOfLines={1}>
+                                  {address.details}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </View>
+                          <View style={styles.savedRowActions}>
+                            {isActive ? (
+                              <View
+                                style={[
+                                  styles.selectedBadge,
+                                  {
+                                    backgroundColor: withOpacity(address.accent, 0.15),
+                                    borderColor: withOpacity(address.accent, 0.4),
+                                  },
+                                ]}
+                              >
+                                <Check size={s(14)} color={address.accent} />
+                                <Text
+                                  allowFontScaling={false}
+                                  style={[styles.selectedBadgeText, { color: address.accent }]}
+                                >
+                                  Selected
+                                </Text>
+                              </View>
+                            ) : null}
+                            <Pressable
+                              hitSlop={6}
+                              onPress={(event) => {
+                                event.stopPropagation();
+                                handleEditSavedAddress(address);
+                              }}
+                              style={({ pressed }) => [
+                                styles.editButton,
+                                pressed && styles.editButtonPressed,
+                              ]}
+                            >
+                              <SquarePen size={s(18)} color={palette.textSecondary} />
+                            </Pressable>
+                          </View>
+                        </Pressable>
+                      );
+                    })
+                  ) : (
+                    <Text allowFontScaling={false} style={styles.savedEmptyState}>
+                      You have no saved addresses yet. Pin a spot to add one.
+                    </Text>
+                  )}
+
+                  {savedAddressesError ? (
+                    <Text allowFontScaling={false} style={styles.savedErrorText}>
+                      {savedAddressesError}
+                    </Text>
+                  ) : null}
 
                   <TouchableOpacity activeOpacity={0.9} style={styles.addAddressButton} onPress={openSearch}>
                     <Text allowFontScaling={false} style={styles.addAddressLabel}>
@@ -877,11 +1157,25 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                     </View>
                   </View>
 
-                  <TouchableOpacity activeOpacity={0.9} style={styles.primaryButton} onPress={handleSaveAddress}>
-                    <Text allowFontScaling={false} style={styles.primaryButtonText}>
-                      Save and continue
-                    </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={[styles.primaryButton, (isSavingAddress || !SelectedType) && styles.primaryButtonDisabled]}
+                    onPress={handleSaveAddress}
+                    disabled={isSavingAddress || !SelectedType}
+                  >
+                    {isSavingAddress ? (
+                      <ActivityIndicator size="small" color={palette.surfaceAlt} />
+                    ) : (
+                      <Text allowFontScaling={false} style={styles.primaryButtonText}>
+                        Save and continue
+                      </Text>
+                    )}
                   </TouchableOpacity>
+                  {saveError ? (
+                    <Text allowFontScaling={false} style={styles.saveErrorText}>
+                      {saveError}
+                    </Text>
+                  ) : null}
                   <TouchableOpacity
                     activeOpacity={0.9}
                     style={styles.secondaryButton}
@@ -1161,7 +1455,7 @@ const styles = ScaledSheet.create({
   },
   savedAddressRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     borderRadius: '18@ms',
     borderWidth: '1@s',
     borderColor: palette.divider,
@@ -1169,6 +1463,15 @@ const styles = ScaledSheet.create({
     paddingVertical: '14@vs',
     marginBottom: '12@vs',
     backgroundColor: palette.surface,
+  },
+  savedRowInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: '12@s',
+  },
+  savedRowPressed: {
+    opacity: 0.92,
   },
   savedIconBadge: {
     width: '40@s',
@@ -1180,6 +1483,7 @@ const styles = ScaledSheet.create({
   },
   savedCopy: {
     flex: 1,
+    justifyContent: 'center',
   },
   savedRowTitle: {
     color: palette.textPrimary,
@@ -1195,6 +1499,54 @@ const styles = ScaledSheet.create({
     color: palette.textSecondary,
     fontSize: '12@ms',
     marginTop: '2@vs',
+  },
+  savedRowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    alignSelf: 'stretch',
+    marginLeft: '12@s',
+  },
+  selectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: '10@s',
+    paddingVertical: '4@vs',
+    borderRadius: '14@ms',
+    borderWidth: '1@s',
+    marginRight: '8@s',
+  },
+  selectedBadgeText: {
+    marginLeft: '4@s',
+    fontSize: '11.5@ms',
+    fontWeight: '600',
+  },
+  editButton: {
+    paddingHorizontal: '8@s',
+    paddingVertical: '6@vs',
+    borderRadius: '14@ms',
+    borderWidth: '1@s',
+    borderColor: palette.divider,
+    backgroundColor: palette.surfaceAlt,
+  },
+  editButtonPressed: {
+    opacity: 0.85,
+  },
+  savedLoadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: '16@vs',
+  },
+  savedEmptyState: {
+    color: palette.textSecondary,
+    fontSize: '13@ms',
+    marginBottom: '16@vs',
+  },
+  savedErrorText: {
+    color: palette.accent,
+    fontSize: '12.5@ms',
+    marginTop: '4@vs',
+    marginBottom: '12@vs',
   },
   addAddressButton: {
     marginTop: '8@vs',
@@ -1312,11 +1664,20 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     backgroundColor: palette.accent,
   },
+  primaryButtonDisabled: {
+    opacity: 0.72,
+  },
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: '15@ms',
     fontWeight: '700',
     letterSpacing: 0.4,
+  },
+  saveErrorText: {
+    color: palette.accent,
+    fontSize: '12.5@ms',
+    marginTop: '10@vs',
+    textAlign: 'center',
   },
   secondaryButton: {
     marginTop: '14@vs',
