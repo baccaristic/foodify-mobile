@@ -1,6 +1,6 @@
 import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -19,6 +19,8 @@ import Animated, {
   useAnimatedScrollHandler,
   Extrapolation,
   withTiming,
+  useAnimatedReaction,
+  runOnJS,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
@@ -101,6 +103,9 @@ export default function MainLayout({
   const navigation = useOptionalNavigation();
   const route = useOptionalRoute();
   const scrollY = useSharedValue(0);
+  const [activeHeader, setActiveHeader] = useState<'full' | 'collapsed'>(
+    collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
+  );
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     if (!collapseEnabled) {
@@ -108,6 +113,43 @@ export default function MainLayout({
     }
     scrollY.value = event.contentOffset.y;
   });
+
+  useEffect(() => {
+    if (!collapseEnabled) {
+      setActiveHeader('full');
+      return;
+    }
+    setActiveHeader(headerCollapsed ? 'collapsed' : 'full');
+  }, [collapseEnabled, headerCollapsed]);
+
+  const updateActiveHeader = useCallback((next: 'full' | 'collapsed') => {
+    setActiveHeader((previous) => (previous === next ? previous : next));
+  }, []);
+
+  useAnimatedReaction(
+    () => (collapseEnabled ? scrollY.value : -1),
+    (current, previous) => {
+      if (!collapseEnabled) {
+        return;
+      }
+
+      const wasCollapsed = typeof previous === 'number' ? previous >= SCROLL_DISTANCE / 2 : undefined;
+      const isCollapsed = current >= SCROLL_DISTANCE / 2;
+
+      if (wasCollapsed === isCollapsed) {
+        return;
+      }
+
+      runOnJS(updateActiveHeader)(isCollapsed ? 'collapsed' : 'full');
+    },
+    [collapseEnabled, SCROLL_DISTANCE, updateActiveHeader]
+  );
+
+  const fullHeaderPointerEvents: 'auto' | 'none' =
+    !collapseEnabled || activeHeader === 'full' ? 'auto' : 'none';
+
+  const collapsedHeaderPointerEvents: 'auto' | 'none' =
+    collapseEnabled && activeHeader === 'collapsed' ? 'auto' : 'none';
 
   useEffect(() => {
     if (!collapseEnabled) {
@@ -158,16 +200,7 @@ export default function MainLayout({
     const fullNode = customHeader
       ? isAnimated
         ? (
-            <Animated.View
-              style={fullHeaderStyle}
-              pointerEvents={
-                collapseEnabled
-                  ? scrollY.value < SCROLL_DISTANCE / 2
-                    ? 'auto'
-                    : 'none'
-                  : 'auto'
-              }
-            >
+            <Animated.View style={fullHeaderStyle} pointerEvents={fullHeaderPointerEvents}>
               {customHeader}
             </Animated.View>
           )
@@ -180,7 +213,7 @@ export default function MainLayout({
       isAnimated && collapseEnabled && collapsedHeader ? (
         <Animated.View
           style={[styles.collapsedHeader, collapsedHeaderStyle]}
-          pointerEvents={scrollY.value >= SCROLL_DISTANCE / 2 ? 'auto' : 'none'}
+          pointerEvents={collapsedHeaderPointerEvents}
         >
           {collapsedHeader}
         </Animated.View>
