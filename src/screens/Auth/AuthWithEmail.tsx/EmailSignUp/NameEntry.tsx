@@ -12,7 +12,6 @@ const NameEntry = () => {
         if (!isFormValid) {
             return;
         }
-        // Navigate to the next step: Accept Terms
         navigation.navigate('AcceptTerms');
     };
 
@@ -24,7 +23,7 @@ const NameEntry = () => {
             <BackButtonHeader />
 
             <Text allowFontScaling={false} className="text-3xl font-bold mb-8 text-black">
-                What's your name
+                What&apos;s your name
             </Text>
 
             <TextInput

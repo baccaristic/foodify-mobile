@@ -8,10 +8,9 @@ const SignUpEmailPassword = () => {
 
     const handleContinue = () => {
         if (!isFormValid) {
-            // Prevent navigation if the button is somehow pressed while invalid
             return;
         }
-        navigation.navigate('VerificationCode');
+        navigation.navigate('EmailVerificationCode');
     };
 
     const [email, setEmail] = useState('');
@@ -34,7 +33,7 @@ const SignUpEmailPassword = () => {
                 <BackButtonHeader />
 
                 <Text allowFontScaling={false} className="text-2xl font-semibold mb-8 text-black">
-                    Enter your e-mail address
+                    Enter your e-mail adress
                 </Text>
 
                 <TextInput

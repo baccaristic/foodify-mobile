@@ -21,7 +21,9 @@ import LocationAccess from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/Locatio
 import NameEntry from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/NameEntry';
 import PhoneNumberEntry from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/PhoneNumberEntry';
 import SignUpEmailPassword from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/SignUpEmailPassword';
-import VerificationCode from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/VerificationCode';
+import EmailEntry from '~/screens/Auth/AuthWithPhone.tsx/EmailEntry';
+import EmailVerificationCode from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/EmailVerificationCode';
+import PhoneVerificationCode from '~/screens/Auth/AuthWithPhone.tsx/PhoneVerificationCode';
 
 const Stack = createNativeStackNavigator();
 
@@ -63,10 +65,12 @@ const RootNavigator = () => {
         <Stack.Screen name="Login" component={EmailLogin} options={{headerShown: false}}></Stack.Screen>
         <Stack.Screen name="LocationAccess" component={LocationAccess} options={{headerShown: false}}></Stack.Screen>
         <Stack.Screen name="NameEntry" component={NameEntry} options={{headerShown: false}}></Stack.Screen>
-        <Stack.Screen name="VerificationCode" component={VerificationCode} options={{headerShown: false}}></Stack.Screen>
+        <Stack.Screen name="PhoneVerificationCode" component={PhoneVerificationCode} options={{headerShown: false}}></Stack.Screen>
         <Stack.Screen name="PhoneNumberEntry" component={PhoneNumberEntry} options={{headerShown: false}}></Stack.Screen>
         <Stack.Screen name="AcceptTerms" component={AcceptTerms} options={{headerShown: false}}></Stack.Screen>
         <Stack.Screen name="SignUpEmailPassword" component={SignUpEmailPassword} options={{headerShown: false}}></Stack.Screen>
+         <Stack.Screen name="EmailEntry" component={EmailEntry} options={{headerShown: false}}></Stack.Screen>
+        <Stack.Screen name="EmailVerificationCode" component={EmailVerificationCode} options={{headerShown: false}}></Stack.Screen>
         </Stack.Group>
         </>
       )}

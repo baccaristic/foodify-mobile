@@ -27,7 +27,7 @@ const BackButtonHeader: React.FC<BackButtonHeaderProps> = ({ onPress, paddingTop
         className="w-16 h-16 px-8 py-8 items-center justify-center rounded-full border border-[#CA251B]"
         onPress={handlePress}
       >
-        <ArrowLeft color="#CA251B" size={24} />
+        <ArrowLeft color="#CA251B" size={38} />
       </TouchableOpacity>
     </View>
   );

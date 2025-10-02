@@ -119,7 +119,7 @@ const EmailLogin = () => {
 
           <View className="flex-row items-center justify-center w-full">
             <Text allowFontScaling={false} className="text-base text-[#17213A] font-['Roboto']">
-              you don't have an account?
+              you don&apos;t have an account?
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignUpEmailPassword')} disabled={isSubmitting}>
               <Text allowFontScaling={false} className="text-base font-semibold ml-1 text-[#CA251B]">
