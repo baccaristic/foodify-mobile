@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, ClipboardList } from 'lucide-react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import {Image} from 'expo-image';
 
 import MainLayout from '~/layouts/MainLayout';
 
@@ -33,14 +34,7 @@ const OrderHistoryScreen = () => {
       }
       mainContent={
         <View style={styles.body}>
-          <View style={styles.illustrationCircle}>
-            <ClipboardList size={s(44)} color="#CA251B" />
-            <View style={styles.badge}>
-              <Text allowFontScaling={false} style={styles.badgeText}>
-                0
-              </Text>
-            </View>
-          </View>
+          <Image source='../../assets/emptyHistory.png'/>
           <Text allowFontScaling={false} style={styles.emptyTitle}>
             Your order history is empty
           </Text>

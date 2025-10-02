@@ -1,41 +1,96 @@
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { Percent, Star, Gift, Pizza, Hamburger, ArrowLeft, ChevronDown, Search } from "lucide-react-native";
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
+import { Percent, Star, Gift, Pizza, Hamburger, ChevronDown, Search } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
+import { useQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
+import { getNearbyRestaurants } from "~/api/restaurants";
+import type { RestaurantSummary } from "~/interfaces/Restaurant";
 
 export default function HomePage() {
   const navigation = useNavigation();
 
-  const mainContent = (
-    <View style={styles.mainWrapper}>
-      <Text allowFontScaling={false} style={styles.sectionTitle}>Nearby Restaurants</Text>
+  // TODO: replace with actual user location from location services
+  const userLatitude = 36.8065;
+  const userLongitude = 10.1815;
+  const radiusKm = 5;
+
+  const { data: restaurants, isLoading, isError, refetch, isFetching } = useQuery<RestaurantSummary[]>({
+    queryKey: ['nearby-restaurants', userLatitude, userLongitude, radiusKm],
+    queryFn: () => getNearbyRestaurants({ lat: userLatitude, lng: userLongitude, radiusKm }),
+  });
+
+  const sectionTitle = isLoading ? 'Loading nearby restaurants...' : 'Nearby Restaurants';
+
+  let contentBody: React.ReactNode;
+  if (isLoading) {
+    contentBody = (
+      <View style={styles.loadingWrapper}>
+        <ActivityIndicator size="large" color="#CA251B" />
+      </View>
+    );
+  } else if (isError) {
+    contentBody = (
+      <View style={styles.errorWrapper}>
+        <Text allowFontScaling={false} style={styles.errorTitle}>
+          We can't fetch restaurants right now.
+        </Text>
+        <TouchableOpacity activeOpacity={0.8} style={styles.retryButton} onPress={() => refetch()}>
+          <Text allowFontScaling={false} style={styles.retryLabel}>Try again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  } else if (!restaurants || restaurants.length === 0) {
+    contentBody = (
+      <View style={styles.emptyWrapper}>
+        <Text allowFontScaling={false} style={styles.emptyTitle}>
+          No restaurants in range.
+        </Text>
+        <Text allowFontScaling={false} style={styles.emptySubtitle}>
+          Expand your search radius or update your location to discover great meals nearby.
+        </Text>
+      </View>
+    );
+  } else {
+    const resolvedRestaurants = restaurants ?? [];
+    contentBody = (
       <View style={styles.cardList}>
-        {[...Array(5)].map((_, idx) => (
+        {resolvedRestaurants.map((restaurant) => (
           <TouchableOpacity
-            key={idx}
+            key={restaurant.id}
             style={styles.card}
-            onPress={() => navigation.navigate("RestaurantDetails" as never)}
+            onPress={() => navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)}
+            activeOpacity={0.85}
           >
             <Image
-              source={require("../../assets/baguette.png")}
+              source={restaurant.imageUrl ? { uri: restaurant.imageUrl } : require('../../assets/baguette.png')}
               style={styles.cardImage}
               contentFit="cover"
             />
             <View style={styles.cardBody}>
-              <Text allowFontScaling={false} style={styles.cardTitle}>BAGUETTES & BAGUETTE</Text>
+              <Text allowFontScaling={false} style={styles.cardTitle}>{restaurant.name}</Text>
               <View style={styles.ratingRow}>
-                <Star size={s(14)} color="gold" fill="gold" />
-                <Text allowFontScaling={false} style={styles.ratingText}>4.5/5</Text>
+                <Star size={s(14)} color="#FACC15" fill="#FACC15" />
+                <Text allowFontScaling={false} style={styles.ratingText}>
+                  {restaurant.rating ? `${restaurant.rating}/5` : 'New'}
+                </Text>
               </View>
-              <Text allowFontScaling={false} style={styles.deliveryTime}>15-25 min</Text>
+              <Text allowFontScaling={false} style={styles.deliveryTime}>{restaurant.type || 'Restaurant'}</Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
+    );
+  }
+
+  const mainContent = (
+    <View style={styles.mainWrapper}>
+      <Text allowFontScaling={false} style={styles.sectionTitle}>{sectionTitle}</Text>
+      {contentBody}
     </View>
   );
 
@@ -43,7 +98,7 @@ export default function HomePage() {
     <Animated.View entering={FadeIn.duration(500)}>
       <View style={styles.headerWrapper}>
         <Header
-          title="San Francisco Bay "Area
+          title="San Francisco Bay Area"
           onBack={() => console.log("not working now !")}
           onLocationPress={() => console.log("Location pressed")}
           compact
@@ -104,9 +159,13 @@ export default function HomePage() {
       showHeader
       showFooter
       headerMaxHeight={vs(160)}
-      headerMinHeight={vs(100)}
+      headerMinHeight={vs(140)}
       customHeader={customHeader}
       collapsedHeader={collapsedHeader}
+      onRefresh={() => {
+        refetch();
+      }}
+      isRefreshing={isFetching}
       mainContent={mainContent}
     />
   );
@@ -115,6 +174,50 @@ export default function HomePage() {
 const styles = ScaledSheet.create({
   mainWrapper: { paddingHorizontal: "16@s" },
   sectionTitle: { fontSize: "18@ms", fontWeight: "700", marginTop: "16@vs", marginBottom: "12@vs" },
+  loadingWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: '32@vs',
+  },
+  errorWrapper: {
+    alignItems: 'center',
+    paddingVertical: '32@vs',
+    gap: '12@vs',
+  },
+  errorTitle: {
+    color: '#17213A',
+    fontSize: '14@ms',
+    textAlign: 'center',
+    paddingHorizontal: '12@s',
+  },
+  retryButton: {
+    backgroundColor: '#17213A',
+    paddingHorizontal: '20@s',
+    paddingVertical: '10@vs',
+    borderRadius: '18@ms',
+  },
+  retryLabel: {
+    color: '#FFFFFF',
+    fontSize: '13@ms',
+    fontWeight: '600',
+  },
+  emptyWrapper: {
+    alignItems: 'center',
+    paddingVertical: '28@vs',
+    gap: '10@vs',
+  },
+  emptyTitle: {
+    fontSize: '16@ms',
+    fontWeight: '700',
+    color: '#17213A',
+  },
+  emptySubtitle: {
+    fontSize: '13@ms',
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingHorizontal: '12@s',
+  },
+
   cardList: { gap: "12@vs" },
   card: {
     backgroundColor: "white",
