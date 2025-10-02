@@ -12,6 +12,7 @@ const NameEntry = () => {
         if (!isFormValid) {
             return;
         }
+        // Navigate to the next step: Accept Terms
         navigation.navigate('AcceptTerms');
     };
 

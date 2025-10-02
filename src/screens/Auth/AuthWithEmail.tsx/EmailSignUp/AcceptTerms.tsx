@@ -4,10 +4,12 @@ import { ArrowLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import BackButtonHeader from '~/components/BackButtonHeader';
 
+// Placeholder for your Foodify Logo image
 const FoodifyLogo = () => (
     <View className="w-20 h-20 bg-transparent mb-10 items-center justify-center">
+        {/* Replace this with your actual image component */}
         <Image
-            source={require('../../../../../assets/icone foodify.svg')}
+            source={{ uri: 'foodify_logo_uri' }}
             className="w-full h-full"
             resizeMode="contain"
         />
