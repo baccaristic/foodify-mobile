@@ -7,7 +7,8 @@ import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { GOOGLE_MAPS_API_KEY } from '@env';
 import MainLayout from '~/layouts/MainLayout';
 import type { LucideIcon } from 'lucide-react-native';
-import { ArrowLeft, MapPin, Navigation, Home, Building2, BriefcaseBusiness, School, Sparkles, Search } from 'lucide-react-native';
+import { ArrowLeft, Navigation, Home, Building2, BriefcaseBusiness, School, Sparkles, Search } from 'lucide-react-native';
+import FoodifyPin from '~/components/icons/FoodifyPin';
 import LocationSearchOverlay, { LocationPrediction } from './LocationSearchOverlay';
 
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
@@ -421,7 +422,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
               />
               <View style={[StyleSheet.absoluteFillObject, styles.mapOverlay]}>
                 <Animated.View style={[styles.pinWrapper, pinAnimatedStyle]}>
-                  <MapPin size={s(46)} color={palette.accent} fill={palette.accent} strokeWidth={1} />
+                  <FoodifyPin width={s(44)} height={s(60)} color={palette.accent} />
                 </Animated.View>
                 <View style={styles.pinShadow} />
               </View>
@@ -622,47 +623,49 @@ const styles = ScaledSheet.create({
   pinShadow: {
     position: 'absolute',
     bottom: '40@vs',
-    width: '80@s',
-    height: '80@vs',
-    borderRadius: '40@ms',
-    backgroundColor: 'rgba(15, 23, 42, 0.2)',
-    opacity: 0.3,
-    transform: [{ scaleY: 0.3 }],
+    width: '74@s',
+    height: '74@vs',
+    borderRadius: '37@ms',
+    backgroundColor: 'rgba(15, 23, 42, 0.16)',
+    opacity: 0.32,
+    transform: [{ scaleY: 0.28 }],
   },
   addressCard: {
     position: 'absolute',
-    bottom: '32@vs',
-    left: '24@s',
-    right: '24@s',
-    backgroundColor: palette.surfaceAlt,
-    borderRadius: '28@ms',
-    paddingVertical: '18@vs',
-    paddingHorizontal: '20@s',
-    shadowColor: '#1e293b',
-    shadowOpacity: 0.16,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: '16@ms',
-    elevation: 8,
+    bottom: '28@vs',
+    left: '56@s',
+    right: '56@s',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: '22@ms',
+    paddingVertical: '14@vs',
+    paddingHorizontal: '18@s',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.08)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: '12@ms',
+    elevation: 6,
   },
   addressBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: '12@s',
-    paddingVertical: '4@vs',
+    paddingHorizontal: '10@s',
+    paddingVertical: '3@vs',
     borderRadius: '999@ms',
-    backgroundColor: palette.accentMuted,
-    marginBottom: '12@vs',
+    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    marginBottom: '8@vs',
   },
   addressBadgeText: {
-    color: palette.accent,
+    color: palette.textPrimary,
     fontSize: '10@ms',
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '600',
+    letterSpacing: 0.8,
   },
   addressTitle: {
     color: palette.textPrimary,
-    fontSize: '16@ms',
+    fontSize: '15@ms',
     fontWeight: '600',
-    lineHeight: '22@vs',
+    lineHeight: '21@vs',
   },
   addressError: {
     color: '#ef4444',
@@ -670,10 +673,10 @@ const styles = ScaledSheet.create({
     marginTop: '6@vs',
   },
   addressActionButton: {
-    marginTop: '16@vs',
-    borderRadius: '18@ms',
+    marginTop: '12@vs',
+    borderRadius: '16@ms',
     backgroundColor: palette.accent,
-    paddingVertical: '12@vs',
+    paddingVertical: '11@vs',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -682,9 +685,9 @@ const styles = ScaledSheet.create({
   },
   addressActionText: {
     color: '#FFFFFF',
-    fontSize: '13@ms',
+    fontSize: '12.5@ms',
     fontWeight: '700',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   mapActions: {
     position: 'absolute',
