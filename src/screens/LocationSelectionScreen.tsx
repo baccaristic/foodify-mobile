@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,8 +25,9 @@ import {
   Sparkles,
   Search,
   MapPin,
-  ChevronRight,
   ArrowLeft,
+  SquarePen,
+  Check,
 } from 'lucide-react-native';
 import FoodifyPin from '~/components/icons/FoodifyPin';
 import LocationSearchOverlay, { LocationPrediction } from './LocationSearchOverlay';
@@ -34,6 +36,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createAddress, getMySavedAddresses, updateAddress } from '~/api/addresses';
 import type { AddressType as AddressTypeApi, SaveAddressRequest, SavedAddressResponse } from '~/interfaces/Address';
 import { getErrorMessage } from '~/helper/apiError';
+import useSelectedAddress from '~/hooks/useSelectedAddress';
 
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
 
@@ -192,7 +195,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const [activeType, setActiveType] = useState<AddressTypeConfig | null>(null);
   const [detailForm, setDetailForm] = useState<Record<string, string>>({});
   const [entranceChoice, setEntranceChoice] = useState<string | null>(null);
-  const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null);
   const [selectedSavedAddress, setSelectedSavedAddress] = useState<SavedAddressResponse | null>(null);
   const [customLabel, setCustomLabel] = useState('');
   const [currentRegion, setCurrentRegion] = useState<Region>(DEFAULT_REGION);
@@ -211,6 +213,8 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [placeId, setPlaceId] = useState<string | null>(null);
+
+  const { selectedAddress: globallySelectedAddress, setSelectedAddress } = useSelectedAddress();
 
   const screenHeight = useMemo(() => Dimensions.get('screen').height, []);
   const expandedHeaderHeight = useMemo(() => Math.min(screenHeight * 0.52, vs(460)), [screenHeight]);
@@ -389,7 +393,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     pinOffset.value = withTiming(-pinLiftOffset, { duration: 150 });
     setHasConfirmedPoint(false);
     setScreenState('compose');
-    setSelectedSavedId(null);
     setSelectedSavedAddress(null);
     setActiveType(null);
     setEntranceChoice(null);
@@ -419,7 +422,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     }
     setHasConfirmedPoint(true);
     setScreenState('details');
-    setSelectedSavedId(null);
     setSelectedSavedAddress(null);
     setActiveType((current) => current ?? ADDRESS_TYPES[0]);
     setDetailForm({});
@@ -434,7 +436,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     setCurrentRegion(DEFAULT_REGION);
     setHasConfirmedPoint(false);
     setScreenState('compose');
-    setSelectedSavedId(null);
     setSelectedSavedAddress(null);
     setActiveType(null);
     setEntranceChoice(null);
@@ -474,10 +475,9 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     setEntranceChoice((current) => (current === optionId ? null : optionId));
   }, []);
 
-  const handleSelectSavedAddress = useCallback((item: SavedAddressListItem) => {
+  const handleEditSavedAddress = useCallback((item: SavedAddressListItem) => {
     programmaticChangeRef.current = true;
     setScreenState('details');
-    setSelectedSavedId(item.id);
     setSelectedSavedAddress(item.raw);
     setHasConfirmedPoint(true);
     setActiveType(item.config);
@@ -507,6 +507,29 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     setSaveError(null);
     mapRef.current?.animateToRegion(item.region, 320);
   }, []);
+
+  const handleChooseSavedAddress = useCallback(
+    (item: SavedAddressListItem) => {
+      programmaticChangeRef.current = true;
+      setSelectedAddress(item.raw);
+      setSelectedSavedAddress(null);
+      setActiveType(null);
+      setDetailForm({});
+      setEntranceChoice(null);
+      setCustomLabel('');
+      setSaveError(null);
+      setScreenState('list');
+      setHasConfirmedPoint(false);
+      setFormattedAddress(item.raw.formattedAddress);
+      setCurrentRegion(item.region);
+      setPlaceId(item.raw.placeId ?? null);
+      setGeocodeError(null);
+      setIsGeocoding(false);
+      mapRef.current?.animateToRegion(item.region, 320);
+      handleClose();
+    },
+    [handleClose, setSelectedAddress],
+  );
 
   const handleSaveAddress = useCallback(async () => {
     if (!SelectedType) {
@@ -602,7 +625,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
         longitudeDelta: 0.01,
       };
 
-      setSelectedSavedId(response.id);
+      setSelectedAddress(response);
       setSelectedSavedAddress(null);
       setHasConfirmedPoint(false);
       setScreenState('list');
@@ -633,6 +656,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     placeId,
     savedAddresses.length,
     selectedSavedAddress,
+    setSelectedAddress,
   ]);
 
   const mapAnimatedStyle = useAnimatedStyle(() => {
@@ -657,7 +681,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
 
   const openSearch = useCallback(() => {
     setScreenState('compose');
-    setSelectedSavedId(null);
     setSelectedSavedAddress(null);
     setSearchActive(true);
     setSearchQuery('');
@@ -769,7 +792,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
           setCurrentRegion(nextRegion);
           setHasConfirmedPoint(false);
           setScreenState('compose');
-          setSelectedSavedId(null);
           setSelectedSavedAddress(null);
           setActiveType(null);
           setEntranceChoice(null);
@@ -918,18 +940,21 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                   ) : savedAddressItems.length > 0 ? (
                     savedAddressItems.map((address) => {
                       const Icon = address.icon;
-                      const isActive = selectedSavedId === address.id;
+                      const isActive = globallySelectedAddress?.id === address.id;
+                      const rowBaseStyle = [
+                        styles.savedAddressRow,
+                        isActive && {
+                          borderColor: withOpacity(address.accent, 0.55),
+                          backgroundColor: withOpacity(address.accent, 0.16),
+                        },
+                      ];
                       return (
-                        <TouchableOpacity
+                        <Pressable
                           key={address.id}
-                          activeOpacity={0.85}
-                          onPress={() => handleSelectSavedAddress(address)}
-                          style={[
-                            styles.savedAddressRow,
-                            isActive && {
-                              borderColor: withOpacity(address.accent, 0.5),
-                              backgroundColor: withOpacity(address.accent, 0.14),
-                            },
+                          onPress={() => handleChooseSavedAddress(address)}
+                          style={({ pressed }) => [
+                            ...rowBaseStyle,
+                            pressed && styles.savedRowPressed,
                           ]}
                         >
                           <View style={[styles.savedIconBadge, { backgroundColor: withOpacity(address.accent, 0.22) }]}>
@@ -948,8 +973,41 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                               </Text>
                             ) : null}
                           </View>
-                          <ChevronRight size={s(18)} color={palette.textSecondary} />
-                        </TouchableOpacity>
+                          <View style={styles.savedRowActions}>
+                            {isActive ? (
+                              <View
+                                style={[
+                                  styles.selectedBadge,
+                                  {
+                                    backgroundColor: withOpacity(address.accent, 0.15),
+                                    borderColor: withOpacity(address.accent, 0.4),
+                                  },
+                                ]}
+                              >
+                                <Check size={s(14)} color={address.accent} />
+                                <Text
+                                  allowFontScaling={false}
+                                  style={[styles.selectedBadgeText, { color: address.accent }]}
+                                >
+                                  Selected
+                                </Text>
+                              </View>
+                            ) : null}
+                            <Pressable
+                              hitSlop={6}
+                              onPress={(event) => {
+                                event.stopPropagation();
+                                handleEditSavedAddress(address);
+                              }}
+                              style={({ pressed }) => [
+                                styles.editButton,
+                                pressed && styles.editButtonPressed,
+                              ]}
+                            >
+                              <SquarePen size={s(18)} color={palette.textSecondary} />
+                            </Pressable>
+                          </View>
+                        </Pressable>
                       );
                     })
                   ) : (
@@ -1399,6 +1457,9 @@ const styles = ScaledSheet.create({
     marginBottom: '12@vs',
     backgroundColor: palette.surface,
   },
+  savedRowPressed: {
+    opacity: 0.92,
+  },
   savedIconBadge: {
     width: '40@s',
     height: '40@s',
@@ -1424,6 +1485,36 @@ const styles = ScaledSheet.create({
     color: palette.textSecondary,
     fontSize: '12@ms',
     marginTop: '2@vs',
+  },
+  savedRowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: '12@s',
+  },
+  selectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: '10@s',
+    paddingVertical: '4@vs',
+    borderRadius: '14@ms',
+    borderWidth: '1@s',
+    marginRight: '8@s',
+  },
+  selectedBadgeText: {
+    marginLeft: '4@s',
+    fontSize: '11.5@ms',
+    fontWeight: '600',
+  },
+  editButton: {
+    paddingHorizontal: '8@s',
+    paddingVertical: '6@vs',
+    borderRadius: '14@ms',
+    borderWidth: '1@s',
+    borderColor: palette.divider,
+    backgroundColor: palette.surfaceAlt,
+  },
+  editButtonPressed: {
+    opacity: 0.85,
   },
   savedLoadingContainer: {
     alignItems: 'center',
