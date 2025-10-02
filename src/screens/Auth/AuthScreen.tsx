@@ -17,6 +17,11 @@ const AuthScreen = () => {
     navigation.navigate('Login');
   };
 
+  const handleContinue = () => {
+    navigation.navigate('PhoneVerificationCode');
+  };
+
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View className="flex-1 bg-white">
@@ -46,8 +51,12 @@ const AuthScreen = () => {
           />
 
           {/* Continue button */}
-          <TouchableOpacity className="w-full h-12 bg-blue-950 rounded-lg justify-center items-center mb-4">
-            <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
+          <TouchableOpacity onPress={handleContinue}
+            className="w-full h-12 bg-blue-950 rounded-lg justify-center items-center mb-4">
+            <Text
+              allowFontScaling={false}
+              className="text-white font-semibold text-lg"
+            >Continue</Text>
           </TouchableOpacity>
 
           {/* Or separator */}
