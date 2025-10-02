@@ -10,9 +10,10 @@ const EmailVerificationCode = () => {
     return (
           <VerificationCodeTemplate
           contact="flenfoulani@email.com"
-            nextScreen="PhoneNumberEntry" 
+            nextScreen="PhoneNumberEntry"
             resendMethod="Email"
             onResendPress={handleResend}
+            codeLength={5}
         />
 
     );

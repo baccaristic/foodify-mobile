@@ -1,24 +1,56 @@
-import React, { useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { FontAwesome } from '@expo/vector-icons'; // For Google icon
 import { Mail } from 'lucide-react-native'; // For email icon
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
+import usePhoneSignup from '~/hooks/usePhoneSignup';
+import { getErrorMessage } from '~/helper/apiError';
 
 
 const AuthScreen = () => {
-  const textInputRef = useRef(null);
-
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const { startSignup, reset } = usePhoneSignup();
 
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    reset();
+  }, [reset]);
 
   const handleLogin = () => {
     navigation.navigate('Login');
   };
 
-  const handleContinue = () => {
-    navigation.navigate('PhoneVerificationCode');
+  const digits = phoneNumber.replace(/\D/g, '');
+  const isPhoneValid = digits.length >= 8 && digits.length <= 16;
+
+  const handleContinue = async () => {
+    if (!isPhoneValid || isSubmitting) {
+      return;
+    }
+
+    Keyboard.dismiss();
+    setError(null);
+    setIsSubmitting(true);
+
+    const normalizedPhone = `+${digits}`;
+
+    try {
+      await startSignup(normalizedPhone);
+      navigation.navigate('PhoneVerificationCode');
+    } catch (err) {
+      const message = getErrorMessage(
+        err,
+        'We were unable to start verification. Please check your phone number and try again.',
+      );
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -41,22 +73,41 @@ const AuthScreen = () => {
 
           {/* Mobile number input */}
           <TextInput
-            ref={textInputRef}
-            className="w-full h-12 bg-gray-200 rounded-lg px-4 mb-6 text-gray-800"
+            className="w-full h-12 bg-gray-200 rounded-lg px-4 mb-2 text-gray-800"
             placeholder="Your Number eg.98765432"
             placeholderTextColor="gray"
             keyboardType="phone-pad"
-            returnKeyType="done" // Adds a "Done" button on the keyboard
-            onSubmitEditing={Keyboard.dismiss} // Dismisses keyboard when "Done" is pressed
+            returnKeyType="done"
+            value={phoneNumber}
+            onChangeText={(value) => {
+              setPhoneNumber(value);
+              setError(null);
+            }}
+            onSubmitEditing={handleContinue}
+            editable={!isSubmitting}
           />
 
+          {error ? (
+            <Text allowFontScaling={false} className="text-sm text-red-500 mb-2 self-start">
+              {error}
+            </Text>
+          ) : null}
+
           {/* Continue button */}
-          <TouchableOpacity onPress={handleContinue}
-            className="w-full h-12 bg-blue-950 rounded-lg justify-center items-center mb-4">
-            <Text
-              allowFontScaling={false}
-              className="text-white font-semibold text-lg"
-            >Continue</Text>
+          <TouchableOpacity
+            onPress={handleContinue}
+            className={`w-full h-12 rounded-lg justify-center items-center mb-4 ${
+              isPhoneValid && !isSubmitting ? 'bg-blue-950' : 'bg-gray-400'
+            }`}
+            disabled={!isPhoneValid || isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text allowFontScaling={false} className="text-white font-semibold text-lg">
+                Continue
+              </Text>
+            )}
           </TouchableOpacity>
 
           {/* Or separator */}
