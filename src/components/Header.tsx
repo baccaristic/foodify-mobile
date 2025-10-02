@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { ArrowLeft, ChevronDown } from "lucide-react-native";
 
 import useLocationOverlay from '~/hooks/useLocationOverlay';
+import useSelectedAddress from '~/hooks/useSelectedAddress';
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   onBack?: () => void;
   onLocationPress?: () => void;
   compact?: boolean;
@@ -18,11 +19,14 @@ export default function Header({
   compact = false,
 }: HeaderProps) {
   const { open } = useLocationOverlay();
+  const { selectedAddress } = useSelectedAddress();
 
   const handleLocationPress = () => {
     open();
     onLocationPress?.();
   };
+
+  const displayTitle = selectedAddress?.formattedAddress ?? title ?? 'Choose delivery address';
 
   return (
     <View className={compact ? "px-3 py-1" : "px-5 py-5"}>
@@ -43,7 +47,7 @@ export default function Header({
             className="truncate text-lg font-semibold text-white"
             numberOfLines={1}
           >
-            {title}
+            {displayTitle}
           </Text>
           <ChevronDown color="white" size={20} />
         </TouchableOpacity>
