@@ -16,6 +16,21 @@ const PhoneEmailEntry = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const hasAuthPayload = Boolean(state?.accessToken && state?.refreshToken && state?.user);
+
+  useEffect(() => {
+    if (!state) {
+      return;
+    }
+
+    if (hasAuthPayload || state.completed) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+    }
+  }, [hasAuthPayload, navigation, state]);
+
   useEffect(() => {
     if (!state || !state.phoneVerified) {
       navigation.reset({

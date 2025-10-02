@@ -81,6 +81,10 @@ export interface PhoneSignupStateResponse {
   email: string | null;
   firstName: string | null;
   lastName: string | null;
+  loginAttempt: boolean;
+  accessToken: string | null;
+  refreshToken: string | null;
+  user: User | null;
 }
 
 export interface CompletePhoneSignupResponse {

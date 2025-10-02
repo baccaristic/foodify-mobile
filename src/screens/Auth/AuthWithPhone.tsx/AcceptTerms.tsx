@@ -14,6 +14,21 @@ const PhoneAcceptTerms = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const hasAuthPayload = Boolean(state?.accessToken && state?.refreshToken && state?.user);
+
+  useEffect(() => {
+    if (!state) {
+      return;
+    }
+
+    if (hasAuthPayload) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+    }
+  }, [hasAuthPayload, navigation, state]);
+
   useEffect(() => {
     if (!state || !state.nameProvided) {
       navigation.reset({

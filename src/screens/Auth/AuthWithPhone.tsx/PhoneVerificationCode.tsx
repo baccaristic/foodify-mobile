@@ -29,12 +29,31 @@ const PhoneVerificationCode = () => {
   const [expiryCountdown, setExpiryCountdown] = useState<number | null>(null);
   const previousStepRef = useRef<PhoneSignupNextStep | null>(null);
 
+  const hasAuthPayload = Boolean(state?.accessToken && state?.refreshToken && state?.user);
+
+  useEffect(() => {
+    if (!state) {
+      return;
+    }
+
+    if (hasAuthPayload || state.completed) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+    }
+  }, [hasAuthPayload, navigation, state]);
+
   useEffect(() => {
     if (!state) {
       navigation.reset({
         index: 0,
         routes: [{ name: 'Guest' }],
       });
+      return;
+    }
+
+    if (hasAuthPayload || state.completed) {
       return;
     }
 
@@ -50,7 +69,7 @@ const PhoneVerificationCode = () => {
         navigation.navigate(nextRoute as never);
       }
     }
-  }, [navigation, state]);
+  }, [hasAuthPayload, navigation, state]);
 
   const resendAvailableAt = state?.resendAvailableAt ?? null;
   const codeExpiresAt = state?.codeExpiresAt ?? null;
@@ -110,17 +129,29 @@ const PhoneVerificationCode = () => {
     if (!state) {
       return null;
     }
-    const parts: string[] = [];
+
+    const messageLines: string[] = [];
+    const metaParts: string[] = [];
+
+    if (state.loginAttempt) {
+      messageLines.push('We found an existing Foodify account. Enter the code to sign in.');
+    }
+
     if (typeof state.attemptsRemaining === 'number') {
-      parts.push(`Attempts remaining: ${state.attemptsRemaining}`);
+      metaParts.push(`Attempts remaining: ${state.attemptsRemaining}`);
     }
     if (typeof state.resendsRemaining === 'number') {
-      parts.push(`Resends left: ${state.resendsRemaining}`);
+      metaParts.push(`Resends left: ${state.resendsRemaining}`);
     }
     if (expiryCountdown !== null) {
-      parts.push(`Code expires in ${expiryCountdown}s`);
+      metaParts.push(`Code expires in ${expiryCountdown}s`);
     }
-    return parts.length > 0 ? parts.join(' • ') : null;
+
+    if (metaParts.length > 0) {
+      messageLines.push(metaParts.join(' • '));
+    }
+
+    return messageLines.length > 0 ? messageLines.join('\n') : null;
   }, [expiryCountdown, state]);
 
   if (!state) {

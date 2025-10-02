@@ -39,10 +39,32 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { applyAuthResponse } = useAuthContext();
 
-  const updateState = useCallback((nextState: PhoneSignupStateResponse) => {
-    setState(nextState);
-    return nextState;
-  }, []);
+  const applyAuthFromState = useCallback(
+    async (nextState: PhoneSignupStateResponse) => {
+      if (nextState.accessToken && nextState.refreshToken && nextState.user) {
+        await applyAuthResponse({
+          accessToken: nextState.accessToken,
+          refreshToken: nextState.refreshToken,
+          user: nextState.user,
+        });
+      }
+    },
+    [applyAuthResponse],
+  );
+
+  const updateState = useCallback(
+    async (
+      nextState: PhoneSignupStateResponse,
+      options: { applyAuth?: boolean } = {},
+    ) => {
+      setState(nextState);
+      if (options.applyAuth ?? true) {
+        await applyAuthFromState(nextState);
+      }
+      return nextState;
+    },
+    [applyAuthFromState],
+  );
 
   const requireSessionId = useCallback(() => {
     if (!state?.sessionId) {
@@ -56,7 +78,7 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       try {
         const response = await startPhoneSignup({ phoneNumber });
-        return updateState(response);
+        return await updateState(response);
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +92,7 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       try {
         const response = await verifyPhoneSignupCode({ sessionId, code });
-        return updateState(response);
+        return await updateState(response);
       } finally {
         setIsLoading(false);
       }
@@ -83,7 +105,7 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       const response = await resendPhoneSignupCode({ sessionId });
-      return updateState(response);
+      return await updateState(response);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +117,7 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       try {
         const response = await providePhoneSignupEmail({ sessionId, email });
-        return updateState(response);
+        return await updateState(response);
       } finally {
         setIsLoading(false);
       }
@@ -109,7 +131,7 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       try {
         const response = await providePhoneSignupName({ sessionId, firstName, lastName });
-        return updateState(response);
+        return await updateState(response);
       } finally {
         setIsLoading(false);
       }
@@ -122,7 +144,7 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       const response = await acceptPhoneSignupTerms({ sessionId, accepted: true });
-      updateState(response.state);
+      await updateState(response.state, { applyAuth: false });
       await applyAuthResponse({
         accessToken: response.accessToken,
         refreshToken: response.refreshToken,
@@ -139,7 +161,7 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       try {
         const response = await getPhoneSignupState(sessionId);
-        return updateState(response);
+        return await updateState(response);
       } finally {
         setIsLoading(false);
       }
