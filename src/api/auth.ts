@@ -48,7 +48,7 @@ export async function logout(payload: LogoutRequest): Promise<{ success: boolean
 }
 
 export async function startPhoneSignup(payload: { phoneNumber: string }): Promise<PhoneSignupStateResponse> {
-  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/start', payload);
+  const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/start', payload);
   return data;
 }
 
@@ -56,12 +56,12 @@ export async function verifyPhoneSignupCode(payload: {
   sessionId: string;
   code: string;
 }): Promise<PhoneSignupStateResponse> {
-  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/verify', payload);
+  const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/verify', payload);
   return data;
 }
 
 export async function resendPhoneSignupCode(payload: { sessionId: string }): Promise<PhoneSignupStateResponse> {
-  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/resend', payload);
+  const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/resend', payload);
   return data;
 }
 
@@ -69,7 +69,7 @@ export async function providePhoneSignupEmail(payload: {
   sessionId: string;
   email: string;
 }): Promise<PhoneSignupStateResponse> {
-  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/email', payload);
+  const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/email', payload);
   return data;
 }
 
@@ -78,7 +78,7 @@ export async function providePhoneSignupName(payload: {
   firstName: string;
   lastName: string;
 }): Promise<PhoneSignupStateResponse> {
-  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/name', payload);
+  const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/name', payload);
   return data;
 }
 
@@ -86,11 +86,11 @@ export async function acceptPhoneSignupTerms(payload: {
   sessionId: string;
   accepted: boolean;
 }): Promise<CompletePhoneSignupResponse> {
-  const { data } = await client.post<CompletePhoneSignupResponse>('/api/auth/phone/accept', payload);
+  const { data } = await client.post<CompletePhoneSignupResponse>('/auth/phone/accept', payload);
   return data;
 }
 
 export async function getPhoneSignupState(sessionId: string): Promise<PhoneSignupStateResponse> {
-  const { data } = await client.get<PhoneSignupStateResponse>(`/api/auth/phone/${sessionId}`);
+  const { data } = await client.get<PhoneSignupStateResponse>(`/auth/phone/${sessionId}`);
   return data;
 }

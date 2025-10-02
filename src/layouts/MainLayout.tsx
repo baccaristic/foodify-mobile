@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -67,6 +68,8 @@ interface MainLayoutProps {
   navItems?: NavItem[];
   activeTab?: string;
   onTabPress?: (route: string) => void;
+  onRefresh?: () => void | Promise<void>;
+  isRefreshing?: boolean;
 }
 
 export default function MainLayout({
@@ -83,6 +86,8 @@ export default function MainLayout({
   navItems,
   activeTab,
   onTabPress,
+  onRefresh,
+  isRefreshing,
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
@@ -203,6 +208,22 @@ export default function MainLayout({
     );
   };
 
+  const refreshControl = onRefresh
+    ? (
+        <RefreshControl
+          refreshing={Boolean(isRefreshing)}
+          onRefresh={() => {
+            const result = onRefresh();
+            if (result instanceof Promise) {
+              result.catch((error) => console.warn('Refresh failed', error));
+            }
+          }}
+          tintColor="#CA251B"
+          colors={['#CA251B']}
+        />
+      )
+    : undefined;
+
   const resolvedNavItems = navItems ?? defaultNavItems;
   const routeName = route?.name;
   const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
@@ -231,6 +252,7 @@ export default function MainLayout({
           paddingTop: collapseEnabled ? vs(10) : vs(20),
           paddingBottom: showFooter ? vs(80) : vs(20),
         }}
+        refreshControl={refreshControl}
         scrollEventThrottle={16}
         onScroll={collapseEnabled ? scrollHandler : undefined}>
         <View style={styles.mainContent}>{mainContent}</View>

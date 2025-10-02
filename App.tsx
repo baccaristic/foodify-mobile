@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, View } from 'react-native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import Cart from '~/screens/Cart';
 import AuthScreen from '~/screens/Auth/AuthScreen';
 import useAuth from '~/hooks/useAuth';
@@ -14,6 +15,7 @@ import OrderHistoryScreen from '~/screens/Profile/OrderHistoryScreen';
 import AccountScreen from '~/screens/Profile/AccountScreen';
 import ProfileScreen from '~/screens/Profile/ProfileScreen';
 import SearchScreen from '~/screens/SearchScreen';
+import queryClient from '~/api/queryClient';
 import { AuthProvider } from '~/context/AuthContext';
 import { LocationOverlayProvider } from '~/context/LocationOverlayContext';
 import AcceptTerms from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/AcceptTerms';
@@ -86,15 +88,17 @@ const RootNavigator = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-      <AuthProvider>
-        <PhoneSignupProvider>
+      <QueryClientProvider client={queryClient}>
+        <NavigationContainer>
+          <AuthProvider>
+            <PhoneSignupProvider>
           <LocationOverlayProvider>
-              <RootNavigator />
-          </LocationOverlayProvider>
-        </PhoneSignupProvider>
+                <RootNavigator />
+              </LocationOverlayProvider>
+            </PhoneSignupProvider>
       </AuthProvider>
-      </NavigationContainer>
+        </NavigationContainer>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
