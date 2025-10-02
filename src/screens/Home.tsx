@@ -10,6 +10,7 @@ import { ScaledSheet, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
 import type { RestaurantSummary } from "~/interfaces/Restaurant";
+import { BASE_API_URL } from "@env";
 
 export default function HomePage() {
   const navigation = useNavigation();
@@ -67,7 +68,7 @@ export default function HomePage() {
             activeOpacity={0.85}
           >
             <Image
-              source={restaurant.imageUrl ? { uri: restaurant.imageUrl } : require('../../assets/baguette.png')}
+              source={restaurant.imageUrl ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` } : require('../../assets/baguette.png')}
               style={styles.cardImage}
               contentFit="cover"
             />
