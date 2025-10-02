@@ -25,9 +25,12 @@ import {
   Search,
   MapPin,
   ChevronRight,
+  ArrowLeft,
 } from 'lucide-react-native';
 import FoodifyPin from '~/components/icons/FoodifyPin';
 import LocationSearchOverlay, { LocationPrediction } from './LocationSearchOverlay';
+import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
 
@@ -220,6 +223,8 @@ type LocationSelectionScreenProps = {
 } & Record<string, unknown>;
 
 export default function LocationSelectionScreen({ onClose }: LocationSelectionScreenProps) {
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const insets = useSafeAreaInsets();
   const [screenState, setScreenState] = useState<'list' | 'compose' | 'details'>('list');
   const [activeType, setActiveType] = useState<AddressTypeConfig | null>(null);
   const [detailForm, setDetailForm] = useState<Record<string, string>>({});
@@ -251,6 +256,17 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
 
   const pinLiftOffset = vs(12);
   const mapCompactOffset = vs(36);
+
+  const handleClose = useCallback(() => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation, onClose]);
 
 
   const fetchAddress = useCallback(
@@ -605,6 +621,18 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
               showsPointsOfInterest={false}
               showsTraffic={false}
             />
+            <View style={[styles.backButtonContainer, { top: insets.top + vs(8) }]}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleClose}
+                style={styles.backButton}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
+                <ArrowLeft size={s(18)} color="white" />
+              </TouchableOpacity>
+            </View>
             <View style={[StyleSheet.absoluteFillObject, styles.mapOverlay]}>
               <Animated.View style={[styles.pinWrapper, pinAnimatedStyle]}>
                 <FoodifyPin width={s(44)} height={s(60)} color={palette.accent} />
@@ -893,6 +921,21 @@ const styles = ScaledSheet.create({
     borderBottomRightRadius: '32@ms',
     overflow: 'hidden',
     backgroundColor: palette.surfaceAlt,
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    left: '16@s',
+    zIndex: 10,
+  },
+  backButton: {
+    width: '44@s',
+    height: '44@s',
+    borderRadius: '22@ms',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   mapOverlay: {
     alignItems: 'center',
