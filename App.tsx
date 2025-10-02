@@ -12,6 +12,7 @@ import useAuth from '~/hooks/useAuth';
 import LocationSelectionScreen from '~/screens/LocationSelectionScreen';
 import EmailLogin from '~/screens/Auth/AuthWithEmail.tsx/EmailLogin';
 import CheckoutOrder from '~/screens/CheckoutOrder';
+import CouponCode from '~/screens/CouponCode';
 import OrderHistoryScreen from '~/screens/Profile/OrderHistoryScreen';
 import AccountScreen from '~/screens/Profile/AccountScreen';
 import ProfileScreen from '~/screens/Profile/ProfileScreen';
@@ -60,6 +61,7 @@ const RootNavigator = () => {
           <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="Cart" component={Cart} />
           <Stack.Screen name="CheckoutOrder" component={CheckoutOrder} />
+          <Stack.Screen name="CouponCode" component={CouponCode} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
           <Stack.Screen name="AccountSettings" component={AccountScreen} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   View,
@@ -8,9 +8,10 @@ import {
   TextInput,
   StyleSheet,
   Modal,
+  GestureResponderEvent,
 } from 'react-native';
-import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
-import { ArrowLeft, ChevronDown, CreditCard, TicketPercent, MapPin, PenSquare, Wallet } from 'lucide-react-native';
+import { useNavigation, useRoute, NavigationProp, ParamListBase, RouteProp } from '@react-navigation/native';
+import { ArrowLeft, ChevronDown, CreditCard, TicketPercent, MapPin, PenSquare, Wallet, X } from 'lucide-react-native';
 import MapView, { Marker } from 'react-native-maps';
 
 const sectionTitleColor = '#17213A';
@@ -116,21 +117,48 @@ const PaymentModal: React.FC<{
   </Modal>
 );
 
+type CheckoutRouteParams = {
+  couponCode?: string;
+  discountAmount?: number;
+  couponValid?: boolean;
+};
+
+type CheckoutRoute = RouteProp<{ CheckoutOrder: CheckoutRouteParams }, 'CheckoutOrder'>;
+
 const CheckoutOrder: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const route = useRoute<CheckoutRoute>();
   const [allergiesExpanded, setAllergiesExpanded] = useState(false);
   const [commentExpanded, setCommentExpanded] = useState(false);
   const [allergies, setAllergies] = useState('');
   const [comment, setComment] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Select Payment method');
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+
+  useEffect(() => {
+    const params = route.params;
+    if (params?.couponValid && params.couponCode) {
+      setAppliedCoupon({ code: params.couponCode, discount: params.discountAmount ?? 0 });
+      navigation.setParams({ couponCode: undefined, discountAmount: undefined, couponValid: undefined });
+    }
+  }, [route.params, navigation]);
 
   const totalProducts = 4;
   const restaurantName = 'Di Napoli';
+  const subtotal = 48;
+  const fees = 4.5;
+  const service = 2.5;
+  const discountValue = appliedCoupon?.discount ?? 0;
+  const total = useMemo(() => subtotal + fees + service - discountValue, [subtotal, fees, service, discountValue]);
 
   const handlePaymentSelection = (method: string) => {
     setPaymentMethod(method);
     setIsPaymentModalVisible(false);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
   };
 
   return (
@@ -254,37 +282,69 @@ const CheckoutOrder: React.FC = () => {
 
           <TouchableOpacity
             activeOpacity={0.8}
+            onPress={() =>
+              navigation.navigate('CouponCode', {
+                currentCode: appliedCoupon?.code,
+              })
+            }
             className="mt-4 flex-row items-center justify-between rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4"
           >
-            <View className="flex-row items-center">
+            <View className="flex-1 flex-row items-center">
               <TicketPercent size={22} color={accentColor} />
-              <Text allowFontScaling={false} className="ml-3 text-base font-semibold" style={{ color: sectionTitleColor }}>
-                Add Coupon code
-              </Text>
+              <View className="ml-3 flex-1">
+                <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+                  {appliedCoupon ? 'Coupon applied' : 'Add Coupon code'}
+                </Text>
+                {appliedCoupon && (
+                  <Text allowFontScaling={false} className="mt-1 text-sm text-[#6B7280]">
+                    {appliedCoupon.code} −{appliedCoupon.discount.toFixed(2)} dt
+                  </Text>
+                )}
+              </View>
             </View>
-            <PenSquare size={20} color={sectionTitleColor} />
+            {appliedCoupon ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={(event: GestureResponderEvent) => {
+                  event.stopPropagation();
+                  handleRemoveCoupon();
+                }}
+              >
+                <X size={20} color={sectionTitleColor} />
+              </TouchableOpacity>
+            ) : (
+              <PenSquare size={20} color={sectionTitleColor} />
+            )}
           </TouchableOpacity>
 
           <View className="mt-6 rounded-3xl border border-[#F0F1F3] bg-white p-5">
             <View className="flex-row items-center justify-between">
               <Text allowFontScaling={false} className="text-sm text-[#6B7280]">Subtotal</Text>
-              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">xx.00 dt</Text>
+              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">{subtotal.toFixed(2)} dt</Text>
             </View>
             <View className="mt-3 flex-row items-center justify-between">
               <Text allowFontScaling={false} className="text-sm text-[#6B7280]">Fees</Text>
-              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">xx.00 dt</Text>
+              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">{fees.toFixed(2)} dt</Text>
             </View>
             <View className="mt-3 flex-row items-center justify-between">
               <Text allowFontScaling={false} className="text-sm text-[#6B7280]">Service</Text>
-              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">xx.00 dt</Text>
+              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">{service.toFixed(2)} dt</Text>
             </View>
+            {appliedCoupon && (
+              <View className="mt-3 flex-row items-center justify-between">
+                <Text allowFontScaling={false} className="text-sm text-[#6B7280]">Coupon ({appliedCoupon.code})</Text>
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">-
+                  {appliedCoupon.discount.toFixed(2)} dt
+                </Text>
+              </View>
+            )}
             <View className="mt-4 border-t border-dashed pt-4" style={{ borderColor }}>
               <View className="flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: sectionTitleColor }}>
                   Total
                 </Text>
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
-                  xx.00 dt
+                  {total.toFixed(2)} dt
                 </Text>
               </View>
             </View>
