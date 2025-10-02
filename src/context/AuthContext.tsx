@@ -10,7 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import { login as loginRequest, logout as logoutRequest, refreshToken } from '~/api/auth';
 import { setAccessToken as applyClientAccessToken } from '~/api/client';
-import type { AuthState, LoginRequest, User } from '~/interfaces/Auth/interfaces';
+import type { AuthResponse, AuthState, LoginRequest, User } from '~/interfaces/Auth/interfaces';
 
 const REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'authUser';
@@ -80,16 +80,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     restoreSession();
   }, [restoreSession]);
 
-  const login = useCallback(
-    async (credentials: LoginRequest) => {
-      const response = await loginRequest(credentials);
-
+  const applyAuthResponse = useCallback(
+    async (response: AuthResponse) => {
       syncClientToken(response.accessToken);
       setUser(response.user);
       await persistSession(response.refreshToken, response.user);
       setIsLoading(false);
     },
     [persistSession, syncClientToken],
+  );
+
+  const login = useCallback(
+    async (credentials: LoginRequest) => {
+      const response = await loginRequest(credentials);
+      await applyAuthResponse(response);
+    },
+    [applyAuthResponse],
   );
 
   const logout = useCallback(async () => {
@@ -116,9 +122,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login,
       logout,
       restoreSession,
+      applyAuthResponse,
       requiresAuth: Boolean(user && accessToken),
     }),
-    [user, accessToken, isLoading, login, logout, restoreSession],
+    [user, accessToken, isLoading, login, logout, restoreSession, applyAuthResponse],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

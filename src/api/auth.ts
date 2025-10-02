@@ -7,6 +7,8 @@ import {
   GoogleLoginRequest,
   RefreshTokenRequest,
   LogoutRequest,
+  PhoneSignupStateResponse,
+  CompletePhoneSignupResponse,
 } from '~/interfaces/Auth/interfaces';
 import client from './client';
 
@@ -42,5 +44,53 @@ export async function refreshToken(payload: RefreshTokenRequest): Promise<{ acce
 
 export async function logout(payload: LogoutRequest): Promise<{ success: boolean }> {
   const { data } = await client.post<{ success: boolean }>('/auth/logout', payload);
+  return data;
+}
+
+export async function startPhoneSignup(payload: { phoneNumber: string }): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/start', payload);
+  return data;
+}
+
+export async function verifyPhoneSignupCode(payload: {
+  sessionId: string;
+  code: string;
+}): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/verify', payload);
+  return data;
+}
+
+export async function resendPhoneSignupCode(payload: { sessionId: string }): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/resend', payload);
+  return data;
+}
+
+export async function providePhoneSignupEmail(payload: {
+  sessionId: string;
+  email: string;
+}): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/email', payload);
+  return data;
+}
+
+export async function providePhoneSignupName(payload: {
+  sessionId: string;
+  firstName: string;
+  lastName: string;
+}): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.post<PhoneSignupStateResponse>('/api/auth/phone/name', payload);
+  return data;
+}
+
+export async function acceptPhoneSignupTerms(payload: {
+  sessionId: string;
+  accepted: boolean;
+}): Promise<CompletePhoneSignupResponse> {
+  const { data } = await client.post<CompletePhoneSignupResponse>('/api/auth/phone/accept', payload);
+  return data;
+}
+
+export async function getPhoneSignupState(sessionId: string): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.get<PhoneSignupStateResponse>(`/api/auth/phone/${sessionId}`);
   return data;
 }
