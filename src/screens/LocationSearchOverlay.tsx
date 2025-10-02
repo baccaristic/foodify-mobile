@@ -16,12 +16,14 @@ import { ArrowLeft, Search } from 'lucide-react-native';
 
 
 const palette = {
-  surface: '#17213A',
-  surfaceAlt: '#1E2A44',
-  sheet: '#10182B',
-  textPrimary: '#F9FAFB',
-  textSecondary: '#94A3B8',
-  accent: '#CA251B',
+  backdrop: 'rgba(15, 23, 42, 0.48)',
+  sheet: '#FFFFFF',
+  surface: '#F5F7FA',
+  surfaceAlt: '#FFFFFF',
+  textPrimary: '#0F172A',
+  textSecondary: '#64748B',
+  accent: '#E03131',
+  divider: '#E2E8F0',
 };
 
 export interface LocationPrediction {
@@ -177,7 +179,7 @@ export default function LocationSearchOverlay({
 const styles = ScaledSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(10, 16, 28, 0.92)',
+    backgroundColor: palette.backdrop,
     justifyContent: 'flex-end',
   },
   keyboardAvoider: {
@@ -186,16 +188,22 @@ const styles = ScaledSheet.create({
   },
   sheet: {
     backgroundColor: palette.sheet,
-    paddingTop: '32@vs',
+    paddingTop: '36@vs',
     paddingHorizontal: '20@s',
     paddingBottom: Platform.OS === 'ios' ? '30@vs' : '24@vs',
-    borderTopLeftRadius: '28@ms',
-    borderTopRightRadius: '28@ms',
-    minHeight: '65%',
+    borderTopLeftRadius: '32@ms',
+    borderTopRightRadius: '32@ms',
+    minHeight: '70%',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: '20@ms',
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: '20@vs',
   },
   backButton: {
     width: '40@s',
@@ -203,8 +211,10 @@ const styles = ScaledSheet.create({
     borderRadius: '20@ms',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(23, 33, 58, 0.6)',
+    backgroundColor: palette.surface,
     marginRight: '12@s',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   inputContainer: {
     flex: 1,
@@ -212,8 +222,10 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     backgroundColor: palette.surfaceAlt,
     borderRadius: '20@ms',
-    paddingHorizontal: '12@s',
-    paddingVertical: Platform.OS === 'ios' ? '8@vs' : '4@vs',
+    paddingHorizontal: '14@s',
+    paddingVertical: Platform.OS === 'ios' ? '10@vs' : '8@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   inputIcon: {
     marginRight: '8@s',
@@ -236,9 +248,9 @@ const styles = ScaledSheet.create({
     paddingBottom: '12@vs',
   },
   resultItem: {
-    paddingVertical: '12@vs',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(148, 163, 184, 0.16)',
+    paddingVertical: '14@vs',
+    borderBottomWidth: 1,
+    borderBottomColor: palette.divider,
   },
   resultTitle: {
     color: palette.textPrimary,
@@ -266,7 +278,7 @@ const styles = ScaledSheet.create({
     color: palette.textSecondary,
     fontSize: '11@ms',
     textAlign: 'center',
-    marginTop: '12@vs',
+    marginTop: '16@vs',
   },
 });
 

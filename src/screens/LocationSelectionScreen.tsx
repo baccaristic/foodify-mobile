@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { MapStyleElement, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { GOOGLE_MAPS_API_KEY } from '@env';
@@ -13,13 +13,15 @@ import LocationSearchOverlay, { LocationPrediction } from './LocationSearchOverl
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
 
 const palette = {
-  surface: '#17213A',
-  surfaceAlt: '#1E2A44',
-  sheet: '#10182B',
-  textPrimary: '#F9FAFB',
-  textSecondary: '#94A3B8',
-  accent: '#CA251B',
-  accentMuted: 'rgba(202, 37, 27, 0.18)',
+  background: '#FFFFFF',
+  surface: '#F5F7FA',
+  surfaceAlt: '#FFFFFF',
+  sheet: '#FFFFFF',
+  textPrimary: '#0F172A',
+  textSecondary: '#64748B',
+  accent: '#E03131',
+  accentMuted: 'rgba(224, 49, 49, 0.12)',
+  divider: '#E2E8F0',
 };
 
 const initialAddress = 'Q5RP+JVP, Tunis, Tunisia';
@@ -30,44 +32,6 @@ const DEFAULT_REGION: Region = {
   latitudeDelta: 0.01,
   longitudeDelta: 0.01,
 };
-
-const DARK_MAP_STYLE: MapStyleElement[] = [
-  {
-    elementType: 'geometry',
-    stylers: [{ color: '#1f2937' }],
-  },
-  {
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#f9fafb' }],
-  },
-  {
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#111827' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#111827' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#1f2937' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'labels.icon',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'water',
-    stylers: [{ color: '#0f172a' }],
-  },
-  {
-    featureType: 'poi',
-    stylers: [{ visibility: 'off' }],
-  },
-];
 
 type PlaceOption = {
   id: string;
@@ -150,8 +114,8 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const insets = useSafeAreaInsets();
 
   const screenHeight = useMemo(() => Dimensions.get('screen').height, []);
-  const expandedHeaderHeight = useMemo(() => Math.min(screenHeight * 0.48, vs(420)), [screenHeight]);
-  const compactHeaderHeight = useMemo(() => Math.max(screenHeight * 0.26, vs(240)), [screenHeight]);
+  const expandedHeaderHeight = useMemo(() => Math.min(screenHeight * 0.52, vs(460)), [screenHeight]);
+  const compactHeaderHeight = useMemo(() => Math.max(screenHeight * 0.28, vs(250)), [screenHeight]);
 
   const collapseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -449,7 +413,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                 style={StyleSheet.absoluteFillObject}
                 provider={PROVIDER_GOOGLE}
                 initialRegion={currentRegion}
-                customMapStyle={DARK_MAP_STYLE}
                 onRegionChange={handleRegionChange}
                 onRegionChangeComplete={handleRegionChangeComplete}
                 showsCompass={false}
@@ -463,36 +426,37 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                 <View style={styles.pinShadow} />
               </View>
               <View style={styles.addressCard}>
-                <View style={styles.addressIcon}>
-                  <MapPin size={s(18)} color={palette.textPrimary} />
-                </View>
-                <View style={styles.addressDetails}>
-                  <Text allowFontScaling={false} style={styles.addressTitle} numberOfLines={1}>
-                    {isGeocoding ? 'Pinning exact spot...' : formattedAddress}
+                <View style={styles.addressBadge}>
+                  <Text allowFontScaling={false} style={styles.addressBadgeText}>
+                    DELIVERY LOCATION
                   </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={handleConfirmPoint}
-                    disabled={confirmDisabled}
-                  >
-                    {isGeocoding ? (
-                      <ActivityIndicator size="small" color={palette.accent} style={{ marginTop: vs(6) }} />
-                    ) : (
-                      <Text allowFontScaling={false} style={styles.addressActionLink}>
-                        {hasConfirmedPoint ? 'Point selected' : 'Use this point'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                  {geocodeError && (
-                    <Text allowFontScaling={false} style={styles.addressError} numberOfLines={1}>
-                      {geocodeError}
+                </View>
+                <Text allowFontScaling={false} style={styles.addressTitle} numberOfLines={2}>
+                  {isGeocoding ? 'Pinning exact spot…' : formattedAddress}
+                </Text>
+                {geocodeError && (
+                  <Text allowFontScaling={false} style={styles.addressError} numberOfLines={1}>
+                    {geocodeError}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={handleConfirmPoint}
+                  disabled={confirmDisabled}
+                  style={[styles.addressActionButton, confirmDisabled && styles.addressActionButtonDisabled]}
+                >
+                  {isGeocoding ? (
+                    <ActivityIndicator size="small" color={palette.surfaceAlt} />
+                  ) : (
+                    <Text allowFontScaling={false} style={styles.addressActionText}>
+                      {hasConfirmedPoint ? 'ADDRESS SELECTED' : 'USE THIS ADDRESS'}
                     </Text>
                   )}
-                </View>
+                </TouchableOpacity>
               </View>
               <View style={styles.mapActions}>
                 <TouchableOpacity activeOpacity={0.85} style={styles.locateButton} onPress={recenterToDefault}>
-                  <Navigation size={s(18)} color={palette.surface} />
+                  <Navigation size={s(18)} color={palette.accent} />
                 </TouchableOpacity>
               </View>
               <View style={styles.googleBrand}>
@@ -509,15 +473,17 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
               {!hasConfirmedPoint && !showSummary && (
                 <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(180)} style={styles.searchPrompt}>
                   <Text allowFontScaling={false} style={styles.searchPromptTitle}>
-                    Trouble locating your address?
+                    Trouble finding your location?
                   </Text>
-                  <Text allowFontScaling={false} style={styles.searchPromptSubtitle}>
-                    Try using search instead.
-                  </Text>
+                  <TouchableOpacity activeOpacity={0.8} onPress={openSearch}>
+                    <Text allowFontScaling={false} style={styles.searchPromptLink}>
+                      Try manual search
+                    </Text>
+                  </TouchableOpacity>
                   <TouchableOpacity activeOpacity={0.85} onPress={openSearch} style={styles.searchLaunchBar}>
                     <Search size={s(18)} color={palette.textSecondary} style={{ marginRight: s(8) }} />
                     <Text allowFontScaling={false} style={styles.searchLaunchPlaceholder}>
-                      Search street, city, district...
+                      Search your delivery location
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>
@@ -630,11 +596,12 @@ const styles = ScaledSheet.create({
     borderBottomLeftRadius: '32@ms',
     borderBottomRightRadius: '32@ms',
     overflow: 'hidden',
-    backgroundColor: palette.surface,
+    backgroundColor: palette.surfaceAlt,
   },
   mapOverlay: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingBottom: '40@vs',
   },
   closeOverlayButton: {
     position: 'absolute',
@@ -642,10 +609,10 @@ const styles = ScaledSheet.create({
     width: '44@s',
     height: '44@s',
     borderRadius: '22@ms',
-    backgroundColor: 'rgba(16, 24, 43, 0.88)',
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: '1@s',
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   pinWrapper: {
@@ -658,49 +625,66 @@ const styles = ScaledSheet.create({
     width: '80@s',
     height: '80@vs',
     borderRadius: '40@ms',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    opacity: 0.4,
+    backgroundColor: 'rgba(15, 23, 42, 0.2)',
+    opacity: 0.3,
     transform: [{ scaleY: 0.3 }],
   },
   addressCard: {
     position: 'absolute',
-    top: '32@vs',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: '10@vs',
-    paddingHorizontal: '16@s',
-    borderRadius: '18@ms',
-    backgroundColor: palette.sheet,
+    bottom: '32@vs',
+    left: '24@s',
+    right: '24@s',
+    backgroundColor: palette.surfaceAlt,
+    borderRadius: '28@ms',
+    paddingVertical: '18@vs',
+    paddingHorizontal: '20@s',
+    shadowColor: '#1e293b',
+    shadowOpacity: 0.16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: '16@ms',
+    elevation: 8,
   },
-  addressIcon: {
-    width: '32@s',
-    height: '32@s',
-    borderRadius: '16@ms',
-    alignItems: 'center',
-    justifyContent: 'center',
+  addressBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: '12@s',
+    paddingVertical: '4@vs',
+    borderRadius: '999@ms',
     backgroundColor: palette.accentMuted,
-    marginRight: '10@s',
+    marginBottom: '12@vs',
   },
-  addressDetails: {
-    flexShrink: 1,
-    maxWidth: '200@s',
+  addressBadgeText: {
+    color: palette.accent,
+    fontSize: '10@ms',
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   addressTitle: {
     color: palette.textPrimary,
-    fontSize: '14@ms',
+    fontSize: '16@ms',
     fontWeight: '600',
-  },
-  addressActionLink: {
-    color: palette.accent,
-    fontSize: '12@ms',
-    fontWeight: '700',
-    marginTop: '6@vs',
+    lineHeight: '22@vs',
   },
   addressError: {
-    color: '#FCA5A5',
-    fontSize: '10@ms',
-    marginTop: '4@vs',
+    color: '#ef4444',
+    fontSize: '11@ms',
+    marginTop: '6@vs',
+  },
+  addressActionButton: {
+    marginTop: '16@vs',
+    borderRadius: '18@ms',
+    backgroundColor: palette.accent,
+    paddingVertical: '12@vs',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressActionButtonDisabled: {
+    opacity: 0.7,
+  },
+  addressActionText: {
+    color: '#FFFFFF',
+    fontSize: '13@ms',
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   mapActions: {
     position: 'absolute',
@@ -711,7 +695,7 @@ const styles = ScaledSheet.create({
     width: '44@s',
     height: '44@s',
     borderRadius: '22@ms',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: palette.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -731,15 +715,18 @@ const styles = ScaledSheet.create({
   },
   content: {
     paddingHorizontal: '16@s',
-    paddingTop: '18@vs',
-    paddingBottom: '24@vs',
+    paddingTop: '24@vs',
+    paddingBottom: '32@vs',
+    backgroundColor: palette.background,
   },
   locationSummary: {
-    backgroundColor: palette.surface,
+    backgroundColor: palette.surfaceAlt,
     borderRadius: '24@ms',
     paddingHorizontal: '20@s',
     paddingVertical: '18@vs',
     marginBottom: '18@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   summaryLabel: {
     color: palette.textSecondary,
@@ -758,7 +745,7 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '12@s',
     paddingVertical: '6@vs',
     borderRadius: '999@ms',
-    backgroundColor: 'rgba(23, 33, 58, 0.85)',
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -779,29 +766,34 @@ const styles = ScaledSheet.create({
   },
   searchPrompt: {
     backgroundColor: palette.surfaceAlt,
-    borderRadius: '28@ms',
+    borderRadius: '24@ms',
     paddingHorizontal: '20@s',
-    paddingVertical: '24@vs',
+    paddingVertical: '22@vs',
     marginBottom: '18@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   searchPromptTitle: {
     color: palette.textPrimary,
     fontSize: '16@ms',
     fontWeight: '600',
   },
-  searchPromptSubtitle: {
-    color: palette.textSecondary,
+  searchPromptLink: {
+    color: palette.accent,
     fontSize: '12@ms',
     marginTop: '6@vs',
+    fontWeight: '600',
   },
   searchLaunchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(148, 163, 184, 0.15)',
-    borderRadius: '18@ms',
-    paddingHorizontal: '14@s',
-    paddingVertical: '12@vs',
+    backgroundColor: palette.surface,
+    borderRadius: '16@ms',
+    paddingHorizontal: '16@s',
+    paddingVertical: '14@vs',
     marginTop: '18@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   searchLaunchPlaceholder: {
     color: palette.textSecondary,
@@ -809,9 +801,11 @@ const styles = ScaledSheet.create({
   },
   selectionCard: {
     backgroundColor: palette.surfaceAlt,
-    borderRadius: '28@ms',
+    borderRadius: '24@ms',
     paddingHorizontal: '20@s',
     paddingVertical: '24@vs',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   selectionTitle: {
     color: palette.textPrimary,
@@ -831,11 +825,13 @@ const styles = ScaledSheet.create({
   },
   optionButton: {
     width: '48%',
-    borderRadius: '20@ms',
+    borderRadius: '18@ms',
     paddingHorizontal: '14@s',
     paddingVertical: '16@vs',
     borderWidth: '1@s',
+    borderColor: palette.divider,
     marginBottom: '14@vs',
+    backgroundColor: palette.surfaceAlt,
   },
   optionIconWrapper: {
     width: '40@s',
@@ -857,10 +853,11 @@ const styles = ScaledSheet.create({
   },
   detailCard: {
     backgroundColor: palette.surfaceAlt,
-    borderRadius: '28@ms',
+    borderRadius: '24@ms',
     paddingHorizontal: '20@s',
     paddingVertical: '26@vs',
-    borderWidth: '1@s',
+    borderWidth: 1,
+    borderColor: palette.divider,
   },
   detailIconShell: {
     width: '64@s',
@@ -886,11 +883,13 @@ const styles = ScaledSheet.create({
     paddingVertical: '14@vs',
     borderRadius: '18@ms',
     alignItems: 'center',
+    backgroundColor: palette.accent,
   },
   primaryButtonLabel: {
-    color: palette.textPrimary,
+    color: '#FFFFFF',
     fontSize: '15@ms',
     fontWeight: '700',
+    letterSpacing: 0.4,
   },
   secondaryButton: {
     marginTop: '14@vs',
@@ -898,7 +897,7 @@ const styles = ScaledSheet.create({
     borderRadius: '16@ms',
     alignItems: 'center',
     borderWidth: '1@s',
-    borderColor: 'rgba(148, 163, 184, 0.3)',
+    borderColor: palette.divider,
   },
   secondaryButtonLabel: {
     color: palette.textPrimary,
