@@ -238,17 +238,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const pinLiftOffset = vs(12);
   const mapCompactOffset = vs(36);
 
-  if (showPermissionPrompt) {
-    return (
-      <LocationPermissionPrompt
-        onAgree={handlePermissionAgree}
-        onClose={handlePermissionClose}
-        isProcessing={permissionProcessing}
-        errorMessage={permissionError}
-      />
-    );
-  }
-
   const savedAddressItems = useMemo(() => {
     return savedAddresses
       .map<SavedAddressListItem | null>((address) => {
@@ -939,6 +928,17 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const isListMode = screenState === 'list';
   const isComposeMode = screenState === 'compose';
   const isDetailsMode = screenState === 'details';
+
+  if (showPermissionPrompt) {
+    return (
+      <LocationPermissionPrompt
+        onAgree={handlePermissionAgree}
+        onClose={handlePermissionClose}
+        isProcessing={permissionProcessing}
+        errorMessage={permissionError}
+      />
+    );
+  }
 
   return (
     <>
