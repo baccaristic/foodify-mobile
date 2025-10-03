@@ -17,7 +17,6 @@ import {
   MessageCircle,
   Phone,
   Star,
-  Timer,
 } from 'lucide-react-native';
 import {
   NavigationProp,
@@ -44,6 +43,11 @@ const DEFAULT_REGION: Region = {
   longitude: 10.1815,
   latitudeDelta: 0.04,
   longitudeDelta: 0.04,
+};
+
+const MOCK_DRIVER_COORDINATE: LatLng = {
+  latitude: DEFAULT_REGION.latitude - 0.005,
+  longitude: DEFAULT_REGION.longitude + 0.012,
 };
 
 const MOCK_ORDER: CreateOrderResponse = {
@@ -222,26 +226,34 @@ const OrderTrackingScreen: React.FC = () => {
     : 120;
   const courierName = order?.delivery?.courier?.name ?? 'Assigned courier';
 
-  const mapRegion = useMemo<Region>(() => {
-    if (order?.delivery?.location?.lat && order.delivery.location.lng) {
+  const driverCoordinate = useMemo<LatLng>(() => {
+    const courierLocation = (order as any)?.delivery?.courier?.location;
+    if (courierLocation?.lat && courierLocation?.lng) {
       return {
-        latitude: order.delivery.location.lat,
-        longitude: order.delivery.location.lng,
-        latitudeDelta: 0.03,
-        longitudeDelta: 0.03,
-      } satisfies Region;
+        latitude: courierLocation.lat,
+        longitude: courierLocation.lng,
+      } satisfies LatLng;
     }
 
-    return DEFAULT_REGION;
-  }, [order?.delivery?.location?.lat, order?.delivery?.location?.lng]);
+    if (order?.delivery?.location?.lat && order.delivery.location.lng) {
+      return {
+        latitude: order.delivery.location.lat - 0.006,
+        longitude: order.delivery.location.lng + 0.004,
+      } satisfies LatLng;
+    }
 
-  const driverCoordinate: LatLng = useMemo(() => {
-    const { latitude, longitude } = mapRegion;
-    return {
-      latitude: latitude - 0.01,
-      longitude: longitude - 0.01,
-    };
-  }, [mapRegion]);
+    return MOCK_DRIVER_COORDINATE;
+  }, [order]);
+
+  const mapRegion = useMemo<Region>(
+    () => ({
+      latitude: driverCoordinate.latitude,
+      longitude: driverCoordinate.longitude,
+      latitudeDelta: 0.025,
+      longitudeDelta: 0.025,
+    }),
+    [driverCoordinate.latitude, driverCoordinate.longitude],
+  );
 
   const handleGoBack = () => {
     if (navigation.canGoBack()) {
@@ -277,15 +289,15 @@ const OrderTrackingScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  const mapOpacity = scrollY.interpolate({
-    inputRange: [0, headerScrollDistance * 0.6, headerScrollDistance],
-    outputRange: [1, 0.25, 0],
-    extrapolate: 'clamp',
-  });
-
   const mapTranslateY = scrollY.interpolate({
     inputRange: [0, headerScrollDistance],
     outputRange: [0, -140],
+    extrapolate: 'clamp',
+  });
+
+  const bannerOpacity = scrollY.interpolate({
+    inputRange: [0, headerScrollDistance * 0.6, headerScrollDistance],
+    outputRange: [1, 0.4, 0],
     extrapolate: 'clamp',
   });
 
@@ -300,7 +312,7 @@ const OrderTrackingScreen: React.FC = () => {
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
-          { opacity: mapOpacity, transform: [{ translateY: mapTranslateY }] },
+          { transform: [{ translateY: mapTranslateY }] },
         ]}
         pointerEvents={collapsed ? 'none' : 'auto'}
       >
@@ -333,7 +345,7 @@ const OrderTrackingScreen: React.FC = () => {
       </View>
 
       {!collapsed ? (
-        <Animated.View style={[styles.bannerContainer, { opacity: mapOpacity }]}>
+        <Animated.View style={[styles.bannerContainer, { opacity: bannerOpacity }]}>
           <View style={styles.bannerRibbon}>
             <Text style={styles.bannerLabel}>Delivering to</Text>
             <View style={styles.bannerLocationRow}>
@@ -370,7 +382,6 @@ const OrderTrackingScreen: React.FC = () => {
       <View style={styles.stepsHeader}>
         <Text style={styles.stepsTitle}>Order Steps</Text>
         <View style={styles.stepsStatusPill}>
-          <Timer size={14} color="white" />
           <Text style={styles.stepsStatusText}>4 m 34s</Text>
         </View>
       </View>
@@ -412,30 +423,32 @@ const OrderTrackingScreen: React.FC = () => {
               <Text style={styles.stepTitle}>{step.title}</Text>
               <Text style={styles.stepDescription}>{step.description}</Text>
             </View>
-            <View style={styles.stepMeta}>
-              <View
-                style={[
-                  styles.stepStatusBadge,
-                  isCompleted && styles.stepStatusBadgeCompleted,
-                  isActive && styles.stepStatusBadgeActive,
-                ]}
-              >
-                <Text
+              <View style={styles.stepMeta}>
+                <View
                   style={[
-                    styles.stepStatusLabel,
-                    (isCompleted || isActive) && styles.stepStatusLabelContrast,
+                    styles.stepStatusBadge,
+                    isCompleted && styles.stepStatusBadgeCompleted,
+                    isActive && styles.stepStatusBadgeActive,
                   ]}
                 >
-                  {step.statusText}
-                </Text>
+                  <Text
+                    style={[
+                      styles.stepStatusLabel,
+                      (isCompleted || isActive) && styles.stepStatusLabelContrast,
+                    ]}
+                  >
+                    {step.statusText}
+                  </Text>
+                </View>
+                <View style={styles.stepEtaBadge}>
+                  <Text style={styles.stepEtaText}>{step.etaLabel}</Text>
+                </View>
               </View>
-              <Text style={styles.stepEta}>{step.etaLabel}</Text>
             </View>
-          </View>
-        );
-      })}
-    </View>
-  );
+          );
+        })}
+      </View>
+    );
 
   return (
     <View style={styles.screen}>
@@ -645,15 +658,15 @@ const styles = StyleSheet.create({
   },
   stepsCard: {
     backgroundColor: softSurface,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
+    borderRadius: 26,
+    paddingHorizontal: 22,
+    paddingVertical: 28,
     shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 1,
-    marginBottom: 28,
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+    marginBottom: 32,
   },
   stepsHeader: {
     flexDirection: 'row',
@@ -667,38 +680,37 @@ const styles = StyleSheet.create({
     color: textPrimary,
   },
   stepsStatusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: accentColor,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stepsStatusText: {
     color: 'white',
-    marginLeft: 8,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   stepRowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: borderColor,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   stepTimeline: {
-    width: 30,
+    width: 34,
     alignItems: 'center',
   },
   stepDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 3,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
@@ -711,8 +723,8 @@ const styles = StyleSheet.create({
   },
   stepLine: {
     position: 'absolute',
-    top: 22,
-    bottom: -16,
+    top: 24,
+    bottom: -20,
     width: 2,
     backgroundColor: '#E5E7EB',
   },
@@ -721,10 +733,10 @@ const styles = StyleSheet.create({
   },
   stepTexts: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 12,
   },
   stepStage: {
-    fontSize: 11,
+    fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     color: accentColor,
@@ -737,18 +749,18 @@ const styles = StyleSheet.create({
     color: textPrimary,
   },
   stepDescription: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 20,
     color: textSecondary,
   },
   stepMeta: {
     alignItems: 'flex-end',
-    width: 84,
+    width: 88,
   },
   stepStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 999,
     backgroundColor: '#F1F5F9',
   },
@@ -766,32 +778,38 @@ const styles = StyleSheet.create({
   stepStatusLabelContrast: {
     color: 'white',
   },
-  stepEta: {
-    marginTop: 6,
+  stepEtaBadge: {
+    marginTop: 8,
+    backgroundColor: accentColor,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  stepEtaText: {
+    color: '#FFFFFF',
     fontSize: 12,
-    color: '#EF4444',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   summaryCard: {
     backgroundColor: softSurface,
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 1,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   summaryTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: textPrimary,
   },
@@ -807,46 +825,46 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   summaryItems: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   summaryItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   summaryItemRowSpacing: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   summaryItemQuantity: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: accentColor,
-    marginRight: 10,
+    marginRight: 8,
   },
   summaryItemName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: textPrimary,
   },
   summaryFooter: {
-    marginTop: 18,
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   summaryTotal: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: textPrimary,
   },
   summaryDetailsButton: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     backgroundColor: accentColor,
   },
   summaryDetailsText: {
     color: 'white',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   bottomSheet: {
@@ -855,22 +873,22 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
     backgroundColor: softBackground,
   },
   courierStickyCard: {
     backgroundColor: softSurface,
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 1,
   },
   courierStickyLabel: {
@@ -885,7 +903,7 @@ const styles = StyleSheet.create({
     color: textPrimary,
   },
   courierStickyRating: {
-    marginTop: 8,
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -899,14 +917,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   courierActionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     backgroundColor: '#FFECEB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   courierActionButtonSpacing: {
-    marginLeft: 12,
+    marginLeft: 10,
   },
 });
