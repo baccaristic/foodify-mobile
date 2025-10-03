@@ -1,28 +1,67 @@
-export interface MenuItemExtra {
+export interface RestaurantBadge {
+  label: string;
+  value: string;
+}
+
+export interface RestaurantMenuItemExtra {
   id: number;
   name: string;
   price: number;
-  isDefault: boolean;
+  defaultOption: boolean;
 }
 
-export interface MenuOptionGroup {
+export interface RestaurantMenuOptionGroup {
   id: number;
   name: string;
   minSelect: number;
   maxSelect: number;
   required: boolean;
-  extras: MenuItemExtra[];
+  extras: RestaurantMenuItemExtra[];
 }
 
-export interface MenuItem {
+export interface RestaurantMenuItemDetails {
   id: number;
   name: string;
   description: string;
-  category: string;
-  isPopular: boolean;
   price: number;
-  imageUrls: string[];
-  optionGroups: MenuOptionGroup[];
+  imageUrl: string;
+  popular: boolean;
+  tags: string[];
+  optionGroups: RestaurantMenuOptionGroup[];
+}
+
+export interface RestaurantMenuCategory {
+  name: string;
+  items: RestaurantMenuItemDetails[];
+}
+
+export interface RestaurantMenuItemSummary {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  popular: boolean;
+  tags: string[];
+}
+
+export interface RestaurantDetailsResponse {
+  id: number;
+  name: string;
+  description: string;
+  imageUrl: string;
+  address: string;
+  phone: string;
+  type: string;
+  rating: string;
+  openingHours: string;
+  closingHours: string;
+  latitude: number;
+  longitude: number;
+  highlights: RestaurantBadge[];
+  quickFilters: string[];
+  topSales: RestaurantMenuItemSummary[];
+  categories: RestaurantMenuCategory[];
 }
 
 export interface RestaurantSummary {
@@ -40,7 +79,7 @@ export interface RestaurantSummary {
   latitude: number;
   longitude: number;
   imageUrl: string;
-  menu: MenuItem[];
+  menu: RestaurantMenuItemDetails[];
 }
 
 export interface NearbyRestaurantsParams {
