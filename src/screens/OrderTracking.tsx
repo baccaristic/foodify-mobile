@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import type { ViewStyle } from 'react-native';
 import { Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Polyline, type MapStyleElement, type Region } from 'react-native-maps';
@@ -11,34 +11,21 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
-import { ArrowLeft, Bike, CheckCircle2, Clock, MapPin } from 'lucide-react-native';
+import { ArrowLeft, Bike, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react-native';
 
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
 
-const accentColor = '#CA251B';
-const darkColor = '#17213A';
-const mutedTextColor = '#6B7280';
-const softSurface = '#F9FAFB';
-const chipBackground = 'rgba(255,255,255,0.18)';
-
-type LatLng = { latitude: number; longitude: number };
-
-const DEFAULT_REGION: Region = {
-  latitude: 36.8065,
-  longitude: 10.1815,
-  latitudeDelta: 0.042,
-  longitudeDelta: 0.042,
-};
+const accentColor = '#D83A2E';
+const heroDark = '#1A253A';
+const softBackground = '#F5F6FA';
+const softSurface = '#FFFFFF';
+const mutedText = '#667085';
+const headingText = '#1F2937';
 
 const mapTheme: MapStyleElement[] = [
-  { elementType: 'geometry', stylers: [{ color: '#1F2933' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#F9FAFB' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1F2933' }] },
-  {
-    featureType: 'administrative',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: 'rgba(255,255,255,0.2)' }],
-  },
+  { elementType: 'geometry', stylers: [{ color: '#E8ECF4' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#425466' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#FFFFFF' }] },
   {
     featureType: 'poi',
     elementType: 'labels.text',
@@ -47,19 +34,38 @@ const mapTheme: MapStyleElement[] = [
   {
     featureType: 'road',
     elementType: 'geometry',
-    stylers: [{ color: '#2A364B' }],
+    stylers: [{ color: '#FFFFFF' }],
   },
   {
-    featureType: 'road',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#F3F4F6' }],
+    featureType: 'road.arterial',
+    elementType: 'geometry',
+    stylers: [{ color: '#D8DEE9' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#CBD5E1' }],
+  },
+  {
+    featureType: 'transit',
+    elementType: 'labels.icon',
+    stylers: [{ visibility: 'off' }],
   },
   {
     featureType: 'water',
     elementType: 'geometry',
-    stylers: [{ color: '#16213A' }],
+    stylers: [{ color: '#C4DAF7' }],
   },
 ];
+
+type LatLng = { latitude: number; longitude: number };
+
+const DEFAULT_REGION: Region = {
+  latitude: 36.8065,
+  longitude: 10.1815,
+  latitudeDelta: 0.04,
+  longitudeDelta: 0.04,
+};
 
 const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -67,8 +73,7 @@ const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
   }
 
   if (typeof value === 'string') {
-    const normalized = value.replace(',', '.');
-    const parsed = Number(normalized);
+    const parsed = Number(value.replace(',', '.'));
     if (Number.isFinite(parsed)) {
       return parsed;
     }
@@ -112,7 +117,7 @@ const DEFAULT_WORKFLOW_BASE: TrackingStepBase[] = [
   {
     key: 'PREPARING',
     title: 'Preparing your dishes',
-    description: 'Chefs are crafting your meal with fresh ingredients.',
+    description: 'Chefs are cooking your meal with fresh ingredients.',
   },
   {
     key: 'READY_FOR_PICKUP',
@@ -265,43 +270,11 @@ const OrderTrackingScreen: React.FC = () => {
     } satisfies LatLng;
   }, [destinationCoordinate, routeCoordinates, safeProgress]);
 
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const bobAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const [trackWidth, setTrackWidth] = useState(0);
-
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: safeProgress,
-      duration: 900,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [progressAnim, safeProgress]);
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bobAnim, {
-          toValue: 1,
-          duration: 1300,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(bobAnim, {
-          toValue: 0,
-          duration: 1300,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    animation.start();
-    return () => {
-      animation.stop();
-    };
-  }, [bobAnim]);
+  const timelineAnimations = useMemo(
+    () => steps.map(() => new Animated.Value(0)),
+    [steps],
+  );
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -326,24 +299,18 @@ const OrderTrackingScreen: React.FC = () => {
     };
   }, [pulseAnim]);
 
-  const stepsCount = steps.length;
-  const timelineAnimations = useMemo(
-    () => Array.from({ length: stepsCount }, () => new Animated.Value(0)),
-    [stepsCount],
-  );
-
   useEffect(() => {
     timelineAnimations.forEach((value) => value.setValue(0));
     const animations = timelineAnimations.map((value, index) =>
       Animated.timing(value, {
         toValue: 1,
-        duration: 450,
-        delay: index * 110,
+        duration: 380,
+        delay: index * 90,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
     );
-    const controller = Animated.stagger(110, animations);
+    const controller = Animated.stagger(90, animations);
     controller.start();
 
     return () => {
@@ -351,30 +318,14 @@ const OrderTrackingScreen: React.FC = () => {
     };
   }, [timelineAnimations]);
 
-  const progressWidth = useMemo(() => {
-    if (!trackWidth) {
-      return 0;
-    }
-
-    return progressAnim.interpolate({ inputRange: [0, 1], outputRange: [0, trackWidth] });
-  }, [progressAnim, trackWidth]);
-
-  const riderTranslateX = useMemo(() => {
-    if (!trackWidth) {
-      return 0;
-    }
-
-    return progressAnim.interpolate({ inputRange: [0, 1], outputRange: [0, trackWidth] });
-  }, [progressAnim, trackWidth]);
-  const riderTranslateY = bobAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
-  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] });
-  const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.35, 0.15, 0] });
+  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
+  const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.3, 0.15, 0] });
 
   const restaurantName = order?.restaurant?.name ?? 'your restaurant';
   const orderIdLabel = order ? `#${order.orderId}` : 'Live order';
   const deliveryAddress = order?.delivery?.address ?? 'Your saved address';
   const addressLabel = order?.delivery?.savedAddress?.label ?? 'Delivery';
-  const trimmedAddress = deliveryAddress.length > 80 ? `${deliveryAddress.slice(0, 77)}...` : deliveryAddress;
+  const trimmedAddress = deliveryAddress.length > 90 ? `${deliveryAddress.slice(0, 87)}...` : deliveryAddress;
   const estimatedWindow = useMemo(() => {
     if (!order) {
       return '35-45 min';
@@ -393,139 +344,120 @@ const OrderTrackingScreen: React.FC = () => {
   const remainingItems = Math.max(0, (order?.items?.length ?? 0) - displayedItems.length);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }}>
-        <View>
-          <LinearGradient
-            colors={[accentColor, '#E75A4D']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            <View className="px-6 pt-2 pb-12">
-              <View className="flex-row items-center justify-between">
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  activeOpacity={0.85}
-                  className="h-11 w-11 items-center justify-center rounded-full bg-white/20"
-                >
-                  <ArrowLeft color="white" size={22} />
-                </TouchableOpacity>
-                <View className="rounded-full bg-white/15 px-4 py-2">
-                  <Text allowFontScaling={false} className="text-xs font-semibold uppercase tracking-[2px] text-white/90">
-                    {orderIdLabel}
+    <SafeAreaView className="flex-1" style={{ backgroundColor: softBackground }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
+        <LinearGradient
+          colors={[accentColor, '#F0644B']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <View className="px-6 pt-2 pb-12">
+            <View className="flex-row items-center justify-between">
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.85}
+                className="h-11 w-11 items-center justify-center rounded-full bg-white/20"
+              >
+                <ArrowLeft color="white" size={22} />
+              </TouchableOpacity>
+              <View className="rounded-full bg-white/20 px-4 py-2">
+                <Text allowFontScaling={false} className="text-xs font-semibold uppercase tracking-[2px] text-white/90">
+                  {orderIdLabel}
+                </Text>
+              </View>
+            </View>
+
+            <View className="mt-8">
+              <Text allowFontScaling={false} className="text-xs font-semibold uppercase tracking-[4px] text-white/70">
+                Now
+              </Text>
+              <Text allowFontScaling={false} className="mt-3 text-3xl font-bold text-white">
+                {activeStep?.title ?? 'Order in progress'}
+              </Text>
+              <Text allowFontScaling={false} className="mt-4 text-sm leading-5 text-white/85">
+                {activeStep?.description ?? `We are looking after your order from ${restaurantName}.`}
+              </Text>
+            </View>
+
+            <View style={styles.heroSummary}>
+              <View style={styles.heroSummaryItem}>
+                <Clock size={18} color={accentColor} />
+                <View className="ml-3">
+                  <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
+                    Estimated time
                   </Text>
-                </View>
-              </View>
-
-              <View className="mt-8">
-                <Text allowFontScaling={false} className="text-xs font-semibold uppercase tracking-[4px] text-white/70">
-                  Now
-                </Text>
-                <Text allowFontScaling={false} className="mt-3 text-3xl font-bold text-white">
-                  {activeStep?.title ?? 'Order in progress'}
-                </Text>
-                <Text allowFontScaling={false} className="mt-3 text-sm leading-5 text-white/85">
-                  {activeStep?.description ?? `We are looking after your order from ${restaurantName}.`}
-                </Text>
-                <Text allowFontScaling={false} className="mt-4 text-xs uppercase tracking-[3px] text-white/70">
-                  From {restaurantName}
-                </Text>
-              </View>
-
-              <View className="mt-6 flex-row flex-wrap gap-3">
-                <View className="flex-row items-center rounded-full px-4 py-2" style={{ backgroundColor: chipBackground }}>
-                  <Clock size={18} color="white" />
-                  <Text allowFontScaling={false} className="ml-2 text-sm font-semibold text-white">
+                  <Text allowFontScaling={false} style={styles.heroSummaryValue}>
                     {estimatedWindow}
                   </Text>
                 </View>
-                <View className="flex-row items-center rounded-full px-4 py-2" style={{ backgroundColor: chipBackground }}>
-                  <Bike size={18} color="white" />
-                  <Text allowFontScaling={false} className="ml-2 text-sm font-semibold text-white">
-                    {activeStep?.statusLabel ?? 'In progress'}
-                  </Text>
-                </View>
               </View>
-
-              <View className="mt-6 rounded-3xl bg-white/15 p-4">
-                <View className="flex-row items-center">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20">
-                    <MapPin size={20} color="white" />
-                  </View>
-                  <View className="ml-3 flex-1">
-                    <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-white/70">
-                      {addressLabel}
-                    </Text>
-                    <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-white">
-                      {trimmedAddress}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View className="mt-8">
-                <View
-                  style={styles.trackContainer}
-                  onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-                >
-                  <View style={styles.trackBackground} />
-                  <Animated.View style={[styles.trackProgress, { width: progressWidth }]} />
-                  <Animated.View
-                    style={[
-                      styles.riderContainer,
-                      {
-                        transform: [
-                          { translateX: riderTranslateX },
-                          { translateY: riderTranslateY },
-                        ],
-                      },
-                    ]}
-                  >
-                    <Animated.View
-                      style={[
-                        styles.riderPulse,
-                        {
-                          transform: [{ scale: pulseScale }],
-                          opacity: pulseOpacity,
-                        },
-                      ]}
-                    />
-                    <View style={styles.riderIconWrapper}>
-                      <Bike size={22} color="white" />
-                    </View>
-                  </Animated.View>
-                </View>
-                <View className="mt-3 flex-row items-center justify-between">
-                  <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-white/80">
-                    Start
+              <View style={[styles.heroSummaryItem, { marginTop: 16 }]}> 
+                <MapPin size={18} color={accentColor} />
+                <View className="ml-3 flex-1">
+                  <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
+                    {addressLabel}
                   </Text>
-                  <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-white/80">
-                    Finish
+                  <Text allowFontScaling={false} style={styles.heroSummaryValue} numberOfLines={2}>
+                    {trimmedAddress}
                   </Text>
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </View>
+        </LinearGradient>
 
-          <View className="-mt-10 px-6">
-            <View style={styles.mapCard} className="mb-6">
+        <View style={styles.contentWrapper}>
+          <View style={styles.contactCard}>
+            <View>
+              <Text allowFontScaling={false} style={styles.contactLabel}>
+                Your courier
+              </Text>
+              <Text allowFontScaling={false} style={styles.contactName}>
+                Foodify partner
+              </Text>
+              <Text allowFontScaling={false} style={styles.contactHint}>
+                Reach out if you need to share delivery instructions.
+              </Text>
+            </View>
+            <TouchableOpacity activeOpacity={0.9} style={styles.contactButton}>
+              <Phone color="white" size={18} />
+              <Text allowFontScaling={false} style={styles.contactButtonText}>
+                Call courier
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.card, styles.mapCard]}>
+            <View style={styles.cardHeader}>
+              <Text allowFontScaling={false} style={styles.cardTitle}>
+                Courier location
+              </Text>
+              <View style={styles.statusChip}>
+                <Text allowFontScaling={false} style={styles.statusChipText}>
+                  {estimatedWindow}
+                </Text>
+              </View>
+            </View>
+            <Text allowFontScaling={false} style={styles.cardSubtitle}>
+              {activeStep?.statusLabel ?? 'On the move to you'}
+            </Text>
+            <View style={styles.mapWrapper}>
               <MapView
                 style={styles.map}
-                initialRegion={mapRegion}
                 region={mapRegion}
                 scrollEnabled={false}
                 rotateEnabled={false}
                 pitchEnabled={false}
                 zoomEnabled={false}
                 customMapStyle={mapTheme}
-                showsBuildings
+                showsBuildings={false}
                 showsCompass={false}
                 showsPointsOfInterest={false}
               >
                 <Polyline
                   coordinates={routeCoordinates}
-                  strokeColor="rgba(202,37,27,0.85)"
+                  strokeColor="rgba(216,58,46,0.9)"
                   strokeWidth={5}
                   lineCap="round"
                   lineJoin="round"
@@ -539,7 +471,7 @@ const OrderTrackingScreen: React.FC = () => {
                       ]}
                     />
                     <View style={styles.mapDriverMarker}>
-                      <Bike size={20} color="white" />
+                      <Bike size={18} color="white" />
                     </View>
                   </View>
                 </Marker>
@@ -549,162 +481,149 @@ const OrderTrackingScreen: React.FC = () => {
                   </View>
                 </Marker>
               </MapView>
-              <View style={styles.mapOverlay}>
-                <Text allowFontScaling={false} style={styles.mapOverlayTitle}>
-                  Courier location
-                </Text>
-                <Text allowFontScaling={false} style={styles.mapOverlayEta}>
-                  {estimatedWindow}
-                </Text>
-                <Text allowFontScaling={false} style={styles.mapOverlayBody}>
-                  {activeStep?.statusLabel ?? 'On the move to you'}
-                </Text>
-              </View>
-              <View style={styles.mapDestinationOverlay}>
-                <Text allowFontScaling={false} style={styles.mapDestinationLabel}>
-                  Delivering to
-                </Text>
-                <Text allowFontScaling={false} style={styles.mapDestinationValue}>
-                  {trimmedAddress}
-                </Text>
-              </View>
             </View>
-            <View style={styles.card}>
-              <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: darkColor }}>
+            <View style={styles.mapFooter}>
+              <MapPin size={16} color={accentColor} />
+              <Text allowFontScaling={false} style={styles.mapFooterText} numberOfLines={1}>
+                {trimmedAddress}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.card, { marginTop: 24 }]}>
+            <View style={styles.cardHeader}>
+              <Text allowFontScaling={false} style={styles.cardTitle}>
                 Live order status
               </Text>
-              {steps.map((step, index) => {
-                const isActive = index === activeIndex;
-                const isCompleted = index < activeIndex || (steps.length - 1 === index && step.completed);
-                const timelineValue = timelineAnimations[index];
-                const animatedStyle: Animated.WithAnimatedObject<ViewStyle> | null = timelineValue
-                  ? {
-                      opacity: timelineValue,
-                      transform: [
-                        {
-                          translateY: timelineValue.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
-                        },
-                      ],
-                    }
-                  : null;
-
-                return (
-                  <Animated.View
-                    key={`${step.key}-${index}`}
-                    className="mt-6 flex-row"
-                    style={animatedStyle ?? undefined}
-                  >
-                    <View className="items-center" style={{ width: 28 }}>
-                      <View
-                        className="items-center justify-center rounded-full"
-                        style={[
-                          styles.timelineDot,
-                          {
-                            backgroundColor: isCompleted || isActive ? accentColor : '#FFFFFF',
-                            borderColor: isCompleted || isActive ? accentColor : '#E5E7EB',
-                          },
-                        ]}
-                      >
-                        {isCompleted ? <CheckCircle2 size={14} color="white" /> : null}
-                      </View>
-                      {index < steps.length - 1 ? (
-                        <View
-                          style={[
-                            styles.timelineLine,
-                            { backgroundColor: isCompleted ? `${accentColor}66` : '#E5E7EB' },
-                          ]}
-                        />
-                      ) : null}
-                    </View>
-                    <View className="ml-4 flex-1">
-                      <Text
-                        allowFontScaling={false}
-                        className="text-sm font-semibold"
-                        style={{ color: isActive ? accentColor : darkColor }}
-                      >
-                        {step.title}
-                      </Text>
-                      <Text allowFontScaling={false} className="mt-1 text-xs leading-5" style={{ color: mutedTextColor }}>
-                        {step.description}
-                      </Text>
-                      {step.statusLabel ? (
-                        <View className="mt-2 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
-                          <Text allowFontScaling={false} className="text-[11px] font-semibold uppercase text-[#CA251B]">
-                            {step.statusLabel}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </Animated.View>
-                );
-              })}
-            </View>
-
-            <View style={[styles.card, { marginTop: 24 }]}> 
-              <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: darkColor }}>
-                Order summary
-              </Text>
-              <View className="mt-4 rounded-2xl px-4 py-4" style={{ backgroundColor: softSurface }}>
-                <View className="flex-row items-center justify-between">
-                  <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: darkColor }}>
-                    Total paid
-                  </Text>
-                  <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
-                    {orderTotal ?? '—'}
-                  </Text>
-                </View>
-                <Text allowFontScaling={false} className="mt-2 text-xs" style={{ color: mutedTextColor }}>
-                  {`Payment method: ${paymentMethod}`}
+              <View style={styles.statusChipMuted}>
+                <Text allowFontScaling={false} style={styles.statusChipMutedText}>
+                  Step {activeIndex + 1} of {steps.length}
                 </Text>
               </View>
+            </View>
 
-              {displayedItems.length ? (
-                <View className="mt-4 rounded-2xl border border-dashed border-[#E5E7EB] px-4 py-4">
-                  {displayedItems.map((item) => (
-                    <View key={`${item.menuItemId}-${item.name}`} className="mt-3 flex-row items-start justify-between">
-                      <View className="flex-1 pr-3">
-                        <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: darkColor }}>
-                          {item.quantity} × {item.name}
-                        </Text>
-                        {item.extras?.length ? (
-                          <Text allowFontScaling={false} className="mt-1 text-xs" style={{ color: mutedTextColor }}>
-                            Extras: {item.extras.map((extra) => extra.name).join(', ')}
-                          </Text>
-                        ) : null}
-                      </View>
-                      <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: darkColor }}>
-                        {formatServerMoney(item.lineTotal)}
-                      </Text>
+            {steps.map((step, index) => {
+              const isActive = index === activeIndex;
+              const isCompleted = index < activeIndex || (steps.length - 1 === index && step.completed);
+              const timelineValue = timelineAnimations[index];
+              const animatedStyle: Animated.WithAnimatedObject<ViewStyle> | undefined = timelineValue
+                ? {
+                    opacity: timelineValue,
+                    transform: [
+                      {
+                        translateY: timelineValue.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }),
+                      },
+                    ],
+                  }
+                : undefined;
+
+              return (
+                <Animated.View key={`${step.key}-${index}`} style={[styles.timelineRow, animatedStyle]}>
+                  <View style={styles.timelineIconWrapper}>
+                    <View
+                      style={[
+                        styles.timelineDot,
+                        {
+                          backgroundColor: isCompleted || isActive ? accentColor : softSurface,
+                          borderColor: isCompleted || isActive ? accentColor : '#D1D5DB',
+                        },
+                      ]}
+                    >
+                      {isCompleted ? <CheckCircle2 size={14} color="white" /> : null}
                     </View>
-                  ))}
-                  {remainingItems > 0 ? (
-                    <Text allowFontScaling={false} className="mt-3 text-xs" style={{ color: mutedTextColor }}>
-                      + {remainingItems} more {remainingItems === 1 ? 'item' : 'items'}
+                    {index < steps.length - 1 ? (
+                      <View
+                        style={[
+                          styles.timelineLine,
+                          { backgroundColor: isCompleted ? `${accentColor}55` : '#E5E7EB' },
+                        ]}
+                      />
+                    ) : null}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text
+                      allowFontScaling={false}
+                      style={[styles.timelineTitle, { color: isActive ? accentColor : headingText }]}
+                    >
+                      {step.title}
                     </Text>
-                  ) : null}
-                </View>
-              ) : null}
+                    <Text allowFontScaling={false} style={styles.timelineDescription}>
+                      {step.description}
+                    </Text>
+                    {step.statusLabel ? (
+                      <View style={styles.timelineChip}>
+                        <Text allowFontScaling={false} style={styles.timelineChipText}>
+                          {step.statusLabel}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </Animated.View>
+              );
+            })}
+          </View>
 
-              <View className="mt-6 flex-row gap-3">
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={() => navigation.navigate('OrderHistory')}
-                  className="flex-1 rounded-full border border-[#E5E7EB] px-4 py-3"
-                >
-                  <Text allowFontScaling={false} className="text-center text-sm font-semibold" style={{ color: darkColor }}>
-                    View order history
+          <View style={[styles.card, { marginTop: 24 }]}> 
+            <View style={styles.cardHeader}>
+              <Text allowFontScaling={false} style={styles.cardTitle}>
+                Order summary
+              </Text>
+              {orderTotal ? (
+                <Text allowFontScaling={false} style={styles.summaryTotal}>
+                  {orderTotal}
+                </Text>
+              ) : null}
+            </View>
+            <Text allowFontScaling={false} style={styles.cardSubtitle}>
+              Payment method: {paymentMethod}
+            </Text>
+
+            {displayedItems.length ? (
+              <View style={styles.summaryItemsWrapper}>
+                {displayedItems.map((item) => (
+                  <View key={`${item.menuItemId}-${item.name}`} style={styles.summaryItemRow}>
+                    <View style={{ flex: 1, paddingRight: 12 }}>
+                      <Text allowFontScaling={false} style={styles.summaryItemTitle}>
+                        {item.quantity} × {item.name}
+                      </Text>
+                      {item.extras?.length ? (
+                        <Text allowFontScaling={false} style={styles.summaryItemExtras}>
+                          Extras: {item.extras.map((extra) => extra.name).join(', ')}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text allowFontScaling={false} style={styles.summaryItemPrice}>
+                      {formatServerMoney(item.lineTotal)}
+                    </Text>
+                  </View>
+                ))}
+                {remainingItems > 0 ? (
+                  <Text allowFontScaling={false} style={styles.summaryMore}>
+                    + {remainingItems} more {remainingItems === 1 ? 'item' : 'items'}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => navigation.navigate('Home')}
-                  className="flex-1 rounded-full bg-[#17213A] px-4 py-3"
-                >
-                  <Text allowFontScaling={false} className="text-center text-sm font-semibold text-white">
-                    Back to home
-                  </Text>
-                </TouchableOpacity>
+                ) : null}
               </View>
+            ) : null}
+
+            <View style={styles.summaryActions}>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                onPress={() => navigation.navigate('OrderHistory')}
+                style={[styles.actionButton, styles.actionButtonGhost]}
+              >
+                <Text allowFontScaling={false} style={styles.actionButtonGhostText}>
+                  View order history
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('Home')}
+                style={[styles.actionButton, styles.actionButtonPrimary]}
+              >
+                <Text allowFontScaling={false} style={styles.actionButtonPrimaryText}>
+                  Back to home
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -714,78 +633,158 @@ const OrderTrackingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  heroGradient: {
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    overflow: 'hidden',
+  hero: {
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+  },
+  heroSummary: {
+    marginTop: 28,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
+  heroSummaryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroSummaryLabel: {
+    fontSize: 12,
+    color: mutedText,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    fontWeight: '600',
+  },
+  heroSummaryValue: {
+    marginTop: 4,
+    fontSize: 16,
+    fontWeight: '600',
+    color: heroDark,
+  },
+  contentWrapper: {
+    paddingHorizontal: 24,
+    marginTop: -32,
+  },
+  card: {
+    borderRadius: 28,
+    backgroundColor: softSurface,
+    padding: 24,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
+  },
+  contactCard: {
+    borderRadius: 28,
+    backgroundColor: heroDark,
+    padding: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: heroDark,
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
+  },
+  contactLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  contactName: {
+    marginTop: 8,
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  contactHint: {
+    marginTop: 6,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  contactButton: {
+    backgroundColor: accentColor,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 9999,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  contactButtonText: {
+    marginLeft: 8,
+    color: 'white',
+    fontSize: 13,
+    fontWeight: '600',
   },
   mapCard: {
-    position: 'relative',
-    height: 220,
-    borderRadius: 32,
+    marginTop: 24,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: headingText,
+  },
+  cardSubtitle: {
+    marginTop: 8,
+    fontSize: 13,
+    color: mutedText,
+  },
+  statusChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(216,58,46,0.12)',
+  },
+  statusChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: accentColor,
+  },
+  statusChipMuted: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: '#F1F5F9',
+  },
+  statusChipMutedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  mapWrapper: {
+    marginTop: 18,
+    borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#0F172A',
-    shadowColor: darkColor,
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 16 },
-    elevation: 8,
+    height: 220,
   },
   map: {
     width: '100%',
     height: '100%',
   },
-  mapOverlay: {
-    position: 'absolute',
-    top: 18,
-    left: 18,
-    right: 18,
-    borderRadius: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    backgroundColor: 'rgba(23,33,58,0.82)',
-  },
-  mapOverlayTitle: {
-    fontSize: 12,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: '600',
-  },
-  mapOverlayEta: {
-    marginTop: 6,
-    fontSize: 22,
-    color: 'white',
-    fontWeight: '700',
-  },
-  mapOverlayBody: {
-    marginTop: 6,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.82)',
-    fontWeight: '500',
-  },
-  mapDestinationOverlay: {
-    position: 'absolute',
-    bottom: 18,
-    right: 18,
-    left: 18,
-    borderRadius: 24,
+  mapFooter: {
+    marginTop: 16,
     paddingVertical: 12,
-    paddingHorizontal: 18,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  mapDestinationLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: '#6B7280',
-  },
-  mapDestinationValue: {
-    marginTop: 6,
-    fontSize: 14,
-    fontWeight: '600',
-    color: darkColor,
+  mapFooterText: {
+    marginLeft: 8,
+    fontSize: 13,
+    color: heroDark,
+    flex: 1,
   },
   mapDriverMarkerContainer: {
     alignItems: 'center',
@@ -793,41 +792,30 @@ const styles = StyleSheet.create({
   },
   mapDriverPulse: {
     position: 'absolute',
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: accentColor,
-    opacity: 0.25,
   },
   mapDriverMarker: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: accentColor,
     borderWidth: 4,
     borderColor: '#FFFFFF',
-    shadowColor: accentColor,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
   },
   destinationMarker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 3,
     borderColor: accentColor,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
   },
   destinationDot: {
     width: 8,
@@ -835,65 +823,133 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: accentColor,
   },
-  trackContainer: {
-    height: 14,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    overflow: 'hidden',
+  mapFooterIcon: {
+    marginRight: 8,
   },
-  trackBackground: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  mapFooterLabel: {
+    fontSize: 12,
+    color: mutedText,
   },
-  trackProgress: {
-    height: '100%',
-    borderRadius: 9999,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+  timelineRow: {
+    flexDirection: 'row',
+    marginTop: 24,
   },
-  riderContainer: {
-    position: 'absolute',
-    top: -22,
-  },
-  riderPulse: {
-    position: 'absolute',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: accentColor,
-  },
-  riderIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  timelineIconWrapper: {
+    width: 32,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: accentColor,
-    shadowColor: accentColor,
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
-  },
-  card: {
-    borderRadius: 32,
-    backgroundColor: 'white',
-    padding: 24,
-    shadowColor: darkColor,
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
   },
   timelineDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   timelineLine: {
     width: 2,
     flex: 1,
     marginTop: 6,
+  },
+  timelineContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  timelineTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  timelineDescription: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 18,
+    color: mutedText,
+  },
+  timelineChip: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    backgroundColor: '#FEF1EF',
+  },
+  timelineChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
+    color: accentColor,
+    textTransform: 'uppercase',
+  },
+  summaryTotal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: accentColor,
+  },
+  summaryItemsWrapper: {
+    marginTop: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+  },
+  summaryItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E2E8F0',
+  },
+  summaryItemTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: headingText,
+  },
+  summaryItemExtras: {
+    marginTop: 4,
+    fontSize: 12,
+    color: mutedText,
+  },
+  summaryItemPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: headingText,
+  },
+  summaryMore: {
+    marginTop: 12,
+    fontSize: 12,
+    color: mutedText,
+  },
+  summaryActions: {
+    marginTop: 20,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 9999,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  actionButtonGhost: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  actionButtonGhostText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: headingText,
+  },
+  actionButtonPrimary: {
+    backgroundColor: heroDark,
+  },
+  actionButtonPrimaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
   },
 });
 
