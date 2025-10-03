@@ -181,8 +181,9 @@ const OrderHistoryScreen = () => {
     <MainLayout
       showFooter
       enableHeaderCollapse={false}
-      headerMaxHeight={vs(110)}
-      headerMinHeight={vs(90)}
+      enforceResponsiveHeaderSize={false}
+      headerMaxHeight={vs(50)}
+      headerMinHeight={vs(40)}
       activeTab="Profile"
       headerBackgroundImage={require('../../../assets/background.png')}
       customHeader={
