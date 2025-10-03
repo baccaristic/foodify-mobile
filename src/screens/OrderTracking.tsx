@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import type { ViewStyle } from 'react-native';
-import { Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Polyline, type MapStyleElement, type Region } from 'react-native-maps';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   NavigationProp,
@@ -14,6 +14,7 @@ import {
 import { ArrowLeft, Bike, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react-native';
 
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
+import MainLayout from '~/layouts/MainLayout';
 
 const accentColor = '#D83A2E';
 const heroDark = '#1A253A';
@@ -151,6 +152,7 @@ const OrderTrackingScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<OrderTrackingRoute>();
   const order = route.params?.order ?? null;
+  const insets = useSafeAreaInsets();
 
   const { steps, activeIndex } = useMemo(() => {
     if (order?.workflow?.length) {
@@ -343,299 +345,395 @@ const OrderTrackingScreen: React.FC = () => {
   const displayedItems = useMemo(() => (order?.items ?? []).slice(0, 3), [order?.items]);
   const remainingItems = Math.max(0, (order?.items?.length ?? 0) - displayedItems.length);
 
-  return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: softBackground }}>
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
-        <LinearGradient
-          colors={[accentColor, '#F0644B']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View className="px-6 pt-2 pb-12">
-            <View className="flex-row items-center justify-between">
-              <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                activeOpacity={0.85}
-                className="h-11 w-11 items-center justify-center rounded-full bg-white/20"
-              >
-                <ArrowLeft color="white" size={22} />
-              </TouchableOpacity>
-              <View className="rounded-full bg-white/20 px-4 py-2">
-                <Text allowFontScaling={false} className="text-xs font-semibold uppercase tracking-[2px] text-white/90">
-                  {orderIdLabel}
-                </Text>
-              </View>
-            </View>
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
 
-            <View className="mt-8">
-              <Text allowFontScaling={false} className="text-xs font-semibold uppercase tracking-[4px] text-white/70">
-                Now
-              </Text>
-              <Text allowFontScaling={false} className="mt-3 text-3xl font-bold text-white">
-                {activeStep?.title ?? 'Order in progress'}
-              </Text>
-              <Text allowFontScaling={false} className="mt-4 text-sm leading-5 text-white/85">
-                {activeStep?.description ?? `We are looking after your order from ${restaurantName}.`}
-              </Text>
-            </View>
+  const handleCallCourier = () => {};
 
-            <View style={styles.heroSummary}>
-              <View style={styles.heroSummaryItem}>
-                <Clock size={18} color={accentColor} />
-                <View className="ml-3">
-                  <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
-                    Estimated time
-                  </Text>
-                  <Text allowFontScaling={false} style={styles.heroSummaryValue}>
-                    {estimatedWindow}
-                  </Text>
-                </View>
-              </View>
-              <View style={[styles.heroSummaryItem, { marginTop: 16 }]}> 
-                <MapPin size={18} color={accentColor} />
-                <View className="ml-3 flex-1">
-                  <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
-                    {addressLabel}
-                  </Text>
-                  <Text allowFontScaling={false} style={styles.heroSummaryValue} numberOfLines={2}>
-                    {trimmedAddress}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.contentWrapper}>
-          <View style={styles.contactCard}>
-            <View>
-              <Text allowFontScaling={false} style={styles.contactLabel}>
-                Your courier
-              </Text>
-              <Text allowFontScaling={false} style={styles.contactName}>
-                Foodify partner
-              </Text>
-              <Text allowFontScaling={false} style={styles.contactHint}>
-                Reach out if you need to share delivery instructions.
-              </Text>
-            </View>
-            <TouchableOpacity activeOpacity={0.9} style={styles.contactButton}>
-              <Phone color="white" size={18} />
-              <Text allowFontScaling={false} style={styles.contactButtonText}>
-                Call courier
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.card, styles.mapCard]}>
-            <View style={styles.cardHeader}>
-              <Text allowFontScaling={false} style={styles.cardTitle}>
-                Courier location
-              </Text>
-              <View style={styles.statusChip}>
-                <Text allowFontScaling={false} style={styles.statusChipText}>
-                  {estimatedWindow}
-                </Text>
-              </View>
-            </View>
-            <Text allowFontScaling={false} style={styles.cardSubtitle}>
-              {activeStep?.statusLabel ?? 'On the move to you'}
+  const heroHeader = (
+    <LinearGradient
+      colors={[accentColor, '#F0644B']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.hero}
+    >
+      <View
+        style={[styles.heroContent, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity onPress={handleGoBack} activeOpacity={0.85} style={styles.heroIconButton}>
+            <ArrowLeft color="white" size={22} />
+          </TouchableOpacity>
+          <View style={styles.orderChip}>
+            <Text allowFontScaling={false} style={styles.orderChipText}>
+              {orderIdLabel}
             </Text>
-            <View style={styles.mapWrapper}>
-              <MapView
-                style={styles.map}
-                region={mapRegion}
-                scrollEnabled={false}
-                rotateEnabled={false}
-                pitchEnabled={false}
-                zoomEnabled={false}
-                customMapStyle={mapTheme}
-                showsBuildings={false}
-                showsCompass={false}
-                showsPointsOfInterest={false}
-              >
-                <Polyline
-                  coordinates={routeCoordinates}
-                  strokeColor="rgba(216,58,46,0.9)"
-                  strokeWidth={5}
-                  lineCap="round"
-                  lineJoin="round"
-                />
-                <Marker coordinate={driverCoordinate} anchor={{ x: 0.5, y: 0.5 }}>
-                  <View style={styles.mapDriverMarkerContainer}>
-                    <Animated.View
-                      style={[
-                        styles.mapDriverPulse,
-                        { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
-                      ]}
-                    />
-                    <View style={styles.mapDriverMarker}>
-                      <Bike size={18} color="white" />
-                    </View>
-                  </View>
-                </Marker>
-                <Marker coordinate={destinationCoordinate} anchor={{ x: 0.5, y: 0.95 }}>
-                  <View style={styles.destinationMarker}>
-                    <View style={styles.destinationDot} />
-                  </View>
-                </Marker>
-              </MapView>
+          </View>
+        </View>
+
+        <View style={styles.heroStatus}>
+          <Text allowFontScaling={false} style={styles.heroNowLabel}>
+            Now
+          </Text>
+          <Text allowFontScaling={false} style={styles.heroTitle}>
+            {activeStep?.title ?? 'Order in progress'}
+          </Text>
+          <Text allowFontScaling={false} style={styles.heroDescription}>
+            {activeStep?.description ?? `We are looking after your order from ${restaurantName}.`}
+          </Text>
+        </View>
+
+        <View style={styles.heroSummary}>
+          <View style={styles.heroSummaryItem}>
+            <Clock size={18} color={accentColor} />
+            <View style={styles.heroSummaryText}>
+              <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
+                Estimated time
+              </Text>
+              <Text allowFontScaling={false} style={styles.heroSummaryValue}>
+                {estimatedWindow}
+              </Text>
             </View>
-            <View style={styles.mapFooter}>
-              <MapPin size={16} color={accentColor} />
-              <Text allowFontScaling={false} style={styles.mapFooterText} numberOfLines={1}>
+          </View>
+          <View style={[styles.heroSummaryItem, styles.heroSummarySpacer]}>
+            <MapPin size={18} color={accentColor} />
+            <View style={[styles.heroSummaryText, { flex: 1 }]}>
+              <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
+                {addressLabel}
+              </Text>
+              <Text allowFontScaling={false} style={styles.heroSummaryValue} numberOfLines={2}>
                 {trimmedAddress}
               </Text>
             </View>
           </View>
+        </View>
+      </View>
+    </LinearGradient>
+  );
 
-          <View style={[styles.card, { marginTop: 24 }]}>
-            <View style={styles.cardHeader}>
-              <Text allowFontScaling={false} style={styles.cardTitle}>
-                Live order status
+  const collapsedHeader = (
+    <LinearGradient colors={[accentColor, '#F0644B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.collapsedHero}>
+      <View style={[styles.collapsedHeaderContent, { paddingTop: insets.top + 6 }]}>
+        <TouchableOpacity onPress={handleGoBack} activeOpacity={0.85} style={styles.collapsedIconButton}>
+          <ArrowLeft color="white" size={20} />
+        </TouchableOpacity>
+        <View style={styles.collapsedHeaderText}>
+          <Text allowFontScaling={false} style={styles.collapsedOrderId} numberOfLines={1}>
+            {orderIdLabel}
+          </Text>
+          <Text allowFontScaling={false} style={styles.collapsedTitle} numberOfLines={1}>
+            {activeStep?.title ?? 'Order in progress'}
+          </Text>
+          <Text allowFontScaling={false} style={styles.collapsedMeta} numberOfLines={1}>
+            ETA {estimatedWindow} • {activeStep?.statusLabel ?? 'In progress'}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={handleCallCourier} activeOpacity={0.9} style={styles.collapsedCallButton}>
+          <Phone color={accentColor} size={18} />
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
+
+  const mainContent = (
+    <View style={styles.screenContent}>
+      <View style={styles.contentWrapper}>
+        <View style={styles.contactCard}>
+          <View style={styles.contactInfo}>
+            <Text allowFontScaling={false} style={styles.contactLabel}>
+              Your courier
+            </Text>
+            <Text allowFontScaling={false} style={styles.contactName}>
+              Foodify partner
+            </Text>
+            <Text allowFontScaling={false} style={styles.contactHint}>
+              Reach out if you need to share delivery instructions.
+            </Text>
+          </View>
+          <TouchableOpacity activeOpacity={0.9} onPress={handleCallCourier} style={styles.contactButton}>
+            <Phone color="white" size={18} />
+            <Text allowFontScaling={false} style={styles.contactButtonText}>
+              Call courier
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.card, styles.mapCard]}>
+          <View style={styles.cardHeader}>
+            <Text allowFontScaling={false} style={styles.cardTitle}>
+              Courier location
+            </Text>
+            <View style={styles.statusChip}>
+              <Text allowFontScaling={false} style={styles.statusChipText}>
+                {estimatedWindow}
               </Text>
-              <View style={styles.statusChipMuted}>
-                <Text allowFontScaling={false} style={styles.statusChipMutedText}>
-                  Step {activeIndex + 1} of {steps.length}
-                </Text>
-              </View>
             </View>
-
-            {steps.map((step, index) => {
-              const isActive = index === activeIndex;
-              const isCompleted = index < activeIndex || (steps.length - 1 === index && step.completed);
-              const timelineValue = timelineAnimations[index];
-              const animatedStyle: Animated.WithAnimatedObject<ViewStyle> | undefined = timelineValue
-                ? {
-                    opacity: timelineValue,
-                    transform: [
-                      {
-                        translateY: timelineValue.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }),
-                      },
-                    ],
-                  }
-                : undefined;
-
-              return (
-                <Animated.View key={`${step.key}-${index}`} style={[styles.timelineRow, animatedStyle]}>
-                  <View style={styles.timelineIconWrapper}>
-                    <View
-                      style={[
-                        styles.timelineDot,
-                        {
-                          backgroundColor: isCompleted || isActive ? accentColor : softSurface,
-                          borderColor: isCompleted || isActive ? accentColor : '#D1D5DB',
-                        },
-                      ]}
-                    >
-                      {isCompleted ? <CheckCircle2 size={14} color="white" /> : null}
-                    </View>
-                    {index < steps.length - 1 ? (
-                      <View
-                        style={[
-                          styles.timelineLine,
-                          { backgroundColor: isCompleted ? `${accentColor}55` : '#E5E7EB' },
-                        ]}
-                      />
-                    ) : null}
+          </View>
+          <Text allowFontScaling={false} style={styles.cardSubtitle}>
+            {activeStep?.statusLabel ?? 'On the move to you'}
+          </Text>
+          <View style={styles.mapWrapper}>
+            <MapView
+              style={styles.map}
+              region={mapRegion}
+              scrollEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              zoomEnabled={false}
+              customMapStyle={mapTheme}
+              showsBuildings={false}
+              showsCompass={false}
+              showsPointsOfInterest={false}
+            >
+              <Polyline
+                coordinates={routeCoordinates}
+                strokeColor="rgba(216,58,46,0.9)"
+                strokeWidth={5}
+                lineCap="round"
+                lineJoin="round"
+              />
+              <Marker coordinate={driverCoordinate} anchor={{ x: 0.5, y: 0.5 }}>
+                <View style={styles.mapDriverMarkerContainer}>
+                  <Animated.View
+                    style={[
+                      styles.mapDriverPulse,
+                      { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
+                    ]}
+                  />
+                  <View style={styles.mapDriverMarker}>
+                    <Bike size={18} color="white" />
                   </View>
-                  <View style={styles.timelineContent}>
-                    <Text
-                      allowFontScaling={false}
-                      style={[styles.timelineTitle, { color: isActive ? accentColor : headingText }]}
-                    >
-                      {step.title}
-                    </Text>
-                    <Text allowFontScaling={false} style={styles.timelineDescription}>
-                      {step.description}
-                    </Text>
-                    {step.statusLabel ? (
-                      <View style={styles.timelineChip}>
-                        <Text allowFontScaling={false} style={styles.timelineChipText}>
-                          {step.statusLabel}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                </Animated.View>
-              );
-            })}
+                </View>
+              </Marker>
+              <Marker coordinate={destinationCoordinate} anchor={{ x: 0.5, y: 0.95 }}>
+                <View style={styles.destinationMarker}>
+                  <View style={styles.destinationDot} />
+                </View>
+              </Marker>
+            </MapView>
+          </View>
+          <View style={styles.mapFooter}>
+            <MapPin size={16} color={accentColor} />
+            <Text allowFontScaling={false} style={styles.mapFooterText} numberOfLines={1}>
+              {trimmedAddress}
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.card, { marginTop: 24 }]}>
+          <View style={styles.cardHeader}>
+            <Text allowFontScaling={false} style={styles.cardTitle}>
+              Live order status
+            </Text>
+            <View style={styles.statusChipMuted}>
+              <Text allowFontScaling={false} style={styles.statusChipMutedText}>
+                Step {activeIndex + 1} of {steps.length}
+              </Text>
+            </View>
           </View>
 
-          <View style={[styles.card, { marginTop: 24 }]}> 
-            <View style={styles.cardHeader}>
-              <Text allowFontScaling={false} style={styles.cardTitle}>
-                Order summary
+          {steps.map((step, index) => {
+            const isActive = index === activeIndex;
+            const isCompleted = index < activeIndex || (steps.length - 1 === index && step.completed);
+            const timelineValue = timelineAnimations[index];
+            const animatedStyle: Animated.WithAnimatedObject<ViewStyle> | undefined = timelineValue
+              ? {
+                  opacity: timelineValue,
+                  transform: [
+                    {
+                      translateY: timelineValue.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }),
+                    },
+                  ],
+                }
+              : undefined;
+
+            return (
+              <Animated.View key={`${step.key}-${index}`} style={[styles.timelineRow, animatedStyle]}>
+                <View style={styles.timelineIconWrapper}>
+                  <View
+                    style={[
+                      styles.timelineDot,
+                      {
+                        backgroundColor: isCompleted || isActive ? accentColor : softSurface,
+                        borderColor: isCompleted || isActive ? accentColor : '#D1D5DB',
+                      },
+                    ]}
+                  >
+                    {isCompleted ? <CheckCircle2 size={14} color="white" /> : null}
+                  </View>
+                  {index < steps.length - 1 ? (
+                    <View
+                      style={[
+                        styles.timelineLine,
+                        { backgroundColor: isCompleted ? `${accentColor}55` : '#E5E7EB' },
+                      ]}
+                    />
+                  ) : null}
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text
+                    allowFontScaling={false}
+                    style={[styles.timelineTitle, { color: isActive ? accentColor : headingText }]}
+                  >
+                    {step.title}
+                  </Text>
+                  <Text allowFontScaling={false} style={styles.timelineDescription}>
+                    {step.description}
+                  </Text>
+                  {step.statusLabel ? (
+                    <View style={styles.timelineChip}>
+                      <Text allowFontScaling={false} style={styles.timelineChipText}>
+                        {step.statusLabel}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        <View style={[styles.card, { marginTop: 24 }]}>
+          <View style={styles.cardHeader}>
+            <Text allowFontScaling={false} style={styles.cardTitle}>
+              Order summary
+            </Text>
+            {orderTotal ? (
+              <Text allowFontScaling={false} style={styles.summaryTotal}>
+                {orderTotal}
               </Text>
-              {orderTotal ? (
-                <Text allowFontScaling={false} style={styles.summaryTotal}>
-                  {orderTotal}
+            ) : null}
+          </View>
+          <Text allowFontScaling={false} style={styles.cardSubtitle}>
+            Payment method: {paymentMethod}
+          </Text>
+
+          {displayedItems.length ? (
+            <View style={styles.summaryItemsWrapper}>
+              {displayedItems.map((item) => (
+                <View key={`${item.menuItemId}-${item.name}`} style={styles.summaryItemRow}>
+                  <View style={{ flex: 1, paddingRight: 12 }}>
+                    <Text allowFontScaling={false} style={styles.summaryItemTitle}>
+                      {item.quantity} × {item.name}
+                    </Text>
+                    {item.extras?.length ? (
+                      <Text allowFontScaling={false} style={styles.summaryItemExtras}>
+                        Extras: {item.extras.map((extra) => extra.name).join(', ')}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text allowFontScaling={false} style={styles.summaryItemPrice}>
+                    {formatServerMoney(item.lineTotal)}
+                  </Text>
+                </View>
+              ))}
+              {remainingItems > 0 ? (
+                <Text allowFontScaling={false} style={styles.summaryMore}>
+                  + {remainingItems} more {remainingItems === 1 ? 'item' : 'items'}
                 </Text>
               ) : null}
             </View>
-            <Text allowFontScaling={false} style={styles.cardSubtitle}>
-              Payment method: {paymentMethod}
-            </Text>
+          ) : null}
 
-            {displayedItems.length ? (
-              <View style={styles.summaryItemsWrapper}>
-                {displayedItems.map((item) => (
-                  <View key={`${item.menuItemId}-${item.name}`} style={styles.summaryItemRow}>
-                    <View style={{ flex: 1, paddingRight: 12 }}>
-                      <Text allowFontScaling={false} style={styles.summaryItemTitle}>
-                        {item.quantity} × {item.name}
-                      </Text>
-                      {item.extras?.length ? (
-                        <Text allowFontScaling={false} style={styles.summaryItemExtras}>
-                          Extras: {item.extras.map((extra) => extra.name).join(', ')}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Text allowFontScaling={false} style={styles.summaryItemPrice}>
-                      {formatServerMoney(item.lineTotal)}
-                    </Text>
-                  </View>
-                ))}
-                {remainingItems > 0 ? (
-                  <Text allowFontScaling={false} style={styles.summaryMore}>
-                    + {remainingItems} more {remainingItems === 1 ? 'item' : 'items'}
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
-
-            <View style={styles.summaryActions}>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                onPress={() => navigation.navigate('OrderHistory')}
-                style={[styles.actionButton, styles.actionButtonGhost]}
-              >
-                <Text allowFontScaling={false} style={styles.actionButtonGhostText}>
-                  View order history
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => navigation.navigate('Home')}
-                style={[styles.actionButton, styles.actionButtonPrimary]}
-              >
-                <Text allowFontScaling={false} style={styles.actionButtonPrimaryText}>
-                  Back to home
-                </Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.summaryActions}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => navigation.navigate('OrderHistory')}
+              style={[styles.actionButton, styles.actionButtonGhost]}
+            >
+              <Text allowFontScaling={false} style={styles.actionButtonGhostText}>
+                View order history
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate('Home')}
+              style={[styles.actionButton, styles.actionButtonPrimary]}
+            >
+              <Text allowFontScaling={false} style={styles.actionButtonPrimaryText}>
+                Back to home
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </View>
+  );
+
+  return (
+    <MainLayout
+      showHeader
+      showFooter={false}
+      customHeader={heroHeader}
+      collapsedHeader={collapsedHeader}
+      mainContent={mainContent}
+      headerMaxHeight={360}
+      headerMinHeight={insets.top + 120}
+    />
   );
 };
 
 const styles = StyleSheet.create({
   hero: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
+  },
+  heroContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 48,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroIconButton: {
+    height: 44,
+    width: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  orderChip: {
+    borderRadius: 9999,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  orderChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase',
+  },
+  heroStatus: {
+    marginTop: 32,
+  },
+  heroNowLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  heroTitle: {
+    marginTop: 12,
+    fontSize: 32,
+    fontWeight: '700',
+    color: 'white',
+  },
+  heroDescription: {
+    marginTop: 16,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.85)',
   },
   heroSummary: {
     marginTop: 28,
@@ -647,6 +745,12 @@ const styles = StyleSheet.create({
   heroSummaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  heroSummaryText: {
+    marginLeft: 12,
+  },
+  heroSummarySpacer: {
+    marginTop: 16,
   },
   heroSummaryLabel: {
     fontSize: 12,
@@ -661,9 +765,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: heroDark,
   },
+  screenContent: {
+    flex: 1,
+    backgroundColor: softBackground,
+  },
   contentWrapper: {
     paddingHorizontal: 24,
     marginTop: -32,
+    paddingBottom: 40,
   },
   card: {
     borderRadius: 28,
@@ -687,6 +796,10 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 14 },
     elevation: 6,
+  },
+  contactInfo: {
+    flex: 1,
+    paddingRight: 16,
   },
   contactLabel: {
     color: 'rgba(255,255,255,0.7)',
@@ -714,12 +827,63 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
   },
   contactButtonText: {
     marginLeft: 8,
     color: 'white',
     fontSize: 13,
     fontWeight: '600',
+  },
+  collapsedHero: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  collapsedHeaderContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 12,
+  },
+  collapsedIconButton: {
+    height: 40,
+    width: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  collapsedHeaderText: {
+    flex: 1,
+    marginHorizontal: 16,
+  },
+  collapsedOrderId: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.85)',
+    textTransform: 'uppercase',
+  },
+  collapsedTitle: {
+    marginTop: 4,
+    fontSize: 16,
+    fontWeight: '700',
+    color: 'white',
+  },
+  collapsedMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  collapsedCallButton: {
+    height: 40,
+    width: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
   },
   mapCard: {
     marginTop: 24,
