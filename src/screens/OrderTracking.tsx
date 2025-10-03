@@ -743,12 +743,12 @@ const styles = StyleSheet.create({
     left: 17,
   },
   stepConnectorTop: {
-    top: -24,
-    bottom: 24,
+    top: 0,
+    bottom: 12,
   },
   stepConnectorBottom: {
-    top: 24,
-    bottom: -24,
+    top: 12,
+    bottom: 0,
   },
   stepConnectorActive: {
     backgroundColor: accentColor,
