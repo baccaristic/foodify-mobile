@@ -28,6 +28,7 @@ import {
 } from '@react-navigation/native';
 
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
+import { vs } from 'react-native-size-matters';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -173,7 +174,7 @@ const buildWorkflowSteps = (order: CreateOrderResponse | null | undefined): Work
       statusText:
         index === 0 ? 'Completed' : index === 1 ? 'Preparing' : 'Pending',
       etaLabel: index === 0 ? '4 m 34s' : index === 1 ? '24s' : '0s',
-      state,
+      state: index === 0 ? 'completed': index === 1  ? 'active': 'pending',
     } satisfies WorkflowStep;
   });
 
@@ -198,7 +199,7 @@ const buildWorkflowSteps = (order: CreateOrderResponse | null | undefined): Work
         state === 'completed' ? 'Completed' : state === 'active' ? 'Preparing' : 'Pending',
       etaLabel:
         index === 0 ? '4 m 34s' : index === 1 ? '24s' : index === 2 ? '0s' : '1m 20s',
-      state,
+      state: index === 0 ? 'completed': index === 1  ? 'active': 'pending',
     } satisfies WorkflowStep;
   });
 };
@@ -349,23 +350,6 @@ const OrderTrackingScreen: React.FC = () => {
           <ArrowLeft size={20} color="white" />
         </TouchableOpacity>
       </View>
-
-      {!collapsed ? (
-        <Animated.View style={[styles.bannerContainer, { opacity: bannerOpacity }]}>
-          <View style={styles.bannerRibbon}>
-            <Text style={styles.bannerLabel}>Delivering to</Text>
-            <View style={styles.bannerLocationRow}>
-              <MapPin size={16} color="white" />
-              <View style={styles.bannerTexts}>
-                <Text style={styles.bannerLocation}>{deliveryArea}</Text>
-                <Text style={styles.bannerAddress} numberOfLines={1}>
-                  {deliveryAddress}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
-      ) : null}
     </View>
   );
 
@@ -465,24 +449,6 @@ const OrderTrackingScreen: React.FC = () => {
               </Text>
             </View>
             <View style={styles.stepMeta}>
-              {(isCompleted || isActive) && (
-                <View
-                  style={[
-                    styles.stepStatusBadge,
-                    isCompleted && styles.stepStatusBadgeCompleted,
-                    isActive && styles.stepStatusBadgeActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.stepStatusLabel,
-                      (isCompleted || isActive) && styles.stepStatusLabelContrast,
-                    ]}
-                  >
-                    {step.statusText}
-                  </Text>
-                </View>
-              )}
               <View
                 style={[
                   styles.stepEtaBadge,
@@ -522,7 +488,7 @@ const OrderTrackingScreen: React.FC = () => {
 
       <Animated.ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 320 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: vs(180) }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -536,7 +502,7 @@ const OrderTrackingScreen: React.FC = () => {
           <View style={styles.summaryHeader}>
             <View style={styles.summaryHeaderLeft}>
               <Image
-                source={{ uri: restaurantAvatarUri }}
+                source={{ uri: '../../../assets/baguette.png' }}
                 style={styles.summaryRestaurantImage}
               />
               <Text style={styles.summaryTitle}>My Order</Text>

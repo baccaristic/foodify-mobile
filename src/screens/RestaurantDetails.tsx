@@ -28,6 +28,7 @@ import type {
 import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
 import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
+import { vs } from 'react-native-size-matters';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -525,6 +526,8 @@ export default function RestaurantDetails() {
       <MainLayout
         showHeader
         showFooter
+        headerMaxHeight={vs(120)}
+        headerMinHeight={vs(110)}
         customHeader={customHeader}
         collapsedHeader={collapsedHeader}
         mainContent={mainContent()}
