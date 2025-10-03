@@ -27,7 +27,7 @@ import type {
 } from '~/interfaces/Restaurant';
 import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
-import type { CartItemOptionSelection } from '~/context/CartContext';
+import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -35,6 +35,7 @@ const modalHeight = screenHeight;
 interface RestaurantDetailsRouteParams {
   RestaurantDetails: {
     restaurantId: number;
+    cartItemId?: string;
   };
 }
 
@@ -86,17 +87,44 @@ const mapSummaryToDetails = (summary: RestaurantMenuItemSummary): RestaurantMenu
   optionGroups: [],
 });
 
+const mapCartItemToSelections = (cartItem: CartItem) => {
+  const selections: Record<number, number[]> = {};
+
+  cartItem.extras.forEach((group) => {
+    selections[group.groupId] = group.extras.map((extra) => extra.id);
+  });
+
+  return selections;
+};
+
+const duplicateSelections = (selections: Record<number, number[]>) =>
+  Object.entries(selections).reduce<Record<number, number[]>>((acc, [key, value]) => {
+    acc[Number(key)] = [...value];
+    return acc;
+  }, {});
+
+const buildInitialDraftsFromCartItem = (cartItem: CartItem) => {
+  const baseSelections = mapCartItemToSelections(cartItem);
+
+  return Array.from({ length: cartItem.quantity }, () => duplicateSelections(baseSelections));
+};
+
 export default function RestaurantDetails() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
+  const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
+  const [initialDraftSelections, setInitialDraftSelections] =
+    useState<Record<number, number[]>[] | null>(null);
 
   const insets = useSafeAreaInsets();
-  const { addItem, itemCount } = useCart();
+  const { addItem, itemCount, items: cartItems, removeItem, restaurant: cartRestaurant } = useCart();
 
   const translateY = useSharedValue(modalHeight);
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<RestaurantDetailsRouteProp>();
   const restaurantId = route.params?.restaurantId;
+  const cartItemIdFromParams = route.params?.cartItemId;
+  const [handledCartItemId, setHandledCartItemId] = useState<string | null>(null);
   const isRestaurantIdValid = typeof restaurantId === 'number' && !Number.isNaN(restaurantId);
 
   const {
@@ -122,8 +150,52 @@ export default function RestaurantDetails() {
     }
   }, [isModalVisible, translateY]);
 
+  useEffect(() => {
+    if (!cartItemIdFromParams) {
+      setHandledCartItemId(null);
+    }
+  }, [cartItemIdFromParams]);
+
+  useEffect(() => {
+    if (!restaurant || !cartItemIdFromParams) {
+      return;
+    }
+
+    if (handledCartItemId === cartItemIdFromParams) {
+      return;
+    }
+
+    if (cartRestaurant && cartRestaurant.id !== restaurant.id) {
+      return;
+    }
+
+    const cartItem = cartItems.find((item) => item.id === cartItemIdFromParams);
+    if (!cartItem) {
+      return;
+    }
+
+    const drafts = buildInitialDraftsFromCartItem(cartItem);
+
+    handleOpenMenuItem(cartItem.menuItemId, {
+      editingCartItemId: cartItem.id,
+      initialDrafts: drafts,
+    });
+
+    setHandledCartItemId(cartItemIdFromParams);
+  }, [
+    cartItemIdFromParams,
+    cartItems,
+    cartRestaurant,
+    handleOpenMenuItem,
+    handledCartItemId,
+    restaurant,
+  ]);
+
   const handleOpenMenuItem = useCallback(
-    (itemId: number) => {
+    (
+      itemId: number,
+      options?: { editingCartItemId?: string | null; initialDrafts?: Record<number, number[]>[] | null }
+    ) => {
       if (!restaurant) {
         return;
       }
@@ -131,6 +203,8 @@ export default function RestaurantDetails() {
       const detailedItem = allMenuItems.find((item) => item.id === itemId);
       if (detailedItem) {
         setSelectedMenuItem(detailedItem);
+        setEditingCartItemId(options?.editingCartItemId ?? null);
+        setInitialDraftSelections(options?.initialDrafts ?? null);
         setIsModalVisible(true);
         return;
       }
@@ -138,6 +212,8 @@ export default function RestaurantDetails() {
       const topSaleMatch = restaurant.topSales.find((item) => item.id === itemId);
       if (topSaleMatch) {
         setSelectedMenuItem(mapSummaryToDetails(topSaleMatch));
+        setEditingCartItemId(options?.editingCartItemId ?? null);
+        setInitialDraftSelections(options?.initialDrafts ?? null);
         setIsModalVisible(true);
       }
     },
@@ -146,7 +222,7 @@ export default function RestaurantDetails() {
 
   const handleOpen = useCallback(
     (itemId: number) => {
-      handleOpenMenuItem(itemId);
+      handleOpenMenuItem(itemId, { editingCartItemId: null, initialDrafts: null });
     },
     [handleOpenMenuItem]
   );
@@ -156,7 +232,13 @@ export default function RestaurantDetails() {
       if (!selectedMenuItem || !restaurant || items.length === 0) {
         setIsModalVisible(false);
         setSelectedMenuItem(null);
+        setEditingCartItemId(null);
+        setInitialDraftSelections(null);
         return;
+      }
+
+      if (editingCartItemId) {
+        removeItem(editingCartItemId);
       }
 
       items.forEach((itemDetails) => {
@@ -180,8 +262,10 @@ export default function RestaurantDetails() {
 
       setIsModalVisible(false);
       setSelectedMenuItem(null);
+      setEditingCartItemId(null);
+      setInitialDraftSelections(null);
     },
-    [addItem, restaurant, selectedMenuItem]
+    [addItem, editingCartItemId, removeItem, restaurant, selectedMenuItem]
   );
 
   const handleSeeCart = () => {
@@ -464,6 +548,8 @@ export default function RestaurantDetails() {
               menuItem={selectedMenuItem}
               handleAddItem={handleUpdateCartAndClose}
               onClose={() => handleUpdateCartAndClose([])}
+              initialDraftSelections={initialDraftSelections ?? undefined}
+              actionLabel={editingCartItemId ? 'Update' : 'Add'}
             />
           </Animated.View>
         </>

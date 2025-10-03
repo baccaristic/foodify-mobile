@@ -29,7 +29,8 @@ const CartItemRow: React.FC<{
   item: CartItem;
   onUpdateQuantity: (itemId: string, newQuantity: number) => void;
   onRemove: (itemId: string) => void;
-}> = ({ item, onUpdateQuantity, onRemove }) => {
+  onModify: (item: CartItem) => void;
+}> = ({ item, onUpdateQuantity, onRemove, onModify }) => {
   const isMinQuantity = item.quantity <= 1;
 
   const handleMinus = () => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1));
@@ -50,6 +51,11 @@ const CartItemRow: React.FC<{
         <Text allowFontScaling={false} className="pr-6 text-sm font-bold text-[#17213A]" numberOfLines={1}>
           {item.name}
         </Text>
+        <TouchableOpacity onPress={() => onModify(item)} className="mt-1 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
+          <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
+            Modify
+          </Text>
+        </TouchableOpacity>
         {item.description ? (
           <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
             {item.description}
@@ -116,6 +122,17 @@ export default function Cart() {
     removeItem(itemId);
   };
 
+  const handleModifyItem = (item: CartItem) => {
+    if (!restaurant?.id) {
+      return;
+    }
+
+    navigation.navigate('RestaurantDetails', {
+      restaurantId: restaurant.id,
+      cartItemId: item.id,
+    });
+  };
+
   const handleClearCart = () => {
     clearCart();
   };
@@ -164,7 +181,13 @@ export default function Cart() {
 
       {hasItems ? (
         items.map((item) => (
-          <CartItemRow key={item.id} item={item} onUpdateQuantity={handleUpdateQuantity} onRemove={handleRemoveItem} />
+          <CartItemRow
+            key={item.id}
+            item={item}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemove={handleRemoveItem}
+            onModify={handleModifyItem}
+          />
         ))
       ) : (
         <View className="mt-10 items-center">
@@ -194,7 +217,7 @@ export default function Cart() {
   const cartHeader = (
     <Header
       title="San Francisco Bay Area"
-      compact={false}
+      compact
       onBack={() => navigation.goBack()}
       onLocationPress={() => console.log('Location pressed')}
     />
@@ -207,8 +230,9 @@ export default function Cart() {
         headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader
         showFooter
-        headerMaxHeight={vs(10)}
-        headerMinHeight={vs(10)}
+        headerMaxHeight={vs(110)}
+        headerMinHeight={vs(110)}
+        enforceResponsiveHeaderSize={false}
         customHeader={cartHeader}
         mainContent={cartContent}
       />

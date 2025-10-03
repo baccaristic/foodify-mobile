@@ -20,6 +20,8 @@ interface MenuDetailProps {
   menuItem: RestaurantMenuItemDetails;
   handleAddItem: (itemDetails: AddToCartDetails[]) => void;
   onClose?: () => void;
+  initialDraftSelections?: Record<number, number[]>[];
+  actionLabel?: string;
 }
 
 interface AddToCartDetails {
@@ -131,6 +133,17 @@ const createDraftConfiguration = (
   selections: baseSelections ? cloneSelections(baseSelections) : buildInitialSelection(item),
 });
 
+const createDraftsFromInitialSelections = (
+  item: RestaurantMenuItemDetails,
+  initialSelections?: Record<number, number[]>[]
+) => {
+  if (initialSelections && initialSelections.length > 0) {
+    return initialSelections.map((selection) => createDraftConfiguration(item, selection));
+  }
+
+  return [createDraftConfiguration(item)];
+};
+
 const calculateExtrasTotal = (
   optionGroups: RestaurantMenuOptionGroup[],
   selections: Record<number, number[]>
@@ -156,16 +169,24 @@ const isSelectionValid = (
     return selectedCount >= minRequired;
   });
 
-const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClose }) => {
+const MenuDetail: React.FC<MenuDetailProps> = ({
+  menuItem,
+  handleAddItem,
+  onClose,
+  initialDraftSelections,
+  actionLabel = 'Add',
+}) => {
   const insets = useSafeAreaInsets();
 
-  const [drafts, setDrafts] = useState<DraftConfiguration[]>(() => [createDraftConfiguration(menuItem)]);
+  const [drafts, setDrafts] = useState<DraftConfiguration[]>(() =>
+    createDraftsFromInitialSelections(menuItem, initialDraftSelections)
+  );
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    setDrafts([createDraftConfiguration(menuItem)]);
+    setDrafts(createDraftsFromInitialSelections(menuItem, initialDraftSelections));
     setActiveIndex(0);
-  }, [menuItem]);
+  }, [initialDraftSelections, menuItem]);
 
   const activeDraft = drafts[activeIndex];
 
@@ -445,7 +466,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
         onPress={handleAdd}
         disabled={!allValid}>
         <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
-          Add {drafts.length} {drafts.length === 1 ? 'item' : 'items'} for {formatPrice(cartTotal)}
+          {actionLabel} {drafts.length} {drafts.length === 1 ? 'item' : 'items'} for {formatPrice(cartTotal)}
         </Text>
       </TouchableOpacity>
     </View>
