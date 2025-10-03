@@ -6,17 +6,19 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
+import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Bike,
+  Check,
   Clock,
   MapPin,
+  MessageCircle,
   Phone,
   Star,
+  Timer,
 } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   NavigationProp,
   ParamListBase,
@@ -26,8 +28,8 @@ import {
 } from '@react-navigation/native';
 
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
-const HEADER_MAX_HEIGHT = 360;
-const HEADER_MIN_HEIGHT = 160;
+const HEADER_MAX_HEIGHT = 320;
+const HEADER_MIN_HEIGHT = 140;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 const COLLAPSE_THRESHOLD = 80;
 
@@ -234,23 +236,13 @@ const OrderTrackingScreen: React.FC = () => {
     return DEFAULT_REGION;
   }, [order?.delivery?.location?.lat, order?.delivery?.location?.lng]);
 
-  const destinationCoordinate: LatLng = {
-    latitude: mapRegion.latitude,
-    longitude: mapRegion.longitude,
-  };
-
-  const routeCoordinates: LatLng[] = useMemo(() => {
+  const driverCoordinate: LatLng = useMemo(() => {
     const { latitude, longitude } = mapRegion;
-    return [
-      { latitude: latitude - 0.02, longitude: longitude - 0.012 },
-      { latitude: latitude - 0.012, longitude: longitude - 0.008 },
-      { latitude: latitude - 0.005, longitude: longitude - 0.003 },
-      { latitude: latitude + 0.001, longitude: longitude + 0.002 },
-      { latitude: latitude + 0.004, longitude: longitude + 0.006 },
-    ];
+    return {
+      latitude: latitude - 0.01,
+      longitude: longitude - 0.01,
+    };
   }, [mapRegion]);
-
-  const driverCoordinate: LatLng = routeCoordinates[1] ?? destinationCoordinate;
 
   const handleGoBack = () => {
     if (navigation.canGoBack()) {
@@ -288,31 +280,14 @@ const OrderTrackingScreen: React.FC = () => {
         showsPointsOfInterest={false}
         showsCompass={false}
       >
-        <Polyline
-          coordinates={routeCoordinates}
-          strokeColor="rgba(255,255,255,0.85)"
-          strokeWidth={4}
-          lineCap="round"
-          lineJoin="round"
-        />
         <Marker coordinate={driverCoordinate}>
           <View style={styles.driverMarker}>
             <Bike size={16} color="white" />
           </View>
         </Marker>
-        <Marker coordinate={destinationCoordinate}>
-          <View style={styles.destinationMarker} />
-        </Marker>
       </MapView>
 
-      <LinearGradient
-        colors={collapsed ? ['rgba(0,0,0,0.4)', 'transparent'] : ['rgba(0,0,0,0.45)', 'transparent']}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-
-      <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}> 
+      <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
           onPress={handleGoBack}
           activeOpacity={0.85}
@@ -323,43 +298,20 @@ const OrderTrackingScreen: React.FC = () => {
       </View>
 
       {!collapsed ? (
-        <>
-          <View style={styles.mapLocationCard}>
-            <Text style={styles.locationEyebrow}>Delivering to</Text>
-            <View style={styles.locationRow}>
-              <MapPin size={18} color="white" />
-              <View style={styles.locationTexts}>
-                <Text style={styles.locationTitle}>{deliveryArea}</Text>
-                <Text style={styles.locationSubtitle} numberOfLines={1}>
+        <View style={styles.bannerContainer}>
+          <View style={styles.bannerRibbon}>
+            <Text style={styles.bannerLabel}>Delivering to</Text>
+            <View style={styles.bannerLocationRow}>
+              <MapPin size={16} color="white" />
+              <View style={styles.bannerTexts}>
+                <Text style={styles.bannerLocation}>{deliveryArea}</Text>
+                <Text style={styles.bannerAddress} numberOfLines={1}>
                   {deliveryAddress}
                 </Text>
               </View>
             </View>
           </View>
-
-          <View style={styles.courierFloatingCard}>
-            <View style={styles.courierAvatar}>
-              <Bike size={20} color={accentColor} />
-            </View>
-            <View style={styles.courierDetails}>
-              <Text style={styles.courierLabel}>Delivered by</Text>
-              <Text style={styles.courierName}>{courierName}</Text>
-              <View style={styles.courierMetaRow}>
-                <Star size={14} color={accentColor} fill={accentColor} />
-                <Text style={styles.courierMetaText}>
-                  {courierRating} • {courierDeliveries} deliveries
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.callPill}
-              activeOpacity={0.85}
-              onPress={handleCallCourier}
-            >
-              <Phone size={18} color="white" />
-            </TouchableOpacity>
-          </View>
-        </>
+        </View>
       ) : null}
     </View>
   );
@@ -378,107 +330,76 @@ const OrderTrackingScreen: React.FC = () => {
     },
   );
 
-  const mainContent = (
-    <>
-      <View style={styles.stepsCard}>
-        <View style={styles.stepsHeader}>
-          <Text style={styles.stepsTitle}>Order Steps</Text>
-          <View style={styles.stepsStatusPill}>
-            <Clock size={14} color="white" />
-            <Text style={styles.stepsStatusText}>In progress</Text>
-          </View>
+  const renderSteps = () => (
+    <View style={styles.stepsCard}>
+      <View style={styles.stepsHeader}>
+        <Text style={styles.stepsTitle}>Order Steps</Text>
+        <View style={styles.stepsStatusPill}>
+          <Timer size={14} color="white" />
+          <Text style={styles.stepsStatusText}>4 m 34s</Text>
         </View>
-        {steps.map((step, index) => {
-          const isLast = index === steps.length - 1;
-          const dotStyle = [styles.stepDot];
-          if (step.state === 'completed') {
-            dotStyle.push(styles.stepDotCompleted);
-          } else if (step.state === 'active') {
-            dotStyle.push(styles.stepDotActive);
-          }
+      </View>
+      {steps.map((step, index) => {
+        const isLast = index === steps.length - 1;
+        const isCompleted = step.state === 'completed';
+        const isActive = step.state === 'active';
 
-          const lineStyle = [styles.stepLine];
-          if (step.state !== 'pending') {
-            lineStyle.push(styles.stepLineActive);
-          }
-
-          return (
-            <View
-              key={`${step.key}-${index}`}
-              style={[styles.stepRow, !isLast && styles.stepRowDivider]}
-            >
-              <View style={styles.stepTimeline}>
-                <View style={dotStyle} />
-                {!isLast ? <View style={lineStyle} /> : null}
+        return (
+          <View
+            key={`${step.key}-${index}`}
+            style={[styles.stepRow, !isLast && styles.stepRowDivider]}
+          >
+            <View style={styles.stepTimeline}>
+              <View
+                style={[
+                  styles.stepDot,
+                  isCompleted && styles.stepDotCompleted,
+                  isActive && styles.stepDotActive,
+                ]}
+              >
+                {isCompleted ? (
+                  <Check size={12} color="white" />
+                ) : isActive ? (
+                  <Clock size={12} color={accentColor} />
+                ) : null}
               </View>
-              <View style={styles.stepTexts}>
-                <Text style={styles.stepStage}>Step {index + 1}</Text>
-                <Text style={styles.stepTitle}>{step.title}</Text>
-                <Text style={styles.stepDescription}>{step.description}</Text>
-              </View>
-              <View style={styles.stepMeta}>
+              {!isLast ? (
                 <View
                   style={[
-                    styles.stepStatusBadge,
-                    step.state === 'completed' && styles.stepStatusBadgeCompleted,
-                    step.state === 'active' && styles.stepStatusBadgeActive,
+                    styles.stepLine,
+                    (isCompleted || isActive) && styles.stepLineActive,
+                  ]}
+                />
+              ) : null}
+            </View>
+            <View style={styles.stepTexts}>
+              <Text style={styles.stepStage}>Step {index + 1}</Text>
+              <Text style={styles.stepTitle}>{step.title}</Text>
+              <Text style={styles.stepDescription}>{step.description}</Text>
+            </View>
+            <View style={styles.stepMeta}>
+              <View
+                style={[
+                  styles.stepStatusBadge,
+                  isCompleted && styles.stepStatusBadgeCompleted,
+                  isActive && styles.stepStatusBadgeActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.stepStatusLabel,
+                    (isCompleted || isActive) && styles.stepStatusLabelContrast,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.stepStatusLabel,
-                      step.state !== 'pending' && styles.stepStatusLabelContrast,
-                    ]}
-                  >
-                    {step.statusText}
-                  </Text>
-                </View>
-                <Text style={styles.stepEta}>{step.etaLabel}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryHeader}>
-          <Text style={styles.summaryTitle}>My Order</Text>
-          <View style={styles.summaryBadge}>
-            <Text style={styles.summaryBadgeText}>
-              {order?.restaurant?.name ?? 'Your restaurant'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.summaryItems}>
-          {order?.items?.map((item, index) => {
-            const isLast = index === (order?.items?.length ?? 0) - 1;
-            return (
-              <View
-                key={`${item.menuItem?.id ?? index}-${index}`}
-                style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
-              >
-                <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
-                <Text style={styles.summaryItemName} numberOfLines={1}>
-                  {item.menuItem?.name ?? item.name ?? 'Menu item'}
+                  {step.statusText}
                 </Text>
               </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.summaryFooter}>
-          {orderTotal ? <Text style={styles.summaryTotal}>{orderTotal}</Text> : null}
-          <TouchableOpacity
-            onPress={handleSeeDetails}
-            activeOpacity={0.85}
-            style={styles.summaryDetailsButton}
-          >
-            <Text style={styles.summaryDetailsText}>See details</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </>
+              <Text style={styles.stepEta}>{step.etaLabel}</Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
   );
 
   return (
@@ -498,14 +419,83 @@ const OrderTrackingScreen: React.FC = () => {
 
       <Animated.ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 240 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
         <View style={styles.contentSpacer} />
-        {mainContent}
+        {renderSteps()}
       </Animated.ScrollView>
+
+      <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>My Order</Text>
+            <View style={styles.summaryBadge}>
+              <Text style={styles.summaryBadgeText}>
+                {order?.restaurant?.name ?? 'Your restaurant'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.summaryItems}>
+            {order?.items?.map((item, index) => {
+              const isLast = index === (order?.items?.length ?? 0) - 1;
+              return (
+                <View
+                  key={`${item.menuItem?.id ?? index}-${index}`}
+                  style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
+                >
+                  <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
+                  <Text style={styles.summaryItemName} numberOfLines={1}>
+                    {item.menuItem?.name ?? item.name ?? 'Menu item'}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          <View style={styles.summaryFooter}>
+            {orderTotal ? <Text style={styles.summaryTotal}>{orderTotal}</Text> : null}
+            <TouchableOpacity
+              onPress={handleSeeDetails}
+              activeOpacity={0.85}
+              style={styles.summaryDetailsButton}
+            >
+              <Text style={styles.summaryDetailsText}>See details</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.courierStickyCard}>
+          <View>
+            <Text style={styles.courierStickyLabel}>Delivered by</Text>
+            <Text style={styles.courierStickyName}>{courierName}</Text>
+            <View style={styles.courierStickyRating}>
+              <Star size={14} color={accentColor} fill={accentColor} />
+              <Text style={styles.courierStickyRatingText}>
+                {courierRating} / 5 ({courierDeliveries})
+              </Text>
+            </View>
+          </View>
+          <View style={styles.courierStickyActions}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.courierActionButton}
+              onPress={handleCallCourier}
+            >
+              <Phone size={18} color={accentColor} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.courierActionButton, styles.courierActionButtonSpacing]}
+            >
+              <MessageCircle size={18} color={accentColor} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     </View>
   );
 };
@@ -531,7 +521,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 60,
+    paddingBottom: 40,
     backgroundColor: softBackground,
   },
   contentSpacer: {
@@ -565,104 +555,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mapLocationCard: {
+  bannerContainer: {
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 140,
+    bottom: 24,
+  },
+  bannerRibbon: {
     backgroundColor: accentColor,
-    borderRadius: 20,
-    padding: 18,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
-  locationEyebrow: {
-    color: 'rgba(255,255,255,0.75)',
+  bannerLabel: {
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
-    letterSpacing: 1,
     textTransform: 'uppercase',
-    marginBottom: 10,
+    letterSpacing: 1,
     fontWeight: '600',
   },
-  locationRow: {
+  bannerLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 8,
   },
-  locationTexts: {
-    marginLeft: 12,
+  bannerTexts: {
+    marginLeft: 10,
     flex: 1,
   },
-  locationTitle: {
-    color: 'white',
+  bannerLocation: {
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
   },
-  locationSubtitle: {
+  bannerAddress: {
     color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
     fontSize: 14,
-  },
-  courierFloatingCard: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: softSurface,
-    borderRadius: 18,
-    padding: 16,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
-  },
-  courierAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#FCE7E4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  courierDetails: {
-    flex: 1,
-    marginHorizontal: 16,
-  },
-  courierLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: textSecondary,
-    fontWeight: '600',
-  },
-  courierName: {
-    marginTop: 4,
-    fontSize: 18,
-    fontWeight: '700',
-    color: textPrimary,
-  },
-  courierMetaRow: {
-    marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  courierMetaText: {
-    marginLeft: 6,
-    color: textSecondary,
-    fontSize: 13,
-  },
-  callPill: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: accentColor,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 2,
   },
   driverMarker: {
     width: 34,
@@ -673,14 +607,6 @@ const styles = StyleSheet.create({
     backgroundColor: accentColor,
     borderWidth: 3,
     borderColor: 'white',
-  },
-  destinationMarker: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: 'white',
-    borderWidth: 4,
-    borderColor: accentColor,
   },
   stepsCard: {
     backgroundColor: softSurface,
@@ -885,5 +811,65 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  bottomSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: softBackground,
+  },
+  courierStickyCard: {
+    backgroundColor: softSurface,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  courierStickyLabel: {
+    color: textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  courierStickyName: {
+    marginTop: 4,
+    fontSize: 18,
+    fontWeight: '700',
+    color: textPrimary,
+  },
+  courierStickyRating: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  courierStickyRatingText: {
+    marginLeft: 6,
+    fontSize: 13,
+    color: textSecondary,
+  },
+  courierStickyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  courierActionButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 18,
+    backgroundColor: '#FFECEB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  courierActionButtonSpacing: {
+    marginLeft: 12,
   },
 });
