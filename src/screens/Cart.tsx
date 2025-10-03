@@ -15,6 +15,7 @@ import type { CartItem } from '~/context/CartContext';
 
 const primaryColor = '#CA251B';
 const FALLBACK_IMAGE = require('../../assets/baguette.png');
+const EMPTY_CART_IMAGE = require('../../assets/empty-cart.png');
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
@@ -190,13 +191,19 @@ export default function Cart() {
           />
         ))
       ) : (
-        <View className="mt-10 items-center">
-          <Text allowFontScaling={false} className="text-base text-gray-500">
-            Your cart is empty.
+        <View className="mt-10 items-center px-6">
+          <Image source={EMPTY_CART_IMAGE} style={{ width: 160, height: 160 }} contentFit="contain" />
+          <Text allowFontScaling={false} className="mt-6 text-center text-lg font-bold text-[#17213A]">
+            Add items to start a basket
           </Text>
-          <TouchableOpacity className="mt-4 rounded-xl bg-[#CA251B] px-4 py-2" onPress={handleAddMoreItems}>
-            <Text allowFontScaling={false} className="text-lg text-white">
-              Browse restaurants
+          <Text allowFontScaling={false} className="mt-2 text-center text-sm text-gray-500">
+            Once you add items from a restaurant or store, your basket will appear here.
+          </Text>
+          <TouchableOpacity
+            className="mt-6 w-full max-w-xs rounded-2xl bg-[#CA251B] py-3"
+            onPress={handleAddMoreItems}>
+            <Text allowFontScaling={false} className="text-center text-base font-semibold text-white">
+              Add items
             </Text>
           </TouchableOpacity>
         </View>
