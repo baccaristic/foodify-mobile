@@ -30,6 +30,7 @@ interface OptionRowProps {
   group: RestaurantMenuOptionGroup;
   extra: RestaurantMenuItemExtra;
   isSelected: boolean;
+  isLast: boolean;
   onToggle: (group: RestaurantMenuOptionGroup, extra: RestaurantMenuItemExtra) => void;
 }
 
@@ -42,35 +43,50 @@ const resolveImageSource = (imagePath?: string | null) => {
   return require('../../assets/baguette.png');
 };
 
-const OptionRow: React.FC<OptionRowProps> = ({ group, extra, isSelected, onToggle }) => (
-  <TouchableOpacity onPress={() => onToggle(group, extra)} className="mb-4 flex-row items-center justify-between">
-    <View className="flex-1 flex-row items-center">
-      <Text allowFontScaling={false} className="text-base font-semibold text-gray-800">
+const OptionRow: React.FC<OptionRowProps> = ({ group, extra, isSelected, isLast, onToggle }) => (
+  <TouchableOpacity
+    onPress={() => onToggle(group, extra)}
+    className={`flex-row items-center justify-between py-3 ${isLast ? '' : 'border-b border-gray-100'}`}>
+    <View className="flex-1">
+      <Text
+        allowFontScaling={false}
+        className={`text-base font-semibold ${isSelected ? 'text-[#CA251B]' : 'text-gray-800'}`}>
         {extra.name}
       </Text>
       {extra.price > 0 ? (
-        <View className="ml-2 rounded-lg bg-[#CA251B] px-2 py-1">
-          <Text allowFontScaling={false} className="text-xs font-bold text-white">
-            +{formatPrice(extra.price)}
-          </Text>
-        </View>
+        <Text allowFontScaling={false} className="mt-1 text-sm font-medium text-gray-500">
+          +{formatPrice(extra.price)}
+        </Text>
       ) : null}
     </View>
 
     <View
-      style={{
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: primaryColor,
-        backgroundColor: isSelected ? primaryColor : 'transparent',
-      }}
-      className="flex items-center justify-center">
-      {isSelected ? <Check size={16} color="white" /> : <Plus size={16} color={primaryColor} />}
+      className={`h-8 w-8 items-center justify-center rounded-full ${
+        isSelected ? 'bg-[#CA251B]' : 'bg-[#FDE7E5]'
+      }`}>
+      {isSelected ? <Check size={18} color="white" /> : <Plus size={18} color={primaryColor} />}
     </View>
   </TouchableOpacity>
 );
+
+const describeGroupSelection = (group: RestaurantMenuOptionGroup) => {
+  if (group.minSelect > 0 && group.maxSelect > 0) {
+    if (group.minSelect === group.maxSelect) {
+      return `Choose ${group.minSelect} ${group.minSelect === 1 ? 'item' : 'items'}`;
+    }
+    return `Choose ${group.minSelect}-${group.maxSelect} items`;
+  }
+
+  if (group.minSelect > 0) {
+    return `Choose at least ${group.minSelect} ${group.minSelect === 1 ? 'item' : 'items'}`;
+  }
+
+  if (group.maxSelect > 0) {
+    return `Choose up to ${group.maxSelect} ${group.maxSelect === 1 ? 'item' : 'items'}`;
+  }
+
+  return 'Choose any item';
+};
 
 const buildInitialSelection = (item: RestaurantMenuItemDetails) => {
   const selections: Record<number, number[]> = {};
@@ -233,25 +249,37 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
       ) : null}
 
       {menuItem.optionGroups.map((group) => (
-        <View key={group.id} className="mb-6">
-          <View className="mb-2 flex-row items-center justify-between">
-            <Text allowFontScaling={false} className="text-xl font-bold text-[#17213A]">
-              {group.name}
+        <View key={group.id} className="mb-8">
+          <Text allowFontScaling={false} className="text-xl font-bold text-[#17213A]">
+            {group.name}
+          </Text>
+          <View className="mt-2 flex-row items-center gap-2">
+            <Text allowFontScaling={false} className="text-sm text-gray-600">
+              {describeGroupSelection(group)}
             </Text>
-            <Text allowFontScaling={false} className="text-xs text-gray-500">
-              {group.required ? 'Required' : 'Optional'}
-              {group.maxSelect > 0 ? ` · Choose up to ${group.maxSelect}` : ''}
-            </Text>
+            <View
+              className={`rounded-full px-2 py-1 ${group.required ? 'bg-[#CA251B]' : 'bg-gray-200'}`}>
+              <Text
+                allowFontScaling={false}
+                className={`text-xs font-semibold uppercase ${group.required ? 'text-white' : 'text-gray-700'}`}>
+                {group.required ? 'Required' : 'Optional'}
+              </Text>
+            </View>
           </View>
-          {group.extras.map((extra) => (
-            <OptionRow
-              key={extra.id}
-              group={group}
-              extra={extra}
-              isSelected={(selections[group.id] ?? []).includes(extra.id)}
-              onToggle={toggleExtra}
-            />
-          ))}
+
+          <View className="mt-4 rounded-2xl border border-gray-100 bg-white">
+            {group.extras.map((extra, index) => (
+              <View key={extra.id} className="px-3">
+                <OptionRow
+                  group={group}
+                  extra={extra}
+                  isSelected={(selections[group.id] ?? []).includes(extra.id)}
+                  isLast={index === group.extras.length - 1}
+                  onToggle={toggleExtra}
+                />
+              </View>
+            ))}
+          </View>
         </View>
       ))}
     </ScrollView>
