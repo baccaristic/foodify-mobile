@@ -29,8 +29,7 @@ import {
 
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
 const HEADER_MAX_HEIGHT = 320;
-const HEADER_MIN_HEIGHT = 140;
-const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
 
 const accentColor = '#D83A2E';
@@ -256,36 +255,72 @@ const OrderTrackingScreen: React.FC = () => {
     navigation.navigate('CheckoutOrder', { viewMode: true, order });
   };
 
+  const headerMinHeight = useMemo(
+    () => Math.max(HEADER_MIN_HEIGHT, insets.top + 56),
+    [insets.top],
+  );
+
+  const headerScrollDistance = useMemo(
+    () => Math.max(HEADER_MAX_HEIGHT - headerMinHeight, 1),
+    [headerMinHeight],
+  );
+
   const headerHeight = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    inputRange: [0, headerScrollDistance],
+    outputRange: [HEADER_MAX_HEIGHT, headerMinHeight],
     extrapolate: 'clamp',
   });
 
   const headerRadius = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    inputRange: [0, headerScrollDistance],
     outputRange: [28, 0],
+    extrapolate: 'clamp',
+  });
+
+  const mapOpacity = scrollY.interpolate({
+    inputRange: [0, headerScrollDistance * 0.6, headerScrollDistance],
+    outputRange: [1, 0.25, 0],
+    extrapolate: 'clamp',
+  });
+
+  const mapTranslateY = scrollY.interpolate({
+    inputRange: [0, headerScrollDistance],
+    outputRange: [0, -140],
+    extrapolate: 'clamp',
+  });
+
+  const contentSpacerHeight = scrollY.interpolate({
+    inputRange: [0, headerScrollDistance],
+    outputRange: [HEADER_MAX_HEIGHT + 24, headerMinHeight + 12],
     extrapolate: 'clamp',
   });
 
   const renderHero = (collapsed: boolean) => (
     <View style={collapsed ? styles.mapCollapsed : styles.mapExpanded}>
-      <MapView
-        style={StyleSheet.absoluteFill}
-        region={mapRegion}
-        scrollEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
-        zoomEnabled={false}
-        showsPointsOfInterest={false}
-        showsCompass={false}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { opacity: mapOpacity, transform: [{ translateY: mapTranslateY }] },
+        ]}
+        pointerEvents={collapsed ? 'none' : 'auto'}
       >
-        <Marker coordinate={driverCoordinate}>
-          <View style={styles.driverMarker}>
-            <Bike size={16} color="white" />
-          </View>
-        </Marker>
-      </MapView>
+        <MapView
+          style={StyleSheet.absoluteFill}
+          region={mapRegion}
+          scrollEnabled={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
+          zoomEnabled={false}
+          showsPointsOfInterest={false}
+          showsCompass={false}
+        >
+          <Marker coordinate={driverCoordinate}>
+            <View style={styles.driverMarker}>
+              <Bike size={16} color="white" />
+            </View>
+          </Marker>
+        </MapView>
+      </Animated.View>
 
       <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
@@ -298,7 +333,7 @@ const OrderTrackingScreen: React.FC = () => {
       </View>
 
       {!collapsed ? (
-        <View style={styles.bannerContainer}>
+        <Animated.View style={[styles.bannerContainer, { opacity: mapOpacity }]}>
           <View style={styles.bannerRibbon}>
             <Text style={styles.bannerLabel}>Delivering to</Text>
             <View style={styles.bannerLocationRow}>
@@ -311,7 +346,7 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -419,16 +454,16 @@ const OrderTrackingScreen: React.FC = () => {
 
       <Animated.ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 240 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 320 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <View style={styles.contentSpacer} />
+        <Animated.View style={[styles.contentSpacer, { height: contentSpacerHeight }]} />
         {renderSteps()}
       </Animated.ScrollView>
 
-      <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryTitle}>My Order</Text>
@@ -525,7 +560,7 @@ const styles = StyleSheet.create({
     backgroundColor: softBackground,
   },
   contentSpacer: {
-    height: HEADER_MAX_HEIGHT + 32,
+    width: '100%',
   },
   mapExpanded: {
     flex: 1,
@@ -611,19 +646,20 @@ const styles = StyleSheet.create({
   stepsCard: {
     backgroundColor: softSurface,
     borderRadius: 24,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
     shadowColor: '#0F172A',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-    marginBottom: 24,
+    elevation: 1,
+    marginBottom: 28,
   },
   stepsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 20,
   },
   stepsTitle: {
     fontSize: 18,
@@ -635,8 +671,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: accentColor,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   stepsStatusText: {
     color: 'white',
@@ -647,15 +683,15 @@ const styles = StyleSheet.create({
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingBottom: 18,
+    paddingBottom: 16,
   },
   stepRowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: borderColor,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   stepTimeline: {
-    width: 34,
+    width: 30,
     alignItems: 'center',
   },
   stepDot: {
@@ -676,7 +712,7 @@ const styles = StyleSheet.create({
   stepLine: {
     position: 'absolute',
     top: 22,
-    bottom: -18,
+    bottom: -16,
     width: 2,
     backgroundColor: '#E5E7EB',
   },
@@ -685,33 +721,33 @@ const styles = StyleSheet.create({
   },
   stepTexts: {
     flex: 1,
-    paddingRight: 12,
+    paddingRight: 8,
   },
   stepStage: {
-    fontSize: 12,
+    fontSize: 11,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     color: accentColor,
     fontWeight: '600',
   },
   stepTitle: {
-    marginTop: 4,
-    fontSize: 16,
+    marginTop: 2,
+    fontSize: 15,
     fontWeight: '600',
     color: textPrimary,
   },
   stepDescription: {
     marginTop: 6,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
     color: textSecondary,
   },
   stepMeta: {
     alignItems: 'flex-end',
-    width: 90,
+    width: 84,
   },
   stepStatusBadge: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: '#F1F5F9',
@@ -723,7 +759,7 @@ const styles = StyleSheet.create({
     backgroundColor: accentColor,
   },
   stepStatusLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: accentColor,
   },
@@ -732,84 +768,85 @@ const styles = StyleSheet.create({
   },
   stepEta: {
     marginTop: 6,
-    fontSize: 13,
+    fontSize: 12,
     color: '#EF4444',
     fontWeight: '600',
   },
   summaryCard: {
     backgroundColor: softSurface,
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     shadowColor: '#0F172A',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-    marginBottom: 24,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+    marginBottom: 16,
   },
   summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 14,
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: textPrimary,
   },
   summaryBadge: {
     backgroundColor: '#FDE6E3',
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   summaryBadgeText: {
     color: accentColor,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   summaryItems: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   summaryItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   summaryItemRowSpacing: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   summaryItemQuantity: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: accentColor,
-    marginRight: 12,
+    marginRight: 10,
   },
   summaryItemName: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: textPrimary,
   },
   summaryFooter: {
-    marginTop: 24,
+    marginTop: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   summaryTotal: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: textPrimary,
   },
   summaryDetailsButton: {
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     backgroundColor: accentColor,
   },
   summaryDetailsText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   bottomSheet: {
@@ -817,33 +854,33 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
     paddingBottom: 12,
     backgroundColor: softBackground,
   },
   courierStickyCard: {
     backgroundColor: softSurface,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#0F172A',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   },
   courierStickyLabel: {
     color: textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   courierStickyName: {
     marginTop: 4,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: textPrimary,
   },
@@ -854,7 +891,7 @@ const styles = StyleSheet.create({
   },
   courierStickyRatingText: {
     marginLeft: 6,
-    fontSize: 13,
+    fontSize: 12,
     color: textSecondary,
   },
   courierStickyActions: {
@@ -862,9 +899,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   courierActionButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 16,
     backgroundColor: '#FFECEB',
     alignItems: 'center',
     justifyContent: 'center',
