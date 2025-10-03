@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import {Image} from 'expo-image';
 import BackButtonHeader from '~/components/BackButtonHeader';
 
-import locationIcon from '~/assets/locationIcon.png';
+import locationIcon from '../../assets/locationIcon.png';
 
 type LocationPermissionPromptProps = {
   title?: string;
@@ -41,7 +42,7 @@ const LocationPermissionPrompt = ({
 
       <View className="flex-1">
         <View className="w-32 h-32 mb-10 items-center justify-center self-center">
-          <Image source={locationIcon} className="w-full h-full" resizeMode="contain" />
+          <Image source={locationIcon} style={StyleSheet.absoluteFillObject} contentFit="contain" />
         </View>
 
         <Text allowFontScaling={false} className="text-3xl font-bold mb-4 text-black">
