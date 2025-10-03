@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ViewStyle } from 'react-native';
 import { Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import MapView, { Marker, Polyline, type MapStyleElement, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -19,6 +20,46 @@ const darkColor = '#17213A';
 const mutedTextColor = '#6B7280';
 const softSurface = '#F9FAFB';
 const chipBackground = 'rgba(255,255,255,0.18)';
+
+type LatLng = { latitude: number; longitude: number };
+
+const DEFAULT_REGION: Region = {
+  latitude: 36.8065,
+  longitude: 10.1815,
+  latitudeDelta: 0.042,
+  longitudeDelta: 0.042,
+};
+
+const mapTheme: MapStyleElement[] = [
+  { elementType: 'geometry', stylers: [{ color: '#1F2933' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#F9FAFB' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1F2933' }] },
+  {
+    featureType: 'administrative',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: 'rgba(255,255,255,0.2)' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels.text',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#2A364B' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#F3F4F6' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#16213A' }],
+  },
+];
 
 const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -173,6 +214,56 @@ const OrderTrackingScreen: React.FC = () => {
 
   const activeStep = steps[activeIndex] ?? steps[0];
   const safeProgress = steps.length > 1 ? clamp(activeIndex / (steps.length - 1), 0, 1) : 1;
+
+  const deliveryLocation = order?.delivery?.location;
+
+  const mapRegion = useMemo<Region>(() => {
+    if (deliveryLocation?.lat && deliveryLocation?.lng) {
+      return {
+        latitude: deliveryLocation.lat,
+        longitude: deliveryLocation.lng,
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      } satisfies Region;
+    }
+
+    return DEFAULT_REGION;
+  }, [deliveryLocation]);
+
+  const destinationCoordinate = useMemo<LatLng>(
+    () => ({ latitude: mapRegion.latitude, longitude: mapRegion.longitude }),
+    [mapRegion],
+  );
+
+  const routeCoordinates = useMemo<LatLng[]>(() => {
+    const { latitude, longitude } = mapRegion;
+    return [
+      { latitude: latitude - 0.018, longitude: longitude - 0.015 },
+      { latitude: latitude - 0.012, longitude: longitude - 0.008 },
+      { latitude: latitude - 0.006, longitude: longitude - 0.003 },
+      { latitude: latitude - 0.001, longitude: longitude + 0.002 },
+      { latitude: latitude + 0.004, longitude: longitude + 0.006 },
+      { latitude: latitude + 0.008, longitude: longitude + 0.01 },
+    ];
+  }, [mapRegion]);
+
+  const driverCoordinate = useMemo<LatLng>(() => {
+    if (routeCoordinates.length < 2) {
+      return destinationCoordinate;
+    }
+
+    const totalSegments = routeCoordinates.length - 1;
+    const normalizedProgress = clamp(safeProgress, 0, 0.9999) * totalSegments;
+    const segmentIndex = Math.floor(normalizedProgress);
+    const segmentProgress = normalizedProgress - segmentIndex;
+    const start = routeCoordinates[segmentIndex];
+    const end = routeCoordinates[Math.min(segmentIndex + 1, routeCoordinates.length - 1)];
+
+    return {
+      latitude: start.latitude + (end.latitude - start.latitude) * segmentProgress,
+      longitude: start.longitude + (end.longitude - start.longitude) * segmentProgress,
+    } satisfies LatLng;
+  }, [destinationCoordinate, routeCoordinates, safeProgress]);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const bobAnim = useRef(new Animated.Value(0)).current;
@@ -405,6 +496,64 @@ const OrderTrackingScreen: React.FC = () => {
           </LinearGradient>
 
           <View className="-mt-10 px-6">
+            <View style={styles.mapCard} className="mb-6">
+              <MapView
+                style={styles.map}
+                initialRegion={mapRegion}
+                region={mapRegion}
+                scrollEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+                zoomEnabled={false}
+                pointerEvents="none"
+                customMapStyle={mapTheme}
+              >
+                <Polyline
+                  coordinates={routeCoordinates}
+                  strokeColor="rgba(202,37,27,0.85)"
+                  strokeWidth={5}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+                <Marker coordinate={driverCoordinate} anchor={{ x: 0.5, y: 0.5 }}>
+                  <View style={styles.mapDriverMarkerContainer}>
+                    <Animated.View
+                      style={[
+                        styles.mapDriverPulse,
+                        { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
+                      ]}
+                    />
+                    <View style={styles.mapDriverMarker}>
+                      <Bike size={20} color="white" />
+                    </View>
+                  </View>
+                </Marker>
+                <Marker coordinate={destinationCoordinate} anchor={{ x: 0.5, y: 0.95 }}>
+                  <View style={styles.destinationMarker}>
+                    <View style={styles.destinationDot} />
+                  </View>
+                </Marker>
+              </MapView>
+              <View style={styles.mapOverlay}>
+                <Text allowFontScaling={false} style={styles.mapOverlayTitle}>
+                  Courier location
+                </Text>
+                <Text allowFontScaling={false} style={styles.mapOverlayEta}>
+                  {estimatedWindow}
+                </Text>
+                <Text allowFontScaling={false} style={styles.mapOverlayBody}>
+                  {activeStep?.statusLabel ?? 'On the move to you'}
+                </Text>
+              </View>
+              <View style={styles.mapDestinationOverlay}>
+                <Text allowFontScaling={false} style={styles.mapDestinationLabel}>
+                  Delivering to
+                </Text>
+                <Text allowFontScaling={false} style={styles.mapDestinationValue}>
+                  {trimmedAddress}
+                </Text>
+              </View>
+            </View>
             <View style={styles.card}>
               <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: darkColor }}>
                 Live order status
@@ -554,6 +703,120 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     overflow: 'hidden',
+  },
+  mapCard: {
+    height: 220,
+    borderRadius: 32,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    shadowColor: darkColor,
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 18,
+    left: 18,
+    right: 18,
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(23,33,58,0.82)',
+  },
+  mapOverlayTitle: {
+    fontSize: 12,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '600',
+  },
+  mapOverlayEta: {
+    marginTop: 6,
+    fontSize: 22,
+    color: 'white',
+    fontWeight: '700',
+  },
+  mapOverlayBody: {
+    marginTop: 6,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.82)',
+    fontWeight: '500',
+  },
+  mapDestinationOverlay: {
+    position: 'absolute',
+    bottom: 18,
+    right: 18,
+    left: 18,
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
+  mapDestinationLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: '#6B7280',
+  },
+  mapDestinationValue: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: '600',
+    color: darkColor,
+  },
+  mapDriverMarkerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapDriverPulse: {
+    position: 'absolute',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: accentColor,
+    opacity: 0.25,
+  },
+  mapDriverMarker: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: accentColor,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    shadowColor: accentColor,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  destinationMarker: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: accentColor,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  destinationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: accentColor,
   },
   trackContainer: {
     height: 14,
