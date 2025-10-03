@@ -17,11 +17,12 @@ import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
 import MainLayout from '~/layouts/MainLayout';
 
 const accentColor = '#D83A2E';
+const accentMuted = '#FBE5E1';
 const heroDark = '#1A253A';
+const surfaceColor = '#FFFFFF';
 const softBackground = '#F5F6FA';
-const softSurface = '#FFFFFF';
-const mutedText = '#667085';
 const headingText = '#1F2937';
+const mutedText = '#6B7280';
 
 const mapTheme: MapStyleElement[] = [
   { elementType: 'geometry', stylers: [{ color: '#E8ECF4' }] },
@@ -67,6 +68,8 @@ const DEFAULT_REGION: Region = {
   latitudeDelta: 0.04,
   longitudeDelta: 0.04,
 };
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -146,8 +149,6 @@ const DEFAULT_STATUS_INDEX: Record<string, number> = {
   DELIVERED: 4,
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
 const OrderTrackingScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<OrderTrackingRoute>();
@@ -161,14 +162,14 @@ const OrderTrackingScreen: React.FC = () => {
           typeof step.step === 'string'
             ? step.step.toUpperCase()
             : typeof step.label === 'string'
-              ? step.label.toUpperCase().replace(/\s+/g, '_')
-              : `STEP_${index + 1}`;
+            ? step.label.toUpperCase().replace(/\s+/g, '_')
+            : `STEP_${index + 1}`;
         const title =
           (typeof step.label === 'string' && step.label.length > 0
             ? step.label
             : typeof step.step === 'string' && step.step.length > 0
-              ? formatStatusLabel(step.step)
-              : `Step ${index + 1}`) ?? `Step ${index + 1}`;
+            ? formatStatusLabel(step.step)
+            : `Step ${index + 1}`) ?? `Step ${index + 1}`;
         const statusLabel = typeof step.status === 'string' ? formatStatusLabel(step.status) : undefined;
         const description =
           typeof step.description === 'string' && step.description.length > 0
@@ -273,10 +274,7 @@ const OrderTrackingScreen: React.FC = () => {
   }, [destinationCoordinate, routeCoordinates, safeProgress]);
 
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const timelineAnimations = useMemo(
-    () => steps.map(() => new Animated.Value(0)),
-    [steps],
-  );
+  const timelineAnimations = useMemo(() => steps.map(() => new Animated.Value(0)), [steps]);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -323,11 +321,19 @@ const OrderTrackingScreen: React.FC = () => {
   const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
   const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.3, 0.15, 0] });
 
-  const restaurantName = order?.restaurant?.name ?? 'your restaurant';
+  const restaurantName = order?.restaurant?.name ?? 'Your restaurant';
   const orderIdLabel = order ? `#${order.orderId}` : 'Live order';
   const deliveryAddress = order?.delivery?.address ?? 'Your saved address';
-  const addressLabel = order?.delivery?.savedAddress?.label ?? 'Delivery';
+  const addressLabel = order?.delivery?.savedAddress?.label ?? 'Delivery address';
   const trimmedAddress = deliveryAddress.length > 90 ? `${deliveryAddress.slice(0, 87)}...` : deliveryAddress;
+  const deliveryArea = useMemo(() => {
+    if (addressLabel && addressLabel !== 'Delivery address') {
+      return addressLabel;
+    }
+    const [firstPart] = deliveryAddress.split(',');
+    return firstPart.trim().length ? firstPart.trim() : 'Your area';
+  }, [addressLabel, deliveryAddress]);
+
   const estimatedWindow = useMemo(() => {
     if (!order) {
       return '35-45 min';
@@ -341,7 +347,6 @@ const OrderTrackingScreen: React.FC = () => {
   }, [order]);
 
   const orderTotal = order ? formatServerMoney(order.payment?.total) : undefined;
-  const paymentMethod = order?.payment?.method ?? 'Selected method';
   const displayedItems = useMemo(() => (order?.items ?? []).slice(0, 3), [order?.items]);
   const remainingItems = Math.max(0, (order?.items?.length ?? 0) - displayedItems.length);
 
@@ -351,75 +356,97 @@ const OrderTrackingScreen: React.FC = () => {
 
   const handleCallCourier = () => {};
 
-  const heroHeader = (
-    <LinearGradient
-      colors={[accentColor, '#F0644B']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.hero}
-    >
-      <View
-        style={[styles.heroContent, { paddingTop: insets.top + 12 }]}
-      >
-        <View style={styles.heroTopRow}>
-          <TouchableOpacity onPress={handleGoBack} activeOpacity={0.85} style={styles.heroIconButton}>
-            <ArrowLeft color="white" size={22} />
-          </TouchableOpacity>
-          <View style={styles.orderChip}>
-            <Text allowFontScaling={false} style={styles.orderChipText}>
-              {orderIdLabel}
-            </Text>
-          </View>
-        </View>
+  const handleSeeDetails = () => {
+    if (!order) {
+      return;
+    }
+    navigation.navigate('CheckoutOrder', { viewMode: true, order });
+  };
 
-        <View style={styles.heroStatus}>
-          <Text allowFontScaling={false} style={styles.heroNowLabel}>
-            Now
+  const header = (
+    <LinearGradient colors={[accentColor, '#F0644B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerGradient}>
+      <View style={[styles.headerTopRow, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity onPress={handleGoBack} activeOpacity={0.85} style={styles.headerIconButton}>
+          <ArrowLeft color="white" size={22} />
+        </TouchableOpacity>
+        <View style={styles.headerLocation}>
+          <Text allowFontScaling={false} style={styles.headerLocationLabel} numberOfLines={1}>
+            Delivering to
           </Text>
-          <Text allowFontScaling={false} style={styles.heroTitle}>
-            {activeStep?.title ?? 'Order in progress'}
-          </Text>
-          <Text allowFontScaling={false} style={styles.heroDescription}>
-            {activeStep?.description ?? `We are looking after your order from ${restaurantName}.`}
+          <Text allowFontScaling={false} style={styles.headerLocationValue} numberOfLines={1}>
+            {deliveryArea}
           </Text>
         </View>
+        <TouchableOpacity onPress={handleCallCourier} activeOpacity={0.85} style={styles.headerCallButton}>
+          <Phone color={accentColor} size={18} />
+        </TouchableOpacity>
+      </View>
 
-        <View style={styles.heroSummary}>
-          <View style={styles.heroSummaryItem}>
-            <Clock size={18} color={accentColor} />
-            <View style={styles.heroSummaryText}>
-              <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
-                Estimated time
-              </Text>
-              <Text allowFontScaling={false} style={styles.heroSummaryValue}>
-                {estimatedWindow}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.heroSummaryItem, styles.heroSummarySpacer]}>
-            <MapPin size={18} color={accentColor} />
-            <View style={[styles.heroSummaryText, { flex: 1 }]}>
-              <Text allowFontScaling={false} style={styles.heroSummaryLabel}>
-                {addressLabel}
-              </Text>
-              <Text allowFontScaling={false} style={styles.heroSummaryValue} numberOfLines={2}>
-                {trimmedAddress}
-              </Text>
-            </View>
-          </View>
+      <View style={styles.headerMapCard}>
+        <View style={styles.headerEtaChip}>
+          <Clock size={16} color={accentColor} />
+          <Text allowFontScaling={false} style={styles.headerEtaText}>
+            {estimatedWindow}
+          </Text>
+        </View>
+        <View style={styles.mapWrapper}>
+          <MapView
+            style={StyleSheet.absoluteFill}
+            region={mapRegion}
+            scrollEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            zoomEnabled={false}
+            customMapStyle={mapTheme}
+            showsBuildings={false}
+            showsCompass={false}
+            showsPointsOfInterest={false}
+          >
+            <Polyline
+              coordinates={routeCoordinates}
+              strokeColor="rgba(216,58,46,0.9)"
+              strokeWidth={5}
+              lineCap="round"
+              lineJoin="round"
+            />
+            <Marker coordinate={driverCoordinate} anchor={{ x: 0.5, y: 0.5 }}>
+              <View style={styles.mapDriverMarkerContainer}>
+                <Animated.View
+                  style={[
+                    styles.mapDriverPulse,
+                    { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
+                  ]}
+                />
+                <View style={styles.mapDriverMarker}>
+                  <Bike size={18} color="white" />
+                </View>
+              </View>
+            </Marker>
+            <Marker coordinate={destinationCoordinate} anchor={{ x: 0.5, y: 0.95 }}>
+              <View style={styles.destinationMarker}>
+                <View style={styles.destinationDot} />
+              </View>
+            </Marker>
+          </MapView>
+        </View>
+        <View style={styles.headerDestinationRow}>
+          <MapPin size={16} color={accentColor} />
+          <Text allowFontScaling={false} style={styles.headerDestinationText} numberOfLines={2}>
+            {trimmedAddress}
+          </Text>
         </View>
       </View>
     </LinearGradient>
   );
 
   const collapsedHeader = (
-    <LinearGradient colors={[accentColor, '#F0644B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.collapsedHero}>
-      <View style={[styles.collapsedHeaderContent, { paddingTop: insets.top + 6 }]}>
+    <LinearGradient colors={[accentColor, '#F0644B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.collapsedHeader}>
+      <View style={[styles.collapsedContent, { paddingTop: insets.top + 6 }]}>
         <TouchableOpacity onPress={handleGoBack} activeOpacity={0.85} style={styles.collapsedIconButton}>
           <ArrowLeft color="white" size={20} />
         </TouchableOpacity>
-        <View style={styles.collapsedHeaderText}>
-          <Text allowFontScaling={false} style={styles.collapsedOrderId} numberOfLines={1}>
+        <View style={styles.collapsedTexts}>
+          <Text allowFontScaling={false} style={styles.collapsedOrder} numberOfLines={1}>
             {orderIdLabel}
           </Text>
           <Text allowFontScaling={false} style={styles.collapsedTitle} numberOfLines={1}>
@@ -437,226 +464,145 @@ const OrderTrackingScreen: React.FC = () => {
   );
 
   const mainContent = (
-    <View style={styles.screenContent}>
-      <View style={styles.contentWrapper}>
-        <View style={styles.contactCard}>
-          <View style={styles.contactInfo}>
-            <Text allowFontScaling={false} style={styles.contactLabel}>
-              Your courier
+    <View style={styles.contentContainer}>
+      <View style={styles.timelineCard}>
+        <View style={styles.timelineHeader}>
+          <View>
+            <Text allowFontScaling={false} style={styles.timelineTitle}>
+              Order Steps
             </Text>
-            <Text allowFontScaling={false} style={styles.contactName}>
-              Foodify partner
-            </Text>
-            <Text allowFontScaling={false} style={styles.contactHint}>
-              Reach out if you need to share delivery instructions.
+            <Text allowFontScaling={false} style={styles.timelineSubtitle}>
+              {restaurantName}
             </Text>
           </View>
-          <TouchableOpacity activeOpacity={0.9} onPress={handleCallCourier} style={styles.contactButton}>
-            <Phone color="white" size={18} />
-            <Text allowFontScaling={false} style={styles.contactButtonText}>
-              Call courier
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.card, styles.mapCard]}>
-          <View style={styles.cardHeader}>
-            <Text allowFontScaling={false} style={styles.cardTitle}>
-              Courier location
-            </Text>
-            <View style={styles.statusChip}>
-              <Text allowFontScaling={false} style={styles.statusChipText}>
-                {estimatedWindow}
-              </Text>
-            </View>
-          </View>
-          <Text allowFontScaling={false} style={styles.cardSubtitle}>
-            {activeStep?.statusLabel ?? 'On the move to you'}
-          </Text>
-          <View style={styles.mapWrapper}>
-            <MapView
-              style={styles.map}
-              region={mapRegion}
-              scrollEnabled={false}
-              rotateEnabled={false}
-              pitchEnabled={false}
-              zoomEnabled={false}
-              customMapStyle={mapTheme}
-              showsBuildings={false}
-              showsCompass={false}
-              showsPointsOfInterest={false}
-            >
-              <Polyline
-                coordinates={routeCoordinates}
-                strokeColor="rgba(216,58,46,0.9)"
-                strokeWidth={5}
-                lineCap="round"
-                lineJoin="round"
-              />
-              <Marker coordinate={driverCoordinate} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.mapDriverMarkerContainer}>
-                  <Animated.View
-                    style={[
-                      styles.mapDriverPulse,
-                      { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
-                    ]}
-                  />
-                  <View style={styles.mapDriverMarker}>
-                    <Bike size={18} color="white" />
-                  </View>
-                </View>
-              </Marker>
-              <Marker coordinate={destinationCoordinate} anchor={{ x: 0.5, y: 0.95 }}>
-                <View style={styles.destinationMarker}>
-                  <View style={styles.destinationDot} />
-                </View>
-              </Marker>
-            </MapView>
-          </View>
-          <View style={styles.mapFooter}>
-            <MapPin size={16} color={accentColor} />
-            <Text allowFontScaling={false} style={styles.mapFooterText} numberOfLines={1}>
-              {trimmedAddress}
+          <View style={styles.timelineStepChip}>
+            <Text allowFontScaling={false} style={styles.timelineStepText}>
+              Step {activeIndex + 1} of {steps.length}
             </Text>
           </View>
         </View>
 
-        <View style={[styles.card, { marginTop: 24 }]}>
-          <View style={styles.cardHeader}>
-            <Text allowFontScaling={false} style={styles.cardTitle}>
-              Live order status
-            </Text>
-            <View style={styles.statusChipMuted}>
-              <Text allowFontScaling={false} style={styles.statusChipMutedText}>
-                Step {activeIndex + 1} of {steps.length}
-              </Text>
-            </View>
-          </View>
+        {steps.map((step, index) => {
+          const isActive = index === activeIndex;
+          const isCompleted = index < activeIndex || (steps.length - 1 === index && step.completed);
+          const isLast = index === steps.length - 1;
+          const timelineValue = timelineAnimations[index];
+          const animatedStyle: Animated.WithAnimatedObject<ViewStyle> | undefined = timelineValue
+            ? {
+                opacity: timelineValue,
+                transform: [
+                  {
+                    translateY: timelineValue.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }),
+                  },
+                ],
+              }
+            : undefined;
 
-          {steps.map((step, index) => {
-            const isActive = index === activeIndex;
-            const isCompleted = index < activeIndex || (steps.length - 1 === index && step.completed);
-            const timelineValue = timelineAnimations[index];
-            const animatedStyle: Animated.WithAnimatedObject<ViewStyle> | undefined = timelineValue
-              ? {
-                  opacity: timelineValue,
-                  transform: [
-                    {
-                      translateY: timelineValue.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }),
-                    },
-                  ],
-                }
-              : undefined;
-
-            return (
-              <Animated.View key={`${step.key}-${index}`} style={[styles.timelineRow, animatedStyle]}>
-                <View style={styles.timelineIconWrapper}>
+          return (
+            <Animated.View key={`${step.key}-${index}`} style={[styles.timelineRow, animatedStyle]}>
+              <View style={styles.timelineIndicator}>
+                <View
+                  style={[
+                    styles.timelineDot,
+                    isCompleted && styles.timelineDotCompleted,
+                    isActive && !isCompleted && styles.timelineDotActive,
+                  ]}
+                >
+                  {isCompleted ? <CheckCircle2 size={14} color="white" /> : null}
+                </View>
+                {!isLast ? (
                   <View
-                    style={[
-                      styles.timelineDot,
-                      {
-                        backgroundColor: isCompleted || isActive ? accentColor : softSurface,
-                        borderColor: isCompleted || isActive ? accentColor : '#D1D5DB',
-                      },
-                    ]}
-                  >
-                    {isCompleted ? <CheckCircle2 size={14} color="white" /> : null}
-                  </View>
-                  {index < steps.length - 1 ? (
-                    <View
-                      style={[
-                        styles.timelineLine,
-                        { backgroundColor: isCompleted ? `${accentColor}55` : '#E5E7EB' },
-                      ]}
-                    />
-                  ) : null}
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text
-                    allowFontScaling={false}
-                    style={[styles.timelineTitle, { color: isActive ? accentColor : headingText }]}
-                  >
-                    {step.title}
-                  </Text>
-                  <Text allowFontScaling={false} style={styles.timelineDescription}>
-                    {step.description}
-                  </Text>
-                  {step.statusLabel ? (
-                    <View style={styles.timelineChip}>
-                      <Text allowFontScaling={false} style={styles.timelineChipText}>
-                        {step.statusLabel}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              </Animated.View>
-            );
-          })}
-        </View>
-
-        <View style={[styles.card, { marginTop: 24 }]}>
-          <View style={styles.cardHeader}>
-            <Text allowFontScaling={false} style={styles.cardTitle}>
-              Order summary
-            </Text>
-            {orderTotal ? (
-              <Text allowFontScaling={false} style={styles.summaryTotal}>
-                {orderTotal}
-              </Text>
-            ) : null}
-          </View>
-          <Text allowFontScaling={false} style={styles.cardSubtitle}>
-            Payment method: {paymentMethod}
-          </Text>
-
-          {displayedItems.length ? (
-            <View style={styles.summaryItemsWrapper}>
-              {displayedItems.map((item) => (
-                <View key={`${item.menuItemId}-${item.name}`} style={styles.summaryItemRow}>
-                  <View style={{ flex: 1, paddingRight: 12 }}>
-                    <Text allowFontScaling={false} style={styles.summaryItemTitle}>
-                      {item.quantity} × {item.name}
-                    </Text>
-                    {item.extras?.length ? (
-                      <Text allowFontScaling={false} style={styles.summaryItemExtras}>
-                        Extras: {item.extras.map((extra) => extra.name).join(', ')}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text allowFontScaling={false} style={styles.summaryItemPrice}>
-                    {formatServerMoney(item.lineTotal)}
-                  </Text>
-                </View>
-              ))}
-              {remainingItems > 0 ? (
-                <Text allowFontScaling={false} style={styles.summaryMore}>
-                  + {remainingItems} more {remainingItems === 1 ? 'item' : 'items'}
+                    style={[styles.timelineConnector, (isCompleted || isActive) && styles.timelineConnectorActive]}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.timelineContent}>
+                <Text
+                  allowFontScaling={false}
+                  style={[styles.timelineRowTitle, { color: isActive ? accentColor : headingText }]}
+                >
+                  {step.title}
                 </Text>
-              ) : null}
-            </View>
-          ) : null}
+                <Text allowFontScaling={false} style={styles.timelineDescription}>
+                  {step.description}
+                </Text>
+              </View>
+              <View style={styles.timelineStatus}>
+                <Text
+                  allowFontScaling={false}
+                  style={[styles.timelineStatusText, isActive && styles.timelineStatusActive]}
+                >
+                  {step.statusLabel ?? 'Pending'}
+                </Text>
+              </View>
+            </Animated.View>
+          );
+        })}
+      </View>
 
-          <View style={styles.summaryActions}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              onPress={() => navigation.navigate('OrderHistory')}
-              style={[styles.actionButton, styles.actionButtonGhost]}
-            >
-              <Text allowFontScaling={false} style={styles.actionButtonGhostText}>
-                View order history
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => navigation.navigate('Home')}
-              style={[styles.actionButton, styles.actionButtonPrimary]}
-            >
-              <Text allowFontScaling={false} style={styles.actionButtonPrimaryText}>
-                Back to home
-              </Text>
-            </TouchableOpacity>
+      <View style={styles.orderCard}>
+        <View style={styles.orderCardHeader}>
+          <View>
+            <Text allowFontScaling={false} style={styles.orderCardTitle}>
+              My Order
+            </Text>
+            <Text allowFontScaling={false} style={styles.orderCardSubtitle}>
+              {orderIdLabel}
+            </Text>
           </View>
+          {orderTotal ? (
+            <Text allowFontScaling={false} style={styles.orderTotal}>
+              {orderTotal}
+            </Text>
+          ) : null}
         </View>
+        <View style={styles.orderItems}>
+          {displayedItems.map((item, index) => (
+            <View key={`${item.menuItemId}-${index}`} style={styles.orderItemRow}>
+              <Text allowFontScaling={false} style={styles.orderItemText}>
+                {item.quantity} × {item.name}
+              </Text>
+              <Text allowFontScaling={false} style={styles.orderItemPrice}>
+                {formatServerMoney(item.lineTotal)}
+              </Text>
+            </View>
+          ))}
+          {remainingItems > 0 ? (
+            <Text allowFontScaling={false} style={styles.orderMore}>
+              +{remainingItems} more item{remainingItems === 1 ? '' : 's'}
+            </Text>
+          ) : null}
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={handleSeeDetails}
+          disabled={!order}
+          style={[styles.seeDetailsButton, !order && styles.seeDetailsButtonDisabled]}
+        >
+          <Text allowFontScaling={false} style={[styles.seeDetailsText, !order && styles.seeDetailsTextDisabled]}>
+            See details
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.courierCard}>
+        <View style={styles.courierInfo}>
+          <Text allowFontScaling={false} style={styles.courierLabel}>
+            Courier
+          </Text>
+          <Text allowFontScaling={false} style={styles.courierName}>
+            Foodify partner
+          </Text>
+          <Text allowFontScaling={false} style={styles.courierHint}>
+            Call the driver if you need to share instructions.
+          </Text>
+        </View>
+        <TouchableOpacity activeOpacity={0.9} onPress={handleCallCourier} style={styles.courierCallButton}>
+          <Phone color="white" size={18} />
+          <Text allowFontScaling={false} style={styles.courierCallText}>
+            Call driver
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -665,7 +611,7 @@ const OrderTrackingScreen: React.FC = () => {
     <MainLayout
       showHeader
       showFooter={false}
-      customHeader={heroHeader}
+      customHeader={header}
       collapsedHeader={collapsedHeader}
       mainContent={mainContent}
       headerMaxHeight={360}
@@ -675,196 +621,164 @@ const OrderTrackingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  hero: {
+  headerGradient: {
     flex: 1,
     width: '100%',
     height: '100%',
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-  },
-  heroContent: {
-    flex: 1,
     paddingHorizontal: 24,
-    paddingBottom: 48,
+    paddingBottom: 32,
   },
-  heroTopRow: {
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  heroIconButton: {
+  headerIconButton: {
     height: 44,
     width: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  orderChip: {
-    borderRadius: 9999,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  headerLocation: {
+    flex: 1,
+    marginHorizontal: 16,
   },
-  orderChipText: {
+  headerLocationLabel: {
     fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 2,
-    color: 'rgba(255,255,255,0.9)',
+    letterSpacing: 1.4,
+    color: 'rgba(255,255,255,0.72)',
     textTransform: 'uppercase',
   },
-  heroStatus: {
-    marginTop: 32,
-  },
-  heroNowLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 4,
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.7)',
-  },
-  heroTitle: {
-    marginTop: 12,
-    fontSize: 32,
+  headerLocationValue: {
+    marginTop: 6,
+    fontSize: 18,
     fontWeight: '700',
     color: 'white',
   },
-  heroDescription: {
-    marginTop: 16,
-    fontSize: 14,
-    lineHeight: 20,
-    color: 'rgba(255,255,255,0.85)',
+  headerCallButton: {
+    height: 44,
+    width: 44,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
-  heroSummary: {
+  headerMapCard: {
     marginTop: 28,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 28,
+    backgroundColor: surfaceColor,
+    padding: 16,
+    shadowColor: '#13203B',
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
   },
-  heroSummaryItem: {
+  headerEtaChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: accentMuted,
+    borderRadius: 9999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  heroSummaryText: {
-    marginLeft: 12,
-  },
-  heroSummarySpacer: {
-    marginTop: 16,
-  },
-  heroSummaryLabel: {
-    fontSize: 12,
-    color: mutedText,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
+  headerEtaText: {
+    marginLeft: 6,
+    fontSize: 13,
     fontWeight: '600',
+    color: accentColor,
   },
-  heroSummaryValue: {
-    marginTop: 4,
-    fontSize: 16,
+  mapWrapper: {
+    marginTop: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+    height: 180,
+  },
+  mapDriverMarkerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapDriverPulse: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(216,58,46,0.2)',
+  },
+  mapDriverMarker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: accentColor,
+    shadowColor: accentColor,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  destinationMarker: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 3,
+    borderColor: surfaceColor,
+    backgroundColor: accentColor,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  destinationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: surfaceColor,
+  },
+  headerDestinationRow: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  headerDestinationText: {
+    marginLeft: 8,
+    flex: 1,
+    fontSize: 13,
     fontWeight: '600',
     color: heroDark,
   },
-  screenContent: {
-    flex: 1,
-    backgroundColor: softBackground,
-  },
-  contentWrapper: {
-    paddingHorizontal: 24,
-    marginTop: -32,
-    paddingBottom: 40,
-  },
-  card: {
-    borderRadius: 28,
-    backgroundColor: softSurface,
-    padding: 24,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
-  },
-  contactCard: {
-    borderRadius: 28,
-    backgroundColor: heroDark,
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: heroDark,
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 6,
-  },
-  contactInfo: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  contactLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-  },
-  contactName: {
-    marginTop: 8,
-    color: 'white',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  contactHint: {
-    marginTop: 6,
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  contactButton: {
-    backgroundColor: accentColor,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 9999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  contactButtonText: {
-    marginLeft: 8,
-    color: 'white',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  collapsedHero: {
+  collapsedHeader: {
     flex: 1,
     width: '100%',
     height: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  collapsedHeaderContent: {
-    flex: 1,
+  collapsedContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 12,
   },
   collapsedIconButton: {
     height: 40,
     width: 40,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  collapsedHeaderText: {
+  collapsedTexts: {
     flex: 1,
-    marginHorizontal: 16,
+    marginHorizontal: 14,
   },
-  collapsedOrderId: {
+  collapsedOrder: {
     fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 1.5,
-    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.72)',
   },
   collapsedTitle: {
     marginTop: 4,
@@ -874,154 +788,105 @@ const styles = StyleSheet.create({
   },
   collapsedMeta: {
     marginTop: 4,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
   },
   collapsedCallButton: {
     height: 40,
     width: 40,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'white',
+    backgroundColor: surfaceColor,
   },
-  mapCard: {
-    marginTop: 24,
+  contentContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 48,
+    paddingTop: 8,
+    backgroundColor: softBackground,
+    flex: 1,
   },
-  cardHeader: {
+  timelineCard: {
+    backgroundColor: surfaceColor,
+    borderRadius: 28,
+    padding: 24,
+    shadowColor: '#13203B',
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  timelineHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  cardTitle: {
-    fontSize: 18,
+  timelineTitle: {
+    fontSize: 20,
     fontWeight: '700',
-    color: headingText,
+    color: heroDark,
   },
-  cardSubtitle: {
-    marginTop: 8,
-    fontSize: 13,
+  timelineSubtitle: {
+    marginTop: 4,
+    fontSize: 14,
     color: mutedText,
   },
-  statusChip: {
+  timelineStepChip: {
+    backgroundColor: accentMuted,
+    borderRadius: 9999,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(216,58,46,0.12)',
   },
-  statusChipText: {
+  timelineStepText: {
     fontSize: 12,
     fontWeight: '600',
     color: accentColor,
   },
-  statusChipMuted: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 9999,
-    backgroundColor: '#F1F5F9',
-  },
-  statusChipMutedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  mapWrapper: {
-    marginTop: 18,
-    borderRadius: 24,
-    overflow: 'hidden',
-    height: 220,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  mapFooter: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFC',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  mapFooterText: {
-    marginLeft: 8,
-    fontSize: 13,
-    color: heroDark,
-    flex: 1,
-  },
-  mapDriverMarkerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapDriverPulse: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: accentColor,
-  },
-  mapDriverMarker: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: accentColor,
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-  },
-  destinationMarker: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 3,
-    borderColor: accentColor,
-  },
-  destinationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: accentColor,
-  },
-  mapFooterIcon: {
-    marginRight: 8,
-  },
-  mapFooterLabel: {
-    fontSize: 12,
-    color: mutedText,
-  },
   timelineRow: {
     flexDirection: 'row',
-    marginTop: 24,
+    alignItems: 'flex-start',
+    marginTop: 18,
   },
-  timelineIconWrapper: {
-    width: 32,
+  timelineIndicator: {
     alignItems: 'center',
+    width: 32,
   },
   timelineDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: surfaceColor,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  timelineLine: {
+  timelineDotActive: {
+    borderColor: accentColor,
+  },
+  timelineDotCompleted: {
+    backgroundColor: accentColor,
+    borderColor: accentColor,
+  },
+  timelineConnector: {
     width: 2,
     flex: 1,
     marginTop: 6,
+    backgroundColor: '#E5E7EB',
+  },
+  timelineConnectorActive: {
+    backgroundColor: `${accentColor}55`,
   },
   timelineContent: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 8,
+    marginRight: 12,
   },
-  timelineTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  timelineRowTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: headingText,
   },
   timelineDescription: {
     marginTop: 6,
@@ -1029,90 +894,139 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: mutedText,
   },
-  timelineChip: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 9999,
-    backgroundColor: '#FEF1EF',
+  timelineStatus: {
+    alignItems: 'flex-end',
+    minWidth: 80,
   },
-  timelineChipText: {
-    fontSize: 11,
+  timelineStatusText: {
+    fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 1,
-    color: accentColor,
+    color: mutedText,
     textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  summaryTotal: {
+  timelineStatusActive: {
+    color: accentColor,
+  },
+  orderCard: {
+    marginTop: 28,
+    backgroundColor: surfaceColor,
+    borderRadius: 28,
+    padding: 24,
+    shadowColor: '#13203B',
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  orderCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  orderCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: heroDark,
+  },
+  orderCardSubtitle: {
+    marginTop: 6,
+    fontSize: 13,
+    color: mutedText,
+  },
+  orderTotal: {
     fontSize: 16,
     fontWeight: '700',
     color: accentColor,
   },
-  summaryItemsWrapper: {
-    marginTop: 18,
-    borderRadius: 20,
+  orderItems: {
+    marginTop: 16,
+  },
+  orderItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  orderItemText: {
+    fontSize: 14,
+    color: headingText,
+    flex: 1,
+    marginRight: 16,
+  },
+  orderItemPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: headingText,
+  },
+  orderMore: {
+    marginTop: 14,
+    fontSize: 13,
+    fontWeight: '600',
+    color: accentColor,
+  },
+  seeDetailsButton: {
+    marginTop: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
+    borderColor: accentColor,
     paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+  },
+  seeDetailsButtonDisabled: {
+    borderColor: '#E5E7EB',
     backgroundColor: '#F9FAFB',
   },
-  summaryItemRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
-  },
-  summaryItemTitle: {
+  seeDetailsText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: headingText,
+    fontWeight: '700',
+    color: accentColor,
   },
-  summaryItemExtras: {
-    marginTop: 4,
-    fontSize: 12,
-    color: mutedText,
+  seeDetailsTextDisabled: {
+    color: '#9CA3AF',
   },
-  summaryItemPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: headingText,
-  },
-  summaryMore: {
-    marginTop: 12,
-    fontSize: 12,
-    color: mutedText,
-  },
-  summaryActions: {
-    marginTop: 20,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 9999,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  actionButtonGhost: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  actionButtonGhostText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: headingText,
-  },
-  actionButtonPrimary: {
+  courierCard: {
+    marginTop: 24,
     backgroundColor: heroDark,
+    borderRadius: 28,
+    padding: 24,
   },
-  actionButtonPrimaryText: {
-    fontSize: 14,
+  courierInfo: {
+    marginBottom: 18,
+  },
+  courierLabel: {
+    fontSize: 12,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
+  },
+  courierName: {
+    marginTop: 10,
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
+  },
+  courierHint: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  courierCallButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+    paddingVertical: 14,
+    backgroundColor: accentColor,
+  },
+  courierCallText: {
+    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '700',
     color: 'white',
   },
 });
