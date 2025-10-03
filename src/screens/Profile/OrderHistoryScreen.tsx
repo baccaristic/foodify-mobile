@@ -159,18 +159,23 @@ const OrderHistoryScreen = () => {
             </View>
           </View>
         ))}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.continueButton}
-          onPress={() => navigation.navigate('Home' as never)}
-        >
-          <Text allowFontScaling={false} style={styles.continueLabel}>
-            Continue Ordering
-          </Text>
-        </TouchableOpacity>
       </View>
     );
   }
+
+  const continueOrderingButton = hasOrders ? (
+    <View style={styles.continueContainer} pointerEvents="box-none">
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.continueButton}
+        onPress={() => navigation.navigate('Home' as never)}
+      >
+        <Text allowFontScaling={false} style={styles.continueLabel}>
+          Continue Ordering
+        </Text>
+      </TouchableOpacity>
+    </View>
+  ) : undefined;
 
   return (
     <MainLayout
@@ -196,6 +201,7 @@ const OrderHistoryScreen = () => {
         </View>
       }
       mainContent={content}
+      floatingContent={continueOrderingButton}
       onRefresh={refetch}
       isRefreshing={isFetching}
     />
@@ -297,7 +303,7 @@ const styles = ScaledSheet.create({
   ordersWrapper: {
     flex: 1,
     paddingHorizontal: '16@s',
-    paddingBottom: '32@vs',
+    paddingBottom: '140@vs',
     paddingTop: '8@vs',
     gap: '16@vs',
   },
@@ -307,6 +313,8 @@ const styles = ScaledSheet.create({
     borderRadius: '18@ms',
     padding: '12@s',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     shadowColor: 'rgba(15,23,42,0.08)',
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -341,7 +349,7 @@ const styles = ScaledSheet.create({
   orderTotal: {
     fontSize: '15@ms',
     fontWeight: '700',
-    color: primaryColor,
+    color: accentColor,
   },
   orderActionButton: {
     backgroundColor: accentColor,
@@ -354,13 +362,22 @@ const styles = ScaledSheet.create({
     fontSize: '12@ms',
     fontWeight: '700',
   },
+  continueContainer: {
+    width: '100%',
+    paddingBottom: '8@vs',
+  },
   continueButton: {
-    marginTop: '8@vs',
     backgroundColor: primaryColor,
     paddingVertical: '14@vs',
     borderRadius: '24@ms',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
+    shadowColor: 'rgba(15,23,42,0.15)',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   continueLabel: {
     color: '#FFFFFF',

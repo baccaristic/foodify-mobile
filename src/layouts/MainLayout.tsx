@@ -62,6 +62,7 @@ interface MainLayoutProps {
   customHeader?: ReactNode;
   collapsedHeader?: ReactNode;
   mainContent: ReactNode;
+  floatingContent?: ReactNode;
   headerMaxHeight?: number;
   headerMinHeight?: number;
   headerBackgroundImage?: any;
@@ -81,6 +82,7 @@ export default function MainLayout({
   customHeader,
   collapsedHeader,
   mainContent,
+  floatingContent,
   headerMaxHeight,
   headerMinHeight,
   headerBackgroundImage,
@@ -306,6 +308,17 @@ export default function MainLayout({
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>
 
+      {floatingContent ? (
+        <View
+          style={[
+            styles.floatingSlot,
+            { bottom: showFooter ? insets.bottom + vs(84) : insets.bottom + vs(24) },
+          ]}
+          pointerEvents="box-none">
+          {floatingContent}
+        </View>
+      ) : null}
+
       {showFooter && (
         <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
           <View style={styles.navRow}>
@@ -365,6 +378,13 @@ const styles = ScaledSheet.create({
   },
   mainContent: {
     flex: 1,
+  },
+  floatingSlot: {
+    position: 'absolute',
+    left: '0@s',
+    right: '0@s',
+    paddingHorizontal: '16@s',
+    zIndex: 3,
   },
   footer: {
     position: 'absolute',
