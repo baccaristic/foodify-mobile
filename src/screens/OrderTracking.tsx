@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Image,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -225,6 +226,11 @@ const OrderTrackingScreen: React.FC = () => {
     ? courierDeliveriesValue
     : 120;
   const courierName = order?.delivery?.courier?.name ?? 'Assigned courier';
+  const courierAvatarUri =
+    (order as any)?.delivery?.courier?.avatarUrl ?? 'https://i.pravatar.cc/96?img=12';
+  const restaurantAvatarUri =
+    (order as any)?.restaurant?.imageUrl ??
+    'https://images.unsplash.com/photo-1606755962773-0e7d61a9b1fc?auto=format&fit=crop&w=200&q=80';
 
   const driverCoordinate = useMemo<LatLng>(() => {
     const courierLocation = (order as any)?.delivery?.courier?.location;
@@ -481,7 +487,13 @@ const OrderTrackingScreen: React.FC = () => {
       <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>My Order</Text>
+            <View style={styles.summaryHeaderLeft}>
+              <Image
+                source={{ uri: restaurantAvatarUri }}
+                style={styles.summaryRestaurantImage}
+              />
+              <Text style={styles.summaryTitle}>My Order</Text>
+            </View>
             <View style={styles.summaryBadge}>
               <Text style={styles.summaryBadgeText}>
                 {order?.restaurant?.name ?? 'Your restaurant'}
@@ -519,14 +531,17 @@ const OrderTrackingScreen: React.FC = () => {
         </View>
 
         <View style={styles.courierStickyCard}>
-          <View>
-            <Text style={styles.courierStickyLabel}>Delivered by</Text>
-            <Text style={styles.courierStickyName}>{courierName}</Text>
-            <View style={styles.courierStickyRating}>
-              <Star size={14} color={accentColor} fill={accentColor} />
-              <Text style={styles.courierStickyRatingText}>
-                {courierRating} / 5 ({courierDeliveries})
-              </Text>
+          <View style={styles.courierInfo}>
+            <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
+            <View>
+              <Text style={styles.courierStickyLabel}>Delivered by</Text>
+              <Text style={styles.courierStickyName}>{courierName}</Text>
+              <View style={styles.courierStickyRating}>
+                <Star size={14} color={accentColor} fill={accentColor} />
+                <Text style={styles.courierStickyRatingText}>
+                  {courierRating} / 5 ({courierDeliveries})
+                </Text>
+              </View>
             </View>
           </View>
           <View style={styles.courierStickyActions}>
@@ -799,6 +814,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
+  summaryHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryRestaurantImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    marginRight: 10,
+    backgroundColor: '#F1F5F9',
+  },
   summaryTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -881,6 +907,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
+  },
+  courierInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  courierAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+    backgroundColor: '#F1F5F9',
   },
   courierStickyLabel: {
     color: textSecondary,
