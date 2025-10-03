@@ -503,8 +503,8 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         customHeader={detailHeader}
         collapsedHeader={collapsedHeader}
         mainContent={mainContent}
-        headerMaxHeight={160}
-        headerMinHeight={140}
+        headerMaxHeight={180}
+        headerMinHeight={160}
       />
       {orderBar}
     </View>

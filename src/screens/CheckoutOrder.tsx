@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   GestureResponderEvent,
   Modal,
   ScrollView,
@@ -20,18 +19,7 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
-import {
-  ArrowLeft,
-  CheckCircle2,
-  ChevronDown,
-  CreditCard,
-  MapPin,
-  PartyPopper,
-  PenSquare,
-  TicketPercent,
-  Wallet,
-  X,
-} from 'lucide-react-native';
+import { ArrowLeft, ChevronDown, CreditCard, MapPin, PenSquare, TicketPercent, Wallet, X } from 'lucide-react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { isAxiosError } from 'axios';
 
@@ -53,8 +41,7 @@ const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
   }
 
   if (typeof value === 'string') {
-    const normalized = value.replace(',', '.');
-    const parsed = Number(normalized);
+    const parsed = Number(value.replace(',', '.'));
     if (Number.isFinite(parsed)) {
       return parsed;
     }
@@ -63,15 +50,33 @@ const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
   return 0;
 };
 
-const formatServerMoney = (value: MonetaryAmount | null | undefined) => formatCurrency(parseMonetaryAmount(value));
-
-const formatStatusLabel = (status?: string | null) => {
-  if (!status) {
-    return 'Pending';
+const formatPaymentMethodName = (method?: string | null) => {
+  if (!method) {
+    return 'Payment method';
   }
 
-  const normalized = status.replace(/_/g, ' ');
+  const normalized = method.replace(/_/g, ' ');
   return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const resolvePaymentIcon = (method?: string | null) => {
+  if (!method) {
+    return CreditCard;
+  }
+
+  const normalized = method.toLowerCase();
+  if (normalized.includes('cash')) {
+    return Wallet;
+  }
+  return CreditCard;
+};
+
+type DisplayItem = {
+  key: string;
+  name: string;
+  quantity: number;
+  extrasLabel?: string;
+  total: number;
 };
 
 interface AccordionProps {
@@ -183,264 +188,16 @@ type CheckoutRouteParams = {
   couponCode?: string;
   discountAmount?: number;
   couponValid?: boolean;
+  viewMode?: boolean;
+  order?: CreateOrderResponse | null;
 };
 
 type CheckoutRoute = RouteProp<{ CheckoutOrder: CheckoutRouteParams }, 'CheckoutOrder'>;
 
-interface OrderConfirmationOverlayProps {
-  visible: boolean;
-  response: CreateOrderResponse | null;
-  onClose: () => void;
-  onViewOrder: () => void;
-}
-
-const OrderConfirmationOverlay: React.FC<OrderConfirmationOverlayProps> = ({ visible, response, onClose, onViewOrder }) => {
-  const cardScale = useRef(new Animated.Value(0.9)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(0)).current;
-  const ripple = useRef(new Animated.Value(0)).current;
-  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
-
-  useEffect(() => {
-    if (!visible) {
-      loopRef.current?.stop();
-      loopRef.current = null;
-      return;
-    }
-
-    cardScale.setValue(0.9);
-    cardOpacity.setValue(0);
-    iconScale.setValue(0);
-    ripple.setValue(0);
-
-    Animated.parallel([
-      Animated.timing(cardOpacity, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-      Animated.spring(cardScale, {
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.spring(iconScale, {
-        toValue: 1,
-        tension: 200,
-        friction: 14,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    loopRef.current?.stop();
-    loopRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(ripple, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ripple, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loopRef.current.start();
-
-    return () => {
-      loopRef.current?.stop();
-      loopRef.current = null;
-    };
-  }, [visible, cardOpacity, cardScale, iconScale, ripple]);
-
-  const rippleScale = ripple.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.6],
-  });
-  const rippleOpacity = ripple.interpolate({
-    inputRange: [0, 0.6, 1],
-    outputRange: [0.35, 0.15, 0],
-  });
-  const iconRotation = iconScale.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-20deg', '0deg'],
-  });
-
-  const items = response?.items ?? [];
-  const displayedItems = items.slice(0, 3);
-  const remainingItemsCount = Math.max(0, items.length - displayedItems.length);
-  const workflowSteps = response?.workflow ?? [];
-  const displayedWorkflow = workflowSteps.slice(0, 3);
-  const statusLabel = formatStatusLabel(response?.status);
-
-  return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-center bg-[#17213A]/60 px-6">
-        <TouchableOpacity activeOpacity={1} className="absolute inset-0" onPress={onClose} />
-        <Animated.View
-          className="overflow-hidden rounded-3xl bg-white p-6"
-          style={{
-            opacity: cardOpacity,
-            transform: [{ scale: cardScale }],
-          }}
-        >
-          <View className="items-center">
-            <View className="relative mb-4 h-24 w-24 items-center justify-center">
-              <Animated.View
-                className="absolute inset-0 rounded-full"
-                style={{
-                  backgroundColor: '#FDE7E5',
-                  transform: [{ scale: rippleScale }],
-                  opacity: rippleOpacity,
-                }}
-              />
-              <Animated.View style={{ transform: [{ scale: iconScale }, { rotate: iconRotation }] }}>
-                <CheckCircle2 size={64} color={accentColor} />
-              </Animated.View>
-            </View>
-            <View className="flex-row items-center">
-              <PartyPopper size={20} color={accentColor} />
-              <Text allowFontScaling={false} className="ml-2 text-lg font-bold text-[#17213A]">
-                Order confirmed!
-              </Text>
-            </View>
-            <Text allowFontScaling={false} className="mt-2 text-sm text-[#4B5563]">
-              {response
-                ? `#${response.orderId} at ${response.restaurant?.name ?? 'your restaurant'}`
-                : 'We are preparing your delicious meal.'}
-            </Text>
-            <View className="mt-3 rounded-full bg-[#FDE7E5] px-4 py-1">
-              <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
-                {statusLabel}
-              </Text>
-            </View>
-          </View>
-
-          <View className="mt-6 rounded-2xl bg-[#F9FAFB] p-4">
-            <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
-              Order summary
-            </Text>
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                Total
-              </Text>
-              <Text allowFontScaling={false} className="text-base font-bold text-[#CA251B]">
-                {formatServerMoney(response?.payment?.total)}
-              </Text>
-            </View>
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text allowFontScaling={false} className="text-xs text-[#6B7280]">
-                Payment
-              </Text>
-              <Text allowFontScaling={false} className="text-xs font-semibold text-[#17213A]">
-                {response?.payment?.method ?? 'Selected method'}
-              </Text>
-            </View>
-          </View>
-
-          {displayedItems.length ? (
-            <View className="mt-4 rounded-2xl border border-dashed border-[#F0F1F3] p-4">
-              <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
-                Items
-              </Text>
-              {displayedItems.map((item) => (
-                <View
-                  key={`${item.menuItemId}-${item.name}`}
-                  className="mt-3 flex-row items-start justify-between"
-                >
-                  <View className="flex-1 pr-4">
-                    <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                      {item.quantity} × {item.name}
-                    </Text>
-                    {item.extras?.length ? (
-                      <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
-                        Extras: {item.extras.map((extra) => extra.name).join(', ')}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                    {formatServerMoney(item.lineTotal)}
-                  </Text>
-                </View>
-              ))}
-              {remainingItemsCount > 0 ? (
-                <Text allowFontScaling={false} className="mt-3 text-xs text-[#6B7280]">
-                  + {remainingItemsCount} more {remainingItemsCount === 1 ? 'item' : 'items'}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          {displayedWorkflow.length ? (
-            <View className="mt-4 rounded-2xl border border-[#F0F1F3] p-4">
-              <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
-                Next steps
-              </Text>
-              {displayedWorkflow.map((step, index) => {
-                const stepLabel =
-                  (typeof step.label === 'string' && step.label) ||
-                  (typeof step.step === 'string' && step.step) ||
-                  `Step ${index + 1}`;
-                const stepStatus = typeof step.status === 'string' ? formatStatusLabel(step.status) : null;
-                const completed = Boolean(step.completed);
-
-                return (
-                  <View key={`${stepLabel}-${index}`} className="mt-3 flex-row items-center justify-between">
-                    <View className="flex-1 pr-4">
-                      <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                        {stepLabel}
-                      </Text>
-                      {stepStatus ? (
-                        <Text allowFontScaling={false} className="text-xs text-[#6B7280]">
-                          {stepStatus}
-                        </Text>
-                      ) : null}
-                    </View>
-                    {completed ? (
-                      <CheckCircle2 size={20} color={accentColor} />
-                    ) : (
-                      <View
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: `${accentColor}33` }}
-                      />
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          ) : null}
-
-          <View className="mt-6 flex-row gap-3">
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={onViewOrder}
-              className="flex-1 rounded-full border border-[#CA251B] px-4 py-3"
-            >
-              <Text allowFontScaling={false} className="text-center text-sm font-semibold text-[#CA251B]">
-                Track order
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={onClose}
-              className="flex-1 rounded-full bg-[#CA251B] px-4 py-3"
-            >
-              <Text allowFontScaling={false} className="text-center text-sm font-semibold text-white">
-                Great!
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </View>
-    </Modal>
-  );
-};
-
 const CheckoutOrder: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<CheckoutRoute>();
-  const { items, restaurant, itemCount, subtotal, clearCart } = useCart();
+  const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
   const [itemsExpanded, setItemsExpanded] = useState(true);
@@ -453,16 +210,22 @@ const CheckoutOrder: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [orderResponse, setOrderResponse] = useState<CreateOrderResponse | null>(null);
-  const [confirmationVisible, setConfirmationVisible] = useState(false);
+
+  const rawOrderParam = route.params?.order ?? null;
+  const isViewMode = Boolean(route.params?.viewMode && rawOrderParam);
+  const viewOrder = isViewMode ? rawOrderParam : null;
 
   useEffect(() => {
+    if (isViewMode) {
+      return;
+    }
+
     const params = route.params;
     if (params?.couponValid && params.couponCode) {
       setAppliedCoupon({ code: params.couponCode, discount: params.discountAmount ?? 0 });
       navigation.setParams({ couponCode: undefined, discountAmount: undefined, couponValid: undefined });
     }
-  }, [route.params, navigation]);
+  }, [route.params, navigation, isViewMode]);
 
   const hasItems = items.length > 0;
   const restaurantName = restaurant?.name ?? 'Restaurant';
@@ -482,6 +245,52 @@ const CheckoutOrder: React.FC = () => {
     () => Math.max(subtotal + deliveryFee + serviceFee - discountValue, 0),
     [subtotal, deliveryFee, serviceFee, discountValue],
   );
+
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    if (isViewMode && viewOrder) {
+      return viewOrder.items.map((item, index) => ({
+        key: `order-${item.menuItemId}-${index}`,
+        name: item.name,
+        quantity: item.quantity,
+        extrasLabel: item.extras?.map((extra) => extra.name).join(', ') || undefined,
+        total: parseMonetaryAmount(item.lineTotal),
+      }));
+    }
+
+    return items.map((item) => ({
+      key: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      extrasLabel:
+        item.extras.flatMap((group) => group.extras.map((extra) => extra.name)).join(', ') || undefined,
+      total: item.totalPrice,
+    }));
+  }, [isViewMode, viewOrder, items]);
+
+  const displayItemCount = useMemo(
+    () => displayItems.reduce((sum, item) => sum + item.quantity, 0),
+    [displayItems],
+  );
+  const hasDisplayItems = displayItems.length > 0;
+  const displayRestaurantName = isViewMode ? viewOrder?.restaurant?.name ?? 'Restaurant' : restaurantName;
+  const displaySubtotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.subtotal) : baseSubtotal;
+  const displayExtrasTotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.extrasTotal) : extrasTotal;
+  const displayTotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.total) : total;
+  const displayFees = isViewMode ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0) : deliveryFee + serviceFee;
+  const deliveryAddressValue = isViewMode
+    ? viewOrder?.delivery?.address ?? ''
+    : selectedAddress?.formattedAddress ?? '';
+  const deliveryAddressTitle = isViewMode
+    ? viewOrder?.delivery?.savedAddress?.label?.trim()?.length
+      ? String(viewOrder.delivery.savedAddress?.label)
+      : 'Delivery address'
+    : selectedAddress?.label?.trim()?.length
+    ? selectedAddress.label
+    : 'Saved address';
+  const hasDeliveryAddress = isViewMode ? Boolean(deliveryAddressValue) : Boolean(selectedAddress);
+  const emptyAddressMessage = isViewMode
+    ? 'Delivery details unavailable for this order.'
+    : 'Add a delivery address to preview it here.';
 
   const combinedInstructions = useMemo(() => {
     const trimmedComment = comment.trim();
@@ -504,23 +313,45 @@ const CheckoutOrder: React.FC = () => {
   }, [allergies, comment]);
 
   const paymentMethodLabel = useMemo(() => {
+    if (isViewMode && viewOrder) {
+      return formatPaymentMethodName(viewOrder.payment?.method);
+    }
+
     if (!selectedPaymentMethod) {
       return 'Select payment method';
     }
 
     const option = PAYMENT_OPTIONS.find((candidate) => candidate.id === selectedPaymentMethod);
     return option?.label ?? 'Select payment method';
-  }, [selectedPaymentMethod]);
+  }, [isViewMode, viewOrder, selectedPaymentMethod]);
 
   const SelectedPaymentIcon = useMemo(() => {
+    if (isViewMode && viewOrder) {
+      return resolvePaymentIcon(viewOrder.payment?.method);
+    }
+
     if (!selectedPaymentMethod) {
       return CreditCard;
     }
     const option = PAYMENT_OPTIONS.find((candidate) => candidate.id === selectedPaymentMethod);
     return option?.Icon ?? CreditCard;
-  }, [selectedPaymentMethod]);
+  }, [isViewMode, viewOrder, selectedPaymentMethod]);
 
   const deliveryRegion = useMemo(() => {
+    if (isViewMode && viewOrder?.delivery?.location) {
+      const latCandidate = Number(viewOrder.delivery.location.lat);
+      const lngCandidate = Number(viewOrder.delivery.location.lng);
+
+      if (Number.isFinite(latCandidate) && Number.isFinite(lngCandidate)) {
+        return {
+          latitude: latCandidate,
+          longitude: lngCandidate,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+      }
+    }
+
     if (!selectedAddress?.coordinates) {
       return null;
     }
@@ -538,9 +369,21 @@ const CheckoutOrder: React.FC = () => {
       latitudeDelta: 0.01,
       longitudeDelta: 0.01,
     };
-  }, [selectedAddress]);
+  }, [isViewMode, viewOrder, selectedAddress]);
 
   const addressDetails = useMemo(() => {
+    if (isViewMode) {
+      const formatted = viewOrder?.delivery?.savedAddress?.formattedAddress;
+      if (formatted && formatted.trim().length) {
+        const normalizedDetail = formatted.trim();
+        const normalizedValue = deliveryAddressValue.trim();
+        if (!normalizedValue || normalizedValue !== normalizedDetail) {
+          return formatted;
+        }
+      }
+      return null;
+    }
+
     if (!selectedAddress) {
       return null;
     }
@@ -551,7 +394,7 @@ const CheckoutOrder: React.FC = () => {
     );
 
     return detail ?? null;
-  }, [selectedAddress]);
+  }, [isViewMode, viewOrder, selectedAddress, deliveryAddressValue]);
 
   const handlePaymentSelection = useCallback((method: PaymentMethod) => {
     setSelectedPaymentMethod(method);
@@ -563,10 +406,17 @@ const CheckoutOrder: React.FC = () => {
   }, []);
 
   const handleOpenLocationSelection = useCallback(() => {
+    if (isViewMode) {
+      return;
+    }
     navigation.navigate('LocationSelection');
-  }, [navigation]);
+  }, [navigation, isViewMode]);
 
   const handleConfirmOrder = useCallback(async () => {
+    if (isViewMode) {
+      return;
+    }
+
     if (!hasItems) {
       setSubmissionError('Your cart is empty.');
       return;
@@ -624,12 +474,11 @@ const CheckoutOrder: React.FC = () => {
       };
 
       const response = await createOrder(payload);
-      setOrderResponse(response);
-      setConfirmationVisible(true);
       clearCart();
       setAppliedCoupon(null);
       setComment('');
       setAllergies('');
+      navigation.navigate('OrderTracking', { order: response });
     } catch (error) {
       console.error('Failed to create order:', error);
       const message = (() => {
@@ -654,6 +503,7 @@ const CheckoutOrder: React.FC = () => {
       setIsSubmitting(false);
     }
   }, [
+    isViewMode,
     hasItems,
     restaurant?.id,
     selectedAddress,
@@ -662,20 +512,11 @@ const CheckoutOrder: React.FC = () => {
     items,
     combinedInstructions,
     clearCart,
+    navigation,
   ]);
 
-  const handleCloseConfirmation = useCallback(() => {
-    setConfirmationVisible(false);
-    setOrderResponse(null);
-  }, []);
-
-  const handleViewOrder = useCallback(() => {
-    setConfirmationVisible(false);
-    setOrderResponse(null);
-    navigation.navigate('OrderHistory');
-  }, [navigation]);
-
-  const canSubmit = hasItems && Boolean(selectedAddress) && Boolean(selectedPaymentMethod) && !isSubmitting;
+  const canSubmit =
+    !isViewMode && hasItems && Boolean(selectedAddress) && Boolean(selectedPaymentMethod) && !isSubmitting;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -699,13 +540,13 @@ const CheckoutOrder: React.FC = () => {
             >
               <View>
                 <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: accentColor }}>
-                  {itemCount} {itemCount === 1 ? 'Product' : 'Products'} from
+                  {displayItemCount} {displayItemCount === 1 ? 'Product' : 'Products'} from
                 </Text>
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
-                  {restaurantName}
+                  {displayRestaurantName}
                 </Text>
                 <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-[#17213A]">
-                  {formatCurrency(subtotal)}
+                  {formatCurrency(displaySubtotal)}
                 </Text>
               </View>
               <ChevronDown
@@ -716,31 +557,28 @@ const CheckoutOrder: React.FC = () => {
             </TouchableOpacity>
             {itemsExpanded ? (
               <View className="border-t" style={{ borderColor }}>
-                {hasItems ? (
-                  items.map((item) => (
-                    <View key={item.id} className="flex-row items-start justify-between px-5 py-4">
+                {hasDisplayItems ? (
+                  displayItems.map((item) => (
+                    <View key={item.key} className="flex-row items-start justify-between px-5 py-4">
                       <View className="flex-1 pr-3">
                         <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
                           {item.quantity} × {item.name}
                         </Text>
-                        {item.extras.length ? (
+                        {item.extrasLabel ? (
                           <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
-                            Extras:{' '}
-                            {item.extras
-                              .flatMap((group) => group.extras.map((extra) => extra.name))
-                              .join(', ')}
+                            Extras {item.extrasLabel}
                           </Text>
                         ) : null}
                       </View>
                       <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                        {formatCurrency(item.totalPrice)}
+                        {formatCurrency(item.total)}
                       </Text>
                     </View>
                   ))
                 ) : (
                   <View className="px-5 py-4">
                     <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                      Your cart is empty.
+                      {isViewMode ? 'No items to display.' : 'Your cart is empty.'}
                     </Text>
                   </View>
                 )}
@@ -748,61 +586,67 @@ const CheckoutOrder: React.FC = () => {
             ) : null}
           </View>
 
-          <Accordion
-            title="I have Allergies"
-            expanded={allergiesExpanded}
-            onToggle={() => setAllergiesExpanded((prev) => !prev)}
-          >
-            <TextInput
-              allowFontScaling={false}
-              multiline
-              placeholder="Add your allergies"
-              placeholderTextColor="#9CA3AF"
-              value={allergies}
-              onChangeText={setAllergies}
-              className="min-h-[80px] rounded-2xl border border-[#F1F2F4] bg-[#F9FAFB] px-4 py-3 text-sm text-[#17213A]"
-              textAlignVertical="top"
-            />
-          </Accordion>
+          {!isViewMode ? (
+            <>
+              <Accordion
+                title="I have Allergies"
+                expanded={allergiesExpanded}
+                onToggle={() => setAllergiesExpanded((prev) => !prev)}
+              >
+                <TextInput
+                  allowFontScaling={false}
+                  multiline
+                  placeholder="Add your allergies"
+                  placeholderTextColor="#9CA3AF"
+                  value={allergies}
+                  onChangeText={setAllergies}
+                  className="min-h-[80px] rounded-2xl border border-[#F1F2F4] bg-[#F9FAFB] px-4 py-3 text-sm text-[#17213A]"
+                  textAlignVertical="top"
+                />
+              </Accordion>
 
-          <Accordion
-            title="Add a comment"
-            expanded={commentExpanded}
-            onToggle={() => setCommentExpanded((prev) => !prev)}
-          >
-            <TextInput
-              allowFontScaling={false}
-              multiline
-              placeholder="Leave a note for the restaurant"
-              placeholderTextColor="#9CA3AF"
-              value={comment}
-              onChangeText={setComment}
-              className="min-h-[80px] rounded-2xl border border-[#F1F2F4] bg-[#F9FAFB] px-4 py-3 text-sm text-[#17213A]"
-              textAlignVertical="top"
-            />
-          </Accordion>
+              <Accordion
+                title="Add a comment"
+                expanded={commentExpanded}
+                onToggle={() => setCommentExpanded((prev) => !prev)}
+              >
+                <TextInput
+                  allowFontScaling={false}
+                  multiline
+                  placeholder="Leave a note for the restaurant"
+                  placeholderTextColor="#9CA3AF"
+                  value={comment}
+                  onChangeText={setComment}
+                  className="min-h-[80px] rounded-2xl border border-[#F1F2F4] bg-[#F9FAFB] px-4 py-3 text-sm text-[#17213A]"
+                  textAlignVertical="top"
+                />
+              </Accordion>
+            </>
+          ) : null}
 
           <View className="mt-6">
             <View className="flex-row items-center justify-between">
               <Text allowFontScaling={false} className="text-base font-bold" style={{ color: sectionTitleColor }}>
                 Delivery Address
               </Text>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handleOpenLocationSelection}
-                className="rounded-full bg-[#FDE7E5] px-3 py-1"
-              >
-                <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
-                  Change
-                </Text>
-              </TouchableOpacity>
+              {!isViewMode ? (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleOpenLocationSelection}
+                  className="rounded-full bg-[#FDE7E5] px-3 py-1"
+                >
+                  <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
+                    Change
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-            {selectedAddress ? (
+            {hasDeliveryAddress ? (
               <View className="mt-3 overflow-hidden rounded-3xl border" style={{ borderColor }}>
                 <View style={styles.mapWrapper}>
                   {deliveryRegion ? (
                     <MapView
-                      key={selectedAddress.id}
+                      key={isViewMode ? `order-${viewOrder?.orderId ?? 'map'}` : selectedAddress?.id}
                       style={StyleSheet.absoluteFill}
                       initialRegion={deliveryRegion}
                       scrollEnabled={false}
@@ -813,14 +657,14 @@ const CheckoutOrder: React.FC = () => {
                       <Marker
                         coordinate={deliveryRegion}
                         title="Delivery Address"
-                        description={selectedAddress.formattedAddress}
+                        description={deliveryAddressValue || undefined}
                       />
                     </MapView>
                   ) : (
                     <View className="flex-1 items-center justify-center bg-[#FDE7E5]">
                       <MapPin size={24} color={accentColor} />
                       <Text allowFontScaling={false} className="mt-2 text-xs font-semibold text-[#CA251B]">
-                        Set a precise location to preview it here
+                        {isViewMode ? 'Map preview unavailable for this address' : 'Set a precise location to preview it here'}
                       </Text>
                     </View>
                   )}
@@ -829,10 +673,10 @@ const CheckoutOrder: React.FC = () => {
                   <MapPin size={18} color={accentColor} />
                   <View className="flex-1">
                     <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                      {selectedAddress.label?.trim()?.length ? selectedAddress.label : 'Saved address'}
+                      {deliveryAddressTitle}
                     </Text>
                     <Text allowFontScaling={false} className="mt-1 text-sm text-[#4B5563]">
-                      {selectedAddress.formattedAddress}
+                      {deliveryAddressValue || emptyAddressMessage}
                     </Text>
                     {addressDetails ? (
                       <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
@@ -842,7 +686,7 @@ const CheckoutOrder: React.FC = () => {
                   </View>
                 </View>
               </View>
-            ) : (
+            ) : !isViewMode ? (
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleOpenLocationSelection}
@@ -856,6 +700,15 @@ const CheckoutOrder: React.FC = () => {
                 </View>
                 <ChevronDown size={20} color={sectionTitleColor} style={{ transform: [{ rotate: '-90deg' }] }} />
               </TouchableOpacity>
+            ) : (
+              <View className="mt-3 rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4">
+                <View className="flex-row items-center">
+                  <MapPin size={22} color={accentColor} />
+                  <Text allowFontScaling={false} className="ml-3 flex-1 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                    {emptyAddressMessage}
+                  </Text>
+                </View>
+              </View>
             )}
           </View>
 
@@ -863,57 +716,70 @@ const CheckoutOrder: React.FC = () => {
             <Text allowFontScaling={false} className="text-base font-bold" style={{ color: sectionTitleColor }}>
               Payment method
             </Text>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setIsPaymentModalVisible(true)}
-              className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4"
-            >
-              <View className="flex-row items-center">
-                <SelectedPaymentIcon size={22} color={accentColor} />
-                <Text allowFontScaling={false} className="ml-3 text-base font-semibold" style={{ color: sectionTitleColor }}>
-                  {paymentMethodLabel}
-                </Text>
+            {isViewMode ? (
+              <View className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4">
+                <View className="flex-row items-center">
+                  <SelectedPaymentIcon size={22} color={accentColor} />
+                  <Text allowFontScaling={false} className="ml-3 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                    {paymentMethodLabel}
+                  </Text>
+                </View>
               </View>
-              <ChevronDown size={20} color={sectionTitleColor} />
-            </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setIsPaymentModalVisible(true)}
+                className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4"
+              >
+                <View className="flex-row items-center">
+                  <SelectedPaymentIcon size={22} color={accentColor} />
+                  <Text allowFontScaling={false} className="ml-3 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                    {paymentMethodLabel}
+                  </Text>
+                </View>
+                <ChevronDown size={20} color={sectionTitleColor} />
+              </TouchableOpacity>
+            )}
           </View>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() =>
-              navigation.navigate('CouponCode', {
-                currentCode: appliedCoupon?.code,
-              })
-            }
-            className="mt-4 flex-row items-center justify-between rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4"
-          >
-            <View className="flex-1 flex-row items-center">
-              <TicketPercent size={22} color={accentColor} />
-              <View className="ml-3 flex-1">
-                <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
-                  {appliedCoupon ? 'Coupon applied' : 'Add Coupon code'}
-                </Text>
-                {appliedCoupon ? (
-                  <Text allowFontScaling={false} className="mt-1 text-sm text-[#6B7280]">
-                    {appliedCoupon.code} −{formatCurrency(discountValue)}
+          {!isViewMode ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() =>
+                navigation.navigate('CouponCode', {
+                  currentCode: appliedCoupon?.code,
+                })
+              }
+              className="mt-4 flex-row items-center justify-between rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4"
+            >
+              <View className="flex-1 flex-row items-center">
+                <TicketPercent size={22} color={accentColor} />
+                <View className="ml-3 flex-1">
+                  <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+                    {appliedCoupon ? 'Coupon applied' : 'Add Coupon code'}
                   </Text>
-                ) : null}
+                  {appliedCoupon ? (
+                    <Text allowFontScaling={false} className="mt-1 text-sm text-[#6B7280]">
+                      {appliedCoupon.code} −{formatCurrency(discountValue)}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-            </View>
-            {appliedCoupon ? (
-              <TouchableOpacity
-                accessibilityRole="button"
-                onPress={(event: GestureResponderEvent) => {
-                  event.stopPropagation();
-                  handleRemoveCoupon();
-                }}
-              >
-                <X size={20} color={sectionTitleColor} />
-              </TouchableOpacity>
-            ) : (
-              <PenSquare size={20} color={sectionTitleColor} />
-            )}
-          </TouchableOpacity>
+              {appliedCoupon ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  onPress={(event: GestureResponderEvent) => {
+                    event.stopPropagation();
+                    handleRemoveCoupon();
+                  }}
+                >
+                  <X size={20} color={sectionTitleColor} />
+                </TouchableOpacity>
+              ) : (
+                <PenSquare size={20} color={sectionTitleColor} />
+              )}
+            </TouchableOpacity>
+          ) : null}
 
           <View className="mt-6 rounded-3xl border border-[#F0F1F3] bg-white p-5">
             <View className="flex-row items-center justify-between">
@@ -921,7 +787,7 @@ const CheckoutOrder: React.FC = () => {
                 Items
               </Text>
               <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
-                {formatCurrency(baseSubtotal)}
+                {formatCurrency(displaySubtotal)}
               </Text>
             </View>
             <View className="mt-3 flex-row items-center justify-between">
@@ -929,26 +795,39 @@ const CheckoutOrder: React.FC = () => {
                 Extras
               </Text>
               <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
-                {formatCurrency(extrasTotal)}
+                {formatCurrency(displayExtrasTotal)}
               </Text>
             </View>
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                Delivery
-              </Text>
-              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
-                {formatCurrency(deliveryFee)}
-              </Text>
-            </View>
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                Service
-              </Text>
-              <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
-                {formatCurrency(serviceFee)}
-              </Text>
-            </View>
-            {appliedCoupon ? (
+            {!isViewMode ? (
+              <>
+                <View className="mt-3 flex-row items-center justify-between">
+                  <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                    Delivery
+                  </Text>
+                  <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                    {formatCurrency(deliveryFee)}
+                  </Text>
+                </View>
+                <View className="mt-3 flex-row items-center justify-between">
+                  <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                    Service
+                  </Text>
+                  <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                    {formatCurrency(serviceFee)}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <View className="mt-3 flex-row items-center justify-between">
+                <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                  Fees & delivery
+                </Text>
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                  {formatCurrency(displayFees)}
+                </Text>
+              </View>
+            )}
+            {!isViewMode && appliedCoupon ? (
               <View className="mt-3 flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
                   Coupon ({appliedCoupon.code})
@@ -964,7 +843,7 @@ const CheckoutOrder: React.FC = () => {
                   Total
                 </Text>
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
-                  {formatCurrency(total)}
+                  {formatCurrency(displayTotal)}
                 </Text>
               </View>
             </View>
@@ -972,43 +851,38 @@ const CheckoutOrder: React.FC = () => {
         </View>
       </ScrollView>
 
-      <View className="px-4 pb-6">
-        {submissionError ? (
-          <Text allowFontScaling={false} className="mb-3 text-center text-sm text-[#CA251B]">
-            {submissionError}
-          </Text>
-        ) : null}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          className={`rounded-full px-6 py-4 ${canSubmit ? 'bg-[#CA251B]' : 'bg-[#F1F2F4]'}`}
-          disabled={!canSubmit}
-          onPress={handleConfirmOrder}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color={canSubmit ? '#FFFFFF' : '#9CA3AF'} />
-          ) : (
-            <Text
-              allowFontScaling={false}
-              className={`text-center text-base font-semibold ${canSubmit ? 'text-white' : 'text-[#9CA3AF]'}`}
-            >
-              Confirm and pay to order
+      {!isViewMode ? (
+        <View className="px-4 pb-6">
+          {submissionError ? (
+            <Text allowFontScaling={false} className="mb-3 text-center text-sm text-[#CA251B]">
+              {submissionError}
             </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          ) : null}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            className={`rounded-full px-6 py-4 ${canSubmit ? 'bg-[#CA251B]' : 'bg-[#F1F2F4]'}`}
+            disabled={!canSubmit}
+            onPress={handleConfirmOrder}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={canSubmit ? '#FFFFFF' : '#9CA3AF'} />
+            ) : (
+              <Text
+                allowFontScaling={false}
+                className={`text-center text-base font-semibold ${canSubmit ? 'text-white' : 'text-[#9CA3AF]'}`}
+              >
+                Confirm and pay to order
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       <PaymentModal
-        visible={isPaymentModalVisible}
+        visible={!isViewMode && isPaymentModalVisible}
         onClose={() => setIsPaymentModalVisible(false)}
         onSelect={handlePaymentSelection}
-        selected={selectedPaymentMethod}
-      />
-
-      <OrderConfirmationOverlay
-        visible={confirmationVisible}
-        response={orderResponse}
-        onClose={handleCloseConfirmation}
-        onViewOrder={handleViewOrder}
+        selected={isViewMode ? null : selectedPaymentMethod}
       />
     </SafeAreaView>
   );
