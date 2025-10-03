@@ -20,6 +20,7 @@ import SearchScreen from '~/screens/SearchScreen';
 import queryClient from '~/api/queryClient';
 import { AuthProvider } from '~/context/AuthContext';
 import { LocationOverlayProvider } from '~/context/LocationOverlayContext';
+import { CartProvider } from '~/context/CartContext';
 import AcceptTerms from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/AcceptTerms';
 import LocationAccess from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/LocationAccess';
 import NameEntry from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/NameEntry';
@@ -98,9 +99,11 @@ export default function App() {
           <AuthProvider>
             <PhoneSignupProvider>
               <SelectedAddressProvider>
-                <LocationOverlayProvider>
-                  <RootNavigator />
-                </LocationOverlayProvider>
+                <CartProvider>
+                  <LocationOverlayProvider>
+                    <RootNavigator />
+                  </LocationOverlayProvider>
+                </CartProvider>
               </SelectedAddressProvider>
             </PhoneSignupProvider>
           </AuthProvider>

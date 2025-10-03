@@ -67,6 +67,7 @@ interface MainLayoutProps {
   headerBackgroundImage?: any;
   headerCollapsed?: boolean;
   enableHeaderCollapse?: boolean;
+  enforceResponsiveHeaderSize?: boolean;
   navItems?: NavItem[];
   activeTab?: string;
   onTabPress?: (route: string) => void;
@@ -85,6 +86,7 @@ export default function MainLayout({
   headerBackgroundImage,
   headerCollapsed = false,
   enableHeaderCollapse = true,
+  enforceResponsiveHeaderSize = true,
   navItems,
   activeTab,
   onTabPress,
@@ -95,9 +97,22 @@ export default function MainLayout({
   const insets = useSafeAreaInsets();
   const defaultMax = screenHeight * 0.28;
   const minResponsiveMax = screenHeight * 0.2;
-  const MAX_HEIGHT = Math.max(headerMaxHeight ?? defaultMax, minResponsiveMax);
-  const MIN_HEIGHT = headerMinHeight ?? screenHeight * 0.12;
-  const SCROLL_DISTANCE = MAX_HEIGHT - MIN_HEIGHT + insets.top;
+  const rawMaxHeight = headerMaxHeight ?? defaultMax;
+  const rawMinHeight = headerMinHeight ?? screenHeight * 0.12;
+
+  let MAX_HEIGHT = rawMaxHeight;
+  let MIN_HEIGHT = rawMinHeight;
+
+  if (enforceResponsiveHeaderSize) {
+    MAX_HEIGHT = Math.max(rawMaxHeight, minResponsiveMax);
+    MIN_HEIGHT = Math.max(rawMinHeight, screenHeight * 0.12);
+  }
+
+  if (MAX_HEIGHT < MIN_HEIGHT) {
+    MAX_HEIGHT = MIN_HEIGHT;
+  }
+
+  const SCROLL_DISTANCE = Math.max(MAX_HEIGHT - MIN_HEIGHT, 0) + insets.top;
   const collapseEnabled = enableHeaderCollapse && showHeader;
 
   const navigation = useOptionalNavigation();

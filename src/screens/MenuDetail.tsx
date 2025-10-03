@@ -1,126 +1,331 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Dimensions, ScrollView } from "react-native";
-import { X, Heart, Check, Plus, Minus, ArrowLeft } from "lucide-react-native";
-import { Image } from "expo-image";
-import MainLayout from "~/layouts/MainLayout";
-import { useNavigation } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { X, Heart, Check, Plus, Minus, ArrowLeft } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import MainLayout from '~/layouts/MainLayout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get("window");
-const primaryColor = "#CA251B";
+import type { CartItemOptionSelection } from '~/context/CartContext';
+import type {
+  RestaurantMenuItemDetails,
+  RestaurantMenuItemExtra,
+  RestaurantMenuOptionGroup,
+} from '~/interfaces/Restaurant';
+import { BASE_API_URL } from '@env';
 
-interface CartItemDetails {
-  quantity: number;
-  total: number;
-}
+const { width } = Dimensions.get('window');
+const primaryColor = '#CA251B';
 
 interface MenuDetailProps {
-  handleAddItem: (itemDetails: CartItemDetails) => void;
+  menuItem: RestaurantMenuItemDetails;
+  handleAddItem: (itemDetails: AddToCartDetails[]) => void;
+  onClose?: () => void;
+  initialDraftSelections?: Record<number, number[]>[];
+  actionLabel?: string;
+}
+
+interface AddToCartDetails {
+  quantity: number;
+  extras: CartItemOptionSelection[];
+}
+
+interface DraftConfiguration {
+  id: string;
+  selections: Record<number, number[]>;
 }
 
 interface OptionRowProps {
-  item: string;
-  displayItem: string;
+  group: RestaurantMenuOptionGroup;
+  extra: RestaurantMenuItemExtra;
   isSelected: boolean;
-  onToggle: (name: string) => void;
-  price?: number;
+  isLast: boolean;
+  onToggle: (group: RestaurantMenuOptionGroup, extra: RestaurantMenuItemExtra) => void;
 }
 
-const OptionRow: React.FC<OptionRowProps> = ({
-  item,
-  displayItem,
-  isSelected,
-  onToggle,
-  price,
-}) => {
-  const formatPrice = (p: number) => p.toFixed(3).replace(".", ",");
+const formatPrice = (p: number) => `${p.toFixed(3).replace('.', ',')} DT`;
 
-  return (
-    <TouchableOpacity
-      onPress={() => onToggle(item)}
-      className="flex-row justify-between items-center mb-4"
-    >
-      <View className="flex-row items-center flex-1">
-        <Text allowFontScaling={false} className="text-gray-800 text-base font-semibold">
-          {displayItem}
-        </Text>
-        {price !== undefined && (
-          <View className="bg-red-700 rounded-lg px-2 py-1 ml-2">
-            <Text allowFontScaling={false} className="text-white text-xs font-bold">
-              +{formatPrice(price)} DT
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <View
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: primaryColor,
-          backgroundColor: isSelected ? primaryColor : "transparent",
-        }}
-        className="flex items-center justify-center"
-      >
-        {isSelected ? (
-          <Check size={16} color="white" />
-        ) : (
-          <Plus size={16} color={primaryColor} />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+const resolveImageSource = (imagePath?: string | null) => {
+  if (imagePath) {
+    return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
+  }
+  return require('../../assets/baguette.png');
 };
 
-export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
-  const navigation = useNavigation();
-  const basePrice = 19.3;
-  const initialDescription =
-    "2 galette tortillas à la farine de blé, 2 viandes au choix, sauce fromagère, garniture et frites.";
+const OptionRow: React.FC<OptionRowProps> = ({ group, extra, isSelected, isLast, onToggle }) => (
+  <TouchableOpacity
+    onPress={() => onToggle(group, extra)}
+    className={`flex-row items-center justify-between py-3 ${isLast ? '' : 'border-b border-gray-100'}`}>
+    <View className="flex-1">
+      <Text
+        allowFontScaling={false}
+        className={`text-base font-semibold ${isSelected ? 'text-[#CA251B]' : 'text-gray-800'}`}>
+        {extra.name}
+      </Text>
+      {extra.price > 0 ? (
+        <Text allowFontScaling={false} className="mt-1 text-sm font-medium text-gray-500">
+          +{formatPrice(extra.price)}
+        </Text>
+      ) : null}
+    </View>
 
-  const [quantity, setQuantity] = useState(1);
-  const [selectedToppings, setSelectedToppings] = useState<string[]>(["Onion"]);
-  const [selectedMeats, setSelectedMeats] = useState<string[]>([]);
-  const [selectedSupplements, setSelectedSupplements] = useState<string[]>([]);
-    const insets = useSafeAreaInsets();
+    <View
+      className={`h-8 w-8 items-center justify-center rounded-full ${
+        isSelected ? 'bg-[#CA251B]' : 'bg-[#FDE7E5]'
+      }`}>
+      {isSelected ? <Check size={18} color="white" /> : <Plus size={18} color={primaryColor} />}
+    </View>
+  </TouchableOpacity>
+);
 
-  const toppingsList = ["Lettuce", "Caramelised onion", "Onion"];
-  const meatsList = ["Cordon bleu", "Toasted escalope", "Kebab", "Nuggets"];
-  const supplementsList = [
-    { name: "Cheddar", price: 3.0 },
-    { name: "Mozzarella", price: 3.0 },
-    { name: "Bacon", price: 3.0 },
-  ];
+const describeGroupSelection = (group: RestaurantMenuOptionGroup) => {
+  if (group.minSelect > 0 && group.maxSelect > 0) {
+    if (group.minSelect === group.maxSelect) {
+      return `Choose ${group.minSelect} ${group.minSelect === 1 ? 'item' : 'items'}`;
+    }
+    return `Choose ${group.minSelect}-${group.maxSelect} items`;
+  }
 
-  const calculateTotal = () => {
-    const supPrice = selectedSupplements.reduce((sum, name) => {
-      const sup = supplementsList.find((s) => s.name === name);
-      return sum + (sup ? sup.price : 0);
+  if (group.minSelect > 0) {
+    return `Choose at least ${group.minSelect} ${group.minSelect === 1 ? 'item' : 'items'}`;
+  }
+
+  if (group.maxSelect > 0) {
+    return `Choose up to ${group.maxSelect} ${group.maxSelect === 1 ? 'item' : 'items'}`;
+  }
+
+  return 'Choose any item';
+};
+
+const resolveMinSelect = (group: RestaurantMenuOptionGroup) => {
+  const baseMin = group.minSelect ?? 0;
+  if (group.required) {
+    return Math.max(baseMin, 1);
+  }
+  return baseMin;
+};
+
+const resolveMaxSelect = (group: RestaurantMenuOptionGroup) => {
+  if (group.maxSelect && group.maxSelect > 0) {
+    return group.maxSelect;
+  }
+  return Number.POSITIVE_INFINITY;
+};
+
+const buildInitialSelection = (item: RestaurantMenuItemDetails) => {
+  const selections: Record<number, number[]> = {};
+
+  item.optionGroups.forEach((group) => {
+    const defaults = group.extras.filter((extra) => extra.defaultOption).map((extra) => extra.id);
+
+    if (defaults.length > 0) {
+      selections[group.id] = defaults;
+      return;
+    }
+
+    const minRequired = resolveMinSelect(group);
+    if (minRequired > 0) {
+      selections[group.id] = group.extras.slice(0, minRequired).map((extra) => extra.id);
+      return;
+    }
+
+    selections[group.id] = [];
+  });
+
+  return selections;
+};
+
+const cloneSelections = (selections: Record<number, number[]>) =>
+  Object.keys(selections).reduce<Record<number, number[]>>((acc, key) => {
+    const numericKey = Number(key);
+    acc[numericKey] = [...(selections[numericKey] ?? [])];
+    return acc;
+  }, {});
+
+const createDraftConfiguration = (
+  item: RestaurantMenuItemDetails,
+  baseSelections?: Record<number, number[]>
+): DraftConfiguration => ({
+  id: `${item.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  selections: baseSelections ? cloneSelections(baseSelections) : buildInitialSelection(item),
+});
+
+const createDraftsFromInitialSelections = (
+  item: RestaurantMenuItemDetails,
+  initialSelections?: Record<number, number[]>[]
+) => {
+  if (initialSelections && initialSelections.length > 0) {
+    return initialSelections.map((selection) => createDraftConfiguration(item, selection));
+  }
+
+  return [createDraftConfiguration(item)];
+};
+
+const calculateExtrasTotal = (
+  optionGroups: RestaurantMenuOptionGroup[],
+  selections: Record<number, number[]>
+) =>
+  optionGroups.reduce((sum, group) => {
+    const selectedIds = selections[group.id] ?? [];
+    const groupTotal = group.extras.reduce((groupSum, extra) => {
+      if (selectedIds.includes(extra.id)) {
+        return groupSum + extra.price;
+      }
+      return groupSum;
     }, 0);
-    return (basePrice + supPrice) * quantity;
+    return sum + groupTotal;
+  }, 0);
+
+const isSelectionValid = (
+  optionGroups: RestaurantMenuOptionGroup[],
+  selections: Record<number, number[]>
+) =>
+  optionGroups.every((group) => {
+    const selectedCount = selections[group.id]?.length ?? 0;
+    const minRequired = resolveMinSelect(group);
+    return selectedCount >= minRequired;
+  });
+
+const MenuDetail: React.FC<MenuDetailProps> = ({
+  menuItem,
+  handleAddItem,
+  onClose,
+  initialDraftSelections,
+  actionLabel = 'Add',
+}) => {
+  const insets = useSafeAreaInsets();
+
+  const [drafts, setDrafts] = useState<DraftConfiguration[]>(() =>
+    createDraftsFromInitialSelections(menuItem, initialDraftSelections)
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setDrafts(createDraftsFromInitialSelections(menuItem, initialDraftSelections));
+    setActiveIndex(0);
+  }, [initialDraftSelections, menuItem]);
+
+  const activeDraft = drafts[activeIndex];
+
+  const toggleExtra = (group: RestaurantMenuOptionGroup, extra: RestaurantMenuItemExtra) => {
+    setDrafts((prev) =>
+      prev.map((draft, index) => {
+        if (index !== activeIndex) {
+          return draft;
+        }
+
+        const current = draft.selections[group.id] ?? [];
+        const isSelected = current.includes(extra.id);
+        const maxAllowed = resolveMaxSelect(group);
+
+        if (isSelected) {
+          const nextSelection = current.filter((id) => id !== extra.id);
+          return {
+            ...draft,
+            selections: {
+              ...draft.selections,
+              [group.id]: nextSelection,
+            },
+          };
+        }
+
+        if (maxAllowed === 1) {
+          return {
+            ...draft,
+            selections: {
+              ...draft.selections,
+              [group.id]: [extra.id],
+            },
+          };
+        }
+
+        if (current.length >= maxAllowed) {
+          return draft;
+        }
+
+        return {
+          ...draft,
+          selections: {
+            ...draft.selections,
+            [group.id]: [...current, extra.id],
+          },
+        };
+      })
+    );
   };
 
-  const total = calculateTotal();
-  const formatPrice = (p: number) => p.toFixed(3).replace(".", ",");
+  const extrasTotal = useMemo(
+    () => (activeDraft ? calculateExtrasTotal(menuItem.optionGroups, activeDraft.selections) : 0),
+    [menuItem.optionGroups, activeDraft]
+  );
+
+  const mapSelectionsToGroups = useCallback(
+    (selections: Record<number, number[]>): CartItemOptionSelection[] =>
+      menuItem.optionGroups
+        .map((group) => ({
+          groupId: group.id,
+          groupName: group.name,
+          extras: group.extras.filter((extra) => (selections[group.id] ?? []).includes(extra.id)),
+        }))
+        .filter((group) => group.extras.length > 0),
+    [menuItem.optionGroups]
+  );
+
+  const itemTotal = useMemo(() => menuItem.price + extrasTotal, [menuItem.price, extrasTotal]);
+
+  const cartTotal = useMemo(
+    () =>
+      drafts.reduce(
+        (sum, draft) => sum + menuItem.price + calculateExtrasTotal(menuItem.optionGroups, draft.selections),
+        0
+      ),
+    [drafts, menuItem.optionGroups, menuItem.price]
+  );
+
+  const allValid = useMemo(
+    () => drafts.every((draft) => isSelectionValid(menuItem.optionGroups, draft.selections)),
+    [drafts, menuItem.optionGroups]
+  );
+
+  const handleIncreaseDrafts = useCallback(() => {
+    setDrafts((prev) => {
+      const baseSelections = buildInitialSelection(menuItem);
+      const nextDrafts = [...prev, createDraftConfiguration(menuItem, baseSelections)];
+      setActiveIndex(nextDrafts.length - 1);
+      return nextDrafts;
+    });
+  }, [menuItem]);
+
+  const handleDecreaseDrafts = useCallback(() => {
+    setDrafts((prev) => {
+      if (prev.length <= 1) {
+        return prev;
+      }
+
+      const nextDrafts = prev.filter((_, index) => index !== activeIndex);
+      const nextIndex = Math.max(0, Math.min(activeIndex, nextDrafts.length - 1));
+      setActiveIndex(nextIndex);
+      return nextDrafts;
+    });
+  }, [activeIndex]);
 
   const handleAdd = () => {
-    handleAddItem({ quantity, total });
+    if (!allValid || drafts.length === 0) {
+      return;
+    }
+
+    const payload = drafts.map((draft) => ({
+      quantity: 1,
+      extras: mapSelectionsToGroups(draft.selections),
+    }));
+
+    handleAddItem(payload);
   };
 
   const detailHeader = (
     <View>
-      <Image
-        source={require("../../assets/TEST.png")}
-        style={{ width, height: '100%' }}
-        contentFit="cover"
-      />
+      <Image source={resolveImageSource(menuItem.imageUrl)} style={{ width, height: '100%' }} contentFit="cover" />
       <View className="absolute left-4 top-8">
-        <TouchableOpacity
-          className="rounded-full bg-white p-2"
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity className="rounded-full bg-white p-2" onPress={onClose}>
           <X size={20} color={primaryColor} />
         </TouchableOpacity>
       </View>
@@ -133,12 +338,12 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
   );
 
   const collapsedHeader = (
-    <View className="flex-1 justify-center bg-white px-4 flex-row items-center">
-      <TouchableOpacity className="p-2" onPress={() =>console.log('here')}>
+    <View className="flex-1 flex-row items-center justify-center bg-white px-4">
+      <TouchableOpacity className="p-2" onPress={onClose}>
         <ArrowLeft size={20} color={primaryColor} />
       </TouchableOpacity>
-      <Text allowFontScaling={false} className="text-lg font-bold text-gray-800 flex-1 text-center">
-        Di Napoli
+      <Text allowFontScaling={false} className="flex-1 text-center text-lg font-bold text-gray-800">
+        {menuItem.name}
       </Text>
       <TouchableOpacity className="p-2">
         <Heart size={20} color={primaryColor} />
@@ -147,96 +352,144 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
   );
 
   const mainContent = (
-    <ScrollView className="px-4 -mt-4 bg-white rounded-t-2xl pt-4" contentContainerStyle={{paddingBottom: 50}}>
-      <Text allowFontScaling={false} className="text-3xl font-bold text-[#17213A] mt-2">Tacos XL</Text>
-      <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B] mt-1">
-        {formatPrice(basePrice)} DT
+    <ScrollView className="-mt-4 rounded-t-2xl bg-white px-4 pt-4" contentContainerStyle={{ paddingBottom: 120 }}>
+      <Text allowFontScaling={false} className="mt-2 text-3xl font-bold text-[#17213A]">
+        {menuItem.name}
       </Text>
-      <Text allowFontScaling={false} className="text-sm text-[#17213A] mt-2 mb-6">
-        {initialDescription}
+      <Text allowFontScaling={false} className="mt-1 text-xl font-bold text-[#CA251B]">
+        {formatPrice(menuItem.price)}
       </Text>
+      {menuItem.description ? (
+        <Text allowFontScaling={false} className="mt-2 mb-4 text-sm text-[#17213A]">
+          {menuItem.description}
+        </Text>
+      ) : null}
 
-      <Text allowFontScaling={false} className="text-xl font-bold mb-1">Choose your toppings</Text>
-      {toppingsList.map((item) => (
-        <OptionRow
-          key={item}
-          item={item}
-          displayItem={item}
-          isSelected={selectedToppings.includes(item)}
-          onToggle={(n) =>
-            setSelectedToppings((prev) =>
-              prev.includes(n) ? prev.filter((t) => t !== n) : [...prev, n]
-            )
-          }
-        />
+      {menuItem.tags?.length ? (
+        <View className="mb-4 flex-row flex-wrap gap-2">
+          {menuItem.tags.map((tag) => (
+            <View key={tag} className="rounded-full bg-[#FDE7E5] px-3 py-1">
+              <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
+                {tag}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      <View className="mt-4">
+        <Text allowFontScaling={false} className="text-base font-semibold text-[#17213A]">
+          Customizing item {activeIndex + 1} of {drafts.length}
+        </Text>
+        {drafts.length > 1 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mt-3"
+            contentContainerStyle={{ gap: 8 }}>
+            {drafts.map((draft, index) => {
+              const isActive = index === activeIndex;
+              const isValid = isSelectionValid(menuItem.optionGroups, draft.selections);
+              const backgroundClass = isActive
+                ? 'border-[#CA251B] bg-[#CA251B]'
+                : isValid
+                  ? 'border-gray-200 bg-white'
+                  : 'border-red-300 bg-red-50';
+              const textClass = isActive ? 'text-white' : isValid ? 'text-[#17213A]' : 'text-red-600';
+              return (
+                <TouchableOpacity
+                  key={draft.id}
+                  onPress={() => setActiveIndex(index)}
+                  className={`min-w-[44px] items-center rounded-full border px-4 py-2 ${backgroundClass}`}>
+                  <Text
+                    allowFontScaling={false}
+                    className={`text-sm font-semibold ${textClass}`}>
+                    #{index + 1}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+      </View>
+
+      {menuItem.optionGroups.map((group) => (
+        <View key={group.id} className="mb-8">
+          <Text allowFontScaling={false} className="text-xl font-bold text-[#17213A]">
+            {group.name}
+          </Text>
+          <View className="mt-2 flex-row items-center gap-2">
+            <Text allowFontScaling={false} className="text-sm text-gray-600">
+              {describeGroupSelection(group)}
+            </Text>
+            <View
+              className={`rounded-full px-2 py-1 ${group.required ? 'bg-[#CA251B]' : 'bg-gray-200'}`}>
+              <Text
+                allowFontScaling={false}
+                className={`text-xs font-semibold uppercase ${group.required ? 'text-white' : 'text-gray-700'}`}>
+                {group.required ? 'Required' : 'Optional'}
+              </Text>
+            </View>
+          </View>
+
+          <View className="mt-4 rounded-2xl border border-gray-100 bg-white">
+            {group.extras.map((extra, index) => (
+              <View key={extra.id} className="px-3">
+                <OptionRow
+                  group={group}
+                  extra={extra}
+                  isSelected={(activeDraft?.selections[group.id] ?? []).includes(extra.id)}
+                  isLast={index === group.extras.length - 1}
+                  onToggle={toggleExtra}
+                />
+              </View>
+            ))}
+          </View>
+        </View>
       ))}
-
-      <View className="h-[1px] bg-gray-200 my-4" />
-
-      <Text allowFontScaling={false} className="text-xl font-bold mb-1">Choose your meat</Text>
-      {meatsList.map((item) => (
-        <OptionRow
-          key={item}
-          item={item}
-          displayItem={item}
-          isSelected={selectedMeats.includes(item)}
-          onToggle={(n) =>
-            setSelectedMeats((prev) =>
-              prev.includes(n) ? prev.filter((m) => m !== n) : [...prev, n]
-            )
-          }
-        />
-      ))}
-
-      <View className="h-[1px] bg-gray-200 my-4" />
-
-      <Text allowFontScaling={false} className="text-xl font-bold mb-1">Supplements</Text>
-      {supplementsList.map((item) => (
-        <OptionRow
-          key={item.name}
-          item={item.name}
-          displayItem={item.name}
-          isSelected={selectedSupplements.includes(item.name)}
-          onToggle={(n) =>
-            setSelectedSupplements((prev) =>
-              prev.includes(n) ? prev.filter((s) => s !== n) : [...prev, n]
-            )
-          }
-          price={item.price}
-        />
-      ))}
-
-      <View className="h-20" />
     </ScrollView>
   );
 
   const orderBar = (
-    <View style={{paddingBottom: insets.bottom}} className="absolute bottom-0 left-0 right-0 w-full bg-white p-4 shadow-2xl border-t border-gray-100">
-      <View className="flex-row items-center justify-center mb-4">
+    <View
+      style={{ paddingBottom: insets.bottom }}
+      className="absolute bottom-0 left-0 right-0 w-full border-t border-gray-100 bg-white p-4 shadow-2xl">
+      <View className="mb-2 flex-row items-center justify-between">
+        <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
+          Item {activeIndex + 1} total
+        </Text>
+        <Text allowFontScaling={false} className="text-sm font-bold text-[#CA251B]">
+          {formatPrice(itemTotal)}
+        </Text>
+      </View>
+
+      <View className="mb-4 flex-row items-center justify-center">
         <TouchableOpacity
-          onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-          className={`p-2 rounded-full border border-[#CA251B] ${
-            quantity > 1 ? "bg-[#CA251B]" : "bg-transparent"
-          }`}
-          disabled={quantity <= 1}
-        >
-          <Minus size={24} color={quantity > 1 ? "white" : primaryColor} />
+          onPress={handleDecreaseDrafts}
+          className={`rounded-full border border-[#CA251B] p-2 ${drafts.length > 1 ? 'bg-[#CA251B]' : 'bg-transparent'}`}
+          disabled={drafts.length <= 1}>
+          <Minus size={24} color={drafts.length > 1 ? 'white' : primaryColor} />
         </TouchableOpacity>
-        <Text allowFontScaling={false} className="text-2xl font-bold mx-6">{quantity}</Text>
-        <TouchableOpacity
-          onPress={() => setQuantity((q) => q + 1)}
-          className="bg-[#CA251B] p-2 rounded-full border border-[#CA251B]"
-        >
+        <Text allowFontScaling={false} className="mx-6 text-2xl font-bold">
+          {drafts.length}
+        </Text>
+        <TouchableOpacity onPress={handleIncreaseDrafts} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-2">
           <Plus size={24} color="white" />
         </TouchableOpacity>
       </View>
 
+      {!allValid ? (
+        <Text allowFontScaling={false} className="mb-3 text-center text-xs font-medium text-red-600">
+          Finish required selections for every item. Items shown in red need attention.
+        </Text>
+      ) : null}
+
       <TouchableOpacity
-        className="w-full bg-[#CA251B] py-4 rounded-xl shadow-lg"
+        className={`w-full rounded-xl py-4 shadow-lg ${allValid ? 'bg-[#CA251B]' : 'bg-gray-300'}`}
         onPress={handleAdd}
-      >
-        <Text allowFontScaling={false} className="text-white text-lg font-bold text-center">
-          Add {quantity} for {formatPrice(total)} DT
+        disabled={!allValid}>
+        <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
+          {actionLabel} {drafts.length} {drafts.length === 1 ? 'item' : 'items'} for {formatPrice(cartTotal)}
         </Text>
       </TouchableOpacity>
     </View>
@@ -256,4 +509,6 @@ export default function MenuDetail({ handleAddItem }: MenuDetailProps) {
       {orderBar}
     </View>
   );
-}
+};
+
+export default MenuDetail;
