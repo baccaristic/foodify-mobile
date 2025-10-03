@@ -176,7 +176,10 @@ const OrderHistoryScreen = () => {
     <MainLayout
       showFooter
       enableHeaderCollapse={false}
+      headerMaxHeight={vs(110)}
+      headerMinHeight={vs(90)}
       activeTab="Profile"
+      headerBackgroundImage={require('../../../assets/background.png')}
       customHeader={
         <View style={styles.headerBar}>
           <TouchableOpacity
@@ -184,7 +187,7 @@ const OrderHistoryScreen = () => {
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}
           >
-            <ArrowLeft size={s(18)} color={accentColor} />
+            <ArrowLeft size={s(18)} color="#FFFFFF" />
           </TouchableOpacity>
           <Text allowFontScaling={false} style={styles.headerTitle}>
             Order History
@@ -205,21 +208,21 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: '16@s',
-    paddingTop: vs(16),
-    paddingBottom: vs(12),
+    paddingTop: vs(24),
+    paddingBottom: vs(16),
   },
   headerBack: {
     width: '32@s',
     height: '32@s',
     borderRadius: '16@s',
-    backgroundColor: 'rgba(202,37,27,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: '16@ms',
     fontWeight: '700',
-    color: primaryColor,
+    color: '#FFFFFF',
   },
   stateWrapper: {
     flex: 1,
