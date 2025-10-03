@@ -86,6 +86,38 @@ export interface OrderWorkflowStepDto {
   [key: string]: unknown;
 }
 
+export interface OrderItemDto {
+  menuItemId: number;
+  menuItemName: string;
+  quantity: number;
+  extras?: string[] | null;
+  specialInstructions?: string | null;
+}
+
+export interface OrderDto {
+  id: number;
+  restaurantName: string;
+  restaurantId: number;
+  restaurantAddress?: string | null;
+  restaurantLocation?: LocationDto | null;
+  restaurantPhone?: string | null;
+  clientId: number;
+  clientName: string;
+  clientPhone?: string | null;
+  clientAddress?: string | null;
+  clientLocation?: LocationDto | null;
+  savedAddress?: SavedAddressSummaryDto | null;
+  total: MonetaryAmount;
+  status: OrderStatus;
+  createdAt: string;
+  items: OrderItemDto[];
+  driverId?: number | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  estimatedPickUpTime?: number | null;
+  estimatedDeliveryTime?: number | null;
+}
+
 export interface CreateOrderResponse {
   orderId: number;
   status: OrderStatus;
