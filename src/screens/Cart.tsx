@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Trash2, Minus, Plus, ChevronDown, ArrowLeft } from 'lucide-react-native';
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { Trash2, Minus, Plus } from 'lucide-react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import MainLayout from '~/layouts/MainLayout';
 import { Image } from 'expo-image';
@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { vs } from 'react-native-size-matters';
 import Header from '~/components/Header';
 
-const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
 
 interface CartItem {
@@ -199,7 +198,8 @@ export default function Cart() {
       />
       <FixedOrderBar
         total={totalOrderPrice}
-        onSeeCart={() => null}
+        onSeeCart={() => navigation.navigate('CheckoutOrder')}
+        buttonLabel="Checkout"
         style={{ bottom: 60 + insets.bottom }}
       />
     </View>
