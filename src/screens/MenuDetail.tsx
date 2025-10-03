@@ -96,6 +96,21 @@ const describeGroupSelection = (group: RestaurantMenuOptionGroup) => {
   return 'Choose any item';
 };
 
+const resolveMinSelect = (group: RestaurantMenuOptionGroup) => {
+  const baseMin = group.minSelect ?? 0;
+  if (group.required) {
+    return Math.max(baseMin, 1);
+  }
+  return baseMin;
+};
+
+const resolveMaxSelect = (group: RestaurantMenuOptionGroup) => {
+  if (group.maxSelect && group.maxSelect > 0) {
+    return group.maxSelect;
+  }
+  return Number.POSITIVE_INFINITY;
+};
+
 const buildInitialSelection = (item: RestaurantMenuItemDetails) => {
   const selections: Record<number, number[]> = {};
 
@@ -107,8 +122,9 @@ const buildInitialSelection = (item: RestaurantMenuItemDetails) => {
       return;
     }
 
-    if (group.required && group.minSelect > 0) {
-      selections[group.id] = group.extras.slice(0, group.minSelect).map((extra) => extra.id);
+    const minRequired = resolveMinSelect(group);
+    if (minRequired > 0) {
+      selections[group.id] = group.extras.slice(0, minRequired).map((extra) => extra.id);
       return;
     }
 
@@ -165,7 +181,7 @@ const isSelectionValid = (
 ) =>
   optionGroups.every((group) => {
     const selectedCount = selections[group.id]?.length ?? 0;
-    const minRequired = group.required ? Math.max(group.minSelect, 1) : group.minSelect;
+    const minRequired = resolveMinSelect(group);
     return selectedCount >= minRequired;
   });
 
@@ -199,23 +215,30 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 
         const current = draft.selections[group.id] ?? [];
         const isSelected = current.includes(extra.id);
+        const maxAllowed = resolveMaxSelect(group);
 
         if (isSelected) {
-          const minRequired = group.required ? Math.max(group.minSelect, 1) : group.minSelect;
-          if (current.length <= minRequired) {
-            return draft;
-          }
-
+          const nextSelection = current.filter((id) => id !== extra.id);
           return {
             ...draft,
             selections: {
               ...draft.selections,
-              [group.id]: current.filter((id) => id !== extra.id),
+              [group.id]: nextSelection,
             },
           };
         }
 
-        if (group.maxSelect > 0 && current.length >= group.maxSelect) {
+        if (maxAllowed === 1) {
+          return {
+            ...draft,
+            selections: {
+              ...draft.selections,
+              [group.id]: [extra.id],
+            },
+          };
+        }
+
+        if (current.length >= maxAllowed) {
           return draft;
         }
 
@@ -265,12 +288,12 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 
   const handleIncreaseDrafts = useCallback(() => {
     setDrafts((prev) => {
-      const baseSelections = activeDraft ? activeDraft.selections : buildInitialSelection(menuItem);
+      const baseSelections = buildInitialSelection(menuItem);
       const nextDrafts = [...prev, createDraftConfiguration(menuItem, baseSelections)];
       setActiveIndex(nextDrafts.length - 1);
       return nextDrafts;
     });
-  }, [activeDraft, menuItem]);
+  }, [menuItem]);
 
   const handleDecreaseDrafts = useCallback(() => {
     setDrafts((prev) => {
