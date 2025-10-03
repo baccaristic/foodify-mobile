@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
+  Animated,
 } from 'react-native';
 import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,10 @@ import {
 } from '@react-navigation/native';
 
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
-import MainLayout from '~/layouts/MainLayout';
+const HEADER_MAX_HEIGHT = 360;
+const HEADER_MIN_HEIGHT = 160;
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+const COLLAPSE_THRESHOLD = 80;
 
 const accentColor = '#D83A2E';
 const softBackground = '#F5F6FA';
@@ -198,6 +201,8 @@ const OrderTrackingScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<OrderTrackingRoute>();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   const order = route.params?.order ?? MOCK_ORDER;
 
@@ -258,6 +263,18 @@ const OrderTrackingScreen: React.FC = () => {
   const handleSeeDetails = () => {
     navigation.navigate('CheckoutOrder', { viewMode: true, order });
   };
+
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: 'clamp',
+  });
+
+  const headerRadius = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [28, 0],
+    extrapolate: 'clamp',
+  });
 
   const renderHero = (collapsed: boolean) => (
     <View style={collapsed ? styles.mapCollapsed : styles.mapExpanded}>
@@ -324,16 +341,16 @@ const OrderTrackingScreen: React.FC = () => {
             <View style={styles.courierAvatar}>
               <Bike size={20} color={accentColor} />
             </View>
-          <View style={styles.courierDetails}>
-            <Text style={styles.courierLabel}>Delivered by</Text>
-            <Text style={styles.courierName}>{courierName}</Text>
-            <View style={styles.courierMetaRow}>
-              <Star size={14} color={accentColor} fill={accentColor} />
-              <Text style={styles.courierMetaText}>
-                {courierRating} • {courierDeliveries} deliveries
-              </Text>
+            <View style={styles.courierDetails}>
+              <Text style={styles.courierLabel}>Delivered by</Text>
+              <Text style={styles.courierName}>{courierName}</Text>
+              <View style={styles.courierMetaRow}>
+                <Star size={14} color={accentColor} fill={accentColor} />
+                <Text style={styles.courierMetaText}>
+                  {courierRating} • {courierDeliveries} deliveries
+                </Text>
+              </View>
             </View>
-          </View>
             <TouchableOpacity
               style={styles.callPill}
               activeOpacity={0.85}
@@ -347,11 +364,22 @@ const OrderTrackingScreen: React.FC = () => {
     </View>
   );
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const offset = event.nativeEvent.contentOffset.y;
+        const shouldCollapse = offset > COLLAPSE_THRESHOLD;
+        setIsHeaderCollapsed((prev) =>
+          prev === shouldCollapse ? prev : shouldCollapse,
+        );
+      },
+    },
+  );
+
   const mainContent = (
-    <ScrollView
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
+    <>
       <View style={styles.stepsCard}>
         <View style={styles.stepsHeader}>
           <Text style={styles.stepsTitle}>Order Steps</Text>
@@ -375,7 +403,10 @@ const OrderTrackingScreen: React.FC = () => {
           }
 
           return (
-            <View key={`${step.key}-${index}`} style={[styles.stepRow, !isLast && styles.stepRowDivider]}>
+            <View
+              key={`${step.key}-${index}`}
+              style={[styles.stepRow, !isLast && styles.stepRowDivider]}
+            >
               <View style={styles.stepTimeline}>
                 <View style={dotStyle} />
                 {!isLast ? <View style={lineStyle} /> : null}
@@ -413,7 +444,9 @@ const OrderTrackingScreen: React.FC = () => {
         <View style={styles.summaryHeader}>
           <Text style={styles.summaryTitle}>My Order</Text>
           <View style={styles.summaryBadge}>
-            <Text style={styles.summaryBadgeText}>{order?.restaurant?.name ?? 'Your restaurant'}</Text>
+            <Text style={styles.summaryBadgeText}>
+              {order?.restaurant?.name ?? 'Your restaurant'}
+            </Text>
           </View>
         </View>
 
@@ -423,15 +456,12 @@ const OrderTrackingScreen: React.FC = () => {
             return (
               <View
                 key={`${item.menuItem?.id ?? index}-${index}`}
-                style={[
-                  styles.summaryItemRow,
-                  !isLast && styles.summaryItemRowSpacing,
-                ]}
+                style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
               >
-              <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
-              <Text style={styles.summaryItemName} numberOfLines={1}>
-                {item.menuItem?.name ?? item.name ?? 'Menu item'}
-              </Text>
+                <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
+                <Text style={styles.summaryItemName} numberOfLines={1}>
+                  {item.menuItem?.name ?? item.name ?? 'Menu item'}
+                </Text>
               </View>
             );
           })}
@@ -439,26 +469,43 @@ const OrderTrackingScreen: React.FC = () => {
 
         <View style={styles.summaryFooter}>
           {orderTotal ? <Text style={styles.summaryTotal}>{orderTotal}</Text> : null}
-          <TouchableOpacity onPress={handleSeeDetails} activeOpacity={0.85} style={styles.summaryDetailsButton}>
+          <TouchableOpacity
+            onPress={handleSeeDetails}
+            activeOpacity={0.85}
+            style={styles.summaryDetailsButton}
+          >
             <Text style={styles.summaryDetailsText}>See details</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </ScrollView>
+    </>
   );
 
   return (
     <View style={styles.screen}>
-      <MainLayout
-        showFooter={false}
-        customHeader={renderHero(false)}
-        collapsedHeader={renderHero(true)}
-        mainContent={mainContent}
-        headerMaxHeight={360}
-        headerMinHeight={160}
-        enableHeaderCollapse
-        enforceResponsiveHeaderSize={false}
-      />
+      <Animated.View
+        style={[
+          styles.headerContainer,
+          {
+            height: headerHeight,
+            borderBottomLeftRadius: headerRadius,
+            borderBottomRightRadius: headerRadius,
+          },
+        ]}
+      >
+        {renderHero(isHeaderCollapsed)}
+      </Animated.View>
+
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.contentSpacer} />
+        {mainContent}
+      </Animated.ScrollView>
     </View>
   );
 };
@@ -469,6 +516,26 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: softBackground,
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: softBackground,
+    overflow: 'hidden',
+    zIndex: 2,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 60,
+    backgroundColor: softBackground,
+  },
+  contentSpacer: {
+    height: HEADER_MAX_HEIGHT + 32,
   },
   mapExpanded: {
     flex: 1,
@@ -615,11 +682,6 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: accentColor,
   },
-  contentContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 32,
-    paddingBottom: 60,
-  },
   stepsCard: {
     backgroundColor: softSurface,
     borderRadius: 24,
@@ -629,7 +691,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   stepsHeader: {
     flexDirection: 'row',
@@ -757,6 +819,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
+    marginBottom: 24,
   },
   summaryHeader: {
     flexDirection: 'row',
