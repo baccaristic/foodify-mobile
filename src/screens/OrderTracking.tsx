@@ -351,8 +351,21 @@ const OrderTrackingScreen: React.FC = () => {
     };
   }, [timelineAnimations]);
 
-  const progressWidth = trackWidth ? Animated.multiply(progressAnim, trackWidth) : 0;
-  const riderTranslateX = trackWidth ? Animated.multiply(progressAnim, trackWidth) : 0;
+  const progressWidth = useMemo(() => {
+    if (!trackWidth) {
+      return 0;
+    }
+
+    return progressAnim.interpolate({ inputRange: [0, 1], outputRange: [0, trackWidth] });
+  }, [progressAnim, trackWidth]);
+
+  const riderTranslateX = useMemo(() => {
+    if (!trackWidth) {
+      return 0;
+    }
+
+    return progressAnim.interpolate({ inputRange: [0, 1], outputRange: [0, trackWidth] });
+  }, [progressAnim, trackWidth]);
   const riderTranslateY = bobAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
   const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] });
   const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.35, 0.15, 0] });
@@ -505,8 +518,10 @@ const OrderTrackingScreen: React.FC = () => {
                 rotateEnabled={false}
                 pitchEnabled={false}
                 zoomEnabled={false}
-                pointerEvents="none"
                 customMapStyle={mapTheme}
+                showsBuildings
+                showsCompass={false}
+                showsPointsOfInterest={false}
               >
                 <Polyline
                   coordinates={routeCoordinates}
@@ -705,6 +720,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   mapCard: {
+    position: 'relative',
     height: 220,
     borderRadius: 32,
     overflow: 'hidden',
@@ -716,7 +732,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   mapOverlay: {
     position: 'absolute',
