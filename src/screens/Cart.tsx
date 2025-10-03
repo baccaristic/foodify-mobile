@@ -15,6 +15,7 @@ import type { CartItem } from '~/context/CartContext';
 
 const primaryColor = '#CA251B';
 const FALLBACK_IMAGE = require('../../assets/baguette.png');
+const EMPTY_CART_IMAGE = require('../../assets/empty-cart.png');
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
@@ -150,8 +151,7 @@ export default function Cart() {
       <Text allowFontScaling={false} className="mb-4 mt-6 text-center text-2xl font-bold text-[#17213A]">
         My cart
       </Text>
-
-      <View className="mb-4 flex-row items-center justify-between">
+      {hasItems && (<View className="mb-4 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
           {totalItems} {totalItems === 1 ? 'Product' : 'Products'} from{' '}
           <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
@@ -177,7 +177,7 @@ export default function Cart() {
             <Trash2 size={30} color="#CA251B" strokeWidth={2} />
           </View>
         </TouchableOpacity>
-      </View>
+      </View>)}
 
       {hasItems ? (
         items.map((item) => (
@@ -190,13 +190,19 @@ export default function Cart() {
           />
         ))
       ) : (
-        <View className="mt-10 items-center">
-          <Text allowFontScaling={false} className="text-base text-gray-500">
-            Your cart is empty.
+        <View className="mt-10 items-center px-6">
+          <Image source={EMPTY_CART_IMAGE} style={{ width: 160, height: 160 }} contentFit="contain" />
+          <Text allowFontScaling={false} className="mt-6 text-center text-lg font-bold text-[#17213A]">
+            Add items to start a basket
           </Text>
-          <TouchableOpacity className="mt-4 rounded-xl bg-[#CA251B] px-4 py-2" onPress={handleAddMoreItems}>
-            <Text allowFontScaling={false} className="text-lg text-white">
-              Browse restaurants
+          <Text allowFontScaling={false} className="mt-2 text-center text-sm text-gray-500">
+            Once you add items from a restaurant or store, your basket will appear here.
+          </Text>
+          <TouchableOpacity
+            className="mt-6 w-full max-w-xs rounded-2xl bg-[#CA251B] py-3"
+            onPress={handleAddMoreItems}>
+            <Text allowFontScaling={false} className="text-center text-base font-semibold text-white">
+              Add items
             </Text>
           </TouchableOpacity>
         </View>
@@ -217,7 +223,6 @@ export default function Cart() {
   const cartHeader = (
     <Header
       title="San Francisco Bay Area"
-      compact
       onBack={() => navigation.goBack()}
       onLocationPress={() => console.log('Location pressed')}
     />
@@ -230,20 +235,20 @@ export default function Cart() {
         headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader
         showFooter
-        headerMaxHeight={vs(110)}
-        headerMinHeight={vs(110)}
+        headerMaxHeight={vs(40)}
+        headerMinHeight={vs(30)}
         enforceResponsiveHeaderSize={false}
         customHeader={cartHeader}
         mainContent={cartContent}
       />
-      <FixedOrderBar
+      {hasItems && (<FixedOrderBar
         total={totalOrderPrice}
         itemCount={totalItems}
         onSeeCart={() => navigation.navigate('CheckoutOrder')}
         buttonLabel="Checkout"
         style={{ bottom: 60 + insets.bottom }}
         disabled={!hasItems}
-      />
+      />)}
     </View>
   );
 }
