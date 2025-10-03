@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { X, Heart, Check, Plus, Minus, ArrowLeft } from 'lucide-react-native';
 import { Image } from 'expo-image';
@@ -18,13 +18,18 @@ const primaryColor = '#CA251B';
 
 interface MenuDetailProps {
   menuItem: RestaurantMenuItemDetails;
-  handleAddItem: (itemDetails: AddToCartDetails) => void;
+  handleAddItem: (itemDetails: AddToCartDetails[]) => void;
   onClose?: () => void;
 }
 
 interface AddToCartDetails {
   quantity: number;
   extras: CartItemOptionSelection[];
+}
+
+interface DraftConfiguration {
+  id: string;
+  selections: Record<number, number[]>;
 }
 
 interface OptionRowProps {
@@ -111,6 +116,21 @@ const buildInitialSelection = (item: RestaurantMenuItemDetails) => {
   return selections;
 };
 
+const cloneSelections = (selections: Record<number, number[]>) =>
+  Object.keys(selections).reduce<Record<number, number[]>>((acc, key) => {
+    const numericKey = Number(key);
+    acc[numericKey] = [...(selections[numericKey] ?? [])];
+    return acc;
+  }, {});
+
+const createDraftConfiguration = (
+  item: RestaurantMenuItemDetails,
+  baseSelections?: Record<number, number[]>
+): DraftConfiguration => ({
+  id: `${item.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  selections: baseSelections ? cloneSelections(baseSelections) : buildInitialSelection(item),
+});
+
 const calculateExtrasTotal = (
   optionGroups: RestaurantMenuOptionGroup[],
   selections: Record<number, number[]>
@@ -139,48 +159,63 @@ const isSelectionValid = (
 const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClose }) => {
   const insets = useSafeAreaInsets();
 
-  const [quantity, setQuantity] = useState(1);
-  const [selections, setSelections] = useState<Record<number, number[]>>(() => buildInitialSelection(menuItem));
+  const [drafts, setDrafts] = useState<DraftConfiguration[]>(() => [createDraftConfiguration(menuItem)]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    setQuantity(1);
-    setSelections(buildInitialSelection(menuItem));
+    setDrafts([createDraftConfiguration(menuItem)]);
+    setActiveIndex(0);
   }, [menuItem]);
 
+  const activeDraft = drafts[activeIndex];
+
   const toggleExtra = (group: RestaurantMenuOptionGroup, extra: RestaurantMenuItemExtra) => {
-    setSelections((prev) => {
-      const current = prev[group.id] ?? [];
-      const isSelected = current.includes(extra.id);
-
-      if (isSelected) {
-        const minRequired = group.required ? Math.max(group.minSelect, 1) : group.minSelect;
-        if (current.length <= minRequired) {
-          return prev;
+    setDrafts((prev) =>
+      prev.map((draft, index) => {
+        if (index !== activeIndex) {
+          return draft;
         }
+
+        const current = draft.selections[group.id] ?? [];
+        const isSelected = current.includes(extra.id);
+
+        if (isSelected) {
+          const minRequired = group.required ? Math.max(group.minSelect, 1) : group.minSelect;
+          if (current.length <= minRequired) {
+            return draft;
+          }
+
+          return {
+            ...draft,
+            selections: {
+              ...draft.selections,
+              [group.id]: current.filter((id) => id !== extra.id),
+            },
+          };
+        }
+
+        if (group.maxSelect > 0 && current.length >= group.maxSelect) {
+          return draft;
+        }
+
         return {
-          ...prev,
-          [group.id]: current.filter((id) => id !== extra.id),
+          ...draft,
+          selections: {
+            ...draft.selections,
+            [group.id]: [...current, extra.id],
+          },
         };
-      }
-
-      if (group.maxSelect > 0 && current.length >= group.maxSelect) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [group.id]: [...current, extra.id],
-      };
-    });
+      })
+    );
   };
 
   const extrasTotal = useMemo(
-    () => calculateExtrasTotal(menuItem.optionGroups, selections),
-    [menuItem.optionGroups, selections]
+    () => (activeDraft ? calculateExtrasTotal(menuItem.optionGroups, activeDraft.selections) : 0),
+    [menuItem.optionGroups, activeDraft]
   );
 
-  const selectedGroups = useMemo<CartItemOptionSelection[]>(
-    () =>
+  const mapSelectionsToGroups = useCallback(
+    (selections: Record<number, number[]>): CartItemOptionSelection[] =>
       menuItem.optionGroups
         .map((group) => ({
           groupId: group.id,
@@ -188,21 +223,58 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
           extras: group.extras.filter((extra) => (selections[group.id] ?? []).includes(extra.id)),
         }))
         .filter((group) => group.extras.length > 0),
-    [menuItem.optionGroups, selections]
+    [menuItem.optionGroups]
   );
 
-  const itemTotal = useMemo(() => (menuItem.price + extrasTotal) * quantity, [menuItem.price, extrasTotal, quantity]);
+  const itemTotal = useMemo(() => menuItem.price + extrasTotal, [menuItem.price, extrasTotal]);
 
-  const canAddToCart = useMemo(
-    () => isSelectionValid(menuItem.optionGroups, selections),
-    [menuItem.optionGroups, selections]
+  const cartTotal = useMemo(
+    () =>
+      drafts.reduce(
+        (sum, draft) => sum + menuItem.price + calculateExtrasTotal(menuItem.optionGroups, draft.selections),
+        0
+      ),
+    [drafts, menuItem.optionGroups, menuItem.price]
   );
+
+  const allValid = useMemo(
+    () => drafts.every((draft) => isSelectionValid(menuItem.optionGroups, draft.selections)),
+    [drafts, menuItem.optionGroups]
+  );
+
+  const handleIncreaseDrafts = useCallback(() => {
+    setDrafts((prev) => {
+      const baseSelections = activeDraft ? activeDraft.selections : buildInitialSelection(menuItem);
+      const nextDrafts = [...prev, createDraftConfiguration(menuItem, baseSelections)];
+      setActiveIndex(nextDrafts.length - 1);
+      return nextDrafts;
+    });
+  }, [activeDraft, menuItem]);
+
+  const handleDecreaseDrafts = useCallback(() => {
+    setDrafts((prev) => {
+      if (prev.length <= 1) {
+        return prev;
+      }
+
+      const nextDrafts = prev.filter((_, index) => index !== activeIndex);
+      const nextIndex = Math.max(0, Math.min(activeIndex, nextDrafts.length - 1));
+      setActiveIndex(nextIndex);
+      return nextDrafts;
+    });
+  }, [activeIndex]);
 
   const handleAdd = () => {
-    if (!canAddToCart) {
+    if (!allValid || drafts.length === 0) {
       return;
     }
-    handleAddItem({ quantity, extras: selectedGroups });
+
+    const payload = drafts.map((draft) => ({
+      quantity: 1,
+      extras: mapSelectionsToGroups(draft.selections),
+    }));
+
+    handleAddItem(payload);
   };
 
   const detailHeader = (
@@ -261,6 +333,42 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
         </View>
       ) : null}
 
+      <View className="mt-4">
+        <Text allowFontScaling={false} className="text-base font-semibold text-[#17213A]">
+          Customizing item {activeIndex + 1} of {drafts.length}
+        </Text>
+        {drafts.length > 1 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mt-3"
+            contentContainerStyle={{ gap: 8 }}>
+            {drafts.map((draft, index) => {
+              const isActive = index === activeIndex;
+              const isValid = isSelectionValid(menuItem.optionGroups, draft.selections);
+              const backgroundClass = isActive
+                ? 'border-[#CA251B] bg-[#CA251B]'
+                : isValid
+                  ? 'border-gray-200 bg-white'
+                  : 'border-red-300 bg-red-50';
+              const textClass = isActive ? 'text-white' : isValid ? 'text-[#17213A]' : 'text-red-600';
+              return (
+                <TouchableOpacity
+                  key={draft.id}
+                  onPress={() => setActiveIndex(index)}
+                  className={`min-w-[44px] items-center rounded-full border px-4 py-2 ${backgroundClass}`}>
+                  <Text
+                    allowFontScaling={false}
+                    className={`text-sm font-semibold ${textClass}`}>
+                    #{index + 1}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
+      </View>
+
       {menuItem.optionGroups.map((group) => (
         <View key={group.id} className="mb-8">
           <Text allowFontScaling={false} className="text-xl font-bold text-[#17213A]">
@@ -286,7 +394,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
                 <OptionRow
                   group={group}
                   extra={extra}
-                  isSelected={(selections[group.id] ?? []).includes(extra.id)}
+                  isSelected={(activeDraft?.selections[group.id] ?? []).includes(extra.id)}
                   isLast={index === group.extras.length - 1}
                   onToggle={toggleExtra}
                 />
@@ -299,28 +407,45 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
   );
 
   const orderBar = (
-    <View style={{ paddingBottom: insets.bottom }} className="absolute bottom-0 left-0 right-0 w-full border-t border-gray-100 bg-white p-4 shadow-2xl">
+    <View
+      style={{ paddingBottom: insets.bottom }}
+      className="absolute bottom-0 left-0 right-0 w-full border-t border-gray-100 bg-white p-4 shadow-2xl">
+      <View className="mb-2 flex-row items-center justify-between">
+        <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
+          Item {activeIndex + 1} total
+        </Text>
+        <Text allowFontScaling={false} className="text-sm font-bold text-[#CA251B]">
+          {formatPrice(itemTotal)}
+        </Text>
+      </View>
+
       <View className="mb-4 flex-row items-center justify-center">
         <TouchableOpacity
-          onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-          className={`rounded-full border border-[#CA251B] p-2 ${quantity > 1 ? 'bg-[#CA251B]' : 'bg-transparent'}`}
-          disabled={quantity <= 1}>
-          <Minus size={24} color={quantity > 1 ? 'white' : primaryColor} />
+          onPress={handleDecreaseDrafts}
+          className={`rounded-full border border-[#CA251B] p-2 ${drafts.length > 1 ? 'bg-[#CA251B]' : 'bg-transparent'}`}
+          disabled={drafts.length <= 1}>
+          <Minus size={24} color={drafts.length > 1 ? 'white' : primaryColor} />
         </TouchableOpacity>
         <Text allowFontScaling={false} className="mx-6 text-2xl font-bold">
-          {quantity}
+          {drafts.length}
         </Text>
-        <TouchableOpacity onPress={() => setQuantity((q) => q + 1)} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-2">
+        <TouchableOpacity onPress={handleIncreaseDrafts} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-2">
           <Plus size={24} color="white" />
         </TouchableOpacity>
       </View>
 
+      {!allValid ? (
+        <Text allowFontScaling={false} className="mb-3 text-center text-xs font-medium text-red-600">
+          Finish required selections for every item. Items shown in red need attention.
+        </Text>
+      ) : null}
+
       <TouchableOpacity
-        className={`w-full rounded-xl py-4 shadow-lg ${canAddToCart ? 'bg-[#CA251B]' : 'bg-gray-300'}`}
+        className={`w-full rounded-xl py-4 shadow-lg ${allValid ? 'bg-[#CA251B]' : 'bg-gray-300'}`}
         onPress={handleAdd}
-        disabled={!canAddToCart}>
+        disabled={!allValid}>
         <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
-          Add {quantity} for {formatPrice(itemTotal)}
+          Add {drafts.length} {drafts.length === 1 ? 'item' : 'items'} for {formatPrice(cartTotal)}
         </Text>
       </TouchableOpacity>
     </View>

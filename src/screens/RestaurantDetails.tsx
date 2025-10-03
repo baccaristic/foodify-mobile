@@ -152,24 +152,30 @@ export default function RestaurantDetails() {
   );
 
   const handleUpdateCartAndClose = useCallback(
-    (itemDetails: { quantity: number; extras: CartItemOptionSelection[] }) => {
-      if (!selectedMenuItem || !restaurant || itemDetails.quantity <= 0) {
+    (items: { quantity: number; extras: CartItemOptionSelection[] }[]) => {
+      if (!selectedMenuItem || !restaurant || items.length === 0) {
         setIsModalVisible(false);
         setSelectedMenuItem(null);
         return;
       }
 
-      addItem({
-        restaurant: { id: restaurant.id, name: restaurant.name },
-        menuItem: {
-          id: selectedMenuItem.id,
-          name: selectedMenuItem.name,
-          description: selectedMenuItem.description,
-          imageUrl: selectedMenuItem.imageUrl,
-          price: selectedMenuItem.price,
-        },
-        quantity: itemDetails.quantity,
-        extras: itemDetails.extras,
+      items.forEach((itemDetails) => {
+        if (itemDetails.quantity <= 0) {
+          return;
+        }
+
+        addItem({
+          restaurant: { id: restaurant.id, name: restaurant.name },
+          menuItem: {
+            id: selectedMenuItem.id,
+            name: selectedMenuItem.name,
+            description: selectedMenuItem.description,
+            imageUrl: selectedMenuItem.imageUrl,
+            price: selectedMenuItem.price,
+          },
+          quantity: itemDetails.quantity,
+          extras: itemDetails.extras,
+        });
       });
 
       setIsModalVisible(false);
@@ -448,7 +454,7 @@ export default function RestaurantDetails() {
         <>
           <TouchableOpacity
             activeOpacity={1}
-            onPress={() => handleUpdateCartAndClose({ quantity: 0, extras: [] })}
+            onPress={() => handleUpdateCartAndClose([])}
             className="absolute inset-0 bg-black/50"
           />
           <Animated.View
@@ -457,7 +463,7 @@ export default function RestaurantDetails() {
             <MenuDetail
               menuItem={selectedMenuItem}
               handleAddItem={handleUpdateCartAndClose}
-              onClose={() => handleUpdateCartAndClose({ quantity: 0, extras: [] })}
+              onClose={() => handleUpdateCartAndClose([])}
             />
           </Animated.View>
         </>
