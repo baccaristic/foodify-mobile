@@ -151,8 +151,7 @@ export default function Cart() {
       <Text allowFontScaling={false} className="mb-4 mt-6 text-center text-2xl font-bold text-[#17213A]">
         My cart
       </Text>
-
-      <View className="mb-4 flex-row items-center justify-between">
+      {hasItems && (<View className="mb-4 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
           {totalItems} {totalItems === 1 ? 'Product' : 'Products'} from{' '}
           <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
@@ -178,7 +177,7 @@ export default function Cart() {
             <Trash2 size={30} color="#CA251B" strokeWidth={2} />
           </View>
         </TouchableOpacity>
-      </View>
+      </View>)}
 
       {hasItems ? (
         items.map((item) => (
@@ -224,7 +223,6 @@ export default function Cart() {
   const cartHeader = (
     <Header
       title="San Francisco Bay Area"
-      compact
       onBack={() => navigation.goBack()}
       onLocationPress={() => console.log('Location pressed')}
     />
@@ -237,20 +235,20 @@ export default function Cart() {
         headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader
         showFooter
-        headerMaxHeight={vs(110)}
-        headerMinHeight={vs(110)}
+        headerMaxHeight={vs(40)}
+        headerMinHeight={vs(30)}
         enforceResponsiveHeaderSize={false}
         customHeader={cartHeader}
         mainContent={cartContent}
       />
-      <FixedOrderBar
+      {hasItems && (<FixedOrderBar
         total={totalOrderPrice}
         itemCount={totalItems}
         onSeeCart={() => navigation.navigate('CheckoutOrder')}
         buttonLabel="Checkout"
         style={{ bottom: 60 + insets.bottom }}
         disabled={!hasItems}
-      />
+      />)}
     </View>
   );
 }
