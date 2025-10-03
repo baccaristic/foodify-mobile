@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import MainLayout from '~/layouts/MainLayout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import type { CartItemOptionSelection } from '~/context/CartContext';
 import type {
   RestaurantMenuItemDetails,
   RestaurantMenuItemExtra,
@@ -15,15 +16,15 @@ import { BASE_API_URL } from '@env';
 const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
 
-interface CartItemDetails {
-  quantity: number;
-  total: number;
-}
-
 interface MenuDetailProps {
   menuItem: RestaurantMenuItemDetails;
-  handleAddItem: (itemDetails: CartItemDetails) => void;
+  handleAddItem: (itemDetails: AddToCartDetails) => void;
   onClose?: () => void;
+}
+
+interface AddToCartDetails {
+  quantity: number;
+  extras: CartItemOptionSelection[];
 }
 
 interface OptionRowProps {
@@ -178,6 +179,18 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
     [menuItem.optionGroups, selections]
   );
 
+  const selectedGroups = useMemo<CartItemOptionSelection[]>(
+    () =>
+      menuItem.optionGroups
+        .map((group) => ({
+          groupId: group.id,
+          groupName: group.name,
+          extras: group.extras.filter((extra) => (selections[group.id] ?? []).includes(extra.id)),
+        }))
+        .filter((group) => group.extras.length > 0),
+    [menuItem.optionGroups, selections]
+  );
+
   const itemTotal = useMemo(() => (menuItem.price + extrasTotal) * quantity, [menuItem.price, extrasTotal, quantity]);
 
   const canAddToCart = useMemo(
@@ -189,7 +202,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({ menuItem, handleAddItem, onClos
     if (!canAddToCart) {
       return;
     }
-    handleAddItem({ quantity, total: itemTotal });
+    handleAddItem({ quantity, extras: selectedGroups });
   };
 
   const detailHeader = (

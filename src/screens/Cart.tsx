@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Trash2, Minus, Plus } from 'lucide-react-native';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
@@ -9,48 +9,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { vs } from 'react-native-size-matters';
 import Header from '~/components/Header';
 
+import { BASE_API_URL } from '@env';
+import { useCart } from '~/context/CartContext';
+import type { CartItem } from '~/context/CartContext';
+
 const primaryColor = '#CA251B';
+const FALLBACK_IMAGE = require('../../assets/baguette.png');
 
-interface CartItem {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  quantity: number;
-  imageSource: any;
-}
+const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
-const INITIAL_CART_ITEMS: CartItem[] = [
-  {
-    id: 1,
-    name: 'Pizza Pepperoni',
-    description: 'Sauce tomate, thon, fromage, persil - Portion 2 Personnes',
-    price: '19,300 DT',
-    quantity: 1,
-    imageSource: require('../../assets/baguette.png'),
-  },
-  {
-    id: 2,
-    name: 'Pizza Pepperoni',
-    description: 'Sauce tomate, thon, fromage, persil - Portion 2 Personnes',
-    price: '19,300 DT',
-    quantity: 2,
-    imageSource: require('../../assets/TEST.png'),
-  },
-  {
-    id: 3,
-    name: 'Sandwich',
-    description: 'Sauce tomate, thon, fromage, persil - Portion 2 Personnes',
-    price: '19,300 DT',
-    quantity: 3,
-    imageSource: require('../../assets/baguette.png'),
-  },
-];
+const resolveImageSource = (imagePath?: string | null) => {
+  if (imagePath) {
+    return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
+  }
+  return FALLBACK_IMAGE;
+};
 
 const CartItemRow: React.FC<{
   item: CartItem;
-  onUpdateQuantity: (itemId: number, newQuantity: number) => void;
-}> = ({ item, onUpdateQuantity }) => {
+  onUpdateQuantity: (itemId: string, newQuantity: number) => void;
+  onRemove: (itemId: string) => void;
+}> = ({ item, onUpdateQuantity, onRemove }) => {
   const isMinQuantity = item.quantity <= 1;
 
   const handleMinus = () => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1));
@@ -59,29 +38,42 @@ const CartItemRow: React.FC<{
   return (
     <View className="mb-4 flex-row items-center rounded-3xl border border-gray-200 bg-white">
       <View className="relative mr-3 h-20 w-1/4 overflow-hidden rounded-3xl">
-        <Image
-          source={item.imageSource}
-          style={{ width: '100%', height: '100%' }}
-          contentFit="cover"
-        />
-        <TouchableOpacity className="absolute left-1 top-1 items-center justify-center rounded-full bg-white p-1 shadow-sm">
+        <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+        <TouchableOpacity
+          className="absolute left-1 top-1 items-center justify-center rounded-full bg-white p-1 shadow-sm"
+          onPress={() => onRemove(item.id)}>
           <Trash2 size={12} color={primaryColor} />
         </TouchableOpacity>
       </View>
 
       <View className="flex-1 justify-center">
-        <Text
-          allowFontScaling={false}
-          className="pr-6 text-sm font-bold text-[#17213A]"
-          numberOfLines={1}>
+        <Text allowFontScaling={false} className="pr-6 text-sm font-bold text-[#17213A]" numberOfLines={1}>
           {item.name}
         </Text>
-        <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
-          {item.description}
-        </Text>
+        {item.description ? (
+          <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
+            {item.description}
+          </Text>
+        ) : null}
+
+        {item.extras.length > 0 ? (
+          <View className="mt-1 flex-col gap-1">
+            {item.extras.map((group) => (
+              <Text key={`${item.id}-${group.groupId}`} allowFontScaling={false} className="text-xs text-gray-500">
+                {group.groupName}: {group.extras.map((extra) => extra.name).join(', ')}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
         <Text allowFontScaling={false} className="mt-1 text-sm font-bold text-[#CA251B]">
-          {item.price}
+          {formatCurrency(item.totalPrice)}
         </Text>
+        {item.quantity > 1 ? (
+          <Text allowFontScaling={false} className="text-xs text-gray-500">
+            {formatCurrency(item.pricePerItem)} each
+          </Text>
+        ) : null}
       </View>
 
       <View className="ml-2 flex-col items-center">
@@ -90,18 +82,14 @@ const CartItemRow: React.FC<{
             onPress={handleMinus}
             className={`rounded-full border p-1 ${isMinQuantity ? 'border-gray-300 bg-[#CA251B]/20' : 'border-[#CA251B] bg-[#CA251B]'}`}
             disabled={isMinQuantity}>
-            <Minus size={16} color="white" />
+            <Minus size={16} color={isMinQuantity ? primaryColor : 'white'} />
           </TouchableOpacity>
 
-          <Text
-            allowFontScaling={false}
-            className="mx-3 w-4 text-center text-lg font-semibold text-[#CA251B]">
+          <Text allowFontScaling={false} className="mx-3 w-4 text-center text-lg font-semibold text-[#CA251B]">
             {item.quantity}
           </Text>
 
-          <TouchableOpacity
-            onPress={handlePlus}
-            className="rounded-full border border-[#CA251B] bg-[#CA251B] p-1">
+          <TouchableOpacity onPress={handlePlus} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-1">
             <Plus size={16} color="white" />
           </TouchableOpacity>
         </View>
@@ -111,35 +99,49 @@ const CartItemRow: React.FC<{
 };
 
 export default function Cart() {
-  const [cartItems, setCartItems] = useState(INITIAL_CART_ITEMS);
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
-  const restaurantName = 'Di Napoli';
-  const totalItems = cartItems.length;
-  const totalOrderPrice = '19,300 DT';
+  const { items, restaurant, subtotal, itemCount, updateItemQuantity, removeItem, clearCart } = useCart();
   const insets = useSafeAreaInsets();
 
-  const handleUpdateQuantity = (itemId: number, newQuantity: number) => {
-    setCartItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, quantity: newQuantity } : item))
-    );
+  const hasItems = items.length > 0;
+  const restaurantName = restaurant?.name ?? 'Restaurant';
+  const totalItems = itemCount;
+  const totalOrderPrice = subtotal;
+
+  const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
+    updateItemQuantity(itemId, newQuantity);
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    removeItem(itemId);
+  };
+
+  const handleClearCart = () => {
+    clearCart();
+  };
+
+  const handleAddMoreItems = () => {
+    if (restaurant?.id) {
+      navigation.navigate('RestaurantDetails', { restaurantId: restaurant.id });
+      return;
+    }
+    navigation.navigate('Home');
   };
 
   const cartContent = (
     <View className="px-4">
-      <Text
-        allowFontScaling={false}
-        className="mb-4 mt-6 text-center text-2xl font-bold text-[#17213A]">
+      <Text allowFontScaling={false} className="mb-4 mt-6 text-center text-2xl font-bold text-[#17213A]">
         My cart
       </Text>
 
       <View className="mb-4 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
-          {totalItems} Product from{' '}
+          {totalItems} {totalItems === 1 ? 'Product' : 'Products'} from{' '}
           <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
             {restaurantName}
           </Text>
         </Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleClearCart} disabled={!hasItems}>
           <View
             style={{
               width: 50,
@@ -153,21 +155,37 @@ export default function Cart() {
               shadowOpacity: 0.1,
               shadowRadius: 4,
               elevation: 2,
+              opacity: hasItems ? 1 : 0.4,
             }}>
             <Trash2 size={30} color="#CA251B" strokeWidth={2} />
           </View>
         </TouchableOpacity>
       </View>
 
-      {cartItems.map((item) => (
-        <CartItemRow key={item.id} item={item} onUpdateQuantity={handleUpdateQuantity} />
-      ))}
+      {hasItems ? (
+        items.map((item) => (
+          <CartItemRow key={item.id} item={item} onUpdateQuantity={handleUpdateQuantity} onRemove={handleRemoveItem} />
+        ))
+      ) : (
+        <View className="mt-10 items-center">
+          <Text allowFontScaling={false} className="text-base text-gray-500">
+            Your cart is empty.
+          </Text>
+          <TouchableOpacity className="mt-4 rounded-xl bg-[#CA251B] px-4 py-2" onPress={handleAddMoreItems}>
+            <Text allowFontScaling={false} className="text-lg text-white">
+              Browse restaurants
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      <TouchableOpacity className="mx-auto my-4 rounded-xl bg-[#CA251B] px-2 py-2">
-        <Text allowFontScaling={false} className="text-center text-lg text-white">
-          Add more items
-        </Text>
-      </TouchableOpacity>
+      {hasItems ? (
+        <TouchableOpacity className="mx-auto my-4 rounded-xl bg-[#CA251B] px-4 py-2" onPress={handleAddMoreItems}>
+          <Text allowFontScaling={false} className="text-center text-lg text-white">
+            Add more items
+          </Text>
+        </TouchableOpacity>
+      ) : null}
 
       <View style={{ height: 160 }} />
     </View>
@@ -175,22 +193,20 @@ export default function Cart() {
 
   const cartHeader = (
     <Header
-    title="San Francisco Bay Area"
-    compact={false}
-    onBack={() => navigation.goBack()}
-    onLocationPress={() => console.log("Location pressed")}
-  />
+      title="San Francisco Bay Area"
+      compact={false}
+      onBack={() => navigation.goBack()}
+      onLocationPress={() => console.log('Location pressed')}
+    />
   );
-
-  
 
   return (
     <View className="flex-1 bg-white">
       <MainLayout
-      enableHeaderCollapse={false}
+        enableHeaderCollapse={false}
         headerBackgroundImage={require('../../assets/pattern1.png')}
-        showHeader={true}
-        showFooter={true}
+        showHeader
+        showFooter
         headerMaxHeight={vs(10)}
         headerMinHeight={vs(10)}
         customHeader={cartHeader}
@@ -198,9 +214,11 @@ export default function Cart() {
       />
       <FixedOrderBar
         total={totalOrderPrice}
+        itemCount={totalItems}
         onSeeCart={() => navigation.navigate('CheckoutOrder')}
         buttonLabel="Checkout"
         style={{ bottom: 60 + insets.bottom }}
+        disabled={!hasItems}
       />
     </View>
   );

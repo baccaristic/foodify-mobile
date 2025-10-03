@@ -26,14 +26,11 @@ import type {
   RestaurantMenuItemSummary,
 } from '~/interfaces/Restaurant';
 import { BASE_API_URL } from '@env';
+import { useCart } from '~/context/CartContext';
+import type { CartItemOptionSelection } from '~/context/CartContext';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
-
-interface CartItemDetails {
-  quantity: number;
-  total: number;
-}
 
 interface RestaurantDetailsRouteParams {
   RestaurantDetails: {
@@ -91,11 +88,10 @@ const mapSummaryToDetails = (summary: RestaurantMenuItemSummary): RestaurantMenu
 
 export default function RestaurantDetails() {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [cartVisible, setCartVisible] = useState(false);
-  const [cartTotal, setCartTotal] = useState({ price: '0,000 DT', count: 0 });
   const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
 
   const insets = useSafeAreaInsets();
+  const { addItem, itemCount } = useCart();
 
   const translateY = useSharedValue(modalHeight);
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -156,27 +152,37 @@ export default function RestaurantDetails() {
   );
 
   const handleUpdateCartAndClose = useCallback(
-    (itemDetails: CartItemDetails) => {
-      if (itemDetails.quantity > 0) {
-        const currentTotalNum = parseFloat(cartTotal.price.replace(',', '.')) || 0;
-        const newTotalNum = currentTotalNum + itemDetails.total;
-        const newCount = cartTotal.count + itemDetails.quantity;
-
-        setCartTotal({
-          price: newTotalNum.toFixed(3).replace('.', ','),
-          count: newCount,
-        });
-        setCartVisible(true);
+    (itemDetails: { quantity: number; extras: CartItemOptionSelection[] }) => {
+      if (!selectedMenuItem || !restaurant || itemDetails.quantity <= 0) {
+        setIsModalVisible(false);
+        setSelectedMenuItem(null);
+        return;
       }
+
+      addItem({
+        restaurant: { id: restaurant.id, name: restaurant.name },
+        menuItem: {
+          id: selectedMenuItem.id,
+          name: selectedMenuItem.name,
+          description: selectedMenuItem.description,
+          imageUrl: selectedMenuItem.imageUrl,
+          price: selectedMenuItem.price,
+        },
+        quantity: itemDetails.quantity,
+        extras: itemDetails.extras,
+      });
+
       setIsModalVisible(false);
       setSelectedMenuItem(null);
     },
-    [cartTotal]
+    [addItem, restaurant, selectedMenuItem]
   );
 
   const handleSeeCart = () => {
     navigation.navigate('Cart');
   };
+
+  const hasCartItems = itemCount > 0;
 
   const renderHighlights = () => {
     if (!restaurant?.highlights?.length) {
@@ -370,7 +376,7 @@ export default function RestaurantDetails() {
         {renderTopSales()}
         {renderCategories()}
 
-        <View style={{ height: cartVisible ? 140 : 60 }} />
+        <View style={{ height: hasCartItems ? 140 : 60 }} />
       </View>
     );
   };
@@ -434,22 +440,24 @@ export default function RestaurantDetails() {
         mainContent={mainContent()}
       />
 
-      {cartVisible && cartTotal.count > 0 && !isModalVisible && (
-        <FixedOrderBar total={cartTotal.price} onSeeCart={handleSeeCart} style={{ bottom: 60 + insets.bottom }} />
+      {hasCartItems && !isModalVisible && (
+        <FixedOrderBar onSeeCart={handleSeeCart} style={{ bottom: 60 + insets.bottom }} />
       )}
 
       {isModalVisible && selectedMenuItem && (
         <>
           <TouchableOpacity
             activeOpacity={1}
-            onPress={() => handleUpdateCartAndClose({ quantity: 0, total: 0 })}
+            onPress={() => handleUpdateCartAndClose({ quantity: 0, extras: [] })}
             className="absolute inset-0 bg-black/50"
           />
-          <Animated.View className="absolute bottom-0 left-0 right-0 overflow-hidden rounded-t-3xl bg-white" style={[{ height: modalHeight }, animatedStyle]}>
+          <Animated.View
+            className="absolute bottom-0 left-0 right-0 overflow-hidden rounded-t-3xl bg-white"
+            style={[{ height: modalHeight }, animatedStyle]}>
             <MenuDetail
               menuItem={selectedMenuItem}
               handleAddItem={handleUpdateCartAndClose}
-              onClose={() => handleUpdateCartAndClose({ quantity: 0, total: 0 })}
+              onClose={() => handleUpdateCartAndClose({ quantity: 0, extras: [] })}
             />
           </Animated.View>
         </>
