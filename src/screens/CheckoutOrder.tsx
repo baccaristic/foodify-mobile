@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   GestureResponderEvent,
   Modal,
   ScrollView,
@@ -20,18 +19,7 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
-import {
-  ArrowLeft,
-  CheckCircle2,
-  ChevronDown,
-  CreditCard,
-  MapPin,
-  PartyPopper,
-  PenSquare,
-  TicketPercent,
-  Wallet,
-  X,
-} from 'lucide-react-native';
+import { ArrowLeft, ChevronDown, CreditCard, MapPin, PenSquare, TicketPercent, Wallet, X } from 'lucide-react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { isAxiosError } from 'axios';
 
@@ -39,40 +27,12 @@ import { useCart } from '~/context/CartContext';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import { createOrder } from '~/api/orders';
-import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
 const borderColor = '#E8E9EC';
 
 const formatCurrency = (value: number) => `${value.toFixed(3)} dt`;
-
-const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const normalized = value.replace(',', '.');
-    const parsed = Number(normalized);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return 0;
-};
-
-const formatServerMoney = (value: MonetaryAmount | null | undefined) => formatCurrency(parseMonetaryAmount(value));
-
-const formatStatusLabel = (status?: string | null) => {
-  if (!status) {
-    return 'Pending';
-  }
-
-  const normalized = status.replace(/_/g, ' ');
-  return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
-};
 
 interface AccordionProps {
   title: string;
@@ -187,256 +147,6 @@ type CheckoutRouteParams = {
 
 type CheckoutRoute = RouteProp<{ CheckoutOrder: CheckoutRouteParams }, 'CheckoutOrder'>;
 
-interface OrderConfirmationOverlayProps {
-  visible: boolean;
-  response: CreateOrderResponse | null;
-  onClose: () => void;
-  onViewOrder: () => void;
-}
-
-const OrderConfirmationOverlay: React.FC<OrderConfirmationOverlayProps> = ({ visible, response, onClose, onViewOrder }) => {
-  const cardScale = useRef(new Animated.Value(0.9)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-  const iconScale = useRef(new Animated.Value(0)).current;
-  const ripple = useRef(new Animated.Value(0)).current;
-  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
-
-  useEffect(() => {
-    if (!visible) {
-      loopRef.current?.stop();
-      loopRef.current = null;
-      return;
-    }
-
-    cardScale.setValue(0.9);
-    cardOpacity.setValue(0);
-    iconScale.setValue(0);
-    ripple.setValue(0);
-
-    Animated.parallel([
-      Animated.timing(cardOpacity, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-      Animated.spring(cardScale, {
-        toValue: 1,
-        useNativeDriver: true,
-      }),
-      Animated.spring(iconScale, {
-        toValue: 1,
-        tension: 200,
-        friction: 14,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    loopRef.current?.stop();
-    loopRef.current = Animated.loop(
-      Animated.sequence([
-        Animated.timing(ripple, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ripple, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loopRef.current.start();
-
-    return () => {
-      loopRef.current?.stop();
-      loopRef.current = null;
-    };
-  }, [visible, cardOpacity, cardScale, iconScale, ripple]);
-
-  const rippleScale = ripple.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.6],
-  });
-  const rippleOpacity = ripple.interpolate({
-    inputRange: [0, 0.6, 1],
-    outputRange: [0.35, 0.15, 0],
-  });
-  const iconRotation = iconScale.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-20deg', '0deg'],
-  });
-
-  const items = response?.items ?? [];
-  const displayedItems = items.slice(0, 3);
-  const remainingItemsCount = Math.max(0, items.length - displayedItems.length);
-  const workflowSteps = response?.workflow ?? [];
-  const displayedWorkflow = workflowSteps.slice(0, 3);
-  const statusLabel = formatStatusLabel(response?.status);
-
-  return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-center bg-[#17213A]/60 px-6">
-        <TouchableOpacity activeOpacity={1} className="absolute inset-0" onPress={onClose} />
-        <Animated.View
-          className="overflow-hidden rounded-3xl bg-white p-6"
-          style={{
-            opacity: cardOpacity,
-            transform: [{ scale: cardScale }],
-          }}
-        >
-          <View className="items-center">
-            <View className="relative mb-4 h-24 w-24 items-center justify-center">
-              <Animated.View
-                className="absolute inset-0 rounded-full"
-                style={{
-                  backgroundColor: '#FDE7E5',
-                  transform: [{ scale: rippleScale }],
-                  opacity: rippleOpacity,
-                }}
-              />
-              <Animated.View style={{ transform: [{ scale: iconScale }, { rotate: iconRotation }] }}>
-                <CheckCircle2 size={64} color={accentColor} />
-              </Animated.View>
-            </View>
-            <View className="flex-row items-center">
-              <PartyPopper size={20} color={accentColor} />
-              <Text allowFontScaling={false} className="ml-2 text-lg font-bold text-[#17213A]">
-                Order confirmed!
-              </Text>
-            </View>
-            <Text allowFontScaling={false} className="mt-2 text-sm text-[#4B5563]">
-              {response
-                ? `#${response.orderId} at ${response.restaurant?.name ?? 'your restaurant'}`
-                : 'We are preparing your delicious meal.'}
-            </Text>
-            <View className="mt-3 rounded-full bg-[#FDE7E5] px-4 py-1">
-              <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
-                {statusLabel}
-              </Text>
-            </View>
-          </View>
-
-          <View className="mt-6 rounded-2xl bg-[#F9FAFB] p-4">
-            <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
-              Order summary
-            </Text>
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                Total
-              </Text>
-              <Text allowFontScaling={false} className="text-base font-bold text-[#CA251B]">
-                {formatServerMoney(response?.payment?.total)}
-              </Text>
-            </View>
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text allowFontScaling={false} className="text-xs text-[#6B7280]">
-                Payment
-              </Text>
-              <Text allowFontScaling={false} className="text-xs font-semibold text-[#17213A]">
-                {response?.payment?.method ?? 'Selected method'}
-              </Text>
-            </View>
-          </View>
-
-          {displayedItems.length ? (
-            <View className="mt-4 rounded-2xl border border-dashed border-[#F0F1F3] p-4">
-              <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
-                Items
-              </Text>
-              {displayedItems.map((item) => (
-                <View
-                  key={`${item.menuItemId}-${item.name}`}
-                  className="mt-3 flex-row items-start justify-between"
-                >
-                  <View className="flex-1 pr-4">
-                    <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                      {item.quantity} × {item.name}
-                    </Text>
-                    {item.extras?.length ? (
-                      <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
-                        Extras: {item.extras.map((extra) => extra.name).join(', ')}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                    {formatServerMoney(item.lineTotal)}
-                  </Text>
-                </View>
-              ))}
-              {remainingItemsCount > 0 ? (
-                <Text allowFontScaling={false} className="mt-3 text-xs text-[#6B7280]">
-                  + {remainingItemsCount} more {remainingItemsCount === 1 ? 'item' : 'items'}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          {displayedWorkflow.length ? (
-            <View className="mt-4 rounded-2xl border border-[#F0F1F3] p-4">
-              <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
-                Next steps
-              </Text>
-              {displayedWorkflow.map((step, index) => {
-                const stepLabel =
-                  (typeof step.label === 'string' && step.label) ||
-                  (typeof step.step === 'string' && step.step) ||
-                  `Step ${index + 1}`;
-                const stepStatus = typeof step.status === 'string' ? formatStatusLabel(step.status) : null;
-                const completed = Boolean(step.completed);
-
-                return (
-                  <View key={`${stepLabel}-${index}`} className="mt-3 flex-row items-center justify-between">
-                    <View className="flex-1 pr-4">
-                      <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-                        {stepLabel}
-                      </Text>
-                      {stepStatus ? (
-                        <Text allowFontScaling={false} className="text-xs text-[#6B7280]">
-                          {stepStatus}
-                        </Text>
-                      ) : null}
-                    </View>
-                    {completed ? (
-                      <CheckCircle2 size={20} color={accentColor} />
-                    ) : (
-                      <View
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: `${accentColor}33` }}
-                      />
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          ) : null}
-
-          <View className="mt-6 flex-row gap-3">
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={onViewOrder}
-              className="flex-1 rounded-full border border-[#CA251B] px-4 py-3"
-            >
-              <Text allowFontScaling={false} className="text-center text-sm font-semibold text-[#CA251B]">
-                Track order
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={onClose}
-              className="flex-1 rounded-full bg-[#CA251B] px-4 py-3"
-            >
-              <Text allowFontScaling={false} className="text-center text-sm font-semibold text-white">
-                Great!
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </View>
-    </Modal>
-  );
-};
-
 const CheckoutOrder: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<CheckoutRoute>();
@@ -453,8 +163,6 @@ const CheckoutOrder: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [orderResponse, setOrderResponse] = useState<CreateOrderResponse | null>(null);
-  const [confirmationVisible, setConfirmationVisible] = useState(false);
 
   useEffect(() => {
     const params = route.params;
@@ -624,12 +332,11 @@ const CheckoutOrder: React.FC = () => {
       };
 
       const response = await createOrder(payload);
-      setOrderResponse(response);
-      setConfirmationVisible(true);
       clearCart();
       setAppliedCoupon(null);
       setComment('');
       setAllergies('');
+      navigation.navigate('OrderTracking', { order: response });
     } catch (error) {
       console.error('Failed to create order:', error);
       const message = (() => {
@@ -662,18 +369,8 @@ const CheckoutOrder: React.FC = () => {
     items,
     combinedInstructions,
     clearCart,
+    navigation,
   ]);
-
-  const handleCloseConfirmation = useCallback(() => {
-    setConfirmationVisible(false);
-    setOrderResponse(null);
-  }, []);
-
-  const handleViewOrder = useCallback(() => {
-    setConfirmationVisible(false);
-    setOrderResponse(null);
-    navigation.navigate('OrderHistory');
-  }, [navigation]);
 
   const canSubmit = hasItems && Boolean(selectedAddress) && Boolean(selectedPaymentMethod) && !isSubmitting;
 
@@ -1002,13 +699,6 @@ const CheckoutOrder: React.FC = () => {
         onClose={() => setIsPaymentModalVisible(false)}
         onSelect={handlePaymentSelection}
         selected={selectedPaymentMethod}
-      />
-
-      <OrderConfirmationOverlay
-        visible={confirmationVisible}
-        response={orderResponse}
-        onClose={handleCloseConfirmation}
-        onViewOrder={handleViewOrder}
       />
     </SafeAreaView>
   );

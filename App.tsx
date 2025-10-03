@@ -22,6 +22,7 @@ import Cart from '~/screens/Cart';
 import CheckoutOrder from '~/screens/CheckoutOrder';
 import CouponCode from '~/screens/CouponCode';
 import Home from '~/screens/Home';
+import OrderTracking from '~/screens/OrderTracking';
 import LocationPermissionScreen from '~/screens/LocationPermissionScreen';
 import LocationSelectionScreen from '~/screens/LocationSelectionScreen';
 import ProfileScreen from '~/screens/Profile/ProfileScreen';
@@ -122,6 +123,7 @@ const RootNavigator = () => {
           <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="Cart" component={Cart} />
           <Stack.Screen name="CheckoutOrder" component={CheckoutOrder} />
+          <Stack.Screen name="OrderTracking" component={OrderTracking} />
           <Stack.Screen name="CouponCode" component={CouponCode} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
