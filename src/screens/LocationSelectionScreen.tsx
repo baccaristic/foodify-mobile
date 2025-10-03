@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,13 +26,14 @@ import {
   BriefcaseBusiness,
   Sparkles,
   Search,
-  MapPin,
   ArrowLeft,
   SquarePen,
   Check,
 } from 'lucide-react-native';
 import FoodifyPin from '~/components/icons/FoodifyPin';
 import LocationSearchOverlay, { LocationPrediction } from './LocationSearchOverlay';
+import LocationPermissionPrompt from '~/components/LocationPermissionPrompt';
+import { checkLocationAccess, getCurrentCoordinates, requestLocationAccess } from '~/services/locationAccess';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createAddress, getMySavedAddresses, updateAddress } from '~/api/addresses';
@@ -213,6 +216,9 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [placeId, setPlaceId] = useState<string | null>(null);
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+  const [permissionProcessing, setPermissionProcessing] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   const { selectedAddress: globallySelectedAddress, setSelectedAddress } = useSelectedAddress();
 
@@ -330,9 +336,66 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     []
   );
 
+  const applyCurrentLocation = useCallback(async () => {
+    const coords = await getCurrentCoordinates();
+    if (!coords || !componentMountedRef.current) {
+      return false;
+    }
+
+    const region: Region = {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+
+    programmaticChangeRef.current = true;
+    setCurrentRegion(region);
+    setFormattedAddress(formatRegion(region));
+    fetchAddress(region);
+    mapRef.current?.animateToRegion(region, 280);
+    setShowPermissionPrompt(false);
+    setPermissionError(null);
+
+    return true;
+  }, [fetchAddress]);
+
+  const initializeLocation = useCallback(async () => {
+    const access = await checkLocationAccess();
+
+    if (!componentMountedRef.current) {
+      return;
+    }
+
+    if (access.granted) {
+      const applied = await applyCurrentLocation();
+
+      if (!componentMountedRef.current) {
+        return;
+      }
+
+      if (!applied) {
+        setPermissionError('We could not determine your current location. Try again.');
+        setShowPermissionPrompt(true);
+      }
+      return;
+    }
+
+    if (!access.permissionGranted && !access.canAskAgain) {
+      setPermissionError('Location permission is disabled. Please enable it in Settings.');
+    } else if (access.permissionGranted && !access.servicesEnabled) {
+      setPermissionError('Turn on your device location services to continue.');
+    } else {
+      setPermissionError(null);
+    }
+
+    setShowPermissionPrompt(true);
+  }, [applyCurrentLocation]);
+
   useEffect(() => {
     fetchAddress(DEFAULT_REGION);
-  }, [fetchAddress]);
+    initializeLocation();
+  }, [fetchAddress, initializeLocation]);
   useEffect(() => {
     mapCompactProgress.value = withTiming(hasConfirmedPoint ? 1 : 0, {
       duration: 320,
@@ -376,6 +439,52 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
       setSavedAddressesLoading(false);
     }
   }, []);
+
+  const handlePermissionAgree = useCallback(async () => {
+    if (permissionProcessing) {
+      return;
+    }
+
+    setPermissionProcessing(true);
+    setPermissionError(null);
+
+    const result = await requestLocationAccess();
+
+    if (!componentMountedRef.current) {
+      return;
+    }
+
+    if (result.granted) {
+      const applied = await applyCurrentLocation();
+
+      if (componentMountedRef.current && !applied) {
+        setPermissionError('We could not determine your current location. Try again.');
+        setShowPermissionPrompt(true);
+      }
+    } else {
+      if (!result.permissionGranted && !result.canAskAgain) {
+        setPermissionError('Location permission is disabled. Please enable it in Settings.');
+        if (Platform.OS !== 'web') {
+          Linking.openSettings().catch(() => undefined);
+        }
+      } else if (result.permissionGranted && !result.servicesEnabled) {
+        setPermissionError('Turn on your device location services to continue.');
+      } else {
+        setPermissionError('We need your permission to show nearby restaurants.');
+      }
+
+      setShowPermissionPrompt(true);
+    }
+
+    if (componentMountedRef.current) {
+      setPermissionProcessing(false);
+    }
+  }, [applyCurrentLocation, permissionProcessing]);
+
+  const handlePermissionClose = useCallback(() => {
+    setShowPermissionPrompt(false);
+    handleClose();
+  }, [handleClose]);
 
   useEffect(() => {
     refreshSavedAddresses();
@@ -819,6 +928,17 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const isListMode = screenState === 'list';
   const isComposeMode = screenState === 'compose';
   const isDetailsMode = screenState === 'details';
+
+  if (showPermissionPrompt) {
+    return (
+      <LocationPermissionPrompt
+        onAgree={handlePermissionAgree}
+        onClose={handlePermissionClose}
+        isProcessing={permissionProcessing}
+        errorMessage={permissionError}
+      />
+    );
+  }
 
   return (
     <>

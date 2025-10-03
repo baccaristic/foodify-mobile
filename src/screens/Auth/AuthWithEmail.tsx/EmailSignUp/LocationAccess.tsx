@@ -1,52 +1,51 @@
-import { View, Text, TouchableOpacity, Image } from 'react-native';
-import BackButtonHeader from '~/components/BackButtonHeader';
-
-const LocationIcon = () => (
-    <View className="w-20 h-20 bg-transparent mb-10 items-center justify-center">
-        <Image
-            className="w-full h-full"
-            resizeMode="contain"
-        />
-        <View className="absolute w-12 h-12 bg-red-600 rounded-full opacity-50" />
-    </View>
-);
+import { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import LocationPermissionPrompt from '~/components/LocationPermissionPrompt';
+import { requestLocationAccess } from '~/services/locationAccess';
 
 const LocationAccess = () => {
+  const navigation = useNavigation();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const handleAgree = () => {
-    };
+  const handleAgree = async () => {
+    if (isProcessing) {
+      return;
+    }
 
-    const handleClose = () => {
-    };
+    setIsProcessing(true);
+    setErrorMessage(null);
 
-    return (
-        <View className="flex-1 bg-white p-6">
-            <BackButtonHeader />
-            <LocationIcon />
+    const result = await requestLocationAccess();
 
-            <Text allowFontScaling={false} className="text-3xl font-bold mb-4 text-black">
-                Allow location access
-            </Text>
+    if (result.granted) {
+      navigation.goBack();
+    } else {
+      if (!result.permissionGranted && !result.canAskAgain) {
+        setErrorMessage('Please enable location permissions in Settings to continue.');
+      } else if (result.permissionGranted && !result.servicesEnabled) {
+        setErrorMessage('Turn on device location services to continue.');
+      } else {
+        setErrorMessage('We need your permission to show nearby restaurants.');
+      }
+    }
 
-            <Text allowFontScaling={false} className="text-base text-gray-700 mb-12 leading-relaxed">
-                This lets show you which restaurants and stores you can order from.
-            </Text>
+    setIsProcessing(false);
+  };
 
-            <TouchableOpacity
-                className="w-full h-14 bg-[#17213A] rounded-lg justify-center items-center mb-4"
-                onPress={handleAgree}
-            >
-                <Text allowFontScaling={false} className="text-white font-semibold text-lg">I Agree</Text>
-            </TouchableOpacity>
+  const handleClose = () => {
+    navigation.goBack();
+  };
 
-            <TouchableOpacity
-                className="w-full h-14 border border-[#17213A] rounded-lg justify-center items-center"
-                onPress={handleClose}
-            >
-                <Text allowFontScaling={false} className="text-[#17213A] font-semibold text-lg">Close</Text>
-            </TouchableOpacity>
-        </View>
-    );
+  return (
+    <LocationPermissionPrompt
+      onAgree={handleAgree}
+      onClose={handleClose}
+      isProcessing={isProcessing}
+      errorMessage={errorMessage}
+      description="This lets us show you which restaurants and stores you can order from."
+    />
+  );
 };
 
 export default LocationAccess;
