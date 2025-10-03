@@ -396,6 +396,13 @@ const OrderTrackingScreen: React.FC = () => {
         const isLast = index === steps.length - 1;
         const isCompleted = step.state === 'completed';
         const isActive = step.state === 'active';
+        const isPending = !isCompleted && !isActive;
+        const previousStep = index > 0 ? steps[index - 1] : null;
+
+        const topConnectorActive =
+          index > 0 &&
+          (previousStep?.state === 'completed' || previousStep?.state === 'active');
+        const bottomConnectorActive = !isLast && isCompleted;
 
         return (
           <View
@@ -403,11 +410,22 @@ const OrderTrackingScreen: React.FC = () => {
             style={[styles.stepRow, !isLast && styles.stepRowDivider]}
           >
             <View style={styles.stepTimeline}>
+              {index > 0 ? (
+                <View
+                  style={[
+                    styles.stepConnector,
+                    styles.stepConnectorTop,
+                    topConnectorActive && styles.stepConnectorActive,
+                  ]}
+                />
+              ) : null}
+
               <View
                 style={[
                   styles.stepDot,
                   isCompleted && styles.stepDotCompleted,
                   isActive && styles.stepDotActive,
+                  isPending && styles.stepDotPending,
                 ]}
               >
                 {isCompleted ? (
@@ -416,18 +434,35 @@ const OrderTrackingScreen: React.FC = () => {
                   <Clock size={12} color={accentColor} />
                 ) : null}
               </View>
+
               {!isLast ? (
                 <View
                   style={[
-                    styles.stepLine,
-                    (isCompleted || isActive) && styles.stepLineActive,
+                    styles.stepConnector,
+                    styles.stepConnectorBottom,
+                    bottomConnectorActive && styles.stepConnectorActive,
                   ]}
                 />
               ) : null}
             </View>
             <View style={styles.stepTexts}>
-              <Text style={styles.stepTitle}>{step.title}</Text>
-              <Text style={styles.stepDescription}>{step.description}</Text>
+              <Text
+                style={[
+                  styles.stepTitle,
+                  (isCompleted || isActive) && styles.stepTitleActive,
+                  isPending && styles.stepTitlePending,
+                ]}
+              >
+                {step.title}
+              </Text>
+              <Text
+                style={[
+                  styles.stepDescription,
+                  isPending && styles.stepDescriptionPending,
+                ]}
+              >
+                {step.description}
+              </Text>
             </View>
             <View style={styles.stepMeta}>
               {(isCompleted || isActive) && (
@@ -448,8 +483,20 @@ const OrderTrackingScreen: React.FC = () => {
                   </Text>
                 </View>
               )}
-              <View style={styles.stepEtaBadge}>
-                <Text style={styles.stepEtaText}>{step.etaLabel}</Text>
+              <View
+                style={[
+                  styles.stepEtaBadge,
+                  isPending && styles.stepEtaBadgePending,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.stepEtaText,
+                    isPending && styles.stepEtaTextPending,
+                  ]}
+                >
+                  {step.etaLabel}
+                </Text>
               </View>
             </View>
           </View>
@@ -718,7 +765,27 @@ const styles = StyleSheet.create({
   },
   stepTimeline: {
     width: 36,
+    minHeight: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  stepConnector: {
+    position: 'absolute',
+    width: 2,
+    backgroundColor: '#E5E7EB',
+    left: 17,
+  },
+  stepConnectorTop: {
+    top: -24,
+    bottom: 24,
+  },
+  stepConnectorBottom: {
+    top: 24,
+    bottom: -24,
+  },
+  stepConnectorActive: {
+    backgroundColor: accentColor,
   },
   stepDot: {
     width: 24,
@@ -727,6 +794,8 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stepDotCompleted: {
     backgroundColor: accentColor,
@@ -735,15 +804,8 @@ const styles = StyleSheet.create({
   stepDotActive: {
     borderColor: accentColor,
   },
-  stepLine: {
-    position: 'absolute',
-    top: 24,
-    bottom: -20,
-    width: 2,
-    backgroundColor: '#E5E7EB',
-  },
-  stepLineActive: {
-    backgroundColor: accentColor,
+  stepDotPending: {
+    borderColor: '#E2E8F0',
   },
   stepTexts: {
     flex: 1,
@@ -752,13 +814,21 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  stepTitleActive: {
     color: accentColor,
+  },
+  stepTitlePending: {
+    color: '#A0AEC0',
   },
   stepDescription: {
     marginTop: 6,
     fontSize: 13,
     lineHeight: 20,
     color: textSecondary,
+  },
+  stepDescriptionPending: {
+    color: '#C5CCD8',
   },
   stepMeta: {
     alignItems: 'flex-end',
@@ -791,10 +861,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
+  stepEtaBadgePending: {
+    backgroundColor: '#EEF2F6',
+  },
   stepEtaText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
+  },
+  stepEtaTextPending: {
+    color: '#9CA3AF',
+    fontWeight: '600',
   },
   summaryCard: {
     backgroundColor: softSurface,
