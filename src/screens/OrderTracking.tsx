@@ -29,6 +29,7 @@ import {
 
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
 import { vs } from 'react-native-size-matters';
+import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -40,99 +41,8 @@ const textPrimary = '#0F172A';
 const textSecondary = '#6B7280';
 const borderColor = '#F0F1F5';
 
-const DEFAULT_REGION: Region = {
-  latitude: 36.8065,
-  longitude: 10.1815,
-  latitudeDelta: 0.04,
-  longitudeDelta: 0.04,
-};
-
-const MOCK_DRIVER_COORDINATE: LatLng = {
-  latitude: DEFAULT_REGION.latitude - 0.005,
-  longitude: DEFAULT_REGION.longitude + 0.012,
-};
-
-const MOCK_ORDER: CreateOrderResponse = {
-  orderId: 'FO-2024-1834',
-  status: 'READY_FOR_PICKUP',
-  restaurant: {
-    name: 'Tacos XL',
-  },
-  items: [
-    {
-      quantity: 2,
-      menuItem: {
-        id: 'item-1',
-        name: 'Crispy Chicken Wrap',
-      },
-    },
-    {
-      quantity: 1,
-      menuItem: {
-        id: 'item-2',
-        name: 'Loaded Fries',
-      },
-    },
-  ],
-  payment: {
-    total: '28.500',
-  },
-  delivery: {
-    address: '221 Market Street, Downtown, San Francisco, CA',
-    savedAddress: {
-      label: 'San Francisco Bay Area',
-    },
-    courier: {
-      name: 'Jaafar',
-      rating: 4.9,
-      totalDeliveries: 152,
-    },
-    location: {
-      lat: DEFAULT_REGION.latitude + 0.01,
-      lng: DEFAULT_REGION.longitude + 0.008,
-    },
-  },
-  workflow: [
-    {
-      step: 'ACCEPTED',
-      label: 'Accepted by the Restaurant',
-      description: 'Your order is being prepared fresh & hot.',
-      status: 'COMPLETED',
-      completed: true,
-    },
-    {
-      step: 'READY_FOR_PICKUP',
-      label: 'Ready to Pickup',
-      description: 'The courier is heading to the restaurant to pick up your order.',
-      status: 'IN_PROGRESS',
-      completed: false,
-    },
-    {
-      step: 'ON_THE_WAY',
-      label: 'On the way',
-      description: 'The courier is as fast as possible heading to you.',
-      status: 'PENDING',
-      completed: false,
-    },
-    {
-      step: 'FOOD_IS_HERE',
-      label: 'Food is here',
-      description: 'The courier is a few meters away.',
-      status: 'PENDING',
-      completed: false,
-    },
-    {
-      step: 'DELIVERED',
-      label: 'Delivered',
-      description: 'Enjoy your meal! The order has been delivered.',
-      status: 'PENDING',
-      completed: false,
-    },
-  ],
-};
-
 type OrderTrackingRoute = RouteProp<
-  { OrderTracking: { order?: CreateOrderResponse | null } },
+  { OrderTracking: { order?: CreateOrderResponse | null; orderId?: number | string | null } },
   'OrderTracking'
 >;
 
@@ -145,6 +55,11 @@ type WorkflowStep = {
   statusText: string;
   etaLabel: string;
   state: 'completed' | 'active' | 'pending';
+};
+
+type OrderTrackingData = Partial<CreateOrderResponse> & {
+  orderId?: number | string | null;
+  statusHistory?: OrderStatusHistoryEntry[];
 };
 
 const formatCurrency = (value: MonetaryAmount | null | undefined) => {
@@ -164,44 +79,118 @@ const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   return undefined;
 };
 
-const buildWorkflowSteps = (order: CreateOrderResponse | null | undefined): WorkflowStep[] => {
-  const fallbackSteps: WorkflowStep[] = MOCK_ORDER.workflow!.map((step, index) => {
-    const state = index === 0 ? 'completed' : index === 1 ? 'active' : 'pending';
-    return {
-      key: step.step ?? `STEP_${index}`,
-      title: step.label ?? `Step ${index + 1}`,
-      description: step.description ?? 'We will notify you once this updates.',
-      statusText:
-        index === 0 ? 'Completed' : index === 1 ? 'Preparing' : 'Pending',
-      etaLabel: index === 0 ? '4 m 34s' : index === 1 ? '24s' : '0s',
-      state: index === 0 ? 'completed': index === 1  ? 'active': 'pending',
-    } satisfies WorkflowStep;
-  });
-
-  if (!order?.workflow?.length) {
-    return fallbackSteps;
+const formatStatusLabel = (status: string | null | undefined) => {
+  if (!status) {
+    return null;
   }
 
-  return order.workflow.map((step, index) => {
-    const status = String(step.status ?? '').toUpperCase();
-    let state: WorkflowStep['state'] = 'pending';
-    if (status === 'COMPLETED' || step.completed) {
-      state = 'completed';
-    } else if (status === 'IN_PROGRESS' || status === 'ACTIVE') {
-      state = 'active';
-    }
+  return status
+    .toString()
+    .toLowerCase()
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
 
-    return {
-      key: step.step ?? `STEP_${index}`,
-      title: step.label ?? `Step ${index + 1}`,
-      description: step.description ?? 'We will notify you once this updates.',
-      statusText:
-        state === 'completed' ? 'Completed' : state === 'active' ? 'Preparing' : 'Pending',
-      etaLabel:
-        index === 0 ? '4 m 34s' : index === 1 ? '24s' : index === 2 ? '0s' : '1m 20s',
-      state: index === 0 ? 'completed': index === 1  ? 'active': 'pending',
-    } satisfies WorkflowStep;
-  });
+const buildWorkflowSteps = (order: OrderTrackingData | null | undefined): WorkflowStep[] => {
+  if (!order) {
+    return [];
+  }
+
+  const normalizedStatus = order?.status ? String(order.status).toUpperCase() : null;
+  const workflowSteps = order.workflow ?? [];
+
+  if (workflowSteps.length) {
+    return workflowSteps.map((step, index) => {
+      const status = String(step?.status ?? '').toUpperCase();
+      let state: WorkflowStep['state'] = 'pending';
+
+      if (status === 'COMPLETED' || step?.completed) {
+        state = 'completed';
+      } else if (
+        status === 'IN_PROGRESS' ||
+        status === 'ACTIVE' ||
+        (normalizedStatus && (status === normalizedStatus || step?.step?.toUpperCase() === normalizedStatus))
+      ) {
+        state = 'active';
+      }
+
+      return {
+        key: step?.step ?? `STEP_${index}`,
+        title: step?.label ?? `Step ${index + 1}`,
+        description: step?.description ?? 'We will notify you once this updates.',
+        statusText:
+          state === 'completed' ? 'Completed' : state === 'active' ? 'In progress' : 'Pending',
+        etaLabel: '—',
+        state,
+      } satisfies WorkflowStep;
+    });
+  }
+
+  const historySteps = order.statusHistory ?? [];
+
+  if (historySteps.length) {
+    return historySteps.map((entry, index) => {
+      const status = String(entry?.newStatus ?? '').toUpperCase();
+      let state: WorkflowStep['state'] = 'completed';
+
+      if (index === historySteps.length - 1 && normalizedStatus && normalizedStatus !== 'DELIVERED') {
+        state = 'active';
+      }
+
+      if (normalizedStatus && status === normalizedStatus) {
+        state = 'active';
+      }
+
+      return {
+        key: entry?.action ?? `HISTORY_${index}`,
+        title: entry?.newStatus ?? entry?.action ?? `Update ${index + 1}`,
+        description: entry?.reason ?? 'Your order status has changed.',
+        statusText: status || 'Updated',
+        etaLabel: '—',
+        state,
+      } satisfies WorkflowStep;
+    });
+  }
+
+  return [];
+};
+
+const mergeOrderData = (
+  baseOrder: OrderTrackingData | null | undefined,
+  update: Partial<OrderTrackingData> | null | undefined,
+): OrderTrackingData | null => {
+  if (!baseOrder && !update) {
+    return null;
+  }
+
+  const merged: OrderTrackingData = {
+    ...(baseOrder ?? {}),
+    ...(update ?? {}),
+    restaurant: {
+      ...(baseOrder?.restaurant ?? {}),
+      ...(update?.restaurant ?? {}),
+    },
+    delivery: {
+      ...(baseOrder?.delivery ?? {}),
+      ...(update?.delivery ?? {}),
+    },
+    payment: {
+      ...(baseOrder?.payment ?? {}),
+      ...(update?.payment ?? {}),
+    },
+    items: update?.items ?? baseOrder?.items,
+    workflow: update?.workflow ?? baseOrder?.workflow,
+    statusHistory: update?.statusHistory ?? baseOrder?.statusHistory,
+    status: update?.status ?? baseOrder?.status,
+    orderId: update?.orderId ?? baseOrder?.orderId ?? null,
+  };
+
+  if (merged.orderId == null && baseOrder?.orderId != null) {
+    merged.orderId = baseOrder.orderId;
+  }
+
+  return merged;
 };
 
 const OrderTrackingScreen: React.FC = () => {
@@ -210,57 +199,99 @@ const OrderTrackingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
 
-  const order = route.params?.order ?? MOCK_ORDER;
+  const initialOrder = route.params?.order ?? null;
+  const routeOrderIdParam = route.params?.orderId ?? null;
+  const initialOrderId = initialOrder?.orderId ?? null;
+
+  const websocketOrderData = useMemo<OrderTrackingData | null>(() => {
+    if (routeOrderIdParam != null) {
+      const update = orderUpdates[String(routeOrderIdParam)];
+      if (update) {
+        return update;
+      }
+    }
+
+    if (initialOrderId != null) {
+      const update = orderUpdates[String(initialOrderId)];
+      if (update) {
+        return update;
+      }
+    }
+
+    return latestOrderUpdate ?? null;
+  }, [initialOrderId, latestOrderUpdate, orderUpdates, routeOrderIdParam]);
+
+  const order = useMemo<OrderTrackingData | null>(() => {
+    const merged = mergeOrderData(initialOrder as OrderTrackingData | null, websocketOrderData);
+    if (!merged) {
+      if (routeOrderIdParam != null) {
+        return { orderId: routeOrderIdParam } as OrderTrackingData;
+      }
+      return null;
+    }
+
+    const orderId = merged.orderId ?? routeOrderIdParam ?? initialOrderId ?? null;
+    return {
+      ...merged,
+      orderId,
+    };
+  }, [initialOrder, initialOrderId, routeOrderIdParam, websocketOrderData]);
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
 
   const orderTotal = formatCurrency(order?.payment?.total);
-  const deliveryArea = order?.delivery?.savedAddress?.label ?? 'San Francisco Bay Area';
-  const deliveryAddress = order?.delivery?.address ?? 'Your delivery address';
   const parsedCourierRating = Number(order?.delivery?.courier?.rating ?? NaN);
   const courierRating = Number.isFinite(parsedCourierRating)
     ? parsedCourierRating.toFixed(1)
-    : '5.0';
+    : null;
   const courierDeliveriesValue = Number(order?.delivery?.courier?.totalDeliveries ?? NaN);
   const courierDeliveries = Number.isFinite(courierDeliveriesValue)
     ? courierDeliveriesValue
-    : 120;
-  const courierName = order?.delivery?.courier?.name ?? 'Assigned courier';
-  const courierAvatarUri =
-    (order as any)?.delivery?.courier?.avatarUrl ?? 'https://i.pravatar.cc/96?img=12';
-  const restaurantAvatarUri =
-    (order as any)?.restaurant?.imageUrl ??
-    'https://images.unsplash.com/photo-1606755962773-0e7d61a9b1fc?auto=format&fit=crop&w=200&q=80';
+    : null;
+  const courierName = order?.delivery?.courier?.name ?? 'Courier assigned soon';
+  const courierAvatarUri = (order as any)?.delivery?.courier?.avatarUrl ?? undefined;
+  const restaurantAvatarUri = (order as any)?.restaurant?.imageUrl ?? undefined;
+  const orderIdentifier = order?.orderId ? `Order #${order.orderId}` : 'Order details';
+  const restaurantName = order?.restaurant?.name ?? 'Restaurant pending';
+  const courierRatingText = courierRating ? `${courierRating} / 5` : '—';
+  const courierDeliveriesText = courierDeliveries != null ? ` (${courierDeliveries})` : '';
+  const canViewDetails = Boolean(order);
+  const hasItems = (order?.items?.length ?? 0) > 0;
+  const orderTotalDisplay = orderTotal ?? '—';
 
-  const driverCoordinate = useMemo<LatLng>(() => {
+  const driverCoordinate = useMemo<LatLng | null>(() => {
     const courierLocation = (order as any)?.delivery?.courier?.location;
-    if (courierLocation?.lat && courierLocation?.lng) {
+    if (courierLocation?.lat != null && courierLocation?.lng != null) {
       return {
-        latitude: courierLocation.lat,
-        longitude: courierLocation.lng,
+        latitude: Number(courierLocation.lat),
+        longitude: Number(courierLocation.lng),
       } satisfies LatLng;
     }
 
-    if (order?.delivery?.location?.lat && order.delivery.location.lng) {
+    if (order?.delivery?.location?.lat != null && order.delivery.location.lng != null) {
       return {
-        latitude: order.delivery.location.lat - 0.006,
-        longitude: order.delivery.location.lng + 0.004,
+        latitude: Number(order.delivery.location.lat),
+        longitude: Number(order.delivery.location.lng),
       } satisfies LatLng;
     }
 
-    return MOCK_DRIVER_COORDINATE;
+    return null;
   }, [order]);
 
-  const mapRegion = useMemo<Region>(
-    () => ({
+  const mapRegion = useMemo<Region | null>(() => {
+    if (!driverCoordinate) {
+      return null;
+    }
+
+    return {
       latitude: driverCoordinate.latitude,
       longitude: driverCoordinate.longitude,
       latitudeDelta: 0.025,
       longitudeDelta: 0.025,
-    }),
-    [driverCoordinate.latitude, driverCoordinate.longitude],
-  );
+    } satisfies Region;
+  }, [driverCoordinate]);
 
   const handleGoBack = () => {
     if (navigation.canGoBack()) {
@@ -271,7 +302,14 @@ const OrderTrackingScreen: React.FC = () => {
   const handleCallCourier = () => {};
 
   const handleSeeDetails = () => {
-    navigation.navigate('CheckoutOrder', { viewMode: true, order });
+    if (!order) {
+      return;
+    }
+
+    navigation.navigate('CheckoutOrder', {
+      viewMode: true,
+      order: order as CreateOrderResponse,
+    });
   };
 
   const headerMinHeight = useMemo(
@@ -302,12 +340,6 @@ const OrderTrackingScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  const bannerOpacity = scrollY.interpolate({
-    inputRange: [0, headerScrollDistance * 0.6, headerScrollDistance],
-    outputRange: [1, 0.4, 0],
-    extrapolate: 'clamp',
-  });
-
   const contentSpacerHeight = scrollY.interpolate({
     inputRange: [0, headerScrollDistance],
     outputRange: [HEADER_MAX_HEIGHT + 24, headerMinHeight + 12],
@@ -323,22 +355,30 @@ const OrderTrackingScreen: React.FC = () => {
         ]}
         pointerEvents={collapsed ? 'none' : 'auto'}
       >
-        <MapView
-          style={StyleSheet.absoluteFill}
-          region={mapRegion}
-          scrollEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          zoomEnabled={false}
-          showsPointsOfInterest={false}
-          showsCompass={false}
-        >
-          <Marker coordinate={driverCoordinate}>
-            <View style={styles.driverMarker}>
-              <Bike size={16} color="white" />
-            </View>
-          </Marker>
-        </MapView>
+        {mapRegion ? (
+          <MapView
+            style={StyleSheet.absoluteFill}
+            region={mapRegion}
+            scrollEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            zoomEnabled={false}
+            showsPointsOfInterest={false}
+            showsCompass={false}
+          >
+            {driverCoordinate ? (
+              <Marker coordinate={driverCoordinate}>
+                <View style={styles.driverMarker}>
+                  <Bike size={16} color="white" />
+                </View>
+              </Marker>
+            ) : null}
+          </MapView>
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Text style={styles.mapPlaceholderText}>Location updates unavailable yet</Text>
+          </View>
+        )}
       </Animated.View>
 
       <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
@@ -367,32 +407,40 @@ const OrderTrackingScreen: React.FC = () => {
     },
   );
 
+  const formattedStatus = formatStatusLabel(order?.status);
+
   const renderSteps = () => (
     <View style={styles.stepsCard}>
       <View style={styles.stepsHeader}>
-        <Text style={styles.stepsTitle}>Order Steps</Text>
-        <View style={styles.stepsTimer}>
-          <Clock size={18} color={accentColor} />
-          <Text style={styles.stepsTimerText}>4 m 34s</Text>
-        </View>
+        <Text style={styles.stepsTitle}>Order progress</Text>
+        {formattedStatus ? (
+          <View style={styles.stepsStatusBadge}>
+            <Text style={styles.stepsStatusText}>{formattedStatus}</Text>
+          </View>
+        ) : null}
       </View>
-      {steps.map((step, index) => {
-        const isLast = index === steps.length - 1;
-        const isCompleted = step.state === 'completed';
-        const isActive = step.state === 'active';
-        const isPending = !isCompleted && !isActive;
-        const previousStep = index > 0 ? steps[index - 1] : null;
+      {steps.length === 0 ? (
+        <Text style={styles.stepsEmptyText}>
+          Tracking updates will appear once we receive status changes from the restaurant.
+        </Text>
+      ) : (
+        steps.map((step, index) => {
+          const isLast = index === steps.length - 1;
+          const isCompleted = step.state === 'completed';
+          const isActive = step.state === 'active';
+          const isPending = !isCompleted && !isActive;
+          const previousStep = index > 0 ? steps[index - 1] : null;
 
-        const topConnectorActive =
-          index > 0 &&
-          (previousStep?.state === 'completed' || previousStep?.state === 'active');
-        const bottomConnectorActive = !isLast && isCompleted;
+          const topConnectorActive =
+            index > 0 &&
+            (previousStep?.state === 'completed' || previousStep?.state === 'active');
+          const bottomConnectorActive = !isLast && isCompleted;
 
-        return (
-          <View
-            key={`${step.key}-${index}`}
-            style={[styles.stepRow, !isLast && styles.stepRowDivider]}
-          >
+          return (
+            <View
+              key={`${step.key}-${index}`}
+              style={[styles.stepRow, !isLast && styles.stepRowDivider]}
+            >
             <View style={styles.stepTimeline}>
               {index > 0 ? (
                 <View
@@ -465,9 +513,10 @@ const OrderTrackingScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-          </View>
-        );
-      })}
+            </View>
+          );
+        })
+      )}
     </View>
   );
 
@@ -501,42 +550,58 @@ const OrderTrackingScreen: React.FC = () => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <View style={styles.summaryHeaderLeft}>
-              <Image
-                source={{ uri: '../../../assets/baguette.png' }}
-                style={styles.summaryRestaurantImage}
-              />
-              <Text style={styles.summaryTitle}>My Order</Text>
+              {restaurantAvatarUri ? (
+                <Image
+                  source={{ uri: restaurantAvatarUri }}
+                  style={styles.summaryRestaurantImage}
+                />
+              ) : (
+                <View style={styles.summaryRestaurantPlaceholder}>
+                  <MapPin size={18} color="white" />
+                </View>
+              )}
+              <Text style={styles.summaryTitle}>{orderIdentifier}</Text>
             </View>
             <View style={styles.summaryBadge}>
               <Text style={styles.summaryBadgeText}>
-                {order?.restaurant?.name ?? 'Your restaurant'}
+                {restaurantName}
               </Text>
             </View>
           </View>
 
           <View style={styles.summaryItems}>
-            {order?.items?.map((item, index) => {
-              const isLast = index === (order?.items?.length ?? 0) - 1;
-              return (
-                <View
-                  key={`${item.menuItem?.id ?? index}-${index}`}
-                  style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
-                >
-                  <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
-                  <Text style={styles.summaryItemName} numberOfLines={1}>
-                    {item.menuItem?.name ?? item.name ?? 'Menu item'}
-                  </Text>
-                </View>
-              );
-            })}
+            {hasItems ? (
+              order?.items?.map((item, index) => {
+                const isLast = index === (order?.items?.length ?? 0) - 1;
+                return (
+                  <View
+                    key={`${item.menuItem?.id ?? index}-${index}`}
+                    style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
+                  >
+                    <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
+                    <Text style={styles.summaryItemName} numberOfLines={1}>
+                      {item.menuItem?.name ?? item.name ?? 'Menu item'}
+                    </Text>
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={styles.summaryEmptyText}>
+                Items will appear once your order is confirmed.
+              </Text>
+            )}
           </View>
 
           <View style={styles.summaryFooter}>
-            {orderTotal ? <Text style={styles.summaryTotal}>{orderTotal}</Text> : null}
+            <Text style={styles.summaryTotal}>{orderTotalDisplay}</Text>
             <TouchableOpacity
               onPress={handleSeeDetails}
+              disabled={!canViewDetails}
               activeOpacity={0.85}
-              style={styles.summaryDetailsButton}
+              style={[
+                styles.summaryDetailsButton,
+                !canViewDetails && styles.summaryDetailsButtonDisabled,
+              ]}
             >
               <Text style={styles.summaryDetailsText}>See details</Text>
             </TouchableOpacity>
@@ -545,14 +610,21 @@ const OrderTrackingScreen: React.FC = () => {
 
         <View style={styles.courierStickyCard}>
           <View style={styles.courierInfo}>
-            <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
+            {courierAvatarUri ? (
+              <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
+            ) : (
+              <View style={[styles.courierAvatar, styles.courierAvatarFallback]}>
+                <Bike size={16} color="white" />
+              </View>
+            )}
             <View>
               <Text style={styles.courierStickyLabel}>Delivered by</Text>
               <Text style={styles.courierStickyName}>{courierName}</Text>
               <View style={styles.courierStickyRating}>
                 <Star size={14} color={accentColor} fill={accentColor} />
                 <Text style={styles.courierStickyRatingText}>
-                  {courierRating} / 5 ({courierDeliveries})
+                  {courierRatingText}
+                  {courierDeliveriesText}
                 </Text>
               </View>
             </View>
@@ -615,6 +687,19 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
+  mapPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 24,
+  },
+  mapPlaceholderText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: textSecondary,
+    textAlign: 'center',
+  },
   mapTopBar: {
     position: 'absolute',
     top: 0,
@@ -632,49 +717,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bannerContainer: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 24,
-  },
-  bannerRibbon: {
-    backgroundColor: accentColor,
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  bannerLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '600',
-  },
-  bannerLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  bannerTexts: {
-    marginLeft: 10,
-    flex: 1,
-  },
-  bannerLocation: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  bannerAddress: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
-    marginTop: 2,
   },
   driverMarker: {
     width: 34,
@@ -709,15 +751,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: textPrimary,
   },
-  stepsTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  stepsStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(216,58,46,0.1)',
   },
-  stepsTimerText: {
-    marginLeft: 8,
-    color: accentColor,
-    fontSize: 13,
+  stepsStatusText: {
+    fontSize: 12,
     fontWeight: '700',
+    color: accentColor,
+  },
+  stepsEmptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: textSecondary,
   },
   stepRow: {
     flexDirection: 'row',
@@ -800,26 +848,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     width: 78,
   },
-  stepStatusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: '#F1F5F9',
-  },
-  stepStatusBadgeCompleted: {
-    backgroundColor: '#DCF0EA',
-  },
-  stepStatusBadgeActive: {
-    backgroundColor: accentColor,
-  },
-  stepStatusLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: accentColor,
-  },
-  stepStatusLabelContrast: {
-    color: 'white',
-  },
   stepEtaBadge: {
     marginTop: 8,
     backgroundColor: accentColor,
@@ -868,6 +896,15 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: '#F1F5F9',
   },
+  summaryRestaurantPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: accentColor,
+  },
   summaryTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -905,6 +942,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: textPrimary,
   },
+  summaryEmptyText: {
+    fontSize: 12,
+    color: textSecondary,
+  },
   summaryFooter: {
     marginTop: 10,
     flexDirection: 'row',
@@ -921,6 +962,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: accentColor,
+  },
+  summaryDetailsButtonDisabled: {
+    backgroundColor: '#E2E8F0',
   },
   summaryDetailsText: {
     color: 'white',
@@ -962,6 +1006,11 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     marginRight: 12,
     backgroundColor: '#F1F5F9',
+  },
+  courierAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: accentColor,
   },
   courierStickyLabel: {
     color: textSecondary,

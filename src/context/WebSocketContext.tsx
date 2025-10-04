@@ -14,16 +14,19 @@ import * as Notifications from 'expo-notifications';
 
 import useAuth from '~/hooks/useAuth';
 import { BASE_WS_URL } from '@env';
+import type { CreateOrderResponse, OrderWorkflowStepDto } from '~/interfaces/Order';
 
 interface WebSocketContextValue {
   client: Client | null;
   isConnected: boolean;
   sendMessage: (destination: string, body: any) => void;
+  latestOrderUpdate: OrderUpdatePayload | null;
+  orderUpdates: Record<string, OrderUpdatePayload>;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
-type OrderStatusHistoryEntry = {
+export type OrderStatusHistoryEntry = {
   action: string;
   previousStatus: string | null;
   newStatus: string;
@@ -33,10 +36,11 @@ type OrderStatusHistoryEntry = {
   changedAt: string;
 };
 
-type OrderUpdatePayload = {
+export type OrderUpdatePayload = Partial<CreateOrderResponse> & {
   orderId?: number;
   status?: string;
   statusHistory?: OrderStatusHistoryEntry[];
+  workflow?: OrderWorkflowStepDto[];
   [key: string]: unknown;
 };
 
@@ -44,6 +48,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, requiresAuth, user } = useAuth();
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [latestOrderUpdate, setLatestOrderUpdate] = useState<OrderUpdatePayload | null>(null);
+  const [orderUpdates, setOrderUpdates] = useState<Record<string, OrderUpdatePayload>>({});
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
@@ -133,9 +139,20 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
       stompClient.subscribe(`/user/${user?.id}/queue/orders`, (message: IMessage) => {
         try {
-          const data = JSON.parse(message.body);
+          const data = JSON.parse(message.body) as OrderUpdatePayload;
           console.log('📦 Received order update:', data);
-          displayOrderStatusNotification(data as OrderUpdatePayload);
+          setLatestOrderUpdate(data);
+          if (data?.orderId != null) {
+            const key = String(data.orderId);
+            setOrderUpdates((previous) => ({
+              ...previous,
+              [key]: {
+                ...previous[key],
+                ...data,
+              },
+            }));
+          }
+          displayOrderStatusNotification(data);
         } catch {
           console.warn('Received non-JSON message from /user/queue/orders:', message.body);
         }
@@ -158,6 +175,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       stompClient.deactivate();
       clientRef.current = null;
       setIsConnected(false);
+      setLatestOrderUpdate(null);
+      setOrderUpdates({});
     };
   }, [accessToken, requiresAuth, user?.id, displayOrderStatusNotification]);
 
@@ -183,8 +202,10 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       client: clientRef.current,
       isConnected,
       sendMessage,
+      latestOrderUpdate,
+      orderUpdates,
     }),
-    [isConnected, sendMessage],
+    [isConnected, latestOrderUpdate, orderUpdates, sendMessage],
   );
 
   return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
