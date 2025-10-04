@@ -1,12 +1,15 @@
 export type OrderStatus =
   | 'PENDING'
-  | 'CONFIRMED'
+  | 'ACCEPTED'
   | 'PREPARING'
-  | 'READY_FOR_PICKUP'
-  | 'IN_TRANSIT'
+  | 'READY_FOR_PICK_UP'
+  | 'IN_DELIVERY'
   | 'DELIVERED'
-  | 'CANCELLED'
+  | 'REJECTED'
+  | 'CANCELED'
   | string;
+
+export type OrderLifecycleAction = 'CREATED' | 'STATUS_CHANGE' | 'ARCHIVED';
 
 export type MonetaryAmount = number | string;
 
@@ -32,6 +35,14 @@ export interface LocationDto {
   lng: number;
 }
 
+export interface ClientSummaryDto {
+  id: number;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  [key: string]: unknown;
+}
+
 export interface OrderItemRequest {
   menuItemId: number;
   quantity: number;
@@ -55,6 +66,16 @@ export interface RestaurantSummaryResponse {
   imageUrl?: string | null;
 }
 
+export interface RestaurantSummaryDto {
+  id: number;
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  imageUrl?: string | null;
+  location?: LocationDto | null;
+  [key: string]: unknown;
+}
+
 export interface SavedAddressSummaryDto {
   id?: string;
   label?: string | null;
@@ -67,6 +88,24 @@ export interface DeliverySummaryResponse {
   address: string;
   location: LocationDto;
   savedAddress?: SavedAddressSummaryDto | null;
+}
+
+export interface DriverSummaryDto {
+  id: number;
+  name: string;
+  phone?: string | null;
+  [key: string]: unknown;
+}
+
+export interface DeliverySummaryDto {
+  id: number;
+  driver?: DriverSummaryDto | null;
+  estimatedPickupTime?: number | null;
+  estimatedDeliveryTime?: number | null;
+  pickupTime?: string | null;
+  deliveredTime?: string | null;
+  driverLocation?: LocationDto | null;
+  [key: string]: unknown;
 }
 
 export interface PaymentSummaryResponse {
@@ -92,6 +131,32 @@ export interface OrderItemDto {
   quantity: number;
   extras?: string[] | null;
   specialInstructions?: string | null;
+}
+
+export interface OrderStatusHistoryDto {
+  action: OrderLifecycleAction;
+  previousStatus?: OrderStatus | null;
+  newStatus: OrderStatus;
+  changedBy?: string | null;
+  reason?: string | null;
+  metadata?: string | null;
+  changedAt: string;
+}
+
+export interface OrderNotificationDto {
+  orderId: number;
+  deliveryAddress?: string | null;
+  paymentMethod?: string | null;
+  date?: string | null;
+  items: OrderItemDto[];
+  savedAddress?: SavedAddressSummaryDto | null;
+  client?: ClientSummaryDto | null;
+  status: OrderStatus;
+  deliveryLocation?: LocationDto | null;
+  restaurant?: RestaurantSummaryDto | null;
+  delivery?: DeliverySummaryDto | null;
+  statusHistory?: OrderStatusHistoryDto[];
+  [key: string]: unknown;
 }
 
 export interface OrderDto {

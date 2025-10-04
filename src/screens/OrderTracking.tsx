@@ -28,7 +28,12 @@ import {
   useRoute,
 } from '@react-navigation/native';
 
-import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
+import type {
+  CreateOrderResponse,
+  MonetaryAmount,
+  OrderNotificationDto,
+  OrderStatusHistoryDto,
+} from '~/interfaces/Order';
 import { vs } from 'react-native-size-matters';
 import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
 const HEADER_MAX_HEIGHT = 320;
@@ -58,9 +63,10 @@ type WorkflowStep = {
   state: 'completed' | 'active' | 'pending';
 };
 
-type OrderTrackingData = Partial<CreateOrderResponse> & {
+type OrderTrackingData = Partial<CreateOrderResponse> &
+  Partial<OrderNotificationDto> & {
   orderId?: number | string | null;
-  statusHistory?: OrderStatusHistoryEntry[];
+  statusHistory?: (OrderStatusHistoryDto | OrderStatusHistoryEntry)[];
 };
 
 const formatCurrency = (value: MonetaryAmount | null | undefined) => {
@@ -165,21 +171,42 @@ const mergeOrderData = (
     return null;
   }
 
+  const mergedRestaurant =
+    baseOrder?.restaurant || update?.restaurant
+      ? {
+          ...((baseOrder?.restaurant as Record<string, unknown>) ?? {}),
+          ...((update?.restaurant as Record<string, unknown>) ?? {}),
+        }
+      : undefined;
+
+  const mergedDeliveryBase: Record<string, unknown> = {
+    ...((baseOrder?.delivery as Record<string, unknown>) ?? {}),
+    ...((update?.delivery as Record<string, unknown>) ?? {}),
+  };
+
+  if (
+    (baseOrder as any)?.delivery?.driver != null ||
+    (update as any)?.delivery?.driver != null
+  ) {
+    mergedDeliveryBase.driver = {
+      ...(((baseOrder as any)?.delivery?.driver as Record<string, unknown>) ?? {}),
+      ...(((update as any)?.delivery?.driver as Record<string, unknown>) ?? {}),
+    };
+  }
+
   const merged: OrderTrackingData = {
     ...(baseOrder ?? {}),
     ...(update ?? {}),
-    restaurant: {
-      ...(baseOrder?.restaurant ?? {}),
-      ...(update?.restaurant ?? {}),
-    },
-    delivery: {
-      ...(baseOrder?.delivery ?? {}),
-      ...(update?.delivery ?? {}),
-    },
-    payment: {
-      ...(baseOrder?.payment ?? {}),
-      ...(update?.payment ?? {}),
-    },
+    ...(mergedRestaurant ? { restaurant: mergedRestaurant } : {}),
+    ...(Object.keys(mergedDeliveryBase).length ? { delivery: mergedDeliveryBase } : {}),
+    ...(baseOrder?.payment || update?.payment
+      ? {
+          payment: {
+            ...((baseOrder?.payment as Record<string, unknown>) ?? {}),
+            ...((update?.payment as Record<string, unknown>) ?? {}),
+          },
+        }
+      : {}),
     items: update?.items ?? baseOrder?.items,
     workflow: update?.workflow ?? baseOrder?.workflow,
     statusHistory: update?.statusHistory ?? baseOrder?.statusHistory,
@@ -245,16 +272,18 @@ const OrderTrackingScreen: React.FC = () => {
   const formattedStatus = formatStatusLabel(order?.status);
 
   const orderTotal = formatCurrency(order?.payment?.total);
-  const parsedCourierRating = Number(order?.delivery?.courier?.rating ?? NaN);
+  const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
+  const courierDetails = deliverySummary?.courier ?? deliverySummary?.driver ?? null;
+  const parsedCourierRating = Number(courierDetails?.rating ?? NaN);
   const courierRating = Number.isFinite(parsedCourierRating)
     ? parsedCourierRating.toFixed(1)
     : null;
-  const courierDeliveriesValue = Number(order?.delivery?.courier?.totalDeliveries ?? NaN);
+  const courierDeliveriesValue = Number(courierDetails?.totalDeliveries ?? NaN);
   const courierDeliveries = Number.isFinite(courierDeliveriesValue)
     ? courierDeliveriesValue
     : null;
-  const courierName = order?.delivery?.courier?.name ?? 'Courier assigned soon';
-  const courierAvatarUri = (order as any)?.delivery?.courier?.avatarUrl ?? undefined;
+  const courierName = courierDetails?.name ?? 'Courier assigned soon';
+  const courierAvatarUri = courierDetails?.avatarUrl ?? undefined;
   const restaurantAvatarUri = (order as any)?.restaurant?.imageUrl ?? undefined;
   const orderIdentifier = order?.orderId ? `Order #${order.orderId}` : 'Order details';
   const restaurantName = order?.restaurant?.name ?? 'Restaurant pending';
@@ -265,12 +294,11 @@ const OrderTrackingScreen: React.FC = () => {
   const orderTotalDisplay = orderTotal ?? '—';
 
   const hasAssignedCourier = Boolean(
-    order?.delivery?.courier &&
-      (order.delivery.courier.id != null || order.delivery.courier.name),
+    courierDetails && (courierDetails.id != null || courierDetails.name),
   );
 
   const driverCoordinate = useMemo<LatLng | null>(() => {
-    const courierLocation = (order as any)?.delivery?.courier?.location;
+    const courierLocation = courierDetails?.location ?? deliverySummary?.driverLocation;
     if (courierLocation?.lat != null && courierLocation?.lng != null) {
       return {
         latitude: Number(courierLocation.lat),
@@ -278,15 +306,25 @@ const OrderTrackingScreen: React.FC = () => {
       } satisfies LatLng;
     }
 
-    if (order?.delivery?.location?.lat != null && order.delivery.location.lng != null) {
+    if (
+      deliverySummary?.location?.lat != null &&
+      deliverySummary.location.lng != null
+    ) {
       return {
-        latitude: Number(order.delivery.location.lat),
-        longitude: Number(order.delivery.location.lng),
+        latitude: Number(deliverySummary.location.lat),
+        longitude: Number(deliverySummary.location.lng),
+      } satisfies LatLng;
+    }
+
+    if (order?.deliveryLocation?.lat != null && order.deliveryLocation.lng != null) {
+      return {
+        latitude: Number(order.deliveryLocation.lat),
+        longitude: Number(order.deliveryLocation.lng),
       } satisfies LatLng;
     }
 
     return null;
-  }, [order]);
+  }, [courierDetails, deliverySummary, order]);
 
   const mapRegion = useMemo<Region | null>(() => {
     if (!driverCoordinate) {

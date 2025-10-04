@@ -14,7 +14,12 @@ import * as Notifications from 'expo-notifications';
 
 import useAuth from '~/hooks/useAuth';
 import { BASE_WS_URL } from '@env';
-import type { CreateOrderResponse, OrderWorkflowStepDto } from '~/interfaces/Order';
+import type {
+  CreateOrderResponse,
+  OrderNotificationDto,
+  OrderStatusHistoryDto,
+  OrderWorkflowStepDto,
+} from '~/interfaces/Order';
 
 interface WebSocketContextValue {
   client: Client | null;
@@ -26,23 +31,16 @@ interface WebSocketContextValue {
 
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
-export type OrderStatusHistoryEntry = {
-  action: string;
-  previousStatus: string | null;
-  newStatus: string;
-  changedBy?: string;
-  reason?: string | null;
-  metadata?: unknown;
-  changedAt: string;
-};
+export type OrderStatusHistoryEntry = OrderStatusHistoryDto;
 
-export type OrderUpdatePayload = Partial<CreateOrderResponse> & {
-  orderId?: number;
-  status?: string;
-  statusHistory?: OrderStatusHistoryEntry[];
-  workflow?: OrderWorkflowStepDto[];
-  [key: string]: unknown;
-};
+export type OrderUpdatePayload = Partial<OrderNotificationDto> &
+  Partial<CreateOrderResponse> & {
+    orderId?: number;
+    status?: string;
+    statusHistory?: OrderStatusHistoryEntry[];
+    workflow?: OrderWorkflowStepDto[];
+    [key: string]: unknown;
+  };
 
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, requiresAuth, user } = useAuth();
