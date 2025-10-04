@@ -32,6 +32,7 @@ import RestaurantDetails from '~/screens/RestaurantDetails';
 import SearchScreen from '~/screens/SearchScreen';
 import { CartProvider } from '~/context/CartContext';
 import { AuthProvider } from '~/context/AuthContext';
+import { OrderTrackingProvider } from '~/context/OrderTrackingContext';
 import { LocationOverlayProvider } from '~/context/LocationOverlayContext';
 import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
@@ -212,15 +213,17 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <NavigationContainer>
           <AuthProvider>
-            <PhoneSignupProvider>
-              <SelectedAddressProvider>
-                <CartProvider>
-                  <LocationOverlayProvider>
-                    <RootNavigator />
-                  </LocationOverlayProvider>
-                </CartProvider>
-              </SelectedAddressProvider>
-            </PhoneSignupProvider>
+            <OrderTrackingProvider>
+              <PhoneSignupProvider>
+                <SelectedAddressProvider>
+                  <CartProvider>
+                    <LocationOverlayProvider>
+                      <RootNavigator />
+                    </LocationOverlayProvider>
+                  </CartProvider>
+                </SelectedAddressProvider>
+              </PhoneSignupProvider>
+            </OrderTrackingProvider>
           </AuthProvider>
         </NavigationContainer>
       </QueryClientProvider>

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Image,
+  Linking,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +18,6 @@ import {
   MapPin,
   MessageCircle,
   Phone,
-  Star,
 } from 'lucide-react-native';
 import {
   NavigationProp,
@@ -27,7 +27,15 @@ import {
   useRoute,
 } from '@react-navigation/native';
 
-import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
+import type { CreateOrderResponse, MonetaryAmount, OrderDto } from '~/interfaces/Order';
+import useOrderTracking from '~/hooks/useOrderTracking';
+import {
+  DEFAULT_WORKFLOW_BLUEPRINT,
+  ensureWorkflow,
+  normalizeStatus,
+  STATUS_SEQUENCE,
+  updateWorkflowProgress,
+} from '~/services/orderTrackingHelpers';
 import { vs } from 'react-native-size-matters';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
@@ -40,102 +48,6 @@ const textPrimary = '#0F172A';
 const textSecondary = '#6B7280';
 const borderColor = '#F0F1F5';
 
-const DEFAULT_REGION: Region = {
-  latitude: 36.8065,
-  longitude: 10.1815,
-  latitudeDelta: 0.04,
-  longitudeDelta: 0.04,
-};
-
-const MOCK_DRIVER_COORDINATE: LatLng = {
-  latitude: DEFAULT_REGION.latitude - 0.005,
-  longitude: DEFAULT_REGION.longitude + 0.012,
-};
-
-const MOCK_ORDER: CreateOrderResponse = {
-  orderId: 'FO-2024-1834',
-  status: 'READY_FOR_PICKUP',
-  restaurant: {
-    name: 'Tacos XL',
-  },
-  items: [
-    {
-      quantity: 2,
-      menuItem: {
-        id: 'item-1',
-        name: 'Crispy Chicken Wrap',
-      },
-    },
-    {
-      quantity: 1,
-      menuItem: {
-        id: 'item-2',
-        name: 'Loaded Fries',
-      },
-    },
-  ],
-  payment: {
-    total: '28.500',
-  },
-  delivery: {
-    address: '221 Market Street, Downtown, San Francisco, CA',
-    savedAddress: {
-      label: 'San Francisco Bay Area',
-    },
-    courier: {
-      name: 'Jaafar',
-      rating: 4.9,
-      totalDeliveries: 152,
-    },
-    location: {
-      lat: DEFAULT_REGION.latitude + 0.01,
-      lng: DEFAULT_REGION.longitude + 0.008,
-    },
-  },
-  workflow: [
-    {
-      step: 'ACCEPTED',
-      label: 'Accepted by the Restaurant',
-      description: 'Your order is being prepared fresh & hot.',
-      status: 'COMPLETED',
-      completed: true,
-    },
-    {
-      step: 'READY_FOR_PICKUP',
-      label: 'Ready to Pickup',
-      description: 'The courier is heading to the restaurant to pick up your order.',
-      status: 'IN_PROGRESS',
-      completed: false,
-    },
-    {
-      step: 'ON_THE_WAY',
-      label: 'On the way',
-      description: 'The courier is as fast as possible heading to you.',
-      status: 'PENDING',
-      completed: false,
-    },
-    {
-      step: 'FOOD_IS_HERE',
-      label: 'Food is here',
-      description: 'The courier is a few meters away.',
-      status: 'PENDING',
-      completed: false,
-    },
-    {
-      step: 'DELIVERED',
-      label: 'Delivered',
-      description: 'Enjoy your meal! The order has been delivered.',
-      status: 'PENDING',
-      completed: false,
-    },
-  ],
-};
-
-type OrderTrackingRoute = RouteProp<
-  { OrderTracking: { order?: CreateOrderResponse | null } },
-  'OrderTracking'
->;
-
 type LatLng = { latitude: number; longitude: number };
 
 type WorkflowStep = {
@@ -146,6 +58,11 @@ type WorkflowStep = {
   etaLabel: string;
   state: 'completed' | 'active' | 'pending';
 };
+
+type OrderTrackingRoute = RouteProp<
+  { OrderTracking: { order?: CreateOrderResponse | null } },
+  'OrderTracking'
+>;
 
 const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   if (value == null) {
@@ -164,115 +81,344 @@ const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   return undefined;
 };
 
-const buildWorkflowSteps = (order: CreateOrderResponse | null | undefined): WorkflowStep[] => {
-  const fallbackSteps: WorkflowStep[] = MOCK_ORDER.workflow!.map((step, index) => {
-    const state = index === 0 ? 'completed' : index === 1 ? 'active' : 'pending';
-    return {
-      key: step.step ?? `STEP_${index}`,
-      title: step.label ?? `Step ${index + 1}`,
-      description: step.description ?? 'We will notify you once this updates.',
-      statusText:
-        index === 0 ? 'Completed' : index === 1 ? 'Preparing' : 'Pending',
-      etaLabel: index === 0 ? '4 m 34s' : index === 1 ? '24s' : '0s',
-      state: index === 0 ? 'completed': index === 1  ? 'active': 'pending',
-    } satisfies WorkflowStep;
-  });
 
-  if (!order?.workflow?.length) {
-    return fallbackSteps;
+const formatEtaValue = (value?: number | null): string => {
+  if (!Number.isFinite(value as number)) {
+    return '—';
   }
 
-  return order.workflow.map((step, index) => {
-    const status = String(step.status ?? '').toUpperCase();
+  const numeric = Number(value);
+  if (numeric <= 0) {
+    return '—';
+  }
+
+  if (numeric > 180) {
+    const minutes = Math.round(numeric / 60);
+    return `${minutes} min`;
+  }
+
+  if (numeric >= 60) {
+    const minutes = Math.floor(numeric / 60);
+    const seconds = Math.round(numeric % 60);
+    if (seconds <= 0) {
+      return `${minutes} min`;
+    }
+    return `${minutes}m ${seconds}s`;
+  }
+
+  if (numeric >= 1) {
+    return `${Math.round(numeric)} min`;
+  }
+
+  const seconds = Math.round(numeric * 60);
+  if (seconds > 0) {
+    return `${seconds}s`;
+  }
+
+  return '—';
+};
+
+const formatEtaFromUpdate = (
+  stepKey: OrderStatus | null,
+  update?: OrderDto | null,
+): string => {
+  if (!update) {
+    return '—';
+  }
+
+  if (!stepKey) {
+    return '—';
+  }
+
+  switch (stepKey) {
+    case 'ACCEPTED':
+    case 'PREPARING':
+    case 'READY_FOR_PICK_UP':
+      return formatEtaValue(update.estimatedPickUpTime);
+    case 'IN_DELIVERY':
+      return formatEtaValue(update.estimatedDeliveryTime);
+    case 'DELIVERED':
+      return normalizeStatus(update.status) === 'DELIVERED' ? 'Completed' : '—';
+    default:
+      return '—';
+  }
+};
+
+const buildWorkflowSteps = (
+  order: CreateOrderResponse | null | undefined,
+  update?: OrderDto | null,
+): WorkflowStep[] => {
+  const workflow = ensureWorkflow(order);
+  const progressedWorkflow = updateWorkflowProgress(
+    workflow,
+    update?.status ?? order?.status,
+  );
+
+  return progressedWorkflow.map((step, index) => {
+    const normalizedStep = normalizeStatus(step.step);
+    const normalizedStatus = normalizeStatus(step.status);
+
     let state: WorkflowStep['state'] = 'pending';
-    if (status === 'COMPLETED' || step.completed) {
+    if (step.completed || normalizedStatus === 'COMPLETED') {
       state = 'completed';
-    } else if (status === 'IN_PROGRESS' || status === 'ACTIVE') {
+    } else if (normalizedStatus === 'IN_PROGRESS' || normalizedStatus === 'ACTIVE') {
       state = 'active';
+    } else if (normalizedStep) {
+      const currentStatus = normalizeStatus(update?.status ?? order?.status);
+      const stepIndex = STATUS_SEQUENCE.indexOf(normalizedStep);
+      const statusIndex = currentStatus ? STATUS_SEQUENCE.indexOf(currentStatus) : -1;
+
+      if (statusIndex !== -1 && stepIndex !== -1) {
+        if (statusIndex > stepIndex) {
+          state = 'completed';
+        } else if (statusIndex === stepIndex) {
+          state = 'active';
+        }
+      }
     }
 
     return {
-      key: step.step ?? `STEP_${index}`,
-      title: step.label ?? `Step ${index + 1}`,
-      description: step.description ?? 'We will notify you once this updates.',
+      key: normalizedStep ?? (step.step ?? `STEP_${index}`),
+      title: step.label ?? DEFAULT_WORKFLOW_BLUEPRINT[index]?.label ?? `Step ${index + 1}`,
+      description:
+        step.description ??
+        DEFAULT_WORKFLOW_BLUEPRINT[index]?.description ??
+        'We will notify you once this updates.',
       statusText:
-        state === 'completed' ? 'Completed' : state === 'active' ? 'Preparing' : 'Pending',
-      etaLabel:
-        index === 0 ? '4 m 34s' : index === 1 ? '24s' : index === 2 ? '0s' : '1m 20s',
-      state: index === 0 ? 'completed': index === 1  ? 'active': 'pending',
+        state === 'completed'
+          ? 'Completed'
+          : state === 'active'
+            ? 'In progress'
+            : 'Pending',
+      etaLabel: formatEtaFromUpdate(normalizedStep, update),
+      state,
     } satisfies WorkflowStep;
   });
 };
+
+const formatStatusLabel = (status?: string | null) => {
+  if (!status) {
+    return 'Pending';
+  }
+
+  return status
+    .toString()
+    .toLowerCase()
+    .replace(/[\s_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatExtrasLabel = (extras?: { name?: string | null }[] | null) => {
+  if (!extras?.length) {
+    return null;
+  }
+
+  const labels = extras
+    .map((extra) => extra?.name)
+    .filter((name): name is string => Boolean(name));
+
+  if (!labels.length) {
+    return null;
+  }
+
+  return labels.join(', ');
+};
+
+const buildDriverCoordinate = (
+  order: CreateOrderResponse | null,
+  update: OrderDto | null,
+): LatLng | null => {
+  const courierLocation = (update as unknown as { courierLocation?: { lat?: number; lng?: number } })
+    ?.courierLocation;
+
+  if (
+    courierLocation &&
+    Number.isFinite(courierLocation.lat) &&
+    Number.isFinite(courierLocation.lng)
+  ) {
+    return {
+      latitude: Number(courierLocation.lat),
+      longitude: Number(courierLocation.lng),
+    } satisfies LatLng;
+  }
+
+  const orderCourierLocation = (order as unknown as {
+    delivery?: { courier?: { location?: { lat?: number; lng?: number } } };
+  })?.delivery?.courier?.location;
+
+  if (
+    orderCourierLocation &&
+    Number.isFinite(orderCourierLocation.lat) &&
+    Number.isFinite(orderCourierLocation.lng)
+  ) {
+    return {
+      latitude: Number(orderCourierLocation.lat),
+      longitude: Number(orderCourierLocation.lng),
+    } satisfies LatLng;
+  }
+
+  return null;
+};
+
+const buildDestinationCoordinate = (order: CreateOrderResponse | null): LatLng | null => {
+  if (
+    order?.delivery?.location &&
+    Number.isFinite(order.delivery.location.lat) &&
+    Number.isFinite(order.delivery.location.lng)
+  ) {
+    return {
+      latitude: Number(order.delivery.location.lat),
+      longitude: Number(order.delivery.location.lng),
+    } satisfies LatLng;
+  }
+
+  return null;
+};
+
+
 
 const OrderTrackingScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<OrderTrackingRoute>();
   const insets = useSafeAreaInsets();
+  const {
+    order,
+    latestUpdate,
+    connectionState,
+    activeOrderId,
+    beginTrackingOrder,
+    hydrateTrackedOrder,
+  } = useOrderTracking();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
-  const order = route.params?.order ?? MOCK_ORDER;
-
-  const steps = useMemo(() => buildWorkflowSteps(order), [order]);
-
-  const orderTotal = formatCurrency(order?.payment?.total);
-  const deliveryArea = order?.delivery?.savedAddress?.label ?? 'San Francisco Bay Area';
-  const deliveryAddress = order?.delivery?.address ?? 'Your delivery address';
-  const parsedCourierRating = Number(order?.delivery?.courier?.rating ?? NaN);
-  const courierRating = Number.isFinite(parsedCourierRating)
-    ? parsedCourierRating.toFixed(1)
-    : '5.0';
-  const courierDeliveriesValue = Number(order?.delivery?.courier?.totalDeliveries ?? NaN);
-  const courierDeliveries = Number.isFinite(courierDeliveriesValue)
-    ? courierDeliveriesValue
-    : 120;
-  const courierName = order?.delivery?.courier?.name ?? 'Assigned courier';
-  const courierAvatarUri =
-    (order as any)?.delivery?.courier?.avatarUrl ?? 'https://i.pravatar.cc/96?img=12';
-  const restaurantAvatarUri =
-    (order as any)?.restaurant?.imageUrl ??
-    'https://images.unsplash.com/photo-1606755962773-0e7d61a9b1fc?auto=format&fit=crop&w=200&q=80';
-
-  const driverCoordinate = useMemo<LatLng>(() => {
-    const courierLocation = (order as any)?.delivery?.courier?.location;
-    if (courierLocation?.lat && courierLocation?.lng) {
-      return {
-        latitude: courierLocation.lat,
-        longitude: courierLocation.lng,
-      } satisfies LatLng;
-    }
-
-    if (order?.delivery?.location?.lat && order.delivery.location.lng) {
-      return {
-        latitude: order.delivery.location.lat - 0.006,
-        longitude: order.delivery.location.lng + 0.004,
-      } satisfies LatLng;
-    }
-
-    return MOCK_DRIVER_COORDINATE;
-  }, [order]);
-
-  const mapRegion = useMemo<Region>(
-    () => ({
-      latitude: driverCoordinate.latitude,
-      longitude: driverCoordinate.longitude,
-      latitudeDelta: 0.025,
-      longitudeDelta: 0.025,
-    }),
-    [driverCoordinate.latitude, driverCoordinate.longitude],
+  const normalizedRouteOrder = useMemo(
+    () =>
+      route.params?.order
+        ? { ...route.params.order, workflow: ensureWorkflow(route.params.order) }
+        : null,
+    [route.params?.order],
   );
 
-  const handleGoBack = () => {
+  useEffect(() => {
+    if (!normalizedRouteOrder) {
+      return;
+    }
+
+    if (!activeOrderId || activeOrderId !== normalizedRouteOrder.orderId) {
+      beginTrackingOrder(normalizedRouteOrder);
+    } else {
+      hydrateTrackedOrder(normalizedRouteOrder);
+    }
+  }, [normalizedRouteOrder, activeOrderId, beginTrackingOrder, hydrateTrackedOrder]);
+
+  const trackingOrder = order ?? normalizedRouteOrder ?? null;
+  const displayOrder = trackingOrder;
+  const steps = useMemo(
+    () => (displayOrder ? buildWorkflowSteps(displayOrder, latestUpdate) : []),
+    [displayOrder, latestUpdate],
+  );
+
+  const orderTotal = displayOrder ? formatCurrency(displayOrder.payment.total) : undefined;
+  const deliveryArea =
+    latestUpdate?.savedAddress?.label ??
+    latestUpdate?.savedAddress?.formattedAddress ??
+    displayOrder?.delivery?.savedAddress?.label ??
+    displayOrder?.delivery?.savedAddress?.formattedAddress ??
+    null;
+  const deliveryAddress =
+    latestUpdate?.clientAddress ?? displayOrder?.delivery?.address ?? null;
+  
+  const courierName = latestUpdate?.driverName ?? null;
+  const courierPhone = latestUpdate?.driverPhone ?? null;
+  const courierAvatarUri =
+    (latestUpdate as unknown as { driverAvatarUrl?: string | null })?.driverAvatarUrl ?? null;
+  const restaurantImageUri = displayOrder?.restaurant?.imageUrl ?? null;
+  const restaurantName = displayOrder?.restaurant?.name ?? latestUpdate?.restaurantName ?? '—';
+  const orderNumberLabel = displayOrder?.orderId ? `#${displayOrder.orderId}` : null;
+  const orderedItems = displayOrder?.items ?? [];
+  const orderStatusLabel = formatStatusLabel(latestUpdate?.status ?? displayOrder?.status);
+  const deliveryLocation = displayOrder?.delivery?.location;
+  const restaurantLocation = latestUpdate?.restaurantLocation;
+  const deliveryLat = deliveryLocation?.lat;
+  const deliveryLng = deliveryLocation?.lng;
+  const restaurantLat = restaurantLocation?.lat;
+  const restaurantLng = restaurantLocation?.lng;
+  const deliveryAreaLabel = deliveryArea ?? '—';
+  const deliveryAddressLabel = deliveryAddress ?? '—';
+  const courierNameLabel = courierName ?? '—';
+
+  const driverCoordinate = useMemo(
+    () => buildDriverCoordinate(trackingOrder, latestUpdate),
+    [trackingOrder, latestUpdate],
+  );
+  const destinationCoordinate = useMemo(
+    () => buildDestinationCoordinate(trackingOrder),
+    [trackingOrder],
+  );
+
+  const mapRegion = useMemo<Region | null>(() => {
+    if (driverCoordinate) {
+      return {
+        latitude: driverCoordinate.latitude,
+        longitude: driverCoordinate.longitude,
+        latitudeDelta: 0.025,
+        longitudeDelta: 0.025,
+      } satisfies Region;
+    }
+
+    if (destinationCoordinate) {
+      return {
+        latitude: destinationCoordinate.latitude,
+        longitude: destinationCoordinate.longitude,
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      } satisfies Region;
+    }
+
+    if (Number.isFinite(deliveryLat) && Number.isFinite(deliveryLng)) {
+      return {
+        latitude: Number(deliveryLat),
+        longitude: Number(deliveryLng),
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      } satisfies Region;
+    }
+
+    if (Number.isFinite(restaurantLat) && Number.isFinite(restaurantLng)) {
+      return {
+        latitude: Number(restaurantLat),
+        longitude: Number(restaurantLng),
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      } satisfies Region;
+    }
+
+    return null;
+  }, [destinationCoordinate, driverCoordinate, deliveryLat, deliveryLng, restaurantLat, restaurantLng]);
+
+  const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     }
-  };
+  }, [navigation]);
 
-  const handleCallCourier = () => {};
+  const handleCallCourier = useCallback(() => {
+    if (!courierPhone) {
+      return;
+    }
 
-  const handleSeeDetails = () => {
-    navigation.navigate('CheckoutOrder', { viewMode: true, order });
-  };
+    Linking.openURL(`tel:${courierPhone}`).catch((error) =>
+      console.warn('Failed to initiate courier call.', error),
+    );
+  }, [courierPhone]);
+
+  const handleSeeDetails = useCallback(() => {
+    if (!trackingOrder) {
+      return;
+    }
+    navigation.navigate('CheckoutOrder', { viewMode: true, order: trackingOrder });
+  }, [navigation, trackingOrder]);
 
   const headerMinHeight = useMemo(
     () => Math.max(HEADER_MIN_HEIGHT, insets.top + 56),
@@ -302,12 +448,6 @@ const OrderTrackingScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  const bannerOpacity = scrollY.interpolate({
-    inputRange: [0, headerScrollDistance * 0.6, headerScrollDistance],
-    outputRange: [1, 0.4, 0],
-    extrapolate: 'clamp',
-  });
-
   const contentSpacerHeight = scrollY.interpolate({
     inputRange: [0, headerScrollDistance],
     outputRange: [HEADER_MAX_HEIGHT + 24, headerMinHeight + 12],
@@ -321,24 +461,42 @@ const OrderTrackingScreen: React.FC = () => {
           StyleSheet.absoluteFill,
           { transform: [{ translateY: mapTranslateY }] },
         ]}
-        pointerEvents={collapsed ? 'none' : 'auto'}
+        pointerEvents={collapsed || !mapRegion ? 'none' : 'auto'}
       >
-        <MapView
-          style={StyleSheet.absoluteFill}
-          region={mapRegion}
-          scrollEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          zoomEnabled={false}
-          showsPointsOfInterest={false}
-          showsCompass={false}
-        >
-          <Marker coordinate={driverCoordinate}>
-            <View style={styles.driverMarker}>
-              <Bike size={16} color="white" />
-            </View>
-          </Marker>
-        </MapView>
+        {mapRegion ? (
+          <MapView
+            style={StyleSheet.absoluteFill}
+            region={mapRegion}
+            scrollEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            zoomEnabled={false}
+            showsPointsOfInterest={false}
+            showsCompass={false}
+          >
+            {destinationCoordinate ? (
+              <Marker coordinate={destinationCoordinate}>
+                <View style={styles.destinationMarker}>
+                  <MapPin size={16} color={accentColor} />
+                </View>
+              </Marker>
+            ) : null}
+            {driverCoordinate ? (
+              <Marker coordinate={driverCoordinate}>
+                <View style={styles.driverMarker}>
+                  <Bike size={16} color="white" />
+                </View>
+              </Marker>
+            ) : null}
+          </MapView>
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Bike size={24} color={accentColor} />
+            <Text style={styles.mapPlaceholderText}>
+              Live tracking will appear once the courier shares their location.
+            </Text>
+          </View>
+        )}
       </Animated.View>
 
       <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
@@ -371,103 +529,117 @@ const OrderTrackingScreen: React.FC = () => {
     <View style={styles.stepsCard}>
       <View style={styles.stepsHeader}>
         <Text style={styles.stepsTitle}>Order Steps</Text>
-        <View style={styles.stepsTimer}>
-          <Clock size={18} color={accentColor} />
-          <Text style={styles.stepsTimerText}>4 m 34s</Text>
+        <View style={styles.stepsStatusBadge}>
+          <Text style={styles.stepsStatusText}>{orderStatusLabel}</Text>
         </View>
       </View>
-      {steps.map((step, index) => {
-        const isLast = index === steps.length - 1;
-        const isCompleted = step.state === 'completed';
-        const isActive = step.state === 'active';
-        const isPending = !isCompleted && !isActive;
-        const previousStep = index > 0 ? steps[index - 1] : null;
+      {connectionState !== 'connected' ? (
+        <Text style={styles.stepsConnectionText}>
+          {connectionState === 'connecting'
+            ? 'Connecting to live updates…'
+            : connectionState === 'error'
+              ? 'Reconnecting to live updates…'
+              : 'Waiting for live updates…'}
+        </Text>
+      ) : null}
+      {steps.length ? (
+        steps.map((step, index) => {
+          const isLast = index === steps.length - 1;
+          const isCompleted = step.state === 'completed';
+          const isActive = step.state === 'active';
+          const isPending = !isCompleted && !isActive;
+          const previousStep = index > 0 ? steps[index - 1] : null;
 
-        const topConnectorActive =
-          index > 0 &&
-          (previousStep?.state === 'completed' || previousStep?.state === 'active');
-        const bottomConnectorActive = !isLast && isCompleted;
+          const topConnectorActive =
+            index > 0 &&
+            (previousStep?.state === 'completed' || previousStep?.state === 'active');
+          const bottomConnectorActive = !isLast && isCompleted;
 
-        return (
-          <View
-            key={`${step.key}-${index}`}
-            style={[styles.stepRow, !isLast && styles.stepRowDivider]}
-          >
-            <View style={styles.stepTimeline}>
-              {index > 0 ? (
-                <View
-                  style={[
-                    styles.stepConnector,
-                    styles.stepConnectorTop,
-                    topConnectorActive && styles.stepConnectorActive,
-                  ]}
-                />
-              ) : null}
-
-              <View
-                style={[
-                  styles.stepDot,
-                  isCompleted && styles.stepDotCompleted,
-                  isActive && styles.stepDotActive,
-                  isPending && styles.stepDotPending,
-                ]}
-              >
-                {isCompleted ? (
-                  <Check size={12} color="white" />
-                ) : isActive ? (
-                  <Clock size={12} color={accentColor} />
+          return (
+            <View
+              key={`${step.key}-${index}`}
+              style={[styles.stepRow, !isLast && styles.stepRowDivider]}
+            >
+              <View style={styles.stepTimeline}>
+                {index > 0 ? (
+                  <View
+                    style={[
+                      styles.stepConnector,
+                      styles.stepConnectorTop,
+                      topConnectorActive && styles.stepConnectorActive,
+                    ]}
+                  />
                 ) : null}
-              </View>
 
-              {!isLast ? (
                 <View
                   style={[
-                    styles.stepConnector,
-                    styles.stepConnectorBottom,
-                    bottomConnectorActive && styles.stepConnectorActive,
-                  ]}
-                />
-              ) : null}
-            </View>
-            <View style={styles.stepTexts}>
-              <Text
-                style={[
-                  styles.stepTitle,
-                  (isCompleted || isActive) && styles.stepTitleActive,
-                  isPending && styles.stepTitlePending,
-                ]}
-              >
-                {step.title}
-              </Text>
-              <Text
-                style={[
-                  styles.stepDescription,
-                  isPending && styles.stepDescriptionPending,
-                ]}
-              >
-                {step.description}
-              </Text>
-            </View>
-            <View style={styles.stepMeta}>
-              <View
-                style={[
-                  styles.stepEtaBadge,
-                  isPending && styles.stepEtaBadgePending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.stepEtaText,
-                    isPending && styles.stepEtaTextPending,
+                    styles.stepDot,
+                    isCompleted && styles.stepDotCompleted,
+                    isActive && styles.stepDotActive,
+                    isPending && styles.stepDotPending,
                   ]}
                 >
-                  {step.etaLabel}
+                  {isCompleted ? (
+                    <Check size={12} color="white" />
+                  ) : isActive ? (
+                    <Clock size={12} color={accentColor} />
+                  ) : null}
+                </View>
+
+                {!isLast ? (
+                  <View
+                    style={[
+                      styles.stepConnector,
+                      styles.stepConnectorBottom,
+                      bottomConnectorActive && styles.stepConnectorActive,
+                    ]}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.stepTexts}>
+                <Text
+                  style={[
+                    styles.stepTitle,
+                    (isCompleted || isActive) && styles.stepTitleActive,
+                    isPending && styles.stepTitlePending,
+                  ]}
+                >
+                  {step.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.stepDescription,
+                    isPending && styles.stepDescriptionPending,
+                  ]}
+                >
+                  {step.description}
                 </Text>
               </View>
+              <View style={styles.stepMeta}>
+                <View
+                  style={[
+                    styles.stepEtaBadge,
+                    isPending && styles.stepEtaBadgePending,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stepEtaText,
+                      isPending && styles.stepEtaTextPending,
+                    ]}
+                  >
+                    {step.etaLabel}
+                  </Text>
+                </View>
+              </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })
+      ) : (
+        <Text style={styles.noStepsText}>
+          Tracking information will appear here once the restaurant shares updates.
+        </Text>
+      )}
     </View>
   );
 
@@ -501,34 +673,82 @@ const OrderTrackingScreen: React.FC = () => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <View style={styles.summaryHeaderLeft}>
-              <Image
-                source={{ uri: '../../../assets/baguette.png' }}
-                style={styles.summaryRestaurantImage}
-              />
-              <Text style={styles.summaryTitle}>My Order</Text>
+              {restaurantImageUri ? (
+                <Image
+                  source={{ uri: restaurantImageUri }}
+                  style={styles.summaryRestaurantImage}
+                />
+              ) : (
+                <View style={styles.summaryRestaurantPlaceholder}>
+                  <MapPin size={16} color={accentColor} />
+                </View>
+              )}
+              <View>
+                <Text style={styles.summaryTitle}>My Order</Text>
+                <Text style={styles.summarySubtitle} numberOfLines={1}>
+                  {restaurantName}
+                </Text>
+                <Text style={styles.summarySubtitleSecondary} numberOfLines={1}>
+                  {deliveryAreaLabel}
+                </Text>
+              </View>
             </View>
-            <View style={styles.summaryBadge}>
-              <Text style={styles.summaryBadgeText}>
-                {order?.restaurant?.name ?? 'Your restaurant'}
+            {orderNumberLabel ? (
+              <View style={styles.summaryBadge}>
+                <Text style={styles.summaryBadgeText}>{orderNumberLabel}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.summaryAddressRow}>
+            <MapPin size={16} color={accentColor} />
+            <View style={styles.summaryAddressTexts}>
+              <Text style={styles.summaryAddressTitle}>Deliver to</Text>
+              <Text style={styles.summaryAddressValue} numberOfLines={2}>
+                {deliveryAddressLabel}
               </Text>
             </View>
           </View>
 
           <View style={styles.summaryItems}>
-            {order?.items?.map((item, index) => {
-              const isLast = index === (order?.items?.length ?? 0) - 1;
-              return (
-                <View
-                  key={`${item.menuItem?.id ?? index}-${index}`}
-                  style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
-                >
-                  <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
-                  <Text style={styles.summaryItemName} numberOfLines={1}>
-                    {item.menuItem?.name ?? item.name ?? 'Menu item'}
-                  </Text>
-                </View>
-              );
-            })}
+            {orderedItems.length ? (
+              orderedItems.map((item, index) => {
+                const isLast = index === orderedItems.length - 1;
+                const extrasLabel = formatExtrasLabel(item.extras);
+                const instructions = item.specialInstructions?.trim();
+                const lineTotal = formatCurrency(item.lineTotal);
+                return (
+                  <View
+                    key={`${item.menuItemId}-${index}`}
+                    style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
+                  >
+                    <View style={styles.summaryItemInfo}>
+                      <Text style={styles.summaryItemQuantity}>{item.quantity}x</Text>
+                      <View style={styles.summaryItemTexts}>
+                        <Text style={styles.summaryItemName} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        {extrasLabel ? (
+                          <Text style={styles.summaryItemExtras} numberOfLines={1}>
+                            {extrasLabel}
+                          </Text>
+                        ) : null}
+                        {instructions ? (
+                          <Text style={styles.summaryItemNote} numberOfLines={2}>
+                            {instructions}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    {lineTotal ? <Text style={styles.summaryItemPrice}>{lineTotal}</Text> : null}
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={styles.summaryEmptyText}>
+                Your order items will appear here once the restaurant confirms the menu.
+              </Text>
+            )}
           </View>
 
           <View style={styles.summaryFooter}>
@@ -536,38 +756,58 @@ const OrderTrackingScreen: React.FC = () => {
             <TouchableOpacity
               onPress={handleSeeDetails}
               activeOpacity={0.85}
-              style={styles.summaryDetailsButton}
+              disabled={!trackingOrder}
+              style={[
+                styles.summaryDetailsButton,
+                !trackingOrder && styles.summaryDetailsButtonDisabled,
+              ]}
             >
-              <Text style={styles.summaryDetailsText}>See details</Text>
+              <Text
+                style={[
+                  styles.summaryDetailsText,
+                  !trackingOrder && styles.summaryDetailsTextDisabled,
+                ]}
+              >
+                See details
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.courierStickyCard}>
           <View style={styles.courierInfo}>
-            <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
+            {courierAvatarUri ? (
+              <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
+            ) : (
+              <View style={[styles.courierAvatar, styles.courierAvatarPlaceholder]}>
+                <Bike size={18} color={accentColor} />
+              </View>
+            )}
             <View>
               <Text style={styles.courierStickyLabel}>Delivered by</Text>
-              <Text style={styles.courierStickyName}>{courierName}</Text>
-              <View style={styles.courierStickyRating}>
-                <Star size={14} color={accentColor} fill={accentColor} />
-                <Text style={styles.courierStickyRatingText}>
-                  {courierRating} / 5 ({courierDeliveries})
-                </Text>
-              </View>
+              <Text style={styles.courierStickyName}>{courierNameLabel}</Text>
             </View>
           </View>
           <View style={styles.courierStickyActions}>
             <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.courierActionButton}
+              activeOpacity={courierPhone ? 0.85 : 1}
+              disabled={!courierPhone}
+              style={[
+                styles.courierActionButton,
+                !courierPhone && styles.courierActionButtonDisabled,
+              ]}
               onPress={handleCallCourier}
             >
               <Phone size={18} color={accentColor} />
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.courierActionButton, styles.courierActionButtonSpacing]}
+              disabled
+              style={[
+                styles.courierActionButton,
+                styles.courierActionButtonSpacing,
+                styles.courierActionButtonDisabled,
+              ]}
             >
               <MessageCircle size={18} color={accentColor} />
             </TouchableOpacity>
@@ -624,6 +864,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  mapPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#FFFFFF',
+  },
+  mapPlaceholderText: {
+    marginTop: 12,
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+    color: textSecondary,
   },
   backButton: {
     width: 44,
@@ -686,6 +940,16 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'white',
   },
+  destinationMarker: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: accentColor,
+  },
   stepsCard: {
     backgroundColor: softSurface,
     borderRadius: 26,
@@ -708,16 +972,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: textPrimary,
-  },
-  stepsTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stepsTimerText: {
-    marginLeft: 8,
-    color: accentColor,
-    fontSize: 13,
-    fontWeight: '700',
   },
   stepRow: {
     flexDirection: 'row',
@@ -800,25 +1054,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     width: 78,
   },
-  stepStatusBadge: {
+  stepsStatusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#F1F5F9',
   },
-  stepStatusBadgeCompleted: {
-    backgroundColor: '#DCF0EA',
-  },
-  stepStatusBadgeActive: {
-    backgroundColor: accentColor,
-  },
-  stepStatusLabel: {
-    fontSize: 11,
+  stepsStatusText: {
+    fontSize: 12,
     fontWeight: '600',
     color: accentColor,
   },
-  stepStatusLabelContrast: {
-    color: 'white',
+  stepsConnectionText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 16,
   },
   stepEtaBadge: {
     marginTop: 8,
@@ -838,6 +1088,12 @@ const styles = StyleSheet.create({
   stepEtaTextPending: {
     color: '#9CA3AF',
     fontWeight: '600',
+  },
+  noStepsText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#94A3B8',
   },
   summaryCard: {
     backgroundColor: softSurface,
@@ -868,10 +1124,29 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: '#F1F5F9',
   },
+  summaryRestaurantPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FDE6E3',
+  },
   summaryTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: textPrimary,
+  },
+  summarySubtitle: {
+    fontSize: 12,
+    color: textSecondary,
+    fontWeight: '500',
+  },
+  summarySubtitleSecondary: {
+    fontSize: 11,
+    color: '#A0AEC0',
+    marginTop: 2,
   },
   summaryBadge: {
     backgroundColor: '#FDE6E3',
@@ -884,26 +1159,77 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  summaryAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  summaryAddressTexts: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  summaryAddressTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: textSecondary,
+    textTransform: 'uppercase',
+  },
+  summaryAddressValue: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    color: textPrimary,
+  },
   summaryItems: {
     marginBottom: 10,
   },
   summaryItemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   summaryItemRowSpacing: {
     marginBottom: 6,
+  },
+  summaryItemInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
   },
   summaryItemQuantity: {
     fontSize: 11,
     fontWeight: '600',
     color: accentColor,
     marginRight: 8,
+    marginTop: 2,
+  },
+  summaryItemTexts: {
+    flex: 1,
   },
   summaryItemName: {
-    flex: 1,
     fontSize: 12,
+    fontWeight: '600',
     color: textPrimary,
+  },
+  summaryItemExtras: {
+    marginTop: 4,
+    fontSize: 11,
+    color: textSecondary,
+  },
+  summaryItemNote: {
+    marginTop: 2,
+    fontSize: 11,
+    color: '#A0AEC0',
+  },
+  summaryItemPrice: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: textPrimary,
+    marginLeft: 12,
+  },
+  summaryEmptyText: {
+    fontSize: 12,
+    color: '#94A3B8',
   },
   summaryFooter: {
     marginTop: 10,
@@ -922,10 +1248,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     backgroundColor: accentColor,
   },
+  summaryDetailsButtonDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
   summaryDetailsText: {
     color: 'white',
     fontSize: 11,
     fontWeight: '600',
+  },
+  summaryDetailsTextDisabled: {
+    color: accentColor,
   },
   bottomSheet: {
     position: 'absolute',
@@ -963,6 +1295,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#F1F5F9',
   },
+  courierAvatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   courierStickyLabel: {
     color: textSecondary,
     fontSize: 11,
@@ -973,16 +1309,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: textPrimary,
-  },
-  courierStickyRating: {
-    marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  courierStickyRatingText: {
-    marginLeft: 6,
-    fontSize: 11,
-    color: textSecondary,
   },
   courierStickyActions: {
     flexDirection: 'row',
@@ -998,5 +1324,8 @@ const styles = StyleSheet.create({
   },
   courierActionButtonSpacing: {
     marginLeft: 8,
+  },
+  courierActionButtonDisabled: {
+    backgroundColor: '#E2E8F0',
   },
 });

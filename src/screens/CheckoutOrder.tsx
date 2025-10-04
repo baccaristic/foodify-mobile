@@ -28,6 +28,7 @@ import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import { createOrder } from '~/api/orders';
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
+import useOrderTracking from '~/hooks/useOrderTracking';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -200,6 +201,7 @@ const CheckoutOrder: React.FC = () => {
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
+  const { beginTrackingOrder } = useOrderTracking();
   const [itemsExpanded, setItemsExpanded] = useState(true);
   const [allergiesExpanded, setAllergiesExpanded] = useState(false);
   const [commentExpanded, setCommentExpanded] = useState(false);
@@ -474,6 +476,8 @@ const CheckoutOrder: React.FC = () => {
       };
 
       const response = await createOrder(payload);
+      beginTrackingOrder(response);
+
       clearCart();
       setAppliedCoupon(null);
       setComment('');
@@ -513,6 +517,7 @@ const CheckoutOrder: React.FC = () => {
     combinedInstructions,
     clearCart,
     navigation,
+    beginTrackingOrder,
   ]);
 
   const canSubmit =
