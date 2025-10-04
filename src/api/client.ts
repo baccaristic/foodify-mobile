@@ -1,5 +1,5 @@
-import axios from "axios";
 import { BASE_API_URL } from "@env";
+import axios from "axios";
 
 let accessToken: string | null = null;
 

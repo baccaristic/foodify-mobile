@@ -7,39 +7,32 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { BASE_WS_URL } from '@env';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 import useAuth from '~/hooks/useAuth';
-
-type SendMessageData = Parameters<WebSocket['send']>[0];
+import { BASE_WS_URL } from '@env';
 
 interface WebSocketContextValue {
-  socket: WebSocket | null;
+  client: Client | null;
   isConnected: boolean;
-  sendMessage: (data: SendMessageData) => void;
+  sendMessage: (destination: string, body: any) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, requiresAuth } = useAuth();
-  const socketRef = useRef<WebSocket | null>(null);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // Disconnect if auth not ready
     if (!requiresAuth || !accessToken) {
-      const existingSocket = socketRef.current;
-      if (existingSocket) {
-        if (
-          existingSocket.readyState === WebSocket.OPEN ||
-          existingSocket.readyState === WebSocket.CONNECTING
-        ) {
-          existingSocket.close();
-        }
+      if (clientRef.current) {
+        clientRef.current.deactivate();
+        clientRef.current = null;
       }
-      socketRef.current = null;
-      setSocket(null);
       setIsConnected(false);
       return;
     }
@@ -49,79 +42,72 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const nextSocket = new WebSocket(BASE_WS_URL, undefined, {
-      headers: {
+    // Create SockJS-backed STOMP client
+    const stompClient = new Client({
+      // If backend only supports SockJS:
+      webSocketFactory: () => new SockJS(BASE_WS_URL + ''),
+      // If backend supports plain WebSocket, you can use this instead:
+      // brokerURL: `${BASE_WS_URL.replace(/^http/, 'ws')}`,
+
+      connectHeaders: {
         Authorization: `Bearer ${accessToken}`,
       },
+      debug: (msg) => console.log('[STOMP]', msg),
+      reconnectDelay: 5000, // Auto-reconnect
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
     });
 
-    socketRef.current = nextSocket;
-    setSocket(nextSocket);
-
-    const handleOpen = () => {
+    stompClient.onConnect = () => {
+      console.log('✅ STOMP connected');
       setIsConnected(true);
     };
 
-    const handleClose = () => {
+    stompClient.onDisconnect = () => {
+      console.log('❌ STOMP disconnected');
       setIsConnected(false);
     };
 
-    const handleError = (event: WebSocketErrorEvent) => {
-      console.warn('WebSocket encountered an error.', event.message);
+    stompClient.onStompError = (frame) => {
+      console.error('Broker error:', frame.headers['message'], frame.body);
     };
 
-    const handleMessage = (event: WebSocketMessageEvent) => {
-      console.log('WebSocket message received:', event.data);
-    };
-
-    nextSocket.onopen = handleOpen;
-    nextSocket.onclose = handleClose;
-    nextSocket.onerror = (event) => {
-      handleError(event);
-      handleClose();
-    };
-    nextSocket.onmessage = handleMessage;
+    stompClient.activate();
+    clientRef.current = stompClient;
 
     return () => {
-      nextSocket.onopen = null;
-      nextSocket.onclose = null;
-      nextSocket.onerror = null;
-      nextSocket.onmessage = null;
-
-      if (
-        nextSocket.readyState === WebSocket.OPEN ||
-        nextSocket.readyState === WebSocket.CONNECTING
-      ) {
-        nextSocket.close();
-      }
-
-      if (socketRef.current === nextSocket) {
-        socketRef.current = null;
-      }
-
-      setSocket((currentSocket) => (currentSocket === nextSocket ? null : currentSocket));
+      console.log('🧹 Cleaning up STOMP connection...');
+      stompClient.deactivate();
+      clientRef.current = null;
       setIsConnected(false);
     };
   }, [accessToken, requiresAuth]);
 
-  const sendMessage = useCallback((data: SendMessageData) => {
-    const currentSocket = socketRef.current;
+  const sendMessage = useCallback((destination: string, body: any) => {
+    const client = clientRef.current;
 
-    if (!currentSocket || currentSocket.readyState !== WebSocket.OPEN) {
-      console.warn('Unable to send message. WebSocket is not connected.');
+    if (!client || !client.connected) {
+      console.warn('Unable to send message — STOMP client not connected.');
       return;
     }
 
-    currentSocket.send(data);
+    try {
+      client.publish({
+        destination,
+        body: typeof body === 'string' ? body : JSON.stringify(body),
+      });
+    } catch (err) {
+      console.error('Error sending STOMP message:', err);
+    }
   }, []);
 
   const value = useMemo<WebSocketContextValue>(
     () => ({
-      socket,
+      client: clientRef.current,
       isConnected,
       sendMessage,
     }),
-    [socket, isConnected, sendMessage],
+    [isConnected, sendMessage],
   );
 
   return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
@@ -129,10 +115,8 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
 export const useWebSocketContext = () => {
   const context = React.useContext(WebSocketContext);
-
   if (!context) {
     throw new Error('useWebSocketContext must be used within a WebSocketProvider');
   }
-
   return context;
 };
