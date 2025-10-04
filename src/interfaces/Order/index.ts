@@ -1,11 +1,16 @@
 export type OrderStatus =
   | 'PENDING'
+  | 'ACCEPTED'
   | 'CONFIRMED'
   | 'PREPARING'
+  | 'READY_FOR_PICK_UP'
   | 'READY_FOR_PICKUP'
+  | 'IN_DELIVERY'
   | 'IN_TRANSIT'
   | 'DELIVERED'
+  | 'CANCELED'
   | 'CANCELLED'
+  | 'REJECTED'
   | string;
 
 export type MonetaryAmount = number | string;
