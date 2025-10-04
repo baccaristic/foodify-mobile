@@ -1,61 +1,110 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { requestPushNotificationPermissions } from '~/services/notifications';
 
 const NotifLogo = () => (
-    <View className="w-36 h-36 bg-transparent mb-10 ">
-        <Image
-            source={require('assets/notif.png')}
-            className="w-full h-full"
-            resizeMode="contain"
-        />
-        <View  />
-    </View>
+  <View className="w-36 h-36 bg-transparent mb-10">
+    <Image
+      source={require('assets/notif.png')}
+      className="w-full h-full"
+      resizeMode="contain"
+    />
+  </View>
 );
+
 const Notification = () => {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const NEXT_SCREEN = 'AppHome';
+  const NEXT_SCREEN = 'Home';
 
-    const handleEnableNotifications = () => {
-    navigation.goBack();
-    };
+  const handleEnableNotifications = useCallback(async () => {
+    if (isProcessing) {
+      return;
+    }
 
-    const handleSkip = () => {
-        navigation.navigate('Home'  as never);
-    };
+    setIsProcessing(true);
+    setErrorMessage(null);
 
-    return (
-        <View className="flex-1 bg-white p-6 justify-between pt-20 pb-10">
-            
-            <View className=" items-center px-4">
-                
-               <NotifLogo/>
-                
-                <Text allowFontScaling={false} className="text-3xl   mb-4 text-black">
-                    Always know the status of your order
-                </Text>
-                
-                <Text allowFontScaling={false} className="text-base text-gray-700  leading-relaxed mb-12">
-                    Push notification are used to provide updates on your order. You can change this in settings at any time.
-                </Text>
-                <TouchableOpacity
-                    className="w-full h-14 bg-[#17213A] rounded-lg justify-center items-center mb-4"
-                    onPress={handleEnableNotifications}
-                >
-                    <Text allowFontScaling={false} className="text-white font-semibold text-lg">Enable Push Notifiaction</Text>
-                </TouchableOpacity>
+    try {
+      const result = await requestPushNotificationPermissions();
 
-                <TouchableOpacity
-                    className="w-full h-14 rounded-lg justify-center items-center"
-                    onPress={handleSkip}
-                >
-                    <Text allowFontScaling={false} className="text-gray-600 font-semibold text-lg">Skip for now</Text>
-                </TouchableOpacity>
-            </View>
+      if (result.granted) {
+        navigation.navigate(NEXT_SCREEN as never);
+        return;
+      }
 
-        </View>
-    );
+      if (result.error) {
+        setErrorMessage(result.error);
+      } else if (!result.isDevice) {
+        setErrorMessage('Push notifications are only supported on physical devices.');
+      } else if (!result.canAskAgain) {
+        setErrorMessage('Enable notifications from your device settings to receive order updates.');
+      } else {
+        setErrorMessage('We need permission to send you order status notifications.');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isProcessing, navigation]);
+
+  const handleSkip = () => {
+    navigation.navigate(NEXT_SCREEN as never);
+  };
+
+  return (
+    <View className="flex-1 bg-white p-6 justify-between pt-20 pb-10">
+      <View className="items-center px-4">
+        <NotifLogo />
+
+        <Text allowFontScaling={false} className="text-3xl mb-4 text-black text-center">
+          Always know the status of your order
+        </Text>
+
+        <Text
+          allowFontScaling={false}
+          className="text-base text-gray-700 leading-relaxed mb-12 text-center"
+        >
+          Push notifications are used to provide updates on your order. You can change this in
+          settings at any time.
+        </Text>
+
+        <TouchableOpacity
+          className={`w-full h-14 bg-[#17213A] rounded-lg justify-center items-center mb-4 ${
+            isProcessing ? 'opacity-70' : ''
+          }`}
+          onPress={handleEnableNotifications}
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text allowFontScaling={false} className="text-white font-semibold text-lg">
+              Enable Push Notifications
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        {errorMessage ? (
+          <Text allowFontScaling={false} className="text-sm text-red-500 text-center mb-4">
+            {errorMessage}
+          </Text>
+        ) : null}
+
+        <TouchableOpacity
+          className="w-full h-14 rounded-lg justify-center items-center"
+          onPress={handleSkip}
+          disabled={isProcessing}
+        >
+          <Text allowFontScaling={false} className="text-gray-600 font-semibold text-lg">
+            Skip for now
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 };
 
 export default Notification;
