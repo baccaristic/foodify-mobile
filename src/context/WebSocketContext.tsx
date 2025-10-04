@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import * as Notifications from 'expo-notifications';
 
 import useAuth from '~/hooks/useAuth';
 import { BASE_WS_URL } from '@env';
@@ -21,10 +22,62 @@ interface WebSocketContextValue {
 
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
+type OrderStatusHistoryEntry = {
+  action: string;
+  previousStatus: string | null;
+  newStatus: string;
+  changedBy?: string;
+  reason?: string | null;
+  metadata?: unknown;
+  changedAt: string;
+};
+
+type OrderUpdatePayload = {
+  orderId?: number;
+  status?: string;
+  statusHistory?: OrderStatusHistoryEntry[];
+  [key: string]: unknown;
+};
+
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, requiresAuth, user } = useAuth();
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  const displayOrderStatusNotification = useCallback(async (payload: OrderUpdatePayload) => {
+    const { orderId, status, statusHistory } = payload;
+
+    const latestStatus = statusHistory?.length
+      ? statusHistory[statusHistory.length - 1]?.newStatus ?? status
+      : status;
+
+    const orderIdentifier = orderId ? `Order #${orderId}` : 'Your order';
+
+    const formattedStatus = latestStatus
+      ? latestStatus
+          .toString()
+          .toLowerCase()
+          .split('_')
+          .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+          .join(' ')
+      : 'has been updated';
+
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `${orderIdentifier} update`,
+          body: latestStatus ? `${orderIdentifier} is now ${formattedStatus}.` : `${orderIdentifier} has a new update.`,
+          data: {
+            orderId: orderId ?? null,
+            status: latestStatus ?? null,
+          },
+        },
+        trigger: null,
+      });
+    } catch (error) {
+      console.warn('Failed to schedule order update notification:', error);
+    }
+  }, []);
 
   useEffect(() => {
     if (!requiresAuth || !accessToken) {
@@ -57,11 +110,11 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ STOMP connected');
       setIsConnected(true);
 
-      const subscription = stompClient.subscribe(`/user/${user?.id}/queue/orders`, (message: IMessage) => {
+      stompClient.subscribe(`/user/${user?.id}/queue/orders`, (message: IMessage) => {
         try {
           const data = JSON.parse(message.body);
           console.log('📦 Received order update:', data);
-          // 👉 You can dispatch to context/global state here if needed
+          displayOrderStatusNotification(data as OrderUpdatePayload);
         } catch {
           console.warn('Received non-JSON message from /user/queue/orders:', message.body);
         }
@@ -85,7 +138,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       clientRef.current = null;
       setIsConnected(false);
     };
-  }, [accessToken, requiresAuth]);
+  }, [accessToken, requiresAuth, user?.id, displayOrderStatusNotification]);
 
   const sendMessage = useCallback((destination: string, body: any) => {
     const client = clientRef.current;
