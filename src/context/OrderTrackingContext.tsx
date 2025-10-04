@@ -58,6 +58,29 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
   const hasSubscribedRef = useRef(false);
   const activeOrderIdRef = useRef<number | null>(null);
   const initialLoadRef = useRef(false);
+  const lastConnectedHostRef = useRef<string | null>(null);
+
+  const isReactNativeEnvironment =
+    typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
+
+  const buildAuthorizedWebSocketUrl = useCallback(
+    (baseUrl: string, token: string): string => {
+      if (isReactNativeEnvironment) {
+        return baseUrl;
+      }
+
+      try {
+        const url = new URL(baseUrl);
+        url.searchParams.set('access_token', token);
+        return url.toString();
+      } catch (error) {
+        console.warn('Failed to append token to websocket URL, falling back to query string concat.', error);
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${separator}access_token=${encodeURIComponent(token)}`;
+      }
+    },
+    [isReactNativeEnvironment],
+  );
 
   useEffect(() => {
     activeOrderIdRef.current = activeOrderId;
@@ -167,7 +190,7 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
   }, [activeOrderId]);
 
   useEffect(() => {
-    if (!accessToken || activeOrderId == null) {
+    if (!accessToken) {
       setConnectionState('idle');
 
       if (reconnectTimeoutRef.current) {
@@ -179,35 +202,99 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
       websocketRef.current = null;
 
       if (socket) {
-        if (socket.readyState === WebSocket.OPEN) {
-          try {
-            socket.close();
-          } catch {
-            // ignore
+        try {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(buildStompFrame('DISCONNECT', {}));
           }
-        } else {
+        } catch (error) {
+          console.warn('Failed to send disconnect frame.', error);
+        }
+
+        try {
           socket.close();
+        } catch (error) {
+          console.warn('Failed to close websocket connection.', error);
         }
       }
+
+      hasSubscribedRef.current = false;
+      lastConnectedHostRef.current = null;
 
       return undefined;
     }
 
     const { url, hostHeader } = resolveWebSocketUrl(BASE_API_URL);
+    lastConnectedHostRef.current = hostHeader;
     let cancelled = false;
 
-    const connect = () => {
+    const clearReconnectTimer = () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+    };
+
+    const closeSocket = (sendDisconnect: boolean) => {
+      const socket = websocketRef.current;
+      if (!socket) {
+        return;
+      }
+
+      websocketRef.current = null;
+
+      if (sendDisconnect && socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(buildStompFrame('DISCONNECT', {}));
+        } catch (error) {
+          console.warn('Failed to send disconnect frame.', error);
+        }
+      }
+
+      try {
+        socket.close();
+      } catch (error) {
+        console.warn('Failed to close websocket connection.', error);
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectTimeoutRef.current) {
+        return;
+      }
+
+      reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectTimeoutRef.current = null;
+        if (!cancelled) {
+          openSocket();
+        }
+      }, 5000);
+    };
+
+    const openSocket = () => {
       if (cancelled) {
         return;
       }
 
+      clearReconnectTimer();
       setConnectionState('connecting');
 
-      const socket = new WebSocket(url, [], {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      let socket: WebSocket | null = null;
+
+      try {
+        const targetUrl = buildAuthorizedWebSocketUrl(url, accessToken);
+        socket = isReactNativeEnvironment
+          ? new WebSocket(url, undefined, {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            })
+          : new WebSocket(targetUrl);
+      } catch (error) {
+        console.warn('Failed to initialise order tracking websocket.', error);
+        setConnectionState('error');
+        scheduleReconnect();
+        return;
+      }
 
       websocketRef.current = socket;
       hasSubscribedRef.current = false;
@@ -217,14 +304,18 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
           return;
         }
 
-        socket.send(
-          buildStompFrame('CONNECT', {
-            'accept-version': '1.2',
-            host: hostHeader,
-            Authorization: `Bearer ${accessToken}`,
-            'heart-beat': '0,0',
-          }),
-        );
+        try {
+          socket?.send(
+            buildStompFrame('CONNECT', {
+              'accept-version': '1.2',
+              host: lastConnectedHostRef.current ?? hostHeader,
+              Authorization: `Bearer ${accessToken}`,
+              'heart-beat': '0,0',
+            }),
+          );
+        } catch (error) {
+          console.warn('Failed to send STOMP CONNECT frame.', error);
+        }
       };
 
       socket.onmessage = (event) => {
@@ -236,16 +327,23 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
           const command = frame.command.toUpperCase();
 
           if (command === 'CONNECTED') {
-            setConnectionState('connected');
+            if (!cancelled) {
+              setConnectionState('connected');
+            }
+
             if (!hasSubscribedRef.current) {
-              socket.send(
-                buildStompFrame('SUBSCRIBE', {
-                  id: `order-tracking-${activeOrderId}`,
-                  destination: '/user/queue/orders',
-                  ack: 'auto',
-                }),
-              );
-              hasSubscribedRef.current = true;
+              try {
+                socket?.send(
+                  buildStompFrame('SUBSCRIBE', {
+                    id: 'order-tracking',
+                    destination: '/user/queue/orders',
+                    ack: 'auto',
+                  }),
+                );
+                hasSubscribedRef.current = true;
+              } catch (error) {
+                console.warn('Failed to subscribe to order queue.', error);
+              }
             }
             return;
           }
@@ -275,7 +373,9 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
           }
 
           if (command === 'ERROR') {
-            setConnectionState('error');
+            if (!cancelled) {
+              setConnectionState('error');
+            }
           }
         });
       };
@@ -291,52 +391,21 @@ export const OrderTrackingProvider = ({ children }: { children: ReactNode }) => 
           return;
         }
 
+        websocketRef.current = null;
+        hasSubscribedRef.current = false;
         setConnectionState('connecting');
-
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-        }
-
-        reconnectTimeoutRef.current = setTimeout(() => {
-          reconnectTimeoutRef.current = null;
-          connect();
-        }, 5000);
+        scheduleReconnect();
       };
     };
 
-    connect();
+    openSocket();
 
     return () => {
       cancelled = true;
-
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-
-      const socket = websocketRef.current;
-      websocketRef.current = null;
-
-      if (socket) {
-        if (socket.readyState === WebSocket.OPEN) {
-          try {
-            socket.send(buildStompFrame('DISCONNECT', {}));
-          } catch (error) {
-            console.warn('Failed to send disconnect frame.', error);
-          }
-          socket.close();
-        } else {
-          socket.close();
-        }
-      }
+      clearReconnectTimer();
+      closeSocket(true);
     };
-  }, [accessToken, activeOrderId]);
-
-  useEffect(() => {
-    if (activeOrderId == null) {
-      setConnectionState('idle');
-    }
-  }, [activeOrderId]);
+  }, [accessToken, buildAuthorizedWebSocketUrl, isReactNativeEnvironment]);
 
   const value = useMemo<OrderTrackingContextValue>(
     () => ({
