@@ -7,7 +7,7 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { Client } from '@stomp/stompjs';
+import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 import useAuth from '~/hooks/useAuth';
@@ -22,12 +22,11 @@ interface WebSocketContextValue {
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
-  const { accessToken, requiresAuth } = useAuth();
+  const { accessToken, requiresAuth, user } = useAuth();
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Disconnect if auth not ready
     if (!requiresAuth || !accessToken) {
       if (clientRef.current) {
         clientRef.current.deactivate();
@@ -42,25 +41,31 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Create SockJS-backed STOMP client
     const stompClient = new Client({
-      // If backend only supports SockJS:
-      webSocketFactory: () => new SockJS(BASE_WS_URL + ''),
-      // If backend supports plain WebSocket, you can use this instead:
-      // brokerURL: `${BASE_WS_URL.replace(/^http/, 'ws')}`,
-
+      webSocketFactory: () => new SockJS(BASE_WS_URL),
       connectHeaders: {
         Authorization: `Bearer ${accessToken}`,
       },
       debug: (msg) => console.log('[STOMP]', msg),
-      reconnectDelay: 5000, // Auto-reconnect
+      reconnectDelay: 5000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
     });
 
+    // ✅ Subscribe to personal user queue once connected
     stompClient.onConnect = () => {
       console.log('✅ STOMP connected');
       setIsConnected(true);
+
+      const subscription = stompClient.subscribe(`/user/${user?.id}/queue/orders`, (message: IMessage) => {
+        try {
+          const data = JSON.parse(message.body);
+          console.log('📦 Received order update:', data);
+          // 👉 You can dispatch to context/global state here if needed
+        } catch {
+          console.warn('Received non-JSON message from /user/queue/orders:', message.body);
+        }
+      });
     };
 
     stompClient.onDisconnect = () => {
@@ -76,7 +81,6 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     clientRef.current = stompClient;
 
     return () => {
-      console.log('🧹 Cleaning up STOMP connection...');
       stompClient.deactivate();
       clientRef.current = null;
       setIsConnected(false);
@@ -85,7 +89,6 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 
   const sendMessage = useCallback((destination: string, body: any) => {
     const client = clientRef.current;
-
     if (!client || !client.connected) {
       console.warn('Unable to send message — STOMP client not connected.');
       return;
