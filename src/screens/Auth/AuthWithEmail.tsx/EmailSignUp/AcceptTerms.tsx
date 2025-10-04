@@ -3,13 +3,13 @@ import { useNavigation } from '@react-navigation/native';
 import BackButtonHeader from '~/components/BackButtonHeader';
 
 const FoodifyLogo = () => (
-    <View className="w-20 h-20 bg-transparent mb-10 items-center justify-center">
+    <View className="w-36 h-20 bg-transparent mb-10 ">
         <Image
-            
+            source={require('assets/logo.png')}
             className="w-full h-full"
             resizeMode="contain"
         />
-        <View className="absolute w-12 h-12 bg-red-600 rounded-full opacity-50" />
+        <View  />
     </View>
 );
 

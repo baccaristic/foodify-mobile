@@ -37,6 +37,7 @@ import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
+import Notification from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/Notifications';
 
 const Stack = createNativeStackNavigator();
 
@@ -146,6 +147,7 @@ const RootNavigator = () => {
             <Stack.Screen name="PhoneNameEntry" component={PhoneNameEntry} />
             <Stack.Screen name="PhoneAcceptTerms" component={PhoneAcceptTerms} />
             <Stack.Screen name="EmailVerificationCode" component={EmailVerificationCode} />
+            <Stack.Screen name="Notification" component={Notification} />
           </Stack.Group>
         </>
       )}

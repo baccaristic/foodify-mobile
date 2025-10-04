@@ -19,7 +19,7 @@ const LocationAccess = () => {
     const result = await requestLocationAccess();
 
     if (result.granted) {
-      navigation.goBack();
+      navigation.navigate('Notification');
     } else {
       if (!result.permissionGranted && !result.canAskAgain) {
         setErrorMessage('Please enable location permissions in Settings to continue.');
