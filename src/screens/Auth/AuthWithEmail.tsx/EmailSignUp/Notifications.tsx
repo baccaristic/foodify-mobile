@@ -13,7 +13,12 @@ const NotifLogo = () => (
   </View>
 );
 
-const Notification = () => {
+type NotificationProps = {
+  onComplete?: () => void;
+  onSkip?: () => void;
+};
+
+const Notification = ({ onComplete, onSkip }: NotificationProps) => {
   const navigation = useNavigation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -32,6 +37,7 @@ const Notification = () => {
       const result = await requestPushNotificationPermissions();
 
       if (result.granted) {
+        onComplete?.();
         navigation.navigate(NEXT_SCREEN as never);
         return;
       }
@@ -48,9 +54,10 @@ const Notification = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, navigation]);
+  }, [isProcessing, navigation, onComplete]);
 
   const handleSkip = () => {
+    onSkip?.();
     navigation.navigate(NEXT_SCREEN as never);
   };
 

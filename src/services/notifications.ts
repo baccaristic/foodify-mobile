@@ -12,7 +12,22 @@ export type PushNotificationPermissionResult = {
   error?: string;
 };
 
+type PushPermissionOptions = {
+  request: boolean;
+};
+
+export async function checkPushNotificationPermissions(): Promise<PushNotificationPermissionResult> {
+  return evaluatePushNotificationPermissions({ request: false });
+}
+
 export async function requestPushNotificationPermissions(): Promise<PushNotificationPermissionResult> {
+  return evaluatePushNotificationPermissions({ request: true });
+}
+
+async function evaluatePushNotificationPermissions(
+  options: PushPermissionOptions,
+): Promise<PushNotificationPermissionResult> {
+  const { request } = options;
   const isDevice = Device.isDevice;
 
   if (!isDevice) {
@@ -29,7 +44,7 @@ export async function requestPushNotificationPermissions(): Promise<PushNotifica
   try {
     let permissions = await Notifications.getPermissionsAsync();
 
-    if (!permissions.granted && permissions.canAskAgain) {
+    if (request && !permissions.granted && permissions.canAskAgain) {
       permissions = await Notifications.requestPermissionsAsync();
     }
 
@@ -61,13 +76,17 @@ export async function requestPushNotificationPermissions(): Promise<PushNotifica
       error: tokenError,
     };
   } catch (error) {
+    const fallbackMessage = request
+      ? 'Failed to request notification permissions.'
+      : 'Failed to check notification permissions.';
+
     return {
       granted: false,
       status: 'undetermined',
       canAskAgain: false,
       expoPushToken: null,
       isDevice,
-      error: error instanceof Error ? error.message : 'Failed to request notification permissions.',
+      error: error instanceof Error ? error.message : fallbackMessage,
     };
   }
 }
