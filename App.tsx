@@ -37,6 +37,7 @@ import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
+import { checkPushNotificationPermissions } from '~/services/notifications';
 import Notification from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/Notifications';
 
 const Stack = createNativeStackNavigator();
@@ -51,6 +52,8 @@ const RootNavigator = () => {
   const { user, isLoading } = useAuth();
   const [locationCheckComplete, setLocationCheckComplete] = useState(false);
   const [needsLocationPermission, setNeedsLocationPermission] = useState(false);
+  const [notificationCheckComplete, setNotificationCheckComplete] = useState(false);
+  const [needsNotificationPermission, setNeedsNotificationPermission] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +61,8 @@ const RootNavigator = () => {
     if (!user) {
       setNeedsLocationPermission(false);
       setLocationCheckComplete(true);
+      setNeedsNotificationPermission(false);
+      setNotificationCheckComplete(true);
       return () => {
         cancelled = true;
       };
@@ -87,19 +92,54 @@ const RootNavigator = () => {
     };
   }, [user]);
 
-  if (isLoading || (user && !locationCheckComplete)) {
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let cancelled = false;
+
+    setNotificationCheckComplete(false);
+
+    checkPushNotificationPermissions()
+      .then((result) => {
+        if (!cancelled) {
+          setNeedsNotificationPermission(result.isDevice ? !result.granted : false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setNeedsNotificationPermission(false);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setNotificationCheckComplete(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  if (isLoading || (user && (!locationCheckComplete || !notificationCheckComplete))) {
     return <LoadingView />;
   }
 
   const navigationKey = user
     ? needsLocationPermission
       ? 'auth-stack-location'
+      : needsNotificationPermission
+      ? 'auth-stack-notification'
       : 'auth-stack'
     : 'guest-stack';
 
   const initialRouteName = user
     ? needsLocationPermission
       ? 'LocationPermission'
+      : needsNotificationPermission
+      ? 'Notification'
       : 'Home'
     : 'Guest';
 
@@ -111,12 +151,23 @@ const RootNavigator = () => {
     >
       {user ? (
         <>
-          <Stack.Screen name="LocationPermission">
+          <Stack.Screen
+            name="LocationPermission"
+            initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}
+          >
             {(props) => (
               <LocationPermissionScreen
                 {...props}
                 onComplete={() => setNeedsLocationPermission(false)}
                 onSkip={() => setNeedsLocationPermission(false)}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Notification">
+            {() => (
+              <Notification
+                onComplete={() => setNeedsNotificationPermission(false)}
+                onSkip={() => setNeedsNotificationPermission(false)}
               />
             )}
           </Stack.Screen>
