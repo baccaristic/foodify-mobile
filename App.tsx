@@ -151,7 +151,10 @@ const RootNavigator = () => {
     >
       {user ? (
         <>
-          <Stack.Screen name="LocationPermission">
+          <Stack.Screen
+            name="LocationPermission"
+            initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}
+          >
             {(props) => (
               <LocationPermissionScreen
                 {...props}
