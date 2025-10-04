@@ -7,6 +7,7 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import * as Notifications from 'expo-notifications';
@@ -43,6 +44,17 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, requiresAuth, user } = useAuth();
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      appStateRef.current = nextState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const displayOrderStatusNotification = useCallback(async (payload: OrderUpdatePayload) => {
     const { orderId, status, statusHistory } = payload;
@@ -63,15 +75,24 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       : 'has been updated';
 
     try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `${orderIdentifier} update`,
-          body: latestStatus ? `${orderIdentifier} is now ${formattedStatus}.` : `${orderIdentifier} has a new update.`,
-          data: {
-            orderId: orderId ?? null,
-            status: latestStatus ?? null,
-          },
+      const notificationInput = {
+        title: `${orderIdentifier} update`,
+        body: latestStatus
+          ? `${orderIdentifier} is now ${formattedStatus}.`
+          : `${orderIdentifier} has a new update.`,
+        data: {
+          orderId: orderId ?? null,
+          status: latestStatus ?? null,
         },
+      } satisfies Notifications.NotificationContentInput;
+
+      if (appStateRef.current === 'active') {
+        await Notifications.presentNotificationAsync({ content: notificationInput });
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: notificationInput,
         trigger: null,
       });
     } catch (error) {
