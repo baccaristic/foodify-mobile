@@ -101,13 +101,13 @@ export default function HomePage() {
         <Header
           title="San Francisco Bay Area"
           onBack={() => console.log("not working now !")}
-          onLocationPress={() => console.log("Location pressed")}
           compact
         />
-        <View style={styles.searchBar}>
+        <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate('Search' as never)}
+        >
           <Text allowFontScaling={false} style={styles.searchPlaceholder}>Ready to eat?</Text>
           <Search size={s(18)} color="black" />
-        </View>
+        </TouchableOpacity>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -123,7 +123,7 @@ export default function HomePage() {
           ].map((item, idx) => (
             <TouchableOpacity key={idx} style={styles.categoryEqualWidth}>
               <View style={styles.categoryIconWrapper}>
-                <item.icon size={s(32)} color="red" />
+                <item.icon size={s(32)} color="#CA251B" />
               </View>
               <View style={styles.categoryTextContainer}>
                 <Text

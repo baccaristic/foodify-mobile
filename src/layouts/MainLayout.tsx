@@ -297,7 +297,7 @@ export default function MainLayout({
       {headerNode}
 
       <Animated.ScrollView
-        style={[styles.scrollView, !collapseEnabled && styles.staticScrollView]}
+        style={[styles.scrollView]}
         contentContainerStyle={{
           paddingTop: collapseEnabled ? vs(10) : vs(20),
           paddingBottom: showFooter ? vs(80) : vs(20),

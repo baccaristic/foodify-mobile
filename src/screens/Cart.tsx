@@ -235,7 +235,7 @@ export default function Cart() {
         headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader
         showFooter
-        headerMaxHeight={vs(40)}
+        headerMaxHeight={vs(70)} 
         headerMinHeight={vs(30)}
         enforceResponsiveHeaderSize={false}
         customHeader={cartHeader}

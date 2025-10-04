@@ -182,7 +182,7 @@ const OrderHistoryScreen = () => {
       showFooter
       enableHeaderCollapse={false}
       enforceResponsiveHeaderSize={false}
-      headerMaxHeight={vs(50)}
+      headerMaxHeight={vs(70)}
       headerMinHeight={vs(40)}
       activeTab="Profile"
       headerBackgroundImage={require('../../../assets/background.png')}
