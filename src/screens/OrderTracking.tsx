@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Image,
+  Easing,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -198,6 +199,7 @@ const OrderTrackingScreen: React.FC = () => {
   const route = useRoute<OrderTrackingRoute>();
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const statusPulse = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
 
@@ -240,6 +242,7 @@ const OrderTrackingScreen: React.FC = () => {
   }, [initialOrder, initialOrderId, routeOrderIdParam, websocketOrderData]);
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
+  const formattedStatus = formatStatusLabel(order?.status);
 
   const orderTotal = formatCurrency(order?.payment?.total);
   const parsedCourierRating = Number(order?.delivery?.courier?.rating ?? NaN);
@@ -260,6 +263,11 @@ const OrderTrackingScreen: React.FC = () => {
   const canViewDetails = Boolean(order);
   const hasItems = (order?.items?.length ?? 0) > 0;
   const orderTotalDisplay = orderTotal ?? '—';
+
+  const hasAssignedCourier = Boolean(
+    order?.delivery?.courier &&
+      (order.delivery.courier.id != null || order.delivery.courier.name),
+  );
 
   const driverCoordinate = useMemo<LatLng | null>(() => {
     const courierLocation = (order as any)?.delivery?.courier?.location;
@@ -346,52 +354,109 @@ const OrderTrackingScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  const renderHero = (collapsed: boolean) => (
-    <View style={collapsed ? styles.mapCollapsed : styles.mapExpanded}>
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          { transform: [{ translateY: mapTranslateY }] },
-        ]}
-        pointerEvents={collapsed ? 'none' : 'auto'}
-      >
-        {mapRegion ? (
-          <MapView
-            style={StyleSheet.absoluteFill}
-            region={mapRegion}
-            scrollEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-            zoomEnabled={false}
-            showsPointsOfInterest={false}
-            showsCompass={false}
-          >
-            {driverCoordinate ? (
-              <Marker coordinate={driverCoordinate}>
-                <View style={styles.driverMarker}>
-                  <Bike size={16} color="white" />
-                </View>
-              </Marker>
-            ) : null}
-          </MapView>
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <Text style={styles.mapPlaceholderText}>Location updates unavailable yet</Text>
-          </View>
-        )}
-      </Animated.View>
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(statusPulse, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(statusPulse, {
+          toValue: 0,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
 
-      <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity
-          onPress={handleGoBack}
-          activeOpacity={0.85}
-          style={styles.backButton}
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [statusPulse]);
+
+  const statusPulseScale = statusPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.08],
+  });
+
+  const statusPulseOpacity = statusPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.65, 1],
+  });
+
+  const renderHero = (collapsed: boolean) => {
+    const showMap = hasAssignedCourier && mapRegion;
+
+    return (
+      <View style={collapsed ? styles.mapCollapsed : styles.mapExpanded}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { transform: [{ translateY: mapTranslateY }] },
+          ]}
+          pointerEvents={collapsed ? 'none' : 'auto'}
         >
-          <ArrowLeft size={20} color="white" />
-        </TouchableOpacity>
+          {showMap ? (
+            <MapView
+              style={StyleSheet.absoluteFill}
+              region={mapRegion!}
+              scrollEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              zoomEnabled={false}
+              showsPointsOfInterest={false}
+              showsCompass={false}
+            >
+              {driverCoordinate ? (
+                <Marker coordinate={driverCoordinate}>
+                  <View style={styles.driverMarker}>
+                    <Bike size={16} color="white" />
+                  </View>
+                </Marker>
+              ) : null}
+            </MapView>
+          ) : (
+            <View style={styles.statusPlaceholder}>
+              <Animated.View
+                style={[
+                  styles.statusPulse,
+                  {
+                    opacity: statusPulseOpacity,
+                    transform: [{ scale: statusPulseScale }],
+                  },
+                ]}
+              />
+              <View style={styles.statusTextWrapper}>
+                <Text style={styles.statusHeading}>
+                  {formattedStatus ?? 'Waiting for restaurant'}
+                </Text>
+                <Text style={styles.statusSubheading}>
+                  {hasAssignedCourier
+                    ? 'Driver is getting ready — location coming soon.'
+                    : 'We will show the driver once they are assigned to your order.'}
+                </Text>
+              </View>
+            </View>
+          )}
+        </Animated.View>
+
+        <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            onPress={handleGoBack}
+            activeOpacity={0.85}
+            style={styles.backButton}
+          >
+            <ArrowLeft size={20} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -406,8 +471,6 @@ const OrderTrackingScreen: React.FC = () => {
       },
     },
   );
-
-  const formattedStatus = formatStatusLabel(order?.status);
 
   const renderSteps = () => (
     <View style={styles.stepsCard}>
@@ -461,7 +524,7 @@ const OrderTrackingScreen: React.FC = () => {
                 ]}
               >
                 {isCompleted ? (
-                  <Check size={12} color="white" />
+                  <Check size={12} color={accentColor} />
                 ) : isActive ? (
                   <Clock size={12} color={accentColor} />
                 ) : null}
@@ -687,18 +750,37 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
-  mapPlaceholder: {
+  statusPlaceholder: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
   },
-  mapPlaceholderText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: textSecondary,
+  statusPulse: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(216,58,46,0.12)',
+    alignSelf: 'center',
+  },
+  statusTextWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusHeading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: accentColor,
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  statusSubheading: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: textSecondary,
   },
   mapTopBar: {
     position: 'absolute',
@@ -812,7 +894,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepDotCompleted: {
-    backgroundColor: accentColor,
+    backgroundColor: 'rgba(216,58,46,0.1)',
     borderColor: accentColor,
   },
   stepDotActive: {
