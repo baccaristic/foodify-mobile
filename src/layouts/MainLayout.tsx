@@ -72,7 +72,7 @@ interface MainLayoutProps {
   navItems?: NavItem[];
   activeTab?: string;
   onTabPress?: (route: string) => void;
-  onRefresh?: () => void | Promise<void>;
+  onRefresh?: () => void | Promise<any>;
   isRefreshing?: boolean;
 }
 
