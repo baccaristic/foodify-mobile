@@ -18,7 +18,6 @@ import {
   MapPin,
   MessageCircle,
   Phone,
-  Star,
 } from 'lucide-react-native';
 import {
   NavigationProp,
@@ -31,9 +30,7 @@ import {
 import type { CreateOrderResponse, MonetaryAmount, OrderDto } from '~/interfaces/Order';
 import useOrderTracking from '~/hooks/useOrderTracking';
 import {
-  DEFAULT_REGION,
   DEFAULT_WORKFLOW_BLUEPRINT,
-  EMPTY_ORDER,
   ensureWorkflow,
   normalizeStatus,
   STATUS_SEQUENCE,
@@ -52,11 +49,6 @@ const textSecondary = '#6B7280';
 const borderColor = '#F0F1F5';
 
 type LatLng = { latitude: number; longitude: number };
-
-const DEFAULT_DRIVER_OFFSET: LatLng = {
-  latitude: DEFAULT_REGION.latitude - 0.005,
-  longitude: DEFAULT_REGION.longitude + 0.012,
-};
 
 type WorkflowStep = {
   key: string;
@@ -235,46 +227,48 @@ const formatExtrasLabel = (extras?: { name?: string | null }[] | null) => {
 const buildDriverCoordinate = (
   order: CreateOrderResponse | null,
   update: OrderDto | null,
-): LatLng => {
-  const courierLocation = (update as unknown as { courierLocation?: { lat: number; lng: number } })
+): LatLng | null => {
+  const courierLocation = (update as unknown as { courierLocation?: { lat?: number; lng?: number } })
     ?.courierLocation;
 
-  if (courierLocation?.lat && courierLocation?.lng) {
+  if (
+    courierLocation &&
+    Number.isFinite(courierLocation.lat) &&
+    Number.isFinite(courierLocation.lng)
+  ) {
     return {
-      latitude: courierLocation.lat,
-      longitude: courierLocation.lng,
+      latitude: Number(courierLocation.lat),
+      longitude: Number(courierLocation.lng),
     } satisfies LatLng;
   }
 
-  const orderCourierLocation = (order as unknown as { delivery?: { courier?: { location?: { lat: number; lng: number } } } })
-    ?.delivery?.courier?.location;
+  const orderCourierLocation = (order as unknown as {
+    delivery?: { courier?: { location?: { lat?: number; lng?: number } } };
+  })?.delivery?.courier?.location;
 
-  if (orderCourierLocation?.lat && orderCourierLocation?.lng) {
+  if (
+    orderCourierLocation &&
+    Number.isFinite(orderCourierLocation.lat) &&
+    Number.isFinite(orderCourierLocation.lng)
+  ) {
     return {
-      latitude: orderCourierLocation.lat,
-      longitude: orderCourierLocation.lng,
+      latitude: Number(orderCourierLocation.lat),
+      longitude: Number(orderCourierLocation.lng),
     } satisfies LatLng;
   }
 
-  if (order?.delivery?.location?.lat && order.delivery.location.lng) {
-    return {
-      latitude: order.delivery.location.lat + (DEFAULT_DRIVER_OFFSET.latitude - DEFAULT_REGION.latitude),
-      longitude:
-        order.delivery.location.lng + (DEFAULT_DRIVER_OFFSET.longitude - DEFAULT_REGION.longitude),
-    } satisfies LatLng;
-  }
-
-  return {
-    latitude: DEFAULT_DRIVER_OFFSET.latitude,
-    longitude: DEFAULT_DRIVER_OFFSET.longitude,
-  } satisfies LatLng;
+  return null;
 };
 
 const buildDestinationCoordinate = (order: CreateOrderResponse | null): LatLng | null => {
-  if (order?.delivery?.location?.lat && order.delivery.location.lng) {
+  if (
+    order?.delivery?.location &&
+    Number.isFinite(order.delivery.location.lat) &&
+    Number.isFinite(order.delivery.location.lng)
+  ) {
     return {
-      latitude: order.delivery.location.lat,
-      longitude: order.delivery.location.lng,
+      latitude: Number(order.delivery.location.lat),
+      longitude: Number(order.delivery.location.lng),
     } satisfies LatLng;
   }
 
@@ -319,48 +313,40 @@ const OrderTrackingScreen: React.FC = () => {
   }, [normalizedRouteOrder, activeOrderId, beginTrackingOrder, hydrateTrackedOrder]);
 
   const trackingOrder = order ?? normalizedRouteOrder ?? null;
-  const displayOrder = order ?? normalizedRouteOrder ?? EMPTY_ORDER;
+  const displayOrder = trackingOrder;
   const steps = useMemo(
-    () => buildWorkflowSteps(displayOrder, latestUpdate),
+    () => (displayOrder ? buildWorkflowSteps(displayOrder, latestUpdate) : []),
     [displayOrder, latestUpdate],
   );
 
-  const orderTotal = formatCurrency(displayOrder.payment.total);
+  const orderTotal = displayOrder ? formatCurrency(displayOrder.payment.total) : undefined;
   const deliveryArea =
-    displayOrder.delivery.savedAddress?.label ??
-    displayOrder.delivery.savedAddress?.formattedAddress ??
-    'Delivery area';
-  const deliveryAddress = displayOrder.delivery.address ?? 'Your delivery address';
-
-  const courierName =
-    latestUpdate?.driverName ??
-    ((displayOrder as unknown as { delivery?: { courier?: { name?: string } } })
-      ?.delivery?.courier?.name ?? 'Assigned courier');
-  const courierPhone =
-    latestUpdate?.driverPhone ??
-    ((displayOrder as unknown as { delivery?: { courier?: { phone?: string } } })
-      ?.delivery?.courier?.phone ?? null);
+    latestUpdate?.savedAddress?.label ??
+    latestUpdate?.savedAddress?.formattedAddress ??
+    displayOrder?.delivery?.savedAddress?.label ??
+    displayOrder?.delivery?.savedAddress?.formattedAddress ??
+    null;
+  const deliveryAddress =
+    latestUpdate?.clientAddress ?? displayOrder?.delivery?.address ?? null;
+  
+  const courierName = latestUpdate?.driverName ?? null;
+  const courierPhone = latestUpdate?.driverPhone ?? null;
   const courierAvatarUri =
-    ((displayOrder as unknown as { delivery?: { courier?: { avatarUrl?: string } } })
-      ?.delivery?.courier?.avatarUrl ?? 'https://i.pravatar.cc/96?img=12');
-  const courierRatingValue = Number(
-    ((displayOrder as unknown as { delivery?: { courier?: { rating?: number } } })
-      ?.delivery?.courier?.rating ?? NaN),
-  );
-  const courierRating = Number.isFinite(courierRatingValue)
-    ? courierRatingValue.toFixed(1)
-    : '5.0';
-  const courierDeliveriesValue = Number(
-    ((displayOrder as unknown as { delivery?: { courier?: { totalDeliveries?: number } } })
-      ?.delivery?.courier?.totalDeliveries ?? NaN),
-  );
-  const courierDeliveries = Number.isFinite(courierDeliveriesValue)
-    ? courierDeliveriesValue
-    : 120;
-  const restaurantImageUri =
-    (displayOrder.restaurant.imageUrl as string | undefined) ??
-    'https://images.unsplash.com/photo-1606755962773-0e7d61a9b1fc?auto=format&fit=crop&w=200&q=80';
-  const orderNumberLabel = displayOrder.orderId > 0 ? `#${displayOrder.orderId}` : 'In progress';
+    (latestUpdate as unknown as { driverAvatarUrl?: string | null })?.driverAvatarUrl ?? null;
+  const restaurantImageUri = displayOrder?.restaurant?.imageUrl ?? null;
+  const restaurantName = displayOrder?.restaurant?.name ?? latestUpdate?.restaurantName ?? '—';
+  const orderNumberLabel = displayOrder?.orderId ? `#${displayOrder.orderId}` : null;
+  const orderedItems = displayOrder?.items ?? [];
+  const orderStatusLabel = formatStatusLabel(latestUpdate?.status ?? displayOrder?.status);
+  const deliveryLocation = displayOrder?.delivery?.location;
+  const restaurantLocation = latestUpdate?.restaurantLocation;
+  const deliveryLat = deliveryLocation?.lat;
+  const deliveryLng = deliveryLocation?.lng;
+  const restaurantLat = restaurantLocation?.lat;
+  const restaurantLng = restaurantLocation?.lng;
+  const deliveryAreaLabel = deliveryArea ?? '—';
+  const deliveryAddressLabel = deliveryAddress ?? '—';
+  const courierNameLabel = courierName ?? '—';
 
   const driverCoordinate = useMemo(
     () => buildDriverCoordinate(trackingOrder, latestUpdate),
@@ -371,15 +357,45 @@ const OrderTrackingScreen: React.FC = () => {
     [trackingOrder],
   );
 
-  const mapRegion = useMemo<Region>(
-    () => ({
-      latitude: driverCoordinate.latitude,
-      longitude: driverCoordinate.longitude,
-      latitudeDelta: 0.025,
-      longitudeDelta: 0.025,
-    }),
-    [driverCoordinate.latitude, driverCoordinate.longitude],
-  );
+  const mapRegion = useMemo<Region | null>(() => {
+    if (driverCoordinate) {
+      return {
+        latitude: driverCoordinate.latitude,
+        longitude: driverCoordinate.longitude,
+        latitudeDelta: 0.025,
+        longitudeDelta: 0.025,
+      } satisfies Region;
+    }
+
+    if (destinationCoordinate) {
+      return {
+        latitude: destinationCoordinate.latitude,
+        longitude: destinationCoordinate.longitude,
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      } satisfies Region;
+    }
+
+    if (Number.isFinite(deliveryLat) && Number.isFinite(deliveryLng)) {
+      return {
+        latitude: Number(deliveryLat),
+        longitude: Number(deliveryLng),
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      } satisfies Region;
+    }
+
+    if (Number.isFinite(restaurantLat) && Number.isFinite(restaurantLng)) {
+      return {
+        latitude: Number(restaurantLat),
+        longitude: Number(restaurantLng),
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      } satisfies Region;
+    }
+
+    return null;
+  }, [destinationCoordinate, driverCoordinate, deliveryLat, deliveryLng, restaurantLat, restaurantLng]);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -445,31 +461,42 @@ const OrderTrackingScreen: React.FC = () => {
           StyleSheet.absoluteFill,
           { transform: [{ translateY: mapTranslateY }] },
         ]}
-        pointerEvents={collapsed ? 'none' : 'auto'}
+        pointerEvents={collapsed || !mapRegion ? 'none' : 'auto'}
       >
-        <MapView
-          style={StyleSheet.absoluteFill}
-          region={mapRegion}
-          scrollEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          zoomEnabled={false}
-          showsPointsOfInterest={false}
-          showsCompass={false}
-        >
-          {destinationCoordinate ? (
-            <Marker coordinate={destinationCoordinate}>
-              <View style={styles.destinationMarker}>
-                <MapPin size={16} color={accentColor} />
-              </View>
-            </Marker>
-          ) : null}
-          <Marker coordinate={driverCoordinate}>
-            <View style={styles.driverMarker}>
-              <Bike size={16} color="white" />
-            </View>
-          </Marker>
-        </MapView>
+        {mapRegion ? (
+          <MapView
+            style={StyleSheet.absoluteFill}
+            region={mapRegion}
+            scrollEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            zoomEnabled={false}
+            showsPointsOfInterest={false}
+            showsCompass={false}
+          >
+            {destinationCoordinate ? (
+              <Marker coordinate={destinationCoordinate}>
+                <View style={styles.destinationMarker}>
+                  <MapPin size={16} color={accentColor} />
+                </View>
+              </Marker>
+            ) : null}
+            {driverCoordinate ? (
+              <Marker coordinate={driverCoordinate}>
+                <View style={styles.driverMarker}>
+                  <Bike size={16} color="white" />
+                </View>
+              </Marker>
+            ) : null}
+          </MapView>
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Bike size={24} color={accentColor} />
+            <Text style={styles.mapPlaceholderText}>
+              Live tracking will appear once the courier shares their location.
+            </Text>
+          </View>
+        )}
       </Animated.View>
 
       <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
@@ -503,7 +530,7 @@ const OrderTrackingScreen: React.FC = () => {
       <View style={styles.stepsHeader}>
         <Text style={styles.stepsTitle}>Order Steps</Text>
         <View style={styles.stepsStatusBadge}>
-          <Text style={styles.stepsStatusText}>{formatStatusLabel(displayOrder.status)}</Text>
+          <Text style={styles.stepsStatusText}>{orderStatusLabel}</Text>
         </View>
       </View>
       {connectionState !== 'connected' ? (
@@ -646,20 +673,31 @@ const OrderTrackingScreen: React.FC = () => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <View style={styles.summaryHeaderLeft}>
-              <Image source={{ uri: restaurantImageUri }} style={styles.summaryRestaurantImage} />
+              {restaurantImageUri ? (
+                <Image
+                  source={{ uri: restaurantImageUri }}
+                  style={styles.summaryRestaurantImage}
+                />
+              ) : (
+                <View style={styles.summaryRestaurantPlaceholder}>
+                  <MapPin size={16} color={accentColor} />
+                </View>
+              )}
               <View>
                 <Text style={styles.summaryTitle}>My Order</Text>
                 <Text style={styles.summarySubtitle} numberOfLines={1}>
-                  {displayOrder.restaurant.name ?? 'Your restaurant'}
+                  {restaurantName}
                 </Text>
                 <Text style={styles.summarySubtitleSecondary} numberOfLines={1}>
-                  {deliveryArea}
+                  {deliveryAreaLabel}
                 </Text>
               </View>
             </View>
-            <View style={styles.summaryBadge}>
-              <Text style={styles.summaryBadgeText}>{orderNumberLabel}</Text>
-            </View>
+            {orderNumberLabel ? (
+              <View style={styles.summaryBadge}>
+                <Text style={styles.summaryBadgeText}>{orderNumberLabel}</Text>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.summaryAddressRow}>
@@ -667,15 +705,15 @@ const OrderTrackingScreen: React.FC = () => {
             <View style={styles.summaryAddressTexts}>
               <Text style={styles.summaryAddressTitle}>Deliver to</Text>
               <Text style={styles.summaryAddressValue} numberOfLines={2}>
-                {deliveryAddress}
+                {deliveryAddressLabel}
               </Text>
             </View>
           </View>
 
           <View style={styles.summaryItems}>
-            {displayOrder.items.length ? (
-              displayOrder.items.map((item, index) => {
-                const isLast = index === displayOrder.items.length - 1;
+            {orderedItems.length ? (
+              orderedItems.map((item, index) => {
+                const isLast = index === orderedItems.length - 1;
                 const extrasLabel = formatExtrasLabel(item.extras);
                 const instructions = item.specialInstructions?.trim();
                 const lineTotal = formatCurrency(item.lineTotal);
@@ -718,16 +756,16 @@ const OrderTrackingScreen: React.FC = () => {
             <TouchableOpacity
               onPress={handleSeeDetails}
               activeOpacity={0.85}
-              disabled={!order}
+              disabled={!trackingOrder}
               style={[
                 styles.summaryDetailsButton,
-                !order && styles.summaryDetailsButtonDisabled,
+                !trackingOrder && styles.summaryDetailsButtonDisabled,
               ]}
             >
               <Text
                 style={[
                   styles.summaryDetailsText,
-                  !order && styles.summaryDetailsTextDisabled,
+                  !trackingOrder && styles.summaryDetailsTextDisabled,
                 ]}
               >
                 See details
@@ -738,16 +776,16 @@ const OrderTrackingScreen: React.FC = () => {
 
         <View style={styles.courierStickyCard}>
           <View style={styles.courierInfo}>
-            <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
+            {courierAvatarUri ? (
+              <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
+            ) : (
+              <View style={[styles.courierAvatar, styles.courierAvatarPlaceholder]}>
+                <Bike size={18} color={accentColor} />
+              </View>
+            )}
             <View>
               <Text style={styles.courierStickyLabel}>Delivered by</Text>
-              <Text style={styles.courierStickyName}>{courierName}</Text>
-              <View style={styles.courierStickyRating}>
-                <Star size={14} color={accentColor} fill={accentColor} />
-                <Text style={styles.courierStickyRatingText}>
-                  {courierRating} / 5 ({courierDeliveries})
-                </Text>
-              </View>
+              <Text style={styles.courierStickyName}>{courierNameLabel}</Text>
             </View>
           </View>
           <View style={styles.courierStickyActions}>
@@ -826,6 +864,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  mapPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#FFFFFF',
+  },
+  mapPlaceholderText: {
+    marginTop: 12,
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+    color: textSecondary,
   },
   backButton: {
     width: 44,
@@ -1072,6 +1124,15 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: '#F1F5F9',
   },
+  summaryRestaurantPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FDE6E3',
+  },
   summaryTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -1234,6 +1295,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#F1F5F9',
   },
+  courierAvatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   courierStickyLabel: {
     color: textSecondary,
     fontSize: 11,
@@ -1244,16 +1309,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: textPrimary,
-  },
-  courierStickyRating: {
-    marginTop: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  courierStickyRatingText: {
-    marginLeft: 6,
-    fontSize: 11,
-    color: textSecondary,
   },
   courierStickyActions: {
     flexDirection: 'row',
