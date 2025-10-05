@@ -11,4 +11,16 @@ export const getMyOrders = async () => {
   return data ?? [];
 };
 
+export const getOngoingOrder = async () => {
+  const response = await client.get<OrderDto>('/orders/ongoing', {
+    validateStatus: (status) => (status >= 200 && status < 300) || status === 204,
+  });
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.data ?? null;
+};
+
 export type { CreateOrderResponse, OrderRequest, OrderDto };

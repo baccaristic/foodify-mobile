@@ -149,7 +149,12 @@ const OrderHistoryScreen = () => {
                 <TouchableOpacity
                   activeOpacity={0.85}
                   style={styles.orderActionButton}
-                  onPress={() => navigation.navigate('OrderTracking' as never)}
+                  onPress={() =>
+                    navigation.navigate(
+                      'OrderTracking' as never,
+                      { orderId: order.id } as never,
+                    )
+                  }
                 >
                   <Text allowFontScaling={false} style={styles.orderActionLabel}>
                     See Details

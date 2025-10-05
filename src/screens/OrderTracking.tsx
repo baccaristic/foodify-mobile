@@ -28,14 +28,11 @@ import {
   useRoute,
 } from '@react-navigation/native';
 
-import type {
-  CreateOrderResponse,
-  MonetaryAmount,
-  OrderNotificationDto,
-  OrderStatusHistoryDto,
-} from '~/interfaces/Order';
+import type { CreateOrderResponse, MonetaryAmount, OrderStatusHistoryDto } from '~/interfaces/Order';
 import { vs } from 'react-native-size-matters';
 import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
+import useOngoingOrder from '~/hooks/useOngoingOrder';
+import { convertOrderDtoToTrackingData, type OrderTrackingBaseData } from '~/utils/orderTracking';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -63,10 +60,8 @@ type WorkflowStep = {
   state: 'completed' | 'active' | 'pending';
 };
 
-type OrderTrackingData = Partial<CreateOrderResponse> &
-  Partial<OrderNotificationDto> & {
-  orderId?: number | string | null;
-  statusHistory?: (OrderStatusHistoryDto | OrderStatusHistoryEntry)[];
+type OrderTrackingData = Omit<OrderTrackingBaseData, 'statusHistory'> & {
+  statusHistory?: (OrderStatusHistoryDto | OrderStatusHistoryEntry)[] | null;
 };
 
 const formatCurrency = (value: MonetaryAmount | null | undefined) => {
@@ -229,14 +224,46 @@ const OrderTrackingScreen: React.FC = () => {
   const statusPulse = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
+  const { order: ongoingOrder } = useOngoingOrder();
 
-  const initialOrder = route.params?.order ?? null;
-  const routeOrderIdParam = route.params?.orderId ?? null;
-  const initialOrderId = initialOrder?.orderId ?? null;
+  const routeOrderParam = (route.params?.order as OrderTrackingData | null) ?? null;
+  const routeOrderIdParam = (route.params?.orderId as number | string | null) ?? null;
+
+  const ongoingOrderData = useMemo<OrderTrackingData | null>(() => {
+    const transformed = convertOrderDtoToTrackingData(ongoingOrder);
+    return transformed ? (transformed as OrderTrackingData) : null;
+  }, [ongoingOrder]);
+
+  const initialOrder = useMemo<OrderTrackingData | null>(() => {
+    if (routeOrderParam) {
+      return routeOrderParam;
+    }
+
+    if (routeOrderIdParam != null && ongoingOrderData?.orderId != null) {
+      const matches = String(ongoingOrderData.orderId) === String(routeOrderIdParam);
+      if (matches) {
+        return ongoingOrderData;
+      }
+    }
+
+    return ongoingOrderData;
+  }, [ongoingOrderData, routeOrderIdParam, routeOrderParam]);
+
+  const resolvedOrderId = useMemo<number | string | null>(() => {
+    if (routeOrderIdParam != null) {
+      return routeOrderIdParam;
+    }
+    if (initialOrder?.orderId != null) {
+      return initialOrder.orderId;
+    }
+    return ongoingOrderData?.orderId ?? null;
+  }, [initialOrder?.orderId, ongoingOrderData?.orderId, routeOrderIdParam]);
+
+  const initialOrderId = initialOrder?.orderId ?? resolvedOrderId ?? null;
 
   const websocketOrderData = useMemo<OrderTrackingData | null>(() => {
-    if (routeOrderIdParam != null) {
-      const update = orderUpdates[String(routeOrderIdParam)];
+    if (resolvedOrderId != null) {
+      const update = orderUpdates[String(resolvedOrderId)];
       if (update) {
         return update;
       }
@@ -250,23 +277,23 @@ const OrderTrackingScreen: React.FC = () => {
     }
 
     return latestOrderUpdate ?? null;
-  }, [initialOrderId, latestOrderUpdate, orderUpdates, routeOrderIdParam]);
+  }, [initialOrderId, latestOrderUpdate, orderUpdates, resolvedOrderId]);
 
   const order = useMemo<OrderTrackingData | null>(() => {
-    const merged = mergeOrderData(initialOrder as OrderTrackingData | null, websocketOrderData);
+    const merged = mergeOrderData(initialOrder, websocketOrderData);
     if (!merged) {
-      if (routeOrderIdParam != null) {
-        return { orderId: routeOrderIdParam } as OrderTrackingData;
+      if (resolvedOrderId != null) {
+        return { orderId: resolvedOrderId } as OrderTrackingData;
       }
       return null;
     }
 
-    const orderId = merged.orderId ?? routeOrderIdParam ?? initialOrderId ?? null;
+    const orderId = merged.orderId ?? resolvedOrderId ?? initialOrderId ?? null;
     return {
       ...merged,
       orderId,
     };
-  }, [initialOrder, initialOrderId, routeOrderIdParam, websocketOrderData]);
+  }, [initialOrder, initialOrderId, resolvedOrderId, websocketOrderData]);
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
   const formattedStatus = formatStatusLabel(order?.status);

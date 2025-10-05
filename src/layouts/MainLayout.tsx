@@ -1,6 +1,6 @@
 import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -26,6 +26,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
 import { Image } from 'expo-image';
+import useOngoingOrder from '~/hooks/useOngoingOrder';
 
 type NavItem = {
   icon: LucideIcon;
@@ -40,6 +41,28 @@ const defaultNavItems: NavItem[] = [
   { icon: User, label: 'Account', route: 'Profile' },
 ];
 
+const formatStatusLabel = (status: string | null | undefined) => {
+  if (!status) {
+    return 'In progress';
+  }
+
+  return status
+    .toString()
+    .toLowerCase()
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
+
+const isOrderStatusActive = (status: string | null | undefined) => {
+  if (!status) {
+    return false;
+  }
+
+  const normalized = status.toString().toUpperCase();
+  return !['DELIVERED', 'CANCELED', 'REJECTED'].includes(normalized);
+};
+
 const useOptionalNavigation = () => {
   try {
     return useNavigation<NavigationProp<Record<string, object | undefined>>>();
@@ -53,6 +76,14 @@ const useOptionalRoute = () => {
     return useRoute();
   } catch (error) {
     return undefined;
+  }
+};
+
+const useOptionalOngoingOrder = () => {
+  try {
+    return useOngoingOrder();
+  } catch (error) {
+    return null;
   }
 };
 
@@ -119,6 +150,8 @@ export default function MainLayout({
 
   const navigation = useOptionalNavigation();
   const route = useOptionalRoute();
+  const ongoingOrderContext = useOptionalOngoingOrder();
+  const ongoingOrder = ongoingOrderContext?.order ?? null;
   const scrollY = useSharedValue(0);
   const [activeHeader, setActiveHeader] = useState<'full' | 'collapsed'>(
     collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
@@ -278,6 +311,72 @@ export default function MainLayout({
   const routeName = route?.name;
   const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
 
+  const shouldDisplayOngoingOrder = useMemo(() => {
+    if (!ongoingOrder) {
+      return false;
+    }
+
+    if (route?.name === 'OrderTracking') {
+      return false;
+    }
+
+    return isOrderStatusActive(ongoingOrder.status);
+  }, [ongoingOrder, route?.name]);
+
+  const ongoingOrderButton = useMemo(() => {
+    if (!shouldDisplayOngoingOrder || !ongoingOrder) {
+      return null;
+    }
+
+    const statusLabel = formatStatusLabel(ongoingOrder.status);
+
+    const handlePress = () => {
+      if (!navigation) {
+        return;
+      }
+
+      navigation.navigate('OrderTracking' as never, { orderId: ongoingOrder.id } as never);
+    };
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.92}
+        style={styles.ongoingOrderButton}
+        onPress={handlePress}
+      >
+        <View style={styles.ongoingOrderHeader}>
+          <Text allowFontScaling={false} style={styles.ongoingOrderTitle} numberOfLines={1}>
+            Order in progress
+          </Text>
+          <View style={styles.ongoingOrderBadge}>
+            <Text allowFontScaling={false} style={styles.ongoingOrderBadgeText} numberOfLines={1}>
+              {statusLabel}
+            </Text>
+          </View>
+        </View>
+        <Text allowFontScaling={false} style={styles.ongoingOrderSubtitle} numberOfLines={1}>
+          {ongoingOrder.restaurantName}
+        </Text>
+        <Text allowFontScaling={false} style={styles.ongoingOrderHint}>
+          Track your delivery
+        </Text>
+      </TouchableOpacity>
+    );
+  }, [navigation, ongoingOrder, shouldDisplayOngoingOrder]);
+
+  const combinedFloatingContent = useMemo(() => {
+    if (!ongoingOrderButton && !floatingContent) {
+      return null;
+    }
+
+    return (
+      <View style={styles.floatingStack} pointerEvents="box-none">
+        {ongoingOrderButton}
+        {floatingContent}
+      </View>
+    );
+  }, [floatingContent, ongoingOrderButton]);
+
   const headerNode = !showHeader
     ? null
     : collapseEnabled
@@ -308,14 +407,14 @@ export default function MainLayout({
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>
 
-      {floatingContent ? (
+      {combinedFloatingContent ? (
         <View
           style={[
             styles.floatingSlot,
             { bottom: showFooter ? insets.bottom + vs(84) : insets.bottom + vs(24) },
           ]}
           pointerEvents="box-none">
-          {floatingContent}
+          {combinedFloatingContent}
         </View>
       ) : null}
 
@@ -386,6 +485,10 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '16@s',
     zIndex: 3,
   },
+  floatingStack: {
+    flexDirection: 'column',
+    rowGap: '12@vs',
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -413,6 +516,52 @@ const styles = ScaledSheet.create({
     fontSize: '11@ms',
     fontWeight: '500',
     marginTop: '2@vs',
+  },
+  ongoingOrderButton: {
+    backgroundColor: '#17213A',
+    borderRadius: '18@ms',
+    paddingHorizontal: '18@s',
+    paddingVertical: '14@vs',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  ongoingOrderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '6@vs',
+  },
+  ongoingOrderTitle: {
+    color: '#FFFFFF',
+    fontSize: '15@ms',
+    fontWeight: '700',
+    flex: 1,
+    marginRight: '8@s',
+  },
+  ongoingOrderBadge: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: '999@ms',
+    paddingHorizontal: '10@s',
+    paddingVertical: '4@vs',
+  },
+  ongoingOrderBadgeText: {
+    color: '#FFFFFF',
+    fontSize: '11@ms',
+    fontWeight: '600',
+  },
+  ongoingOrderSubtitle: {
+    color: '#FFFFFF',
+    fontSize: '14@ms',
+    fontWeight: '600',
+    marginBottom: '2@vs',
+  },
+  ongoingOrderHint: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: '12@ms',
+    fontWeight: '500',
   },
 });
 
