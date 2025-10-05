@@ -40,6 +40,7 @@ import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
 import Notification from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/Notifications';
+import OngoingOrderBanner from '~/components/OngoingOrderBanner';
 
 const Stack = createNativeStackNavigator();
 
@@ -145,65 +146,68 @@ const RootNavigator = () => {
     : 'Guest';
 
   return (
-    <Stack.Navigator
-      key={navigationKey}
-      initialRouteName={initialRouteName}
-      screenOptions={{ headerShown: false, animation: 'fade' }}
-    >
-      {user ? (
-        <>
-          <Stack.Screen
-            name="LocationPermission"
-            initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}
-          >
-            {(props) => (
-              <LocationPermissionScreen
-                {...props}
-                onComplete={() => setNeedsLocationPermission(false)}
-                onSkip={() => setNeedsLocationPermission(false)}
-              />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="Notification">
-            {() => (
-              <Notification
-                onComplete={() => setNeedsNotificationPermission(false)}
-                onSkip={() => setNeedsNotificationPermission(false)}
-              />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="Home" component={Home} />
-          <Stack.Screen name="Search" component={SearchScreen} />
-          <Stack.Screen name="Cart" component={Cart} />
-          <Stack.Screen name="CheckoutOrder" component={CheckoutOrder} />
-          <Stack.Screen name="OrderTracking" component={OrderTracking} />
-          <Stack.Screen name="CouponCode" component={CouponCode} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
-          <Stack.Screen name="AccountSettings" component={AccountScreen} />
-          <Stack.Screen name="RestaurantDetails" component={RestaurantDetails} />
-          <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="Guest" component={AuthScreen} />
-          <Stack.Group>
-            <Stack.Screen name="Login" component={EmailLogin} />
-            <Stack.Screen name="LocationAccess" component={LocationAccess} />
-            <Stack.Screen name="NameEntry" component={NameEntry} />
-            <Stack.Screen name="PhoneVerificationCode" component={PhoneVerificationCode} />
-            <Stack.Screen name="PhoneNumberEntry" component={PhoneNumberEntry} />
-            <Stack.Screen name="AcceptTerms" component={AcceptTerms} />
-            <Stack.Screen name="SignUpEmailPassword" component={SignUpEmailPassword} />
-            <Stack.Screen name="PhoneEmailEntry" component={PhoneEmailEntry} />
-            <Stack.Screen name="PhoneNameEntry" component={PhoneNameEntry} />
-            <Stack.Screen name="PhoneAcceptTerms" component={PhoneAcceptTerms} />
-            <Stack.Screen name="EmailVerificationCode" component={EmailVerificationCode} />
-            <Stack.Screen name="Notification" component={Notification} />
-          </Stack.Group>
-        </>
-      )}
-    </Stack.Navigator>
+    <>
+      <Stack.Navigator
+        key={navigationKey}
+        initialRouteName={initialRouteName}
+        screenOptions={{ headerShown: false, animation: 'fade' }}
+      >
+        {user ? (
+          <>
+            <Stack.Screen
+              name="LocationPermission"
+              initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}
+            >
+              {(props) => (
+                <LocationPermissionScreen
+                  {...props}
+                  onComplete={() => setNeedsLocationPermission(false)}
+                  onSkip={() => setNeedsLocationPermission(false)}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Notification">
+              {() => (
+                <Notification
+                  onComplete={() => setNeedsNotificationPermission(false)}
+                  onSkip={() => setNeedsNotificationPermission(false)}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Home" component={Home} />
+            <Stack.Screen name="Search" component={SearchScreen} />
+            <Stack.Screen name="Cart" component={Cart} />
+            <Stack.Screen name="CheckoutOrder" component={CheckoutOrder} />
+            <Stack.Screen name="OrderTracking" component={OrderTracking} />
+            <Stack.Screen name="CouponCode" component={CouponCode} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+            <Stack.Screen name="AccountSettings" component={AccountScreen} />
+            <Stack.Screen name="RestaurantDetails" component={RestaurantDetails} />
+            <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Guest" component={AuthScreen} />
+            <Stack.Group>
+              <Stack.Screen name="Login" component={EmailLogin} />
+              <Stack.Screen name="LocationAccess" component={LocationAccess} />
+              <Stack.Screen name="NameEntry" component={NameEntry} />
+              <Stack.Screen name="PhoneVerificationCode" component={PhoneVerificationCode} />
+              <Stack.Screen name="PhoneNumberEntry" component={PhoneNumberEntry} />
+              <Stack.Screen name="AcceptTerms" component={AcceptTerms} />
+              <Stack.Screen name="SignUpEmailPassword" component={SignUpEmailPassword} />
+              <Stack.Screen name="PhoneEmailEntry" component={PhoneEmailEntry} />
+              <Stack.Screen name="PhoneNameEntry" component={PhoneNameEntry} />
+              <Stack.Screen name="PhoneAcceptTerms" component={PhoneAcceptTerms} />
+              <Stack.Screen name="EmailVerificationCode" component={EmailVerificationCode} />
+              <Stack.Screen name="Notification" component={Notification} />
+            </Stack.Group>
+          </>
+        )}
+      </Stack.Navigator>
+      {user ? <OngoingOrderBanner /> : null}
+    </>
   );
 };
 
