@@ -111,6 +111,7 @@ export interface RestaurantSearchItem {
   hasFreeDelivery: boolean;
   promotionLabel?: string | null;
   imageUrl: string;
+  promotedMenuItems?: MenuItemPromotion[];
 }
 
 export interface RestaurantSearchResponse {
@@ -118,4 +119,12 @@ export interface RestaurantSearchResponse {
   page: number;
   pageSize: number;
   totalItems: number;
+}
+
+export interface MenuItemPromotion {
+  id: number;
+  name: string;
+  price: number;
+  promotionPrice?: number | null;
+  promotionLabel?: string | null;
 }

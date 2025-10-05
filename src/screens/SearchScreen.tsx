@@ -70,11 +70,23 @@ const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButton
   );
 };
 
+const formatCurrency = (value: number) => `${value.toFixed(3).replace(".", ",")} DT`;
+
 const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
-  const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, promotionLabel, imageUrl } = data;
+  const {
+    name,
+    deliveryTimeRange,
+    rating,
+    isTopChoice,
+    hasFreeDelivery,
+    promotionLabel,
+    imageUrl,
+    promotedMenuItems,
+  } = data;
 
   const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
+  const highlightedItems = (promotedMenuItems ?? []).slice(0, 3);
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9}>
@@ -107,6 +119,44 @@ const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
             <View style={styles.freeDeliveryPill}>
               <Text style={styles.promoText}>Free Delivery</Text>
             </View>
+          </View>
+        )}
+
+        {highlightedItems.length > 0 && (
+          <View style={styles.promotedSection}>
+            <Text style={styles.promotedTitle}>Menu promotions</Text>
+            {highlightedItems.map((item) => {
+              const hasPromoPrice =
+                typeof item.promotionPrice === "number" && Number.isFinite(item.promotionPrice);
+
+              return (
+                <View key={item.id} style={styles.promotedItemRow}>
+                  <View style={styles.promotedItemInfo}>
+                    <Text style={styles.promotedItemName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    {item.promotionLabel && (
+                      <Text style={styles.promotedItemLabel}>{item.promotionLabel}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.promotedPriceColumn}>
+                    {hasPromoPrice ? (
+                      <>
+                        <Text style={styles.promotedOriginalPrice}>
+                          {formatCurrency(item.price)}
+                        </Text>
+                        <Text style={styles.promotedPrice}>
+                          {formatCurrency(item.promotionPrice ?? item.price)}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.promotedPrice}>{formatCurrency(item.price)}</Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
           </View>
         )}
       </View>
@@ -470,6 +520,54 @@ const styles = ScaledSheet.create({
     fontFamily: "Roboto",
     fontSize: "13@ms",
     fontWeight: "600",
+  },
+  promotedSection: {
+    marginTop: "12@vs",
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+    paddingTop: "10@vs",
+    gap: "8@vs",
+  },
+  promotedTitle: {
+    fontFamily: "Roboto",
+    fontSize: "13@ms",
+    fontWeight: "700",
+    color: "#111827",
+  },
+  promotedItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12@s",
+  },
+  promotedItemInfo: { flex: 1 },
+  promotedItemName: {
+    fontFamily: "Roboto",
+    fontSize: "13.5@ms",
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  promotedItemLabel: {
+    fontFamily: "Roboto",
+    fontSize: "12@ms",
+    fontWeight: "500",
+    color: "#CA251B",
+    marginTop: "2@vs",
+  },
+  promotedPriceColumn: {
+    alignItems: "flex-end",
+  },
+  promotedOriginalPrice: {
+    fontFamily: "Roboto",
+    fontSize: "11.5@ms",
+    color: "#9CA3AF",
+    textDecorationLine: "line-through",
+  },
+  promotedPrice: {
+    fontFamily: "Roboto",
+    fontSize: "13.5@ms",
+    fontWeight: "700",
+    color: "#047857",
   },
   stateContainer: {
     alignItems: "center",
