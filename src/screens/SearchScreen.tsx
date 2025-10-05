@@ -149,6 +149,28 @@ const PromotedMenuItemCard = ({
   );
 };
 
+const RestaurantResult = ({ restaurant }: { restaurant: RestaurantSearchItem }) => {
+  const promotions = restaurant.promotedMenuItems ?? [];
+
+  return (
+    <View style={styles.restaurantResult}>
+      <RestaurantCard data={restaurant} />
+      {promotions.length > 0 && (
+        <View style={styles.promotedMenuList}>
+          <Text style={styles.promotedMenuHeading}>Promoted items</Text>
+          {promotions.map((item) => (
+            <PromotedMenuItemCard
+              key={`promotion-${restaurant.id}-${item.id}`}
+              item={item}
+              restaurantName={restaurant.name}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
 export default function SearchScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
 
@@ -208,38 +230,6 @@ export default function SearchScreen() {
 
   const restaurants = data?.items ?? [];
   const totalItems = data?.totalItems ?? 0;
-
-  const combinedResults = useMemo(
-    () =>
-      restaurants.flatMap((restaurant) => {
-        const entries: (
-          | { type: "restaurant"; restaurant: RestaurantSearchItem }
-          | {
-              type: "promotion";
-              restaurantId: number;
-              restaurantName: string;
-              item: MenuItemPromotion;
-            }
-        )[] = [
-          {
-            type: "restaurant",
-            restaurant,
-          },
-        ];
-
-        (restaurant.promotedMenuItems ?? []).forEach((item) => {
-          entries.push({
-            type: "promotion",
-            restaurantId: restaurant.id,
-            restaurantName: restaurant.name,
-            item,
-          });
-        });
-
-        return entries;
-      }),
-    [restaurants]
-  );
 
   const showResultCount = useMemo(() => {
     const baseQueryActive = debouncedSearchTerm.trim().length > 0;
@@ -341,17 +331,9 @@ export default function SearchScreen() {
             <Text style={styles.stateText}>No restaurants match your filters yet.</Text>
           </View>
         ) : (
-          combinedResults.map((entry) =>
-            entry.type === "restaurant" ? (
-              <RestaurantCard key={`restaurant-${entry.restaurant.id}`} data={entry.restaurant} />
-            ) : (
-              <PromotedMenuItemCard
-                key={`promotion-${entry.restaurantId}-${entry.item.id}`}
-                item={entry.item}
-                restaurantName={entry.restaurantName}
-              />
-            )
-          )
+          restaurants.map((restaurant) => (
+            <RestaurantResult key={`restaurant-${restaurant.id}`} restaurant={restaurant} />
+          ))
         )}
       </View>
     </View>
@@ -467,6 +449,15 @@ const styles = ScaledSheet.create({
     fontWeight: "500",
   },
   cardList: { gap: "16@vs" },
+  restaurantResult: { gap: "12@vs" },
+  promotedMenuList: { gap: "12@vs", marginTop: "6@vs" },
+  promotedMenuHeading: {
+    fontFamily: "Roboto",
+    fontSize: "13@ms",
+    fontWeight: "600",
+    color: "#CA251B",
+    marginLeft: "6@s",
+  },
   card: {
     backgroundColor: "white",
     borderRadius: "12@ms",
