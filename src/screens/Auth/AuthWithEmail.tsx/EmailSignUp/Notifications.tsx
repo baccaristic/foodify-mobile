@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { requestPushNotificationPermissions } from '~/services/notifications';
+import AuthBackground from '~/components/AuthBackGround';
 
 const NotifLogo = () => (
   <View className="w-36 h-36 bg-transparent mb-10">
@@ -62,53 +63,58 @@ const Notification = ({ onComplete, onSkip }: NotificationProps) => {
   };
 
   return (
-    <View className="flex-1 bg-white p-6 justify-between pt-20 pb-10">
-      <View className="items-center px-4">
-        <NotifLogo />
+    <View className="flex-1 bg-white  justify-between pt-20 pb-10">
+      <View className='p-6 flex1'>
 
-        <Text allowFontScaling={false} className="text-3xl mb-4 text-black text-center">
-          Always know the status of your order
-        </Text>
+        <View className="items-center px-4">
+          <NotifLogo />
 
-        <Text
-          allowFontScaling={false}
-          className="text-base text-gray-700 leading-relaxed mb-12 text-center"
-        >
-          Push notifications are used to provide updates on your order. You can change this in
-          settings at any time.
-        </Text>
+          <Text allowFontScaling={false} className="text-3xl mb-4 text-black text-center">
+            Always know the status of your order
+          </Text>
 
-        <TouchableOpacity
-          className={`w-full h-14 bg-[#17213A] rounded-lg justify-center items-center mb-4 ${
-            isProcessing ? 'opacity-70' : ''
-          }`}
-          onPress={handleEnableNotifications}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-              Enable Push Notifications
+          <Text
+            allowFontScaling={false}
+            className="text-base text-gray-700 leading-relaxed mb-12 text-center"
+          >
+            Push notifications are used to provide updates on your order. You can change this in
+            settings at any time.
+          </Text>
+
+          <TouchableOpacity
+            className={`w-full h-14 bg-[#17213A] rounded-lg justify-center items-center mb-4 ${isProcessing ? 'opacity-70' : ''
+              }`}
+            onPress={handleEnableNotifications}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text allowFontScaling={false} className="text-white font-semibold text-lg">
+                Enable Push Notifications
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          {errorMessage ? (
+            <Text allowFontScaling={false} className="text-sm text-red-500 text-center mb-4">
+              {errorMessage}
             </Text>
-          )}
-        </TouchableOpacity>
+          ) : null}
 
-        {errorMessage ? (
-          <Text allowFontScaling={false} className="text-sm text-red-500 text-center mb-4">
-            {errorMessage}
-          </Text>
-        ) : null}
-
-        <TouchableOpacity
-          className="w-full h-14 rounded-lg justify-center items-center"
-          onPress={handleSkip}
-          disabled={isProcessing}
-        >
-          <Text allowFontScaling={false} className="text-gray-600 font-semibold text-lg">
-            Skip for now
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="w-full h-14 rounded-lg justify-center items-center"
+            onPress={handleSkip}
+            disabled={isProcessing}
+          >
+            <Text allowFontScaling={false} className="text-gray-600 font-semibold text-lg">
+              Skip for now
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View>
+        <AuthBackground />
       </View>
     </View>
   );

@@ -3,8 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyb
 import { ArrowLeft } from 'lucide-react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import axios from 'axios';
+import { Image } from 'expo-image';
+
+import { LinearGradient } from 'expo-linear-gradient';
 
 import useAuth from '~/hooks/useAuth';
+import AuthBackground from '~/components/AuthBackGround';
 
 const EmailLogin = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -47,8 +51,9 @@ const EmailLogin = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View className="flex-1 bg-white p-6">
-        <View className="pt-16 mb-8">
+      <View className="flex-1 bg-white ">
+        <View className='p-6 flex1'>
+        <View className="items center pt-16 mb-8">
           <TouchableOpacity
             className="w-16 h-16 px-8 py-8 items-center justify-center rounded-full border border-[#CA251B]"
             onPress={() => navigation.goBack()}
@@ -126,9 +131,14 @@ const EmailLogin = () => {
                 Sign up
               </Text>
             </TouchableOpacity>
+            
+          </View>
           </View>
         </View>
+          <AuthBackground/>
       </View>
+     
+    
     </TouchableWithoutFeedback>
   );
 };

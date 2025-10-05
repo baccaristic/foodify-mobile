@@ -1,15 +1,16 @@
 import React from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Keyboard,
-  TouchableWithoutFeedback,
-  ActivityIndicator,
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    Keyboard,
+    TouchableWithoutFeedback,
+    ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import BackButtonHeader from './BackButtonHeader';
+import AuthBackground from './AuthBackGround';
 
 interface EntryInfo {
     title: string;
@@ -62,47 +63,53 @@ const EntryInfoTemplate: React.FC<EntryInfo> = ({
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View className="flex-1 bg-white p-6">
+            <View className="flex-1 bg-white ">
+                <View className='p-6 flex1'>
 
-                <BackButtonHeader />
+                    <BackButtonHeader />
 
-                <Text allowFontScaling={false} className="text-3xl font-bold mb-8 text-black">
-                    {title}
-                </Text>
-
-                <TextInput
-                    className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-10 text-black"
-                    placeholder={inputPlaceholder}
-                    placeholderTextColor="#666"
-                    keyboardType={keyboardType}
-                    secureTextEntry={secureTextEntry}
-                    onChangeText={setInputValue}
-                    value={inputValue}
-                    editable={!isSubmitting}
-                    autoCapitalize={autoCapitalize}
-                    autoComplete={autoComplete}
-                />
-
-                <TouchableOpacity
-                    className={`w-full h-14 rounded-lg justify-center items-center ${buttonBgClass} mb-6`}
-                    onPress={handleContinue}
-                    disabled={!isFormValid || isSubmitting}
-                >
-                    {isSubmitting ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                        <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
-                    )}
-                </TouchableOpacity>
-
-                {errorMessage ? (
-                    <Text allowFontScaling={false} className="text-sm text-red-500 mt-[-10px]">
-                        {errorMessage}
+                    <Text allowFontScaling={false} className="text-3xl font-bold mb-8 text-black">
+                        {title}
                     </Text>
-                ) : null}
+
+                    <TextInput
+                        className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-10 text-black"
+                        placeholder={inputPlaceholder}
+                        placeholderTextColor="#666"
+                        keyboardType={keyboardType}
+                        secureTextEntry={secureTextEntry}
+                        onChangeText={setInputValue}
+                        value={inputValue}
+                        editable={!isSubmitting}
+                        autoCapitalize={autoCapitalize}
+                        autoComplete={autoComplete}
+                    />
+
+                    <TouchableOpacity
+                        className={`w-full h-14 rounded-lg justify-center items-center ${buttonBgClass} mb-6`}
+                        onPress={handleContinue}
+                        disabled={!isFormValid || isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    {errorMessage ? (
+                        <Text allowFontScaling={false} className="text-sm text-red-500 mt-[-10px]">
+                            {errorMessage}
+                        </Text>
+                    ) : null}
 
 
+                </View>
+                <View>
+                    <AuthBackground />
+                </View>
             </View>
+
         </TouchableWithoutFeedback>
     );
 };

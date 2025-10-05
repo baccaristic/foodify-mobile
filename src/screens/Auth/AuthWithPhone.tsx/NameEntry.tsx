@@ -6,6 +6,7 @@ import BackButtonHeader from '~/components/BackButtonHeader';
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
 import { getRouteForPhoneSignupStep } from './stepRoutes';
+import AuthBackground from '~/components/AuthBackGround';
 
 const PhoneNameEntry = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -76,60 +77,65 @@ const PhoneNameEntry = () => {
   const buttonDisabled = !isFormValid || isSubmitting;
 
   return (
-    <View className="flex-1 bg-white p-6">
-      <BackButtonHeader />
+    <View className="flex-1 bg-white ">
+      <View className='p-6 flex1'>
 
-      <Text allowFontScaling={false} className="text-3xl font-bold mb-8 text-black">
-        What’s your name
-      </Text>
+        <BackButtonHeader />
 
-      <TextInput
-        className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-4 text-black"
-        placeholder="First Name"
-        placeholderTextColor="#666"
-        autoCapitalize="words"
-        value={firstName}
-        onChangeText={(value) => {
-          setFirstName(value);
-          setError(null);
-        }}
-        editable={!isSubmitting}
-      />
-
-      <TextInput
-        className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-4 text-black"
-        placeholder="Last Name"
-        placeholderTextColor="#666"
-        autoCapitalize="words"
-        value={lastName}
-        onChangeText={(value) => {
-          setLastName(value);
-          setError(null);
-        }}
-        editable={!isSubmitting}
-      />
-
-      {error ? (
-        <Text allowFontScaling={false} className="text-sm text-red-500 mb-2">
-          {error}
+        <Text allowFontScaling={false} className="text-3xl font-bold mb-8 text-black">
+          What’s your name
         </Text>
-      ) : null}
 
-      <TouchableOpacity
-        className={`w-full h-14 rounded-lg justify-center items-center ${
-          buttonDisabled ? 'bg-gray-400' : 'bg-[#17213A]'
-        }`}
-        onPress={handleContinue}
-        disabled={buttonDisabled}
-      >
-        {isSubmitting ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-            Continue
+        <TextInput
+          className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-4 text-black"
+          placeholder="First Name"
+          placeholderTextColor="#666"
+          autoCapitalize="words"
+          value={firstName}
+          onChangeText={(value) => {
+            setFirstName(value);
+            setError(null);
+          }}
+          editable={!isSubmitting}
+        />
+
+        <TextInput
+          className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-4 text-black"
+          placeholder="Last Name"
+          placeholderTextColor="#666"
+          autoCapitalize="words"
+          value={lastName}
+          onChangeText={(value) => {
+            setLastName(value);
+            setError(null);
+          }}
+          editable={!isSubmitting}
+        />
+
+        {error ? (
+          <Text allowFontScaling={false} className="text-sm text-red-500 mb-2">
+            {error}
           </Text>
-        )}
-      </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity
+          className={`w-full h-14 rounded-lg justify-center items-center ${buttonDisabled ? 'bg-gray-400' : 'bg-[#17213A]'
+            }`}
+          onPress={handleContinue}
+          disabled={buttonDisabled}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text allowFontScaling={false} className="text-white font-semibold text-lg">
+              Continue
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      <View>
+        <AuthBackground />
+      </View>
     </View>
   );
 };
