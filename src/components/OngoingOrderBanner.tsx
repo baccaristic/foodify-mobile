@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  LayoutChangeEvent,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,24 +15,12 @@ import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/
 import useAuth from '~/hooks/useAuth';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import useOngoingOrderBannerStore from '~/store/ongoingOrderBanner';
+import { formatOrderStatusLabel } from '~/utils/orderStatus';
 
 const backgroundColor = '#17213A';
 const accentColor = '#CA251B';
 const textColor = '#FFFFFF';
 const mutedTextColor = '#E2E8F0';
-
-const formatStatusLabel = (status: string | null | undefined) => {
-  if (!status) {
-    return 'Preparing your order';
-  }
-
-  return status
-    .toString()
-    .toLowerCase()
-    .split('_')
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
-};
 
 const formatEtaLabel = (value: number | string | null | undefined) => {
   if (value == null) {
@@ -60,6 +50,11 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
   const setLastOrderId = useOngoingOrderBannerStore((state) => state.setLastOrderId);
   const setOrderPresence = useOngoingOrderBannerStore((state) => state.setOrderPresence);
 
+  const [isRendered, setIsRendered] = useState(!isCollapsed);
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
+  const animation = useRef(new Animated.Value(!isCollapsed ? 1 : 0)).current;
+  const animationDuration = 220;
+
   const hasOngoingOrder = Boolean(ongoingOrder);
   const ongoingOrderId = ongoingOrder?.id ?? null;
 
@@ -80,7 +75,10 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
     setCollapsed(false);
   }, [hasOngoingOrder, lastOrderId, ongoingOrderId, setCollapsed, setLastOrderId, setOrderPresence]);
 
-  const statusLabel = useMemo(() => formatStatusLabel(ongoingOrder?.status), [ongoingOrder?.status]);
+  const statusLabel = useMemo(
+    () => formatOrderStatusLabel(ongoingOrder?.status),
+    [ongoingOrder?.status]
+  );
 
   const restaurantLabel = useMemo(() => {
     const rawName = ongoingOrder?.restaurantName ?? '';
@@ -102,6 +100,78 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
     );
   }, [ongoingOrder]);
 
+  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
+    const measuredHeight = event?.nativeEvent?.layout?.height;
+    if (!Number.isFinite(measuredHeight)) {
+      return;
+    }
+
+    setContentHeight((previous) => {
+      if (previous == null || Math.abs(previous - measuredHeight) > 1) {
+        return measuredHeight;
+      }
+      return previous;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!ongoingOrder) {
+      animation.stopAnimation();
+      animation.setValue(0);
+      setIsRendered(false);
+      setContentHeight(null);
+      return;
+    }
+
+    if (!isCollapsed) {
+      setIsRendered(true);
+      Animated.timing(animation, {
+        toValue: 1,
+        duration: animationDuration,
+        useNativeDriver: false,
+      }).start();
+      return;
+    }
+
+    Animated.timing(animation, {
+      toValue: 0,
+      duration: animationDuration,
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished) {
+        setIsRendered(false);
+      }
+    });
+  }, [animation, animationDuration, isCollapsed, ongoingOrder]);
+
+  const animatedStyle = useMemo(() => {
+    const opacity = animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 1],
+    });
+
+    const translateY = animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [12, 0],
+    });
+
+    const height =
+      contentHeight == null
+        ? undefined
+        : animation.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, contentHeight],
+          });
+
+    return {
+      opacity,
+      transform: [{ translateY }],
+      height,
+    };
+  }, [animation, contentHeight]);
+
+  const bannerPointerEvents: 'auto' | 'none' = isCollapsed ? 'none' : 'auto';
+
   if (!user || (!ongoingOrder && !isLoading)) {
     return null;
   }
@@ -110,7 +180,7 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
     return null;
   }
 
-  if (isCollapsed) {
+  if (!isRendered && isCollapsed) {
     return null;
   }
 
@@ -121,20 +191,24 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
   };
 
   const expandedContent = (
-    <View style={styles.bannerContainer}>
-      <View style={styles.bannerHeader}>
-        <View>
-          <Text allowFontScaling={false} style={styles.bannerTitle}>
-            {ongoingOrder.id ? `Order #${ongoingOrder.id}` : 'Ongoing order'}
-          </Text>
-          <Text allowFontScaling={false} style={styles.bannerSubtitle} numberOfLines={1}>
-            {restaurantLabel}
-          </Text>
+    <Animated.View
+      style={[styles.animatedContainer, animatedStyle]}
+      pointerEvents={bannerPointerEvents}
+    >
+      <View style={styles.bannerContainer} onLayout={handleContentLayout}>
+        <View style={styles.bannerHeader}>
+          <View>
+            <Text allowFontScaling={false} style={styles.bannerTitle}>
+              {ongoingOrder.id ? `Order #${ongoingOrder.id}` : 'Ongoing order'}
+            </Text>
+            <Text allowFontScaling={false} style={styles.bannerSubtitle} numberOfLines={1}>
+              {restaurantLabel}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            {isFetching ? <ActivityIndicator size="small" color="#FACC15" style={styles.spinner} /> : null}
+          </View>
         </View>
-        <View style={styles.headerActions}>
-          {isFetching ? <ActivityIndicator size="small" color="#FACC15" style={styles.spinner} /> : null}
-        </View>
-      </View>
       <View style={styles.divider} />
       <View style={styles.bannerBody}>
         <View style={styles.statusRow}>
@@ -164,6 +238,7 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
         </TouchableOpacity>
       </View>
     </View>
+    </Animated.View>
   );
 
   const containerStyle =
@@ -187,6 +262,9 @@ const styles = StyleSheet.create({
   },
   inlinePositioner: {
     width: '100%',
+  },
+  animatedContainer: {
+    overflow: 'hidden',
   },
   bannerContainer: {
     backgroundColor,

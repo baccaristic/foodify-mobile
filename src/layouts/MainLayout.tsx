@@ -367,7 +367,7 @@ export default function MainLayout({
           style={[styles.bannerSlot, { bottom: baseBottomInset + bannerSpacing }]}
           pointerEvents="box-none"
           onLayout={handleBannerLayout}>
-          {isBannerCollapsed ? null : <OngoingOrderBanner placement="inline" />}
+          <OngoingOrderBanner placement="inline" />
         </View>
       ) : null}
 
