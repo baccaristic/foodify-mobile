@@ -20,14 +20,48 @@ const initialState = {
 
 const useOngoingOrderBannerStore = create<OngoingOrderBannerState>((set) => ({
   ...initialState,
-  setCollapsed: (value) => set({ isCollapsed: value }),
-  setOrderPresence: ({ hasOrder, orderId }) =>
-    set({
-      hasOngoingOrder: hasOrder,
-      currentOrderId: hasOrder ? orderId : null,
+  setCollapsed: (value) =>
+    set((state) => {
+      if (state.isCollapsed === value) {
+        return state;
+      }
+      return { ...state, isCollapsed: value };
     }),
-  setLastOrderId: (orderId) => set({ lastOrderId: orderId }),
-  reset: () => set({ ...initialState }),
+  setOrderPresence: ({ hasOrder, orderId }) =>
+    set((state) => {
+      const nextHasOrder = hasOrder;
+      const nextOrderId = hasOrder ? orderId : null;
+
+      if (state.hasOngoingOrder === nextHasOrder && state.currentOrderId === nextOrderId) {
+        return state;
+      }
+
+      return {
+        ...state,
+        hasOngoingOrder: nextHasOrder,
+        currentOrderId: nextOrderId,
+      };
+    }),
+  setLastOrderId: (orderId) =>
+    set((state) => {
+      if (state.lastOrderId === orderId) {
+        return state;
+      }
+      return { ...state, lastOrderId: orderId };
+    }),
+  reset: () =>
+    set((state) => {
+      if (
+        state.isCollapsed === initialState.isCollapsed &&
+        state.hasOngoingOrder === initialState.hasOngoingOrder &&
+        state.currentOrderId === initialState.currentOrderId &&
+        state.lastOrderId === initialState.lastOrderId
+      ) {
+        return state;
+      }
+
+      return { ...initialState };
+    }),
 }));
 
 export default useOngoingOrderBannerStore;
