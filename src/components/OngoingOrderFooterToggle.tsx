@@ -10,13 +10,12 @@ const backgroundColor = '#F8FAFC';
 const textColor = '#17213A';
 const accentColor = '#CA251B';
 
-const OngoingOrderFooterToggle: React.FC = () => {
-  const { user } = useAuth();
+const AuthenticatedFooterToggle: React.FC = () => {
   const { data: ongoingOrder } = useOngoingOrder();
   const isCollapsed = useOngoingOrderBannerStore((state) => state.isCollapsed);
   const setCollapsed = useOngoingOrderBannerStore((state) => state.setCollapsed);
 
-  if (!user || !ongoingOrder) {
+  if (!ongoingOrder) {
     return null;
   }
 
@@ -56,6 +55,16 @@ const OngoingOrderFooterToggle: React.FC = () => {
       </View>
     </TouchableOpacity>
   );
+};
+
+const OngoingOrderFooterToggle: React.FC = () => {
+  const { user } = useAuth();
+
+  if (!user) {
+    return null;
+  }
+
+  return <AuthenticatedFooterToggle />;
 };
 
 const styles = StyleSheet.create({
