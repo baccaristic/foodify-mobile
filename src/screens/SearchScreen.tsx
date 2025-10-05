@@ -34,6 +34,7 @@ import type {
 import { useCart } from "~/context/CartContext";
 import type { CartItemOptionSelection } from "~/context/CartContext";
 import { getMenuItemBasePrice } from "~/utils/menuPricing";
+import { BASE_API_URL } from "@env";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
@@ -120,7 +121,7 @@ const RestaurantCard = ({
 }) => {
   const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl } = data;
 
-  const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_IMAGE;
+  const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
 
   return (
@@ -165,7 +166,7 @@ const PromotedMenuItemCard = ({
   onPress: () => void;
 }) => {
   const { name, promotionLabel, price, promotionPrice, imageUrl } = item;
-  const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_MENU_IMAGE;
+  const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_MENU_IMAGE;
   const hasPromoPrice = typeof promotionPrice === "number" && Number.isFinite(promotionPrice);
 
   return (
