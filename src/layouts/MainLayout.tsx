@@ -139,7 +139,7 @@ export default function MainLayout({
   const setIsOngoingCollapsed =
     ongoingOrderContext?.setBannerCollapsed ?? setLocalOngoingCollapsed;
   const ongoingCollapseProgress = useSharedValue(isOngoingCollapsed ? 1 : 0);
-  const ongoingCollapsedWidth = useSharedValue(s(120));
+  const ongoingCollapsedWidth = useSharedValue(s(44));
   const ongoingMeasuredWidth = useSharedValue(0);
   const ongoingContentShift = s(8);
   const scrollY = useSharedValue(0);
@@ -493,17 +493,11 @@ export default function MainLayout({
                   onPress={toggleOngoingCollapsed}
                   accessibilityRole="button"
                   accessibilityLabel={toggleLabel}
+                  hitSlop={{ top: s(12), bottom: s(12), left: s(12), right: s(12) }}
                 >
                   <Animated.View style={[styles.ongoingOrderArrow, ongoingOrderArrowStyle]}>
                     <ChevronRight size={s(18)} color="#FFFFFF" />
                   </Animated.View>
-                  <Text
-                    allowFontScaling={false}
-                    style={styles.ongoingOrderToggleText}
-                    numberOfLines={1}
-                  >
-                    {statusLabel}
-                  </Text>
                 </TouchableOpacity>
             </View>
           </Animated.View>
@@ -683,16 +677,20 @@ const styles = ScaledSheet.create({
   ongoingOrderClip: {
     alignSelf: 'flex-end',
     borderRadius: '18@ms',
-    overflow: 'hidden',
-    backgroundColor: '#17213A',
+    overflow: 'visible',
+    backgroundColor: 'transparent',
   },
   ongoingOrderCard: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    backgroundColor: '#17213A',
+    backgroundColor: 'transparent',
   },
   ongoingOrderContentTouchable: {
     flex: 1,
+    backgroundColor: '#17213A',
+    borderTopLeftRadius: '18@ms',
+    borderBottomLeftRadius: '18@ms',
+    overflow: 'hidden',
   },
   ongoingOrderContent: {
     paddingHorizontal: '18@s',
@@ -741,23 +739,25 @@ const styles = ScaledSheet.create({
     fontWeight: '500',
   },
   ongoingOrderToggle: {
-    width: '110@s',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: '44@s',
+    backgroundColor: '#17213A',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: '10@s',
-    paddingVertical: '12@vs',
+    paddingVertical: '14@vs',
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: 'rgba(255,255,255,0.12)',
+    borderTopRightRadius: '18@ms',
+    borderBottomRightRadius: '18@ms',
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    overflow: 'hidden',
+    marginRight: '-12@s',
   },
   ongoingOrderArrow: {
-    marginBottom: '6@vs',
-  },
-  ongoingOrderToggleText: {
-    color: '#FFFFFF',
-    fontSize: '11@ms',
-    fontWeight: '600',
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
   },
 });
 
