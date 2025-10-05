@@ -338,11 +338,26 @@ export default function MainLayout({
   const handleOngoingLayout = useCallback(
     (event: LayoutChangeEvent) => {
       const layoutWidth = event.nativeEvent.layout.width;
-      if (layoutWidth > ongoingCollapsedWidth.value + 1) {
+      if (layoutWidth <= 0 || !Number.isFinite(layoutWidth)) {
+        return;
+      }
+
+      if (isOngoingCollapsed) {
+        if (Math.abs(layoutWidth - ongoingCollapsedWidth.value) > 0.5) {
+          ongoingCollapsedWidth.value = layoutWidth;
+        }
+        return;
+      }
+
+      if (Math.abs(layoutWidth - ongoingMeasuredWidth.value) > 0.5) {
         ongoingMeasuredWidth.value = layoutWidth;
       }
     },
-    [ongoingCollapsedWidth, ongoingMeasuredWidth]
+    [
+      isOngoingCollapsed,
+      ongoingCollapsedWidth,
+      ongoingMeasuredWidth,
+    ]
   );
 
   const ongoingOrderContentAnimatedStyle = useAnimatedStyle(() => {
@@ -433,11 +448,8 @@ export default function MainLayout({
         <Animated.View
           style={[styles.ongoingOrderShadow, ongoingOrderContainerStyle]}
         >
-          <Animated.View
-            onLayout={handleOngoingLayout}
-            style={[styles.ongoingOrderClip, ongoingOrderContainerStyle]}
-          >
-            <View style={styles.ongoingOrderCard}>
+          <Animated.View style={[styles.ongoingOrderClip, ongoingOrderContainerStyle]}>
+            <View style={styles.ongoingOrderCard} onLayout={handleOngoingLayout}>
                 <TouchableOpacity
                   activeOpacity={0.92}
                   style={styles.ongoingOrderContentTouchable}
@@ -687,12 +699,14 @@ const styles = ScaledSheet.create({
   },
   ongoingOrderContentTouchable: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: '#17213A',
     borderTopLeftRadius: '18@ms',
     borderBottomLeftRadius: '18@ms',
     overflow: 'hidden',
   },
   ongoingOrderContent: {
+    minWidth: 0,
     paddingHorizontal: '18@s',
     paddingVertical: '14@vs',
     rowGap: '6@vs',
