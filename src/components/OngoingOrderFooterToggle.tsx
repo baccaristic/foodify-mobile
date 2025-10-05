@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Bike, ChevronDown, ChevronUp } from 'lucide-react-native';
 
 import useAuth from '~/hooks/useAuth';
-import useOngoingOrder from '~/hooks/useOngoingOrder';
 import useOngoingOrderBannerStore from '~/store/ongoingOrderBanner';
 
 const backgroundColor = '#F8FAFC';
@@ -11,24 +10,22 @@ const textColor = '#17213A';
 const accentColor = '#CA251B';
 
 const AuthenticatedFooterToggle: React.FC = () => {
-  const { data: ongoingOrder } = useOngoingOrder();
+  const hasOngoingOrder = useOngoingOrderBannerStore((state) => state.hasOngoingOrder);
+  const currentOrderId = useOngoingOrderBannerStore((state) => state.currentOrderId);
   const isCollapsed = useOngoingOrderBannerStore((state) => state.isCollapsed);
   const setCollapsed = useOngoingOrderBannerStore((state) => state.setCollapsed);
 
-  if (!ongoingOrder) {
+  if (!hasOngoingOrder) {
     return null;
   }
 
-  const label = useMemo(() => (isCollapsed ? 'Show order progress' : 'Hide order progress'), [isCollapsed]);
+  const label = isCollapsed ? 'Show order progress' : 'Hide order progress';
   const ToggleIcon = isCollapsed ? ChevronUp : ChevronDown;
 
-  const orderLabel = useMemo(() => {
-    if (!ongoingOrder?.id) {
-      return 'Order in progress';
-    }
-
-    return `Order #${ongoingOrder.id}`;
-  }, [ongoingOrder?.id]);
+  const orderLabel =
+    currentOrderId == null || currentOrderId === ''
+      ? 'Order in progress'
+      : `Order #${currentOrderId}`;
 
   return (
     <TouchableOpacity

@@ -58,13 +58,18 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
   const setCollapsed = useOngoingOrderBannerStore((state) => state.setCollapsed);
   const lastOrderId = useOngoingOrderBannerStore((state) => state.lastOrderId);
   const setLastOrderId = useOngoingOrderBannerStore((state) => state.setLastOrderId);
+  const setOrderPresence = useOngoingOrderBannerStore((state) => state.setOrderPresence);
+
+  const hasOngoingOrder = Boolean(ongoingOrder);
+  const ongoingOrderId = ongoingOrder?.id ?? null;
 
   useEffect(() => {
-    const currentId = ongoingOrder?.id ?? null;
-    if (currentId) {
-      if (lastOrderId !== currentId) {
+    setOrderPresence({ hasOrder: hasOngoingOrder, orderId: ongoingOrderId });
+
+    if (ongoingOrderId != null) {
+      if (lastOrderId !== ongoingOrderId) {
         setCollapsed(false);
-        setLastOrderId(currentId);
+        setLastOrderId(ongoingOrderId);
       }
       return;
     }
@@ -73,7 +78,7 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
       setLastOrderId(null);
     }
     setCollapsed(false);
-  }, [lastOrderId, ongoingOrder?.id, setCollapsed, setLastOrderId]);
+  }, [hasOngoingOrder, lastOrderId, ongoingOrderId, setCollapsed, setLastOrderId, setOrderPresence]);
 
   const statusLabel = useMemo(() => formatStatusLabel(ongoingOrder?.status), [ongoingOrder?.status]);
 
