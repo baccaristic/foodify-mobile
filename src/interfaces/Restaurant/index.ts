@@ -87,3 +87,35 @@ export interface NearbyRestaurantsParams {
   lng: number;
   radiusKm?: number;
 }
+
+export type RestaurantSearchSort = "picked" | "popular" | "rating";
+
+export interface RestaurantSearchParams {
+  query?: string;
+  hasPromotion?: boolean;
+  isTopChoice?: boolean;
+  hasFreeDelivery?: boolean;
+  sort?: RestaurantSearchSort;
+  topEatOnly?: boolean;
+  maxDeliveryFee?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface RestaurantSearchItem {
+  id: number;
+  name: string;
+  deliveryTimeRange: string;
+  rating: number;
+  isTopChoice: boolean;
+  hasFreeDelivery: boolean;
+  promotionLabel?: string | null;
+  imageUrl: string;
+}
+
+export interface RestaurantSearchResponse {
+  items: RestaurantSearchItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+}

@@ -1,45 +1,61 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Image } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Image,
+} from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import { Search, SlidersHorizontal, Star } from "lucide-react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import MainLayout from "~/layouts/MainLayout";
 import Header from "~/components/Header";
-import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 import FiltersOverlay from "~/components/FiltersOverlay";
+import useDebounce from "~/hooks/useDebounce";
+import { searchRestaurants } from "~/api/restaurants";
+import type {
+  RestaurantSearchItem,
+  RestaurantSearchParams,
+  RestaurantSearchSort,
+} from "~/interfaces/Restaurant";
 
-const image1 = require("../../assets/TEST.png");
-const image2 = require("../../assets/baguette.png");
-const image3 = require("../../assets/TEST.png");
+const FALLBACK_IMAGE = require("../../assets/TEST.png");
+const PAGE = 1;
+const PAGE_SIZE = 20;
 
-interface RestaurantData {
-  id: number;
-  name: string;
-  time: string;
-  rating: number;
-  isTopChoice?: boolean;
-  isFreeDelivery?: boolean;
-  discount?: string;
-  image: any;
-}
+const QUICK_FILTERS_DEFAULT = Object.freeze({
+  promotions: false,
+  topChoice: false,
+  freeDelivery: false,
+});
 
-const mockSearchResults: RestaurantData[] = [
-  { id: 1, name: "Da Pietro", time: "15-25 min", rating: 4.5, isTopChoice: true, image: image1 },
-  { id: 2, name: "Papa Jones", time: "15-25 min", rating: 4.5, isFreeDelivery: true, image: image2 },
-  { id: 3, name: "Papa Jones", time: "15-25 min", rating: 4.5, discount: "20%", image: image3 },
-];
+const OVERLAY_FILTERS_DEFAULT = Object.freeze({
+  sort: "picked" as RestaurantSearchSort,
+  topEat: false,
+  maxFee: 1.5,
+});
 
-const PillButton = ({
-  label,
-  icon: Icon,
-  onPress,
-  isActive = false,
-}: {
+type QuickFilterKey = keyof typeof QUICK_FILTERS_DEFAULT;
+
+type OverlayFiltersState = {
+  sort: RestaurantSearchSort;
+  topEat: boolean;
+  maxFee: number;
+};
+
+interface PillButtonProps {
   label?: string;
   icon?: any;
   onPress: () => void;
   isActive?: boolean;
-}) => {
+}
+
+const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButtonProps) => {
   const buttonStyle = [styles.pillButton, isActive && styles.pillActive];
   const textStyle = isActive ? styles.pillTextActive : styles.pillText;
   const iconColor = textStyle.color;
@@ -47,23 +63,22 @@ const PillButton = ({
   return (
     <TouchableOpacity onPress={onPress} style={buttonStyle} activeOpacity={0.85}>
       {Icon && (
-        <Icon
-          size={s(20)}
-          color={iconColor}
-          style={{ marginRight: label ? s(4) : 0 }}
-        />
+        <Icon size={s(20)} color={iconColor} style={{ marginRight: label ? s(4) : 0 }} />
       )}
       {label && <Text style={textStyle}>{label}</Text>}
     </TouchableOpacity>
   );
 };
 
-const RestaurantCard = ({ data }: { data: RestaurantData }) => {
-  const { name, time, rating, isTopChoice, isFreeDelivery, discount, image } = data;
+const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
+  const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, promotionLabel, imageUrl } = data;
+
+  const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_IMAGE;
+  const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9}>
-      <Image source={image} style={styles.cardImage} />
+      <Image source={imageSource} style={styles.cardImage} />
 
       {isTopChoice && (
         <View style={styles.badgeTopRight}>
@@ -71,23 +86,23 @@ const RestaurantCard = ({ data }: { data: RestaurantData }) => {
         </View>
       )}
 
-      {discount && (
+      {promotionLabel && (
         <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{discount}</Text>
+          <Text style={styles.discountText}>{promotionLabel}</Text>
         </View>
       )}
 
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle}>{name}</Text>
         <View style={styles.timeRatingRow}>
-          <Text style={styles.deliveryTime}>{time}</Text>
+          <Text style={styles.deliveryTime}>{deliveryTimeRange}</Text>
           <View style={styles.ratingRow}>
             <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-            <Text style={styles.ratingText}>{rating}/5</Text>
+            <Text style={styles.ratingText}>{formattedRating}</Text>
           </View>
         </View>
 
-        {isFreeDelivery && (
+        {hasFreeDelivery && (
           <View style={styles.promoContainer}>
             <View style={styles.freeDeliveryPill}>
               <Text style={styles.promoText}>Free Delivery</Text>
@@ -100,37 +115,78 @@ const RestaurantCard = ({ data }: { data: RestaurantData }) => {
 };
 
 export default function SearchScreen() {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [showFilters, setShowFilters] = useState(false);
-
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
 
-  const [filters, setFilters] = useState({
-    filter: false,
-    promotions: false,
-    topChoice: false,
-    freeDelivery: false,
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [quickFilters, setQuickFilters] = useState(() => ({ ...QUICK_FILTERS_DEFAULT }));
+  const [overlayFilters, setOverlayFilters] = useState<OverlayFiltersState>(() => ({
+    ...OVERLAY_FILTERS_DEFAULT,
+  }));
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const toggleQuickFilter = useCallback((key: QuickFilterKey) => {
+    setQuickFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleApplyOverlayFilters = useCallback(
+    (next: { sort: string; topEat: boolean; maxFee: number }) => {
+      setOverlayFilters({
+        sort: next.sort as RestaurantSearchSort,
+        topEat: next.topEat,
+        maxFee: next.maxFee,
+      });
+    },
+    []
+  );
+
+  const handleClearAll = useCallback(() => {
+    setQuickFilters({ ...QUICK_FILTERS_DEFAULT });
+    setOverlayFilters({ ...OVERLAY_FILTERS_DEFAULT });
+  }, []);
+
+  const { promotions, topChoice, freeDelivery } = quickFilters;
+  const { sort, topEat, maxFee } = overlayFilters;
+
+  const queryParams = useMemo<RestaurantSearchParams>(() => {
+    const trimmedQuery = debouncedSearchTerm.trim();
+
+    return {
+      query: trimmedQuery,
+      hasPromotion: promotions,
+      isTopChoice: topChoice,
+      hasFreeDelivery: freeDelivery,
+      sort,
+      topEatOnly: topEat,
+      maxDeliveryFee: maxFee,
+      page: PAGE,
+      pageSize: PAGE_SIZE,
+    };
+  }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee]);
+
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["restaurants-search", queryParams],
+    queryFn: () => searchRestaurants(queryParams),
+    keepPreviousData: true,
   });
 
-  const toggleFilter = (key: keyof typeof filters) =>
-    setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+  const restaurants = data?.items ?? [];
+  const totalItems = data?.totalItems ?? 0;
 
-  const filteredResults = useMemo(() => {
-    const term = (searchTerm ?? "").trim().toLowerCase();
-    const anyFilterActive = filters.topChoice || filters.freeDelivery || filters.promotions;
+  const showResultCount = useMemo(() => {
+    const baseQueryActive = debouncedSearchTerm.trim().length > 0;
+    const quickFiltersActive = promotions || topChoice || freeDelivery;
+    const overlayChanged =
+      sort !== OVERLAY_FILTERS_DEFAULT.sort ||
+      topEat !== OVERLAY_FILTERS_DEFAULT.topEat ||
+      maxFee !== OVERLAY_FILTERS_DEFAULT.maxFee;
 
-    return mockSearchResults.filter((item) => {
-      const name = (item.name ?? "").toLowerCase();
-      const matchText = term.length === 0 || name.includes(term);
-      const matchFilter =
-        !anyFilterActive ||
-        (filters.topChoice && !!item.isTopChoice) ||
-        (filters.freeDelivery && !!item.isFreeDelivery) ||
-        (filters.promotions && !!item.discount);
+    return baseQueryActive || quickFiltersActive || overlayChanged;
+  }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee]);
 
-      return matchText && matchFilter;
-    });
-  }, [searchTerm, filters]);
+  const showInlineSpinner = isFetching && !isLoading;
+  const isEmpty = !isLoading && !isFetching && !isError && restaurants.length === 0;
 
   const customHeader = (
     <Animated.View entering={FadeIn.duration(500)} style={styles.headerWrapper}>
@@ -141,7 +197,6 @@ export default function SearchScreen() {
         compact
       />
 
-      {/* Search Bar */}
       <View style={styles.searchBarContainer}>
         <View style={styles.searchBar}>
           <TextInput
@@ -150,39 +205,35 @@ export default function SearchScreen() {
             value={searchTerm}
             onChangeText={setSearchTerm}
             placeholderTextColor="#666"
+            autoCorrect={false}
+            returnKeyType="search"
           />
           <Search size={s(18)} color="black" />
         </View>
       </View>
 
-      {/* Filter Pills */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ marginTop: vs(20) }}
         contentContainerStyle={styles.pillsContainer}
       >
-        <PillButton
-  icon={SlidersHorizontal}
-  onPress={() => setShowFilters(true)}
-  isActive={showFilters}
-/>
-
+        <PillButton icon={SlidersHorizontal} onPress={() => setShowFilters(true)} isActive={showFilters} />
 
         <PillButton
           label="Promotions"
-          onPress={() => toggleFilter("promotions")}
-          isActive={filters.promotions}
+          onPress={() => toggleQuickFilter("promotions")}
+          isActive={promotions}
         />
         <PillButton
           label="Top Choice"
-          onPress={() => toggleFilter("topChoice")}
-          isActive={filters.topChoice}
+          onPress={() => toggleQuickFilter("topChoice")}
+          isActive={topChoice}
         />
         <PillButton
           label="Free Delivery"
-          onPress={() => toggleFilter("freeDelivery")}
-          isActive={filters.freeDelivery}
+          onPress={() => toggleQuickFilter("freeDelivery")}
+          isActive={freeDelivery}
         />
       </ScrollView>
     </Animated.View>
@@ -191,45 +242,65 @@ export default function SearchScreen() {
   const mainContent = (
     <View style={styles.mainWrapper}>
       <View style={{ height: vs(10) }} />
-      {searchTerm.trim().length > 0 && (
+
+      {showResultCount && (
         <Text style={styles.resultsCount}>
-          {filteredResults.length} Results for “{searchTerm}”
+          {isLoading ? "Searching..." : `${totalItems} Results${debouncedSearchTerm ? ` for “${debouncedSearchTerm}”` : ""}`}
         </Text>
       )}
+
+      {showInlineSpinner && (
+        <View style={styles.inlineSpinner}>
+          <ActivityIndicator size="small" color="#CA251B" />
+          <Text style={styles.inlineSpinnerText}>Updating results...</Text>
+        </View>
+      )}
+
       <View style={styles.cardList}>
-        {filteredResults.map((item) => (
-          <RestaurantCard key={item.id} data={item} />
-        ))}
+        {isLoading ? (
+          <View style={styles.stateContainer}>
+            <ActivityIndicator size="large" color="#CA251B" />
+            <Text style={styles.stateText}>Loading restaurants...</Text>
+          </View>
+        ) : isError ? (
+          <View style={styles.stateContainer}>
+            <Text style={styles.stateText}>We couldn't load restaurants. Please try again.</Text>
+            <TouchableOpacity style={styles.retryButton} activeOpacity={0.8} onPress={() => refetch()}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : isEmpty ? (
+          <View style={styles.stateContainer}>
+            <Text style={styles.stateText}>No restaurants match your filters yet.</Text>
+          </View>
+        ) : (
+          restaurants.map((item) => <RestaurantCard key={item.id} data={item} />)
+        )}
       </View>
     </View>
   );
 
   return (
     <>
-    <MainLayout
-      headerBackgroundImage={require("../../assets/pattern1.png")}
-      showHeader
-      showFooter
-      activeTab="Search"
-      headerMaxHeight={vs(160)}
-      headerMinHeight={vs(120)}
-      customHeader={customHeader}
-      enableHeaderCollapse={false}
-      mainContent={mainContent}
-    />
-    <FiltersOverlay
-  visible={showFilters}
-  onClose={() => setShowFilters(false)}
-  onClearAll={() => {
-    setFilters({
-      filter: false,
-      promotions: false,
-      topChoice: false,
-      freeDelivery: false,
-    });
-  }}
-/>
-</>
+      <MainLayout
+        headerBackgroundImage={require("../../assets/pattern1.png")}
+        showHeader
+        showFooter
+        activeTab="Search"
+        headerMaxHeight={vs(160)}
+        headerMinHeight={vs(120)}
+        customHeader={customHeader}
+        enableHeaderCollapse={false}
+        mainContent={mainContent}
+      />
+      <FiltersOverlay
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        onApply={handleApplyOverlayFilters}
+        onClearAll={handleClearAll}
+        initialFilters={overlayFilters}
+      />
+    </>
   );
 }
 
@@ -265,7 +336,7 @@ const styles = ScaledSheet.create({
   pillButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white", 
+    backgroundColor: "white",
     borderRadius: "20@ms",
     paddingHorizontal: "14@s",
     paddingVertical: "8@vs",
@@ -273,7 +344,7 @@ const styles = ScaledSheet.create({
     borderColor: "#CA251B",
   },
   pillActive: {
-    backgroundColor: "#CA251B", 
+    backgroundColor: "#CA251B",
     borderColor: "white",
   },
   pillText: {
@@ -304,6 +375,19 @@ const styles = ScaledSheet.create({
     marginBottom: "12@vs",
     color: "#8B909D",
     textAlign: "center",
+  },
+  inlineSpinner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8@s",
+    marginBottom: "12@vs",
+  },
+  inlineSpinnerText: {
+    color: "#8B909D",
+    fontFamily: "Roboto",
+    fontSize: "13@ms",
+    fontWeight: "500",
   },
   cardList: { gap: "16@vs" },
   card: {
@@ -385,6 +469,32 @@ const styles = ScaledSheet.create({
     color: "white",
     fontFamily: "Roboto",
     fontSize: "13@ms",
+    fontWeight: "600",
+  },
+  stateContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: "40@vs",
+    gap: "16@vs",
+  },
+  stateText: {
+    textAlign: "center",
+    color: "#6B7280",
+    fontFamily: "Roboto",
+    fontSize: "14@ms",
+    fontWeight: "500",
+    maxWidth: "240@s",
+  },
+  retryButton: {
+    backgroundColor: "#CA251B",
+    borderRadius: "24@ms",
+    paddingHorizontal: "24@s",
+    paddingVertical: "10@vs",
+  },
+  retryText: {
+    color: "white",
+    fontFamily: "Roboto",
+    fontSize: "14@ms",
     fontWeight: "600",
   },
 });
