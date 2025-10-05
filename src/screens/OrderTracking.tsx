@@ -36,6 +36,7 @@ import type {
 } from '~/interfaces/Order';
 import { vs } from 'react-native-size-matters';
 import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
+import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { formatOrderStatusLabel, mergeOrderLikeData } from '~/utils/order';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
@@ -159,47 +160,121 @@ const OrderTrackingScreen: React.FC = () => {
   const statusPulse = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
+  const { order: ongoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
 
   const initialOrder = route.params?.order ?? null;
   const routeOrderIdParam = route.params?.orderId ?? null;
   const initialOrderId = initialOrder?.orderId ?? null;
+  const ongoingOrderId = ongoingOrder?.orderId ?? null;
+
+  useEffect(() => {
+    if (initialOrder) {
+      updateOngoingOrder(initialOrder as Partial<OrderTrackingData>);
+    }
+  }, [initialOrder, updateOngoingOrder]);
+
+  const relevantOrderIds = useMemo(() => {
+    const ids: string[] = [];
+    const addId = (value: number | string | null | undefined) => {
+      if (value != null) {
+        const key = String(value);
+        if (!ids.includes(key)) {
+          ids.push(key);
+        }
+      }
+    };
+
+    addId(routeOrderIdParam);
+    addId(initialOrderId);
+    addId(ongoingOrderId);
+
+    return ids;
+  }, [initialOrderId, ongoingOrderId, routeOrderIdParam]);
 
   const websocketOrderData = useMemo<OrderTrackingData | null>(() => {
-    if (routeOrderIdParam != null) {
-      const update = orderUpdates[String(routeOrderIdParam)];
+    for (const id of relevantOrderIds) {
+      const update = orderUpdates[id];
       if (update) {
         return update;
       }
     }
 
-    if (initialOrderId != null) {
-      const update = orderUpdates[String(initialOrderId)];
-      if (update) {
-        return update;
+    if (latestOrderUpdate) {
+      if (!latestOrderUpdate.orderId || relevantOrderIds.length === 0) {
+        return latestOrderUpdate;
+      }
+
+      const latestId = String(latestOrderUpdate.orderId);
+      if (relevantOrderIds.includes(latestId)) {
+        return latestOrderUpdate;
+      }
+
+      const keyedUpdate = orderUpdates[latestId];
+      if (keyedUpdate) {
+        return keyedUpdate;
       }
     }
 
-    return latestOrderUpdate ?? null;
-  }, [initialOrderId, latestOrderUpdate, orderUpdates, routeOrderIdParam]);
+    return null;
+  }, [latestOrderUpdate, orderUpdates, relevantOrderIds]);
 
-  const order = useMemo<OrderTrackingData | null>(() => {
-    const merged = mergeOrderLikeData<OrderTrackingData>(
-      initialOrder as OrderTrackingData | null,
-      websocketOrderData as Partial<OrderTrackingData> | null,
-    );
-    if (!merged) {
-      if (routeOrderIdParam != null) {
-        return { orderId: routeOrderIdParam } as OrderTrackingData;
-      }
+  const contextOrder = useMemo<OrderTrackingData | null>(() => {
+    if (!ongoingOrder) {
       return null;
     }
 
-    const orderId = merged.orderId ?? routeOrderIdParam ?? initialOrderId ?? null;
-    return {
-      ...merged,
-      orderId,
-    };
-  }, [initialOrder, initialOrderId, routeOrderIdParam, websocketOrderData]);
+    const contextId = ongoingOrder.orderId ?? null;
+    const targetId = routeOrderIdParam ?? initialOrderId ?? null;
+
+    if (targetId == null || contextId == null) {
+      return ongoingOrder as OrderTrackingData;
+    }
+
+    return String(contextId) === String(targetId)
+      ? (ongoingOrder as OrderTrackingData)
+      : null;
+  }, [initialOrderId, ongoingOrder, routeOrderIdParam]);
+
+  const baseOrder = useMemo(() => {
+    return mergeOrderLikeData<OrderTrackingData>(
+      initialOrder as OrderTrackingData | null,
+      contextOrder as Partial<OrderTrackingData> | null,
+    );
+  }, [contextOrder, initialOrder]);
+
+  const order = useMemo<OrderTrackingData | null>(() => {
+    const merged = mergeOrderLikeData<OrderTrackingData>(
+      baseOrder as OrderTrackingData | null,
+      websocketOrderData as Partial<OrderTrackingData> | null,
+    );
+
+    if (merged) {
+      const fallbackId =
+        merged.orderId ??
+        (websocketOrderData?.orderId ?? null) ??
+        (contextOrder?.orderId ?? null) ??
+        routeOrderIdParam ??
+        initialOrderId ??
+        null;
+
+      return fallbackId != null ? ({ ...merged, orderId: fallbackId } as OrderTrackingData) : merged;
+    }
+
+    const fallbackId =
+      (websocketOrderData?.orderId ?? null) ??
+      (contextOrder?.orderId ?? null) ??
+      routeOrderIdParam ??
+      initialOrderId ??
+      null;
+
+    return fallbackId != null ? ({ orderId: fallbackId } as OrderTrackingData) : null;
+  }, [
+    baseOrder,
+    contextOrder,
+    initialOrderId,
+    routeOrderIdParam,
+    websocketOrderData,
+  ]);
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
   const formattedStatus = formatOrderStatusLabel(order?.status);
