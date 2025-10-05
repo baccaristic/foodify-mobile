@@ -306,42 +306,26 @@ export default function MainLayout({
   const hasOngoingOrder = Boolean(ongoingOrder);
   const isBannerCollapsed = useOngoingOrderBannerStore((state) => state.isCollapsed);
   const setBannerCollapsed = useOngoingOrderBannerStore((state) => state.setCollapsed);
-  const [footerExtensionHeight, setFooterExtensionHeight] = useState(0);
+  const bannerHeight = useOngoingOrderBannerStore((state) => state.bannerHeight);
+  const [summaryHeight, setSummaryHeight] = useState(0);
 
-  useEffect(() => {
-    if (!showOngoingOrderBanner || !hasOngoingOrder) {
-      setFooterExtensionHeight(0);
-    }
-  }, [hasOngoingOrder, showOngoingOrderBanner]);
-
-  const handleFooterExtensionLayout = useCallback((event: LayoutChangeEvent) => {
-    const nextHeight = event.nativeEvent?.layout?.height ?? 0;
-    if (!Number.isFinite(nextHeight)) {
+  const handleSummaryLayout = useCallback((event: LayoutChangeEvent) => {
+    const measuredHeight = event.nativeEvent?.layout?.height ?? 0;
+    if (!Number.isFinite(measuredHeight)) {
       return;
     }
-    setFooterExtensionHeight((current) => {
-      if (Math.abs(current - nextHeight) <= 1) {
+
+    setSummaryHeight((current) => {
+      if (Math.abs(current - measuredHeight) <= 1) {
         return current;
       }
-      return nextHeight;
+      return measuredHeight;
     });
   }, []);
 
   const baseBottomInset = useMemo(
     () => (showFooter ? insets.bottom + vs(84) : insets.bottom + vs(24)),
     [insets.bottom, showFooter]
-  );
-
-  const effectiveFooterExtension = useMemo(() => {
-    if (!showFooter || !showOngoingOrderBanner || !hasOngoingOrder) {
-      return 0;
-    }
-    return footerExtensionHeight;
-  }, [footerExtensionHeight, hasOngoingOrder, showFooter, showOngoingOrderBanner]);
-
-  const floatingBottomInset = useMemo(
-    () => baseBottomInset + effectiveFooterExtension,
-    [baseBottomInset, effectiveFooterExtension]
   );
 
   const ongoingOrderStatusLabel = useMemo(() => {
@@ -366,6 +350,36 @@ export default function MainLayout({
 
   const shouldRenderOngoingOrderUi = showOngoingOrderBanner && hasOngoingOrder;
   const isSummaryVisible = shouldRenderOngoingOrderUi && Boolean(footerSummaryLabel);
+
+  useEffect(() => {
+    if (!isSummaryVisible) {
+      setSummaryHeight(0);
+    }
+  }, [isSummaryVisible]);
+
+  const effectiveFooterExtension = useMemo(() => {
+    if (!showFooter || !shouldRenderOngoingOrderUi) {
+      return 0;
+    }
+    const summaryContribution = isSummaryVisible ? summaryHeight : 0;
+    const bannerContribution = isBannerCollapsed ? 0 : bannerHeight;
+    const bannerSpacing = bannerContribution > 0 ? vs(12) : 0;
+    const containerPadding = vs(12);
+
+    return summaryContribution + bannerSpacing + bannerContribution + containerPadding;
+  }, [
+    bannerHeight,
+    isBannerCollapsed,
+    isSummaryVisible,
+    shouldRenderOngoingOrderUi,
+    showFooter,
+    summaryHeight,
+  ]);
+
+  const floatingBottomInset = useMemo(
+    () => baseBottomInset + effectiveFooterExtension,
+    [baseBottomInset, effectiveFooterExtension]
+  );
 
   const showSummarySpinner = isSummaryVisible && (isOngoingOrderLoading || isOngoingOrderFetching);
 
@@ -404,13 +418,13 @@ export default function MainLayout({
         <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
           <View
             pointerEvents="box-none"
-            onLayout={shouldRenderOngoingOrderUi ? handleFooterExtensionLayout : undefined}
             style={shouldRenderOngoingOrderUi ? styles.footerExtensionContainer : undefined}>
             {isSummaryVisible ? (
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.footerSummary}
-                onPress={handleToggleBanner}>
+                onPress={handleToggleBanner}
+                onLayout={handleSummaryLayout}>
                 <View style={styles.footerSummaryContent}>
                   {showSummarySpinner ? (
                     <ActivityIndicator color="#FACC15" size="small" style={styles.footerSummarySpinner} />

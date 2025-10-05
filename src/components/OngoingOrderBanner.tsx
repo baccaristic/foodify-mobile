@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Animated,
-  LayoutChangeEvent,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bike, Clock } from 'lucide-react-native';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
+import Animated, {
+  Easing,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import useAuth from '~/hooks/useAuth';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
@@ -49,13 +49,14 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
   const lastOrderId = useOngoingOrderBannerStore((state) => state.lastOrderId);
   const setLastOrderId = useOngoingOrderBannerStore((state) => state.setLastOrderId);
   const setOrderPresence = useOngoingOrderBannerStore((state) => state.setOrderPresence);
-
-  const [isRendered, setIsRendered] = useState(!isCollapsed);
-  const [contentHeight, setContentHeight] = useState<number | null>(null);
-  const animation = useRef(new Animated.Value(!isCollapsed ? 1 : 0)).current;
-  const animationDuration = 220;
+  const setBannerHeight = useOngoingOrderBannerStore((state) => state.setBannerHeight);
 
   const hasOngoingOrder = Boolean(ongoingOrder);
+  const [isRendered, setIsRendered] = useState(() => hasOngoingOrder && !isCollapsed);
+  const animation = useSharedValue(!isCollapsed && hasOngoingOrder ? 1 : 0);
+  const contentHeight = useSharedValue(0);
+  const animationDuration = 220;
+
   const ongoingOrderId = ongoingOrder?.id ?? null;
 
   useEffect(() => {
@@ -73,7 +74,8 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
       setLastOrderId(null);
     }
     setCollapsed(false);
-  }, [hasOngoingOrder, lastOrderId, ongoingOrderId, setCollapsed, setLastOrderId, setOrderPresence]);
+    setBannerHeight(0);
+  }, [hasOngoingOrder, lastOrderId, ongoingOrderId, setBannerHeight, setCollapsed, setLastOrderId, setOrderPresence]);
 
   const statusLabel = useMemo(
     () => formatOrderStatusLabel(ongoingOrder?.status),
@@ -100,75 +102,67 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
     );
   }, [ongoingOrder]);
 
-  const handleContentLayout = useCallback((event: LayoutChangeEvent) => {
-    const measuredHeight = event?.nativeEvent?.layout?.height;
-    if (!Number.isFinite(measuredHeight)) {
-      return;
-    }
-
-    setContentHeight((previous) => {
-      if (previous == null || Math.abs(previous - measuredHeight) > 1) {
-        return measuredHeight;
+  const handleContentLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (placement !== 'inline') {
+        return;
       }
-      return previous;
-    });
-  }, []);
+
+      const measuredHeight = event?.nativeEvent?.layout?.height;
+      if (!Number.isFinite(measuredHeight)) {
+        return;
+      }
+
+      const nextHeight = measuredHeight <= 0 ? 0 : measuredHeight;
+
+      if (Math.abs(contentHeight.value - nextHeight) <= 1) {
+        return;
+      }
+
+      contentHeight.value = nextHeight;
+      setBannerHeight(nextHeight);
+    },
+    [contentHeight, placement, setBannerHeight]
+  );
 
   useEffect(() => {
     if (!ongoingOrder) {
-      animation.stopAnimation();
-      animation.setValue(0);
+      animation.value = 0;
       setIsRendered(false);
-      setContentHeight(null);
+      if (placement === 'inline') {
+        setBannerHeight(0);
+      }
       return;
     }
 
-    if (!isCollapsed) {
+    const nextValue = isCollapsed ? 0 : 1;
+
+    if (nextValue === 1) {
       setIsRendered(true);
-      Animated.timing(animation, {
-        toValue: 1,
-        duration: animationDuration,
-        useNativeDriver: false,
-      }).start();
-      return;
     }
 
-    Animated.timing(animation, {
-      toValue: 0,
+    animation.value = withTiming(nextValue, {
       duration: animationDuration,
-      useNativeDriver: false,
-    }).start(({ finished }) => {
-      if (finished) {
-        setIsRendered(false);
+      easing: Easing.out(Easing.cubic),
+    }, (finished) => {
+      if (finished && nextValue === 0) {
+        runOnJS(setIsRendered)(false);
       }
     });
-  }, [animation, animationDuration, isCollapsed, ongoingOrder]);
+  }, [animation, animationDuration, isCollapsed, ongoingOrder, placement, setBannerHeight]);
 
-  const animatedStyle = useMemo(() => {
-    const opacity = animation.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 1],
-    });
-
-    const translateY = animation.interpolate({
-      inputRange: [0, 1],
-      outputRange: [12, 0],
-    });
-
-    const height =
-      contentHeight == null
-        ? undefined
-        : animation.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, contentHeight],
-          });
+  const animatedStyle = useAnimatedStyle(() => {
+    const opacity = animation.value;
+    const translateY = interpolate(animation.value, [0, 1], [12, 0]);
+    const measuredHeight = contentHeight.value;
+    const height = measuredHeight > 0 ? interpolate(animation.value, [0, 1], [0, measuredHeight]) : undefined;
 
     return {
       opacity,
       transform: [{ translateY }],
       height,
     };
-  }, [animation, contentHeight]);
+  }, []);
 
   const bannerPointerEvents: 'auto' | 'none' = isCollapsed ? 'none' : 'auto';
 
@@ -191,10 +185,7 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
   };
 
   const expandedContent = (
-    <Animated.View
-      style={[styles.animatedContainer, animatedStyle]}
-      pointerEvents={bannerPointerEvents}
-    >
+    <Animated.View style={[styles.animatedContainer, animatedStyle]} pointerEvents={bannerPointerEvents}>
       <View style={styles.bannerContainer} onLayout={handleContentLayout}>
         <View style={styles.bannerHeader}>
           <View>

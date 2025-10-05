@@ -5,9 +5,11 @@ interface OngoingOrderBannerState {
   hasOngoingOrder: boolean;
   currentOrderId: string | number | null;
   lastOrderId: string | number | null;
+  bannerHeight: number;
   setCollapsed: (value: boolean) => void;
   setOrderPresence: (payload: { hasOrder: boolean; orderId: string | number | null }) => void;
   setLastOrderId: (orderId: string | number | null) => void;
+  setBannerHeight: (height: number) => void;
   reset: () => void;
 }
 
@@ -16,6 +18,7 @@ const initialState = {
   hasOngoingOrder: false,
   currentOrderId: null as string | number | null,
   lastOrderId: null as string | number | null,
+  bannerHeight: 0,
 };
 
 const useOngoingOrderBannerStore = create<OngoingOrderBannerState>((set) => ({
@@ -49,13 +52,28 @@ const useOngoingOrderBannerStore = create<OngoingOrderBannerState>((set) => ({
       }
       return { ...state, lastOrderId: orderId };
     }),
+  setBannerHeight: (height) =>
+    set((state) => {
+      if (!Number.isFinite(height)) {
+        return state;
+      }
+
+      const normalizedHeight = height <= 0 ? 0 : height;
+
+      if (Math.abs(state.bannerHeight - normalizedHeight) <= 1) {
+        return state;
+      }
+
+      return { ...state, bannerHeight: normalizedHeight };
+    }),
   reset: () =>
     set((state) => {
       if (
         state.isCollapsed === initialState.isCollapsed &&
         state.hasOngoingOrder === initialState.hasOngoingOrder &&
         state.currentOrderId === initialState.currentOrderId &&
-        state.lastOrderId === initialState.lastOrderId
+        state.lastOrderId === initialState.lastOrderId &&
+        state.bannerHeight === initialState.bannerHeight
       ) {
         return state;
       }
