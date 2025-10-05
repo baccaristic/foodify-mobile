@@ -1,6 +1,6 @@
-import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -8,7 +8,6 @@ import {
   ImageBackground,
   StyleSheet,
   Dimensions,
-  Platform,
   RefreshControl,
 } from 'react-native';
 import Animated, {
@@ -24,8 +23,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
-import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
-import { Image } from 'expo-image';
+import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import useOngoingOrder from '~/hooks/useOngoingOrder';
+import { formatOrderStatusLabel } from '~/utils/order';
 
 type NavItem = {
   icon: LucideIcon;
@@ -43,7 +43,7 @@ const defaultNavItems: NavItem[] = [
 const useOptionalNavigation = () => {
   try {
     return useNavigation<NavigationProp<Record<string, object | undefined>>>();
-  } catch (error) {
+  } catch (_error) {
     return undefined;
   }
 };
@@ -51,7 +51,7 @@ const useOptionalNavigation = () => {
 const useOptionalRoute = () => {
   try {
     return useRoute();
-  } catch (error) {
+  } catch (_error) {
     return undefined;
   }
 };
@@ -74,6 +74,7 @@ interface MainLayoutProps {
   onTabPress?: (route: string) => void;
   onRefresh?: () => void | Promise<any>;
   isRefreshing?: boolean;
+  showOnGoingOrder?: boolean;
 }
 
 export default function MainLayout({
@@ -94,6 +95,7 @@ export default function MainLayout({
   onTabPress,
   onRefresh,
   isRefreshing,
+  showOnGoingOrder = true
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
@@ -119,6 +121,8 @@ export default function MainLayout({
 
   const navigation = useOptionalNavigation();
   const route = useOptionalRoute();
+  const { order: ongoingOrder } = useOngoingOrder();
+  const [isOngoingExpanded, setIsOngoingExpanded] = useState(false);
   const scrollY = useSharedValue(0);
   const [activeHeader, setActiveHeader] = useState<'full' | 'collapsed'>(
     collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
@@ -138,6 +142,12 @@ export default function MainLayout({
     }
     setActiveHeader(headerCollapsed ? 'collapsed' : 'full');
   }, [collapseEnabled, headerCollapsed]);
+
+  useEffect(() => {
+    if (!ongoingOrder) {
+      setIsOngoingExpanded(false);
+    }
+  }, [ongoingOrder]);
 
   const updateActiveHeader = useCallback((next: 'full' | 'collapsed') => {
     setActiveHeader((previous) => (previous === next ? previous : next));
@@ -278,6 +288,57 @@ export default function MainLayout({
   const routeName = route?.name;
   const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
 
+  const defaultFooterHeight = vs(80);
+  const collapsedOngoingHeight = vs(120);
+  const expandedOngoingHeight = vs(160);
+  const resolvedFooterHeight = !showFooter
+    ? 0
+    : ongoingOrder
+    ? isOngoingExpanded
+      ? expandedOngoingHeight
+      : collapsedOngoingHeight
+    : defaultFooterHeight;
+  const fallbackContentPadding = vs(20);
+  const floatingBottomOffset = showFooter
+    ? insets.bottom + resolvedFooterHeight + vs(4)
+    : insets.bottom + vs(24);
+
+  const ongoingStatusLabel = useMemo(() => {
+    if (!ongoingOrder) {
+      return null;
+    }
+
+    const history = ongoingOrder.statusHistory ?? [];
+    if (history.length) {
+      const lastEntry = history[history.length - 1];
+      const label = formatOrderStatusLabel(lastEntry?.newStatus ?? null);
+      if (label) {
+        return label;
+      }
+    }
+
+    return formatOrderStatusLabel(ongoingOrder.status ?? null);
+  }, [ongoingOrder]);
+
+  const handleToggleOngoing = useCallback(() => {
+    setIsOngoingExpanded((previous) => !previous);
+  }, []);
+
+  const handleViewOrderDetails = useCallback(() => {
+    if (!ongoingOrder) {
+      return;
+    }
+
+    const params = {
+      order: ongoingOrder as any,
+      orderId: ongoingOrder.orderId ?? null,
+    };
+
+    if (navigation) {
+      navigation.navigate('OrderTracking' as never, params as never);
+    }
+  }, [navigation, ongoingOrder]);
+
   const headerNode = !showHeader
     ? null
     : collapseEnabled
@@ -300,7 +361,7 @@ export default function MainLayout({
         style={[styles.scrollView]}
         contentContainerStyle={{
           paddingTop: collapseEnabled ? vs(10) : vs(20),
-          paddingBottom: showFooter ? vs(80) : vs(20),
+          paddingBottom: showFooter ? resolvedFooterHeight : fallbackContentPadding,
         }}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
@@ -312,7 +373,7 @@ export default function MainLayout({
         <View
           style={[
             styles.floatingSlot,
-            { bottom: showFooter ? insets.bottom + vs(84) : insets.bottom + vs(24) },
+            { bottom: floatingBottomOffset },
           ]}
           pointerEvents="box-none">
           {floatingContent}
@@ -320,8 +381,16 @@ export default function MainLayout({
       ) : null}
 
       {showFooter && (
-        <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
-          <View style={styles.navRow}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + vs(10) }]}>
+          {ongoingOrder && showOnGoingOrder ? (
+            <OngoingOrderSection
+              isExpanded={isOngoingExpanded}
+              onToggle={handleToggleOngoing}
+              statusLabel={ongoingStatusLabel ?? 'Tracking...'}
+              onPressDetails={handleViewOrderDetails}
+            />
+          ) : null}
+          <View style={[styles.navRow, ongoingOrder ? styles.navRowWithBanner : null]}>
             {resolvedNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = resolvedActiveTab === item.route;
@@ -351,6 +420,60 @@ export default function MainLayout({
     </SafeAreaView>
   );
 }
+
+interface OngoingOrderSectionProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+  statusLabel: string;
+  onPressDetails: () => void;
+}
+
+const OngoingOrderSection = ({
+  isExpanded,
+  onToggle,
+  statusLabel,
+  onPressDetails,
+}: OngoingOrderSectionProps) => {
+  return (
+    <View style={styles.ongoingContainer}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onToggle}
+        style={styles.ongoingHeader}
+      >
+        <Text allowFontScaling={false} style={styles.ongoingHeaderText} numberOfLines={1}>
+          your order is on the way
+        </Text>
+        {isExpanded ? (
+          <ChevronDown size={s(18)} color="#FFFFFF" />
+        ) : (
+          <ChevronUp size={s(18)} color="#FFFFFF" />
+        )}
+      </TouchableOpacity>
+      {isExpanded ? (
+        <View style={styles.ongoingBody}>
+          <View style={styles.statusCard}>
+            <Text allowFontScaling={false} style={styles.statusCardLabel}>
+              Status
+            </Text>
+            <Text allowFontScaling={false} style={styles.statusCardValue} numberOfLines={2}>
+              {statusLabel}
+            </Text>
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.detailsButton}
+            onPress={onPressDetails}
+          >
+            <Text allowFontScaling={false} style={styles.detailsButtonLabel}>
+              See Details
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </View>
+  );
+};
 
 const styles = ScaledSheet.create({
   container: { flex: 1, backgroundColor: 'white' },
@@ -398,10 +521,71 @@ const styles = ScaledSheet.create({
     borderTopRightRadius: '24@ms',
     zIndex: 2,
   },
+  ongoingContainer: {
+    width: '100%',
+    borderRadius: '18@ms',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#243255',
+    paddingVertical: '12@vs',
+    paddingHorizontal: '18@s',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    marginBottom: '12@vs',
+  },
+  ongoingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ongoingHeaderText: {
+    color: '#FFFFFF',
+    fontSize: '14@ms',
+    fontWeight: '600',
+  },
+  ongoingBody: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginTop: '12@vs',
+  },
+  statusCard: {
+    flex: 1,
+    backgroundColor: '#CA251B',
+    borderRadius: '16@ms',
+    paddingVertical: '12@vs',
+    paddingHorizontal: '14@s',
+    marginRight: '12@s',
+  },
+  statusCardLabel: {
+    color: '#FFFFFF',
+    fontSize: '13@ms',
+    fontWeight: '700',
+  },
+  statusCardValue: {
+    color: '#FFFFFF',
+    fontSize: '12@ms',
+    marginTop: '4@vs',
+    fontWeight: '500',
+  },
+  detailsButton: {
+    flex: 1,
+    backgroundColor: '#CA251B',
+    borderRadius: '16@ms',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: '14@vs',
+    paddingHorizontal: '12@s',
+  },
+  detailsButtonLabel: {
+    color: '#FFFFFF',
+    fontSize: '14@ms',
+    fontWeight: '700',
+  },
   navRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
+  },
+  navRowWithBanner: {
+    marginTop: '16@vs',
   },
   navButton: {
     alignItems: 'center',

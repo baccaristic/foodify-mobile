@@ -553,6 +553,7 @@ export default function RestaurantDetails() {
         customHeader={customHeader}
         collapsedHeader={collapsedHeader}
         mainContent={mainContent()}
+        showOnGoingOrder={false}
       />
 
       {hasCartItems && !isModalVisible && (

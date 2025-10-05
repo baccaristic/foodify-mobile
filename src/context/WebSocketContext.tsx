@@ -14,6 +14,7 @@ import * as Notifications from 'expo-notifications';
 
 import useAuth from '~/hooks/useAuth';
 import { BASE_WS_URL } from '@env';
+import { useOngoingOrderContext } from '~/context/OngoingOrderContext';
 import type {
   CreateOrderResponse,
   OrderNotificationDto,
@@ -44,6 +45,7 @@ export type OrderUpdatePayload = Partial<OrderNotificationDto> &
 
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, requiresAuth, user } = useAuth();
+  const { updateOrder: updateOngoingOrder } = useOngoingOrderContext();
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [latestOrderUpdate, setLatestOrderUpdate] = useState<OrderUpdatePayload | null>(null);
@@ -120,7 +122,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS(BASE_WS_URL),
+      webSocketFactory: () => new SockJS(BASE_WS_URL + ''),
       connectHeaders: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -150,6 +152,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
               },
             }));
           }
+          updateOngoingOrder(data);
           displayOrderStatusNotification(data);
         } catch {
           console.warn('Received non-JSON message from /user/queue/orders:', message.body);
@@ -176,7 +179,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       setLatestOrderUpdate(null);
       setOrderUpdates({});
     };
-  }, [accessToken, requiresAuth, user?.id, displayOrderStatusNotification]);
+  }, [accessToken, requiresAuth, user?.id, displayOrderStatusNotification, updateOngoingOrder]);
 
   const sendMessage = useCallback((destination: string, body: any) => {
     const client = clientRef.current;

@@ -36,6 +36,7 @@ import { LocationOverlayProvider } from '~/context/LocationOverlayContext';
 import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 import { WebSocketProvider } from '~/context/WebSocketContext';
+import { OngoingOrderProvider } from '~/context/OngoingOrderContext';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
@@ -213,17 +214,19 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <NavigationContainer>
           <AuthProvider>
-            <WebSocketProvider>
-              <PhoneSignupProvider>
-                <SelectedAddressProvider>
-                  <CartProvider>
-                    <LocationOverlayProvider>
-                      <RootNavigator />
-                    </LocationOverlayProvider>
-                  </CartProvider>
-                </SelectedAddressProvider>
-              </PhoneSignupProvider>
-            </WebSocketProvider>
+            <OngoingOrderProvider>
+              <WebSocketProvider>
+                <PhoneSignupProvider>
+                  <SelectedAddressProvider>
+                    <CartProvider>
+                      <LocationOverlayProvider>
+                        <RootNavigator />
+                      </LocationOverlayProvider>
+                    </CartProvider>
+                  </SelectedAddressProvider>
+                </PhoneSignupProvider>
+              </WebSocketProvider>
+            </OngoingOrderProvider>
           </AuthProvider>
         </NavigationContainer>
       </QueryClientProvider>
