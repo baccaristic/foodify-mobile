@@ -120,7 +120,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS(BASE_WS_URL),
+      webSocketFactory: () => new SockJS(BASE_WS_URL + ''),
       connectHeaders: {
         Authorization: `Bearer ${accessToken}`,
       },

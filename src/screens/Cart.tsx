@@ -240,6 +240,7 @@ export default function Cart() {
         enforceResponsiveHeaderSize={false}
         customHeader={cartHeader}
         mainContent={cartContent}
+        showOnGoingOrder={false}
       />
       {hasItems && (<FixedOrderBar
         total={totalOrderPrice}

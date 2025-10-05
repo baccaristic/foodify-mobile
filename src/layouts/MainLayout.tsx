@@ -74,6 +74,7 @@ interface MainLayoutProps {
   onTabPress?: (route: string) => void;
   onRefresh?: () => void | Promise<any>;
   isRefreshing?: boolean;
+  showOnGoingOrder?: boolean;
 }
 
 export default function MainLayout({
@@ -94,6 +95,7 @@ export default function MainLayout({
   onTabPress,
   onRefresh,
   isRefreshing,
+  showOnGoingOrder = true
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
@@ -380,7 +382,7 @@ export default function MainLayout({
 
       {showFooter && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + vs(10) }]}>
-          {ongoingOrder ? (
+          {ongoingOrder && showOnGoingOrder ? (
             <OngoingOrderSection
               isExpanded={isOngoingExpanded}
               onToggle={handleToggleOngoing}
