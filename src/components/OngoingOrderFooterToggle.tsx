@@ -1,17 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Bike, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 
 import useAuth from '~/hooks/useAuth';
 import useOngoingOrderBannerStore from '~/store/ongoingOrderBanner';
 
-const backgroundColor = '#F8FAFC';
-const textColor = '#17213A';
-const accentColor = '#CA251B';
-
 const AuthenticatedFooterToggle: React.FC = () => {
   const hasOngoingOrder = useOngoingOrderBannerStore((state) => state.hasOngoingOrder);
-  const currentOrderId = useOngoingOrderBannerStore((state) => state.currentOrderId);
   const isCollapsed = useOngoingOrderBannerStore((state) => state.isCollapsed);
   const setCollapsed = useOngoingOrderBannerStore((state) => state.setCollapsed);
 
@@ -19,38 +14,19 @@ const AuthenticatedFooterToggle: React.FC = () => {
     return null;
   }
 
-  const label = isCollapsed ? 'Show order progress' : 'Hide order progress';
   const ToggleIcon = isCollapsed ? ChevronUp : ChevronDown;
 
-  const orderLabel =
-    currentOrderId == null || currentOrderId === ''
-      ? 'Order in progress'
-      : `Order #${currentOrderId}`;
-
   return (
-    <TouchableOpacity
-      accessibilityLabel={`${label} banner`}
-      activeOpacity={0.85}
-      onPress={() => setCollapsed(!isCollapsed)}
-      style={styles.button}
-    >
-      <View style={styles.content}>
-        <View style={styles.leadingIcon}>
-          <Bike size={18} color={accentColor} />
-        </View>
-        <View style={styles.textColumn}>
-          <Text allowFontScaling={false} style={styles.orderLabel} numberOfLines={1}>
-            {orderLabel}
-          </Text>
-          <Text allowFontScaling={false} style={styles.actionLabel} numberOfLines={1}>
-            {label}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.trailingIcon}>
-        <ToggleIcon size={18} color={textColor} />
-      </View>
-    </TouchableOpacity>
+    <View style={styles.container} pointerEvents="box-none">
+      <TouchableOpacity
+        accessibilityLabel={isCollapsed ? 'Show order banner' : 'Hide order banner'}
+        activeOpacity={0.85}
+        onPress={() => setCollapsed(!isCollapsed)}
+        style={styles.button}
+      >
+        <ToggleIcon size={18} color="#17213A" />
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -65,49 +41,20 @@ const OngoingOrderFooterToggle: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor,
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  container: {
     width: '100%',
-    marginBottom: 12,
+    alignItems: 'flex-end',
+    marginBottom: 8,
   },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  leadingIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(202, 37, 27, 0.12)',
+  button: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-  },
-  textColumn: {
-    flex: 1,
-  },
-  orderLabel: {
-    color: textColor,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  actionLabel: {
-    color: '#475569',
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  trailingIcon: {
-    width: 24,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(23, 33, 58, 0.12)',
   },
 });
 
