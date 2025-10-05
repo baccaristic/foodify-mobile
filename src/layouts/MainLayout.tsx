@@ -316,7 +316,7 @@ export default function MainLayout({
     [insets.bottom, showFooter]
   );
 
-  const bannerSpacing = showOngoingOrderBanner ? vs(12) : 0;
+  const bannerSpacing = showOngoingOrderBanner ? vs(6) : 0;
 
   const floatingBottomInset = useMemo(() => {
     if (!showOngoingOrderBanner) {

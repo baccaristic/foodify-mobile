@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -12,6 +12,7 @@ import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/
 
 import useAuth from '~/hooks/useAuth';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
+import useOngoingOrderBannerStore from '~/store/ongoingOrderBanner';
 
 const backgroundColor = '#17213A';
 const accentColor = '#CA251B';
@@ -53,13 +54,26 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const insets = useSafeAreaInsets();
   const { data: ongoingOrder, isLoading, isFetching } = useOngoingOrder();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const isCollapsed = useOngoingOrderBannerStore((state) => state.isCollapsed);
+  const setCollapsed = useOngoingOrderBannerStore((state) => state.setCollapsed);
+  const lastOrderId = useOngoingOrderBannerStore((state) => state.lastOrderId);
+  const setLastOrderId = useOngoingOrderBannerStore((state) => state.setLastOrderId);
 
   useEffect(() => {
-    if (ongoingOrder) {
-      setIsCollapsed(false);
+    const currentId = ongoingOrder?.id ?? null;
+    if (currentId) {
+      if (lastOrderId !== currentId) {
+        setCollapsed(false);
+        setLastOrderId(currentId);
+      }
+      return;
     }
-  }, [ongoingOrder?.id]);
+
+    if (lastOrderId !== null) {
+      setLastOrderId(null);
+    }
+    setCollapsed(false);
+  }, [lastOrderId, ongoingOrder?.id, setCollapsed, setLastOrderId]);
 
   const statusLabel = useMemo(() => formatStatusLabel(ongoingOrder?.status), [ongoingOrder?.status]);
 
@@ -101,7 +115,7 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
     <TouchableOpacity
       activeOpacity={0.85}
       style={styles.collapsedContainer}
-      onPress={() => setIsCollapsed(false)}
+      onPress={() => setCollapsed(false)}
     >
       <View style={styles.collapsedContent}>
         <Bike size={18} color={accentColor} />
@@ -129,7 +143,7 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
           <TouchableOpacity
             accessibilityLabel="Hide ongoing order banner"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            onPress={() => setIsCollapsed(true)}
+            onPress={() => setCollapsed(true)}
           >
             <ChevronDown size={18} color={mutedTextColor} />
           </TouchableOpacity>
