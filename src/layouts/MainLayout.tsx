@@ -28,6 +28,8 @@ import { useNavigation, useRoute, NavigationProp } from '@react-navigation/nativ
 import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
 import { Image } from 'expo-image';
 import OngoingOrderBanner from '~/components/OngoingOrderBanner';
+import OngoingOrderFooterToggle from '~/components/OngoingOrderFooterToggle';
+import useOngoingOrderBannerStore from '~/store/ongoingOrderBanner';
 
 type NavItem = {
   icon: LucideIcon;
@@ -297,6 +299,13 @@ export default function MainLayout({
       );
 
   const [bannerHeight, setBannerHeight] = useState(0);
+  const hasOngoingOrder = useOngoingOrderBannerStore((state) => state.lastOrderId !== null);
+
+  useEffect(() => {
+    if (!showOngoingOrderBanner || !hasOngoingOrder) {
+      setBannerHeight(0);
+    }
+  }, [hasOngoingOrder, showOngoingOrderBanner]);
 
   const handleBannerLayout = useCallback((event: LayoutChangeEvent) => {
     const nextHeight = event.nativeEvent?.layout?.height ?? 0;
@@ -363,6 +372,7 @@ export default function MainLayout({
 
       {showFooter && (
         <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
+          {showOngoingOrderBanner ? <OngoingOrderFooterToggle /> : null}
           <View style={styles.navRow}>
             {resolvedNavItems.map((item) => {
               const Icon = item.icon;

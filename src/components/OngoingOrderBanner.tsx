@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bike, ChevronDown, ChevronUp, Clock } from 'lucide-react-native';
+import { Bike, ChevronUp, Clock } from 'lucide-react-native';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 
 import useAuth from '~/hooks/useAuth';
@@ -140,13 +140,6 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
         </View>
         <View style={styles.headerActions}>
           {isFetching ? <ActivityIndicator size="small" color="#FACC15" style={styles.spinner} /> : null}
-          <TouchableOpacity
-            accessibilityLabel="Hide ongoing order banner"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            onPress={() => setCollapsed(true)}
-          >
-            <ChevronDown size={18} color={mutedTextColor} />
-          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.divider} />
