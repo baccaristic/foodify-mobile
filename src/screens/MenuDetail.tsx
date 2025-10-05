@@ -12,6 +12,7 @@ import type {
   RestaurantMenuOptionGroup,
 } from '~/interfaces/Restaurant';
 import { BASE_API_URL } from '@env';
+import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 
 const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
@@ -205,6 +206,8 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
   }, [initialDraftSelections, menuItem]);
 
   const activeDraft = drafts[activeIndex];
+  const hasPromotion = useMemo(() => hasActivePromotion(menuItem), [menuItem]);
+  const basePrice = useMemo(() => getMenuItemBasePrice(menuItem), [menuItem]);
 
   const toggleExtra = (group: RestaurantMenuOptionGroup, extra: RestaurantMenuItemExtra) => {
     setDrafts((prev) =>
@@ -270,9 +273,19 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
     [menuItem.optionGroups]
   );
 
-  const itemTotal = useMemo(() => menuItem.price + extrasTotal, [menuItem.price, extrasTotal]);
+  const itemTotal = useMemo(() => basePrice + extrasTotal, [basePrice, extrasTotal]);
+  const originalItemTotal = useMemo(() => menuItem.price + extrasTotal, [menuItem.price, extrasTotal]);
 
   const cartTotal = useMemo(
+    () =>
+      drafts.reduce(
+        (sum, draft) => sum + basePrice + calculateExtrasTotal(menuItem.optionGroups, draft.selections),
+        0
+      ),
+    [basePrice, drafts, menuItem.optionGroups]
+  );
+
+  const originalCartTotal = useMemo(
     () =>
       drafts.reduce(
         (sum, draft) => sum + menuItem.price + calculateExtrasTotal(menuItem.optionGroups, draft.selections),
@@ -356,9 +369,23 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       <Text allowFontScaling={false} className="mt-2 text-3xl font-bold text-[#17213A]">
         {menuItem.name}
       </Text>
-      <Text allowFontScaling={false} className="mt-1 text-xl font-bold text-[#CA251B]">
-        {formatPrice(menuItem.price)}
-      </Text>
+      <View className="mt-1 flex-row items-baseline gap-2">
+        <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
+          {formatPrice(basePrice)}
+        </Text>
+        {hasPromotion ? (
+          <Text allowFontScaling={false} className="text-base font-semibold text-gray-400 line-through">
+            {formatPrice(menuItem.price)}
+          </Text>
+        ) : null}
+      </View>
+      {hasPromotion && menuItem.promotionLabel ? (
+        <View className="mt-2 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
+          <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
+            {menuItem.promotionLabel}
+          </Text>
+        </View>
+      ) : null}
       {menuItem.description ? (
         <Text allowFontScaling={false} className="mt-2 mb-4 text-sm text-[#17213A]">
           {menuItem.description}
@@ -458,9 +485,16 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
           Item {activeIndex + 1} total
         </Text>
-        <Text allowFontScaling={false} className="text-sm font-bold text-[#CA251B]">
-          {formatPrice(itemTotal)}
-        </Text>
+        <View className="flex-row items-baseline gap-2">
+          <Text allowFontScaling={false} className="text-sm font-bold text-[#CA251B]">
+            {formatPrice(itemTotal)}
+          </Text>
+          {hasPromotion ? (
+            <Text allowFontScaling={false} className="text-xs font-semibold text-gray-400 line-through">
+              {formatPrice(originalItemTotal)}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       <View className="mb-4 flex-row items-center justify-center">
@@ -488,9 +522,16 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         className={`w-full rounded-xl py-4 shadow-lg ${allValid ? 'bg-[#CA251B]' : 'bg-gray-300'}`}
         onPress={handleAdd}
         disabled={!allValid}>
-        <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
-          {actionLabel} {drafts.length} {drafts.length === 1 ? 'item' : 'items'} for {formatPrice(cartTotal)}
-        </Text>
+        <View className="items-center">
+          <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
+            {actionLabel} {drafts.length} {drafts.length === 1 ? 'item' : 'items'} for {formatPrice(cartTotal)}
+          </Text>
+          {hasPromotion ? (
+            <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-white/80 line-through">
+              {formatPrice(originalCartTotal)}
+            </Text>
+          ) : null}
+        </View>
       </TouchableOpacity>
     </View>
   );

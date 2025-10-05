@@ -33,6 +33,7 @@ import type {
 } from "~/interfaces/Restaurant";
 import { useCart } from "~/context/CartContext";
 import type { CartItemOptionSelection } from "~/context/CartContext";
+import { getMenuItemBasePrice } from "~/utils/menuPricing";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
@@ -377,7 +378,7 @@ export default function SearchScreen() {
             name: selectedMenuItem.name,
             description: selectedMenuItem.description,
             imageUrl: selectedMenuItem.imageUrl,
-            price: selectedMenuItem.price,
+            price: getMenuItemBasePrice(selectedMenuItem),
           },
           quantity: item.quantity,
           extras: item.extras,

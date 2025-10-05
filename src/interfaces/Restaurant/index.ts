@@ -28,6 +28,9 @@ export interface RestaurantMenuItemDetails {
   popular: boolean;
   tags: string[];
   optionGroups: RestaurantMenuOptionGroup[];
+  promotionActive?: boolean;
+  promotionPrice?: number | null;
+  promotionLabel?: string | null;
 }
 
 export interface RestaurantMenuCategory {
@@ -43,6 +46,9 @@ export interface RestaurantMenuItemSummary {
   imageUrl: string;
   popular: boolean;
   tags: string[];
+  promotionActive?: boolean;
+  promotionPrice?: number | null;
+  promotionLabel?: string | null;
 }
 
 export interface RestaurantDetailsResponse {
