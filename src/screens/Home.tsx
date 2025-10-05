@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
-import { Percent, Star, Gift, Pizza, Hamburger, ChevronDown, Search } from "lucide-react-native";
+import { Percent, Star, Gift, Pizza, Hamburger, ChevronDown, Search, Utensils } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -124,7 +124,7 @@ export default function HomePage() {
           {[
             { icon: Percent, label: "Discount" },
             { icon: Star, label: "Top Restaurants" },
-            { icon: Gift, label: "Rewards" },
+            { icon: Utensils, label: "Dishes" },
             { icon: Pizza, label: "Pizza" },
             { icon: Hamburger, label: "Burger" },
           ].map((item, idx) => (
@@ -151,10 +151,10 @@ export default function HomePage() {
 
   const collapsedHeader = (
     <View style={styles.collapsedHeader}>
-      <View style={styles.collapsedSearch}>
+      <TouchableOpacity style={styles.collapsedSearch} onPress={() => navigation.navigate('Search' as never)}>
         <Search size={s(18)} color="gray" style={{ marginRight: s(6) }} />
         <Text style={styles.collapsedPlaceholder}>Search in Food</Text>
-      </View>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.filterButton}>
         <Text style={styles.filterText}>Food Type</Text>
         <ChevronDown size={s(14)} color="gray" />

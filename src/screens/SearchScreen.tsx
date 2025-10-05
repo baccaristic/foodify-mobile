@@ -4,6 +4,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -439,7 +440,7 @@ export default function SearchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginTop: vs(20) }}
+        style={{ marginTop: vs(14) }}
         contentContainerStyle={styles.pillsContainer}
       >
         <PillButton icon={SlidersHorizontal} onPress={() => setShowFilters(true)} isActive={showFilters} />
@@ -555,20 +556,23 @@ export default function SearchScreen() {
 
 const styles = ScaledSheet.create({
   headerWrapper: {
-    padding: "6@s",
-    paddingBottom: "20@vs",
+    paddingHorizontal: "6@s",
+    paddingBottom: "14@vs",
+    paddingTop:"4@vs"
   },
   searchBarContainer: {
-    marginTop: "10@vs",
+    marginTop: "2@vs",
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
-    borderRadius: "12@ms",
-    paddingHorizontal: "12@s",
-    paddingVertical: "2@vs",
-    marginHorizontal: "4@s",
+    borderRadius: "16@ms",
+  paddingHorizontal: Platform.OS === "ios" ? vs(8) : 10,
+    marginHorizontal: "10@s",
+    marginVertical:"2@s",
+      paddingVertical: Platform.OS === "ios" ? vs(10) : 0,
+
   },
   searchInput: {
     flex: 1,
@@ -615,7 +619,7 @@ const styles = ScaledSheet.create({
     borderTopRightRadius: "24@ms",
     overflow: "hidden",
     paddingHorizontal: "16@s",
-    paddingBottom: "100@vs",
+    paddingBottom: "80@vs",
   },
   resultsCount: {
     fontFamily: "Roboto",
