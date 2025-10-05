@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -15,18 +15,41 @@ interface FiltersOverlayProps {
   visible: boolean;
   onClose: () => void;
   onApply?: (filters: { sort: string; topEat: boolean; maxFee: number }) => void;
+  onClearAll?: () => void;
+  initialFilters?: {
+    sort: string;
+    topEat: boolean;
+    maxFee: number;
+  };
 }
 
-export default function FiltersOverlay({ visible, onClose, onApply }: FiltersOverlayProps) {
+export default function FiltersOverlay({
+  visible,
+  onClose,
+  onApply,
+  onClearAll,
+  initialFilters,
+}: FiltersOverlayProps) {
   const feeSteps = [1, 1.5, 2, 2.5];
-  const [maxFee, setMaxFee] = useState(1.5);
-  const [sortOption, setSortOption] = useState("picked");
-  const [topEat, setTopEat] = useState(true);
+  const [maxFee, setMaxFee] = useState(initialFilters?.maxFee ?? 1.5);
+  const [sortOption, setSortOption] = useState(initialFilters?.sort ?? "picked");
+  const [topEat, setTopEat] = useState(initialFilters?.topEat ?? false);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    setSortOption(initialFilters?.sort ?? "picked");
+    setTopEat(initialFilters?.topEat ?? false);
+    setMaxFee(initialFilters?.maxFee ?? 1.5);
+  }, [visible, initialFilters]);
 
   const clearAll = () => {
     setSortOption("picked");
-    setTopEat(true);
+    setTopEat(false);
     setMaxFee(1.5);
+    onClearAll?.();
   };
 
   const applyFilters = () => {

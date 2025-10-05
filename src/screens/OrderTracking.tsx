@@ -202,8 +202,8 @@ const mergeOrderData = (
     ...(baseOrder?.payment || update?.payment
       ? {
           payment: {
-            ...((baseOrder?.payment as Record<string, unknown>) ?? {}),
-            ...((update?.payment as Record<string, unknown>) ?? {}),
+            ...((baseOrder?.payment as unknown as Record<string, unknown>) ?? {}),
+            ...((update?.payment as unknown as Record<string, unknown>) ?? {}),
           },
         }
       : {}),
@@ -211,7 +211,7 @@ const mergeOrderData = (
     workflow: update?.workflow ?? baseOrder?.workflow,
     statusHistory: update?.statusHistory ?? baseOrder?.statusHistory,
     status: update?.status ?? baseOrder?.status,
-    orderId: update?.orderId ?? baseOrder?.orderId ?? null,
+    orderId: update?.orderId ?? baseOrder?.orderId,
   };
 
   if (merged.orderId == null && baseOrder?.orderId != null) {
@@ -676,12 +676,12 @@ const OrderTrackingScreen: React.FC = () => {
                 const isLast = index === (order?.items?.length ?? 0) - 1;
                 return (
                   <View
-                    key={`${item.menuItem?.id ?? index}-${index}`}
+                    key={`${item?.menuItemId ?? index}-${index}`}
                     style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
                   >
                     <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
                     <Text style={styles.summaryItemName} numberOfLines={1}>
-                      {item.menuItem?.name ?? item.name ?? 'Menu item'}
+                      {item?.name ?? item.name ?? 'Menu item'}
                     </Text>
                   </View>
                 );

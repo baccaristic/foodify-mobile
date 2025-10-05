@@ -29,6 +29,7 @@ import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
 import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 import { vs } from 'react-native-size-matters';
+import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -55,30 +56,51 @@ const resolveImageSource = (imagePath?: string | null) => {
   return FALLBACK_IMAGE;
 };
 
-const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({ item, onOpenModal }) => (
-  <View style={{ width: width / 2 - 24 }} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md">
-    <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="cover" />
+const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({ item, onOpenModal }) => {
+  const promotionActive = hasActivePromotion(item);
+  const displayPrice = formatCurrency(getMenuItemBasePrice(item));
 
-    <View className="flex flex-col gap-1 p-3">
-      <Text allowFontScaling={false} className="text-sm font-bold text-[#17213A]" numberOfLines={1}>
-        {item.name}
-      </Text>
-      <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
-        {item.description}
-      </Text>
+  return (
+    <View style={{ width: width / 2 - 24 }} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md">
+      <View className="relative">
+        <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="cover" />
+        {promotionActive && item.promotionLabel ? (
+          <View className="absolute left-2 top-2 rounded-full bg-[#CA251B]/90 px-2 py-1">
+            <Text allowFontScaling={false} className="text-[10px] font-semibold uppercase text-white">
+              {item.promotionLabel}
+            </Text>
+          </View>
+        ) : null}
+      </View>
 
-      <View className="mt-2 flex-row items-center justify-between">
-        <Text allowFontScaling={false} className="font-bold text-[#CA251B]">
-          {formatCurrency(item.price)}
+      <View className="flex flex-col gap-1 p-3">
+        <Text allowFontScaling={false} className="text-sm font-bold text-[#17213A]" numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
+          {item.description}
         </Text>
 
-        <TouchableOpacity className="rounded-full bg-[#CA251B] p-1.5 text-white shadow-md" onPress={() => onOpenModal(item.id)}>
-          <Plus size={18} color="white" />
-        </TouchableOpacity>
+        <View className="mt-2 flex-row items-center justify-between">
+          <View className="flex-row items-baseline gap-2">
+            <Text allowFontScaling={false} className="font-bold text-[#CA251B]">
+              {displayPrice}
+            </Text>
+            {promotionActive ? (
+              <Text allowFontScaling={false} className="text-xs font-semibold text-gray-400 line-through">
+                {formatCurrency(item.price)}
+              </Text>
+            ) : null}
+          </View>
+
+          <TouchableOpacity className="rounded-full bg-[#CA251B] p-1.5 text-white shadow-md" onPress={() => onOpenModal(item.id)}>
+            <Plus size={18} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 const flattenCategories = (categories: RestaurantMenuCategory[]) =>
   categories.reduce<RestaurantMenuItemDetails[]>((acc, category) => acc.concat(category.items), []);
@@ -254,7 +276,7 @@ export default function RestaurantDetails() {
             name: selectedMenuItem.name,
             description: selectedMenuItem.description,
             imageUrl: selectedMenuItem.imageUrl,
-            price: selectedMenuItem.price,
+            price: getMenuItemBasePrice(selectedMenuItem),
           },
           quantity: itemDetails.quantity,
           extras: itemDetails.extras,

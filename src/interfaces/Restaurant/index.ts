@@ -28,6 +28,9 @@ export interface RestaurantMenuItemDetails {
   popular: boolean;
   tags: string[];
   optionGroups: RestaurantMenuOptionGroup[];
+  promotionActive?: boolean;
+  promotionPrice?: number | null;
+  promotionLabel?: string | null;
 }
 
 export interface RestaurantMenuCategory {
@@ -43,6 +46,9 @@ export interface RestaurantMenuItemSummary {
   imageUrl: string;
   popular: boolean;
   tags: string[];
+  promotionActive?: boolean;
+  promotionPrice?: number | null;
+  promotionLabel?: string | null;
 }
 
 export interface RestaurantDetailsResponse {
@@ -86,4 +92,45 @@ export interface NearbyRestaurantsParams {
   lat: number;
   lng: number;
   radiusKm?: number;
+}
+
+export type RestaurantSearchSort = "picked" | "popular" | "rating";
+
+export interface RestaurantSearchParams {
+  query?: string;
+  hasPromotion?: boolean;
+  isTopChoice?: boolean;
+  hasFreeDelivery?: boolean;
+  sort?: RestaurantSearchSort;
+  topEatOnly?: boolean;
+  maxDeliveryFee?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface RestaurantSearchItem {
+  id: number;
+  name: string;
+  deliveryTimeRange: string;
+  rating: number;
+  isTopChoice: boolean;
+  hasFreeDelivery: boolean;
+  imageUrl: string;
+  promotedMenuItems?: MenuItemPromotion[];
+}
+
+export interface RestaurantSearchResponse {
+  items: RestaurantSearchItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+}
+
+export interface MenuItemPromotion {
+  id: number;
+  name: string;
+  price: number;
+  promotionPrice?: number | null;
+  promotionLabel?: string | null;
+  imageUrl: string;
 }

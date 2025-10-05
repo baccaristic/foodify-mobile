@@ -8,7 +8,7 @@ export const setAccessToken = (token: string | null) => {
 };
 
 const client = axios.create({
-  baseURL: BASE_API_URL,
+  baseURL: BASE_API_URL + '',
   timeout: 10000,
 });
 
