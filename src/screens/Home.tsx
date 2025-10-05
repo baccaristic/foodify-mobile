@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Percent, Star, Gift, Pizza, Hamburger, ChevronDown, Search } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
@@ -11,9 +11,16 @@ import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
 import type { RestaurantSummary } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
+import CategoryOverlay from '~/components/CategoryOverlay';
 
 export default function HomePage() {
   const navigation = useNavigation();
+
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const handleCategoryPress = (category: string) => {
+    setSelectedCategory(category);
+  };
 
   // TODO: replace with actual user location from location services
   const userLatitude = 36.8065;
@@ -121,7 +128,8 @@ export default function HomePage() {
             { icon: Pizza, label: "Pizza" },
             { icon: Hamburger, label: "Burger" },
           ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={styles.categoryEqualWidth}>
+            <TouchableOpacity key={idx} style={styles.categoryEqualWidth} onPress={() => handleCategoryPress(item.label)}
+            >
               <View style={styles.categoryIconWrapper}>
                 <item.icon size={s(32)} color="#CA251B" />
               </View>
@@ -155,20 +163,29 @@ export default function HomePage() {
   );
 
   return (
-    <MainLayout
-      headerBackgroundImage={require("../../assets/pattern1.png")}
-      showHeader
-      showFooter
-      headerMaxHeight={vs(160)}
-      headerMinHeight={vs(140)}
-      customHeader={customHeader}
-      collapsedHeader={collapsedHeader}
-      onRefresh={() => {
-        refetch();
-      }}
-      isRefreshing={isFetching}
-      mainContent={mainContent}
-    />
+    <>
+      <MainLayout
+        headerBackgroundImage={require("../../assets/pattern1.png")}
+        showHeader
+        showFooter
+        headerMaxHeight={vs(160)}
+        headerMinHeight={vs(140)}
+        customHeader={customHeader}
+        collapsedHeader={collapsedHeader}
+        onRefresh={() => {
+          refetch();
+        }}
+        isRefreshing={isFetching}
+        mainContent={mainContent}
+      />
+      {selectedCategory && (
+        <CategoryOverlay
+          visible
+          category={selectedCategory}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -317,3 +334,4 @@ const styles = ScaledSheet.create({
     padding: "4@ms"
   }
 });
+
