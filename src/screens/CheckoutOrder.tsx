@@ -22,13 +22,14 @@ import {
 import { ArrowLeft, ChevronDown, CreditCard, MapPin, PenSquare, TicketPercent, Wallet, X } from 'lucide-react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { isAxiosError } from 'axios';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { useCart } from '~/context/CartContext';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import { createOrder } from '~/api/orders';
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
-import useOngoingOrder from '~/hooks/useOngoingOrder';
+import { ONGOING_ORDER_QUERY_KEY } from '~/context/OngoingOrderContext';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -201,7 +202,7 @@ const CheckoutOrder: React.FC = () => {
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
-  const { order: ongoingOrder, refetch: refetchOngoingOrder } = useOngoingOrder();
+  const queryClient = useQueryClient();
   const [itemsExpanded, setItemsExpanded] = useState(true);
   const [allergiesExpanded, setAllergiesExpanded] = useState(false);
   const [commentExpanded, setCommentExpanded] = useState(false);
@@ -451,26 +452,6 @@ const CheckoutOrder: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      let activeOrder = ongoingOrder;
-
-      if (!activeOrder) {
-        try {
-          activeOrder = await refetchOngoingOrder();
-        } catch (error) {
-          console.warn('Failed to verify ongoing order status before submitting:', error);
-        }
-      }
-
-      if (activeOrder) {
-        const message =
-          'You already have an active order in progress. Track it to follow your delivery before placing a new one.';
-        setSubmissionError(message);
-        Alert.alert('Order already in progress', message);
-        navigation.navigate('OrderTracking', { orderId: activeOrder.id });
-        setIsSubmitting(false);
-        return;
-      }
-
       const numericUserId =
         typeof user?.id === 'number' ? user.id : Number(user?.id);
 
@@ -496,9 +477,7 @@ const CheckoutOrder: React.FC = () => {
       };
 
       const response = await createOrder(payload);
-      await refetchOngoingOrder().catch((error) => {
-        console.warn('Failed to refresh ongoing order after creation:', error);
-      });
+      await queryClient.invalidateQueries({ queryKey: ONGOING_ORDER_QUERY_KEY });
       clearCart();
       setAppliedCoupon(null);
       setComment('');

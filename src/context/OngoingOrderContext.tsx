@@ -7,13 +7,15 @@ import React, {
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AppState, AppStateStatus } from 'react-native';
 
 import { getOngoingOrder } from '~/api/orders';
 import type { OrderDto } from '~/interfaces/Order';
 import useAuth from '~/hooks/useAuth';
 import { useWebSocketContext } from '~/context/WebSocketContext';
+import { isOrderStatusActive } from '~/utils/orderStatus';
 
-const ONGOING_ORDER_QUERY_KEY = ['orders', 'ongoing'] as const;
+export const ONGOING_ORDER_QUERY_KEY = ['orders', 'ongoing'] as const;
 
 type SetOngoingOrderAction =
   | OrderDto
@@ -67,8 +69,40 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
     enabled: requiresAuth,
     staleTime: 30_000,
     gcTime: 0,
+    refetchInterval: (order) => {
+      if (!order) {
+        return false;
+      }
+
+      return isOrderStatusActive(order.status) ? 60_000 : false;
+    },
+    refetchIntervalInBackground: false,
     retry: 1,
   });
+
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (!requiresAuth) {
+        return;
+      }
+
+      if (nextState !== 'active') {
+        return;
+      }
+
+      refetch().catch((error) => {
+        if (__DEV__) {
+          console.warn('Failed to refresh ongoing order after app focus:', error);
+        }
+      });
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refetch, requiresAuth]);
 
   const refetchOrder = useCallback(async () => {
     const result = await refetch();

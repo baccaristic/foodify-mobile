@@ -27,6 +27,7 @@ import { useNavigation, useRoute, NavigationProp } from '@react-navigation/nativ
 import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
 import { Image } from 'expo-image';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
+import { formatOrderStatusLabel, isOrderStatusActive } from '~/utils/orderStatus';
 
 type NavItem = {
   icon: LucideIcon;
@@ -40,28 +41,6 @@ const defaultNavItems: NavItem[] = [
   { icon: ShoppingBag, label: 'Orders', route: 'Cart' },
   { icon: User, label: 'Account', route: 'Profile' },
 ];
-
-const formatStatusLabel = (status: string | null | undefined) => {
-  if (!status) {
-    return 'In progress';
-  }
-
-  return status
-    .toString()
-    .toLowerCase()
-    .split('_')
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
-};
-
-const isOrderStatusActive = (status: string | null | undefined) => {
-  if (!status) {
-    return false;
-  }
-
-  const normalized = status.toString().toUpperCase();
-  return !['DELIVERED', 'CANCELED', 'REJECTED'].includes(normalized);
-};
 
 const useOptionalNavigation = () => {
   try {
@@ -328,7 +307,40 @@ export default function MainLayout({
       return null;
     }
 
-    const statusLabel = formatStatusLabel(ongoingOrder.status);
+    const statusLabel = formatOrderStatusLabel(ongoingOrder.status);
+    const itemCount = Array.isArray(ongoingOrder.items)
+      ? ongoingOrder.items.reduce((total, item) => total + Number(item.quantity || 0), 0)
+      : 0;
+
+    const orderTotal = (() => {
+      const value = ongoingOrder.total;
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return `${value.toFixed(3)} dt`;
+      }
+
+      if (typeof value === 'string') {
+        const normalized = Number(value.replace(',', '.'));
+        if (Number.isFinite(normalized)) {
+          return `${normalized.toFixed(3)} dt`;
+        }
+      }
+
+      return null;
+    })();
+
+    const detailsLabel = (() => {
+      const parts: string[] = [];
+
+      if (itemCount > 0) {
+        parts.push(`${itemCount} ${itemCount === 1 ? 'item' : 'items'}`);
+      }
+
+      if (orderTotal) {
+        parts.push(orderTotal);
+      }
+
+      return parts.join(' • ');
+    })();
 
     const handlePress = () => {
       if (!navigation) {
@@ -357,6 +369,11 @@ export default function MainLayout({
         <Text allowFontScaling={false} style={styles.ongoingOrderSubtitle} numberOfLines={1}>
           {ongoingOrder.restaurantName}
         </Text>
+        {detailsLabel ? (
+          <Text allowFontScaling={false} style={styles.ongoingOrderDetails} numberOfLines={1}>
+            {detailsLabel}
+          </Text>
+        ) : null}
         <Text allowFontScaling={false} style={styles.ongoingOrderHint}>
           Track your delivery
         </Text>
@@ -557,6 +574,12 @@ const styles = ScaledSheet.create({
     fontSize: '14@ms',
     fontWeight: '600',
     marginBottom: '2@vs',
+  },
+  ongoingOrderDetails: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: '12@ms',
+    fontWeight: '500',
+    marginBottom: '4@vs',
   },
   ongoingOrderHint: {
     color: 'rgba(255,255,255,0.8)',
