@@ -133,8 +133,12 @@ export default function MainLayout({
   const route = useOptionalRoute();
   const ongoingOrderContext = useOptionalOngoingOrder();
   const ongoingOrder = ongoingOrderContext?.order ?? null;
-  const [isOngoingCollapsed, setIsOngoingCollapsed] = useState(false);
-  const ongoingCollapseProgress = useSharedValue(0);
+  const [localOngoingCollapsed, setLocalOngoingCollapsed] = useState(false);
+  const isOngoingCollapsed =
+    ongoingOrderContext?.isBannerCollapsed ?? localOngoingCollapsed;
+  const setIsOngoingCollapsed =
+    ongoingOrderContext?.setBannerCollapsed ?? setLocalOngoingCollapsed;
+  const ongoingCollapseProgress = useSharedValue(isOngoingCollapsed ? 1 : 0);
   const ongoingCollapsedWidth = useSharedValue(s(120));
   const ongoingMeasuredWidth = useSharedValue(0);
   const ongoingContentShift = s(8);
@@ -144,7 +148,7 @@ export default function MainLayout({
   );
   const toggleOngoingCollapsed = useCallback(() => {
     setIsOngoingCollapsed((previous) => !previous);
-  }, []);
+  }, [setIsOngoingCollapsed]);
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     if (!collapseEnabled) {
@@ -324,22 +328,22 @@ export default function MainLayout({
       setIsOngoingCollapsed(false);
       ongoingCollapseProgress.value = 0;
     }
-  }, [isOngoingCollapsed, ongoingCollapseProgress, shouldDisplayOngoingOrder]);
+  }, [
+    isOngoingCollapsed,
+    ongoingCollapseProgress,
+    setIsOngoingCollapsed,
+    shouldDisplayOngoingOrder,
+  ]);
 
   const handleOngoingLayout = useCallback(
     (event: LayoutChangeEvent) => {
-      ongoingMeasuredWidth.value = event.nativeEvent.layout.width;
+      const layoutWidth = event.nativeEvent.layout.width;
+      if (layoutWidth > ongoingCollapsedWidth.value + 1) {
+        ongoingMeasuredWidth.value = layoutWidth;
+      }
     },
-    [ongoingMeasuredWidth]
+    [ongoingCollapsedWidth, ongoingMeasuredWidth]
   );
-
-  const ongoingOrderSlideStyle = useAnimatedStyle(() => {
-    'worklet';
-    const width = ongoingMeasuredWidth.value;
-    const hiddenWidth = Math.max(width - ongoingCollapsedWidth.value, 0);
-    const translateX = ongoingCollapseProgress.value * hiddenWidth;
-    return { transform: [{ translateX }] };
-  });
 
   const ongoingOrderContentAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
@@ -348,6 +352,22 @@ export default function MainLayout({
       opacity: 1 - progress,
       transform: [{ translateX: -progress * ongoingContentShift }],
     };
+  });
+
+  const ongoingOrderContainerStyle = useAnimatedStyle(() => {
+    'worklet';
+    const collapsedWidth = ongoingCollapsedWidth.value;
+    const measuredWidth = ongoingMeasuredWidth.value;
+    const progress = ongoingCollapseProgress.value;
+
+    if (measuredWidth <= 0) {
+      return progress >= 1 ? { width: collapsedWidth } : {};
+    }
+
+    const interpolatedWidth = measuredWidth - (measuredWidth - collapsedWidth) * progress;
+    const width = Math.max(collapsedWidth, interpolatedWidth);
+
+    return { width };
   });
 
   const ongoingOrderArrowStyle = useAnimatedStyle(() => {
@@ -410,13 +430,14 @@ export default function MainLayout({
 
     ongoingOrderBanner = (
       <View style={styles.ongoingOrderWrapper} pointerEvents="box-none">
-        <View style={styles.ongoingOrderShadow}>
-          <View style={styles.ongoingOrderClip}>
-            <Animated.View
-              onLayout={handleOngoingLayout}
-              style={[styles.ongoingOrderSlide, ongoingOrderSlideStyle]}
-            >
-              <View style={styles.ongoingOrderCard}>
+        <Animated.View
+          style={[styles.ongoingOrderShadow, ongoingOrderContainerStyle]}
+        >
+          <Animated.View
+            onLayout={handleOngoingLayout}
+            style={[styles.ongoingOrderClip, ongoingOrderContainerStyle]}
+          >
+            <View style={styles.ongoingOrderCard}>
                 <TouchableOpacity
                   activeOpacity={0.92}
                   style={styles.ongoingOrderContentTouchable}
@@ -484,10 +505,9 @@ export default function MainLayout({
                     {statusLabel}
                   </Text>
                 </TouchableOpacity>
-              </View>
-            </Animated.View>
-          </View>
-        </View>
+            </View>
+          </Animated.View>
+        </Animated.View>
       </View>
     );
   }
@@ -651,7 +671,7 @@ const styles = ScaledSheet.create({
     alignItems: 'flex-end',
   },
   ongoingOrderShadow: {
-    width: '100%',
+    alignSelf: 'flex-end',
     borderRadius: '18@ms',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
@@ -661,13 +681,10 @@ const styles = ScaledSheet.create({
     backgroundColor: 'transparent',
   },
   ongoingOrderClip: {
-    width: '100%',
+    alignSelf: 'flex-end',
     borderRadius: '18@ms',
     overflow: 'hidden',
     backgroundColor: '#17213A',
-  },
-  ongoingOrderSlide: {
-    width: '100%',
   },
   ongoingOrderCard: {
     flexDirection: 'row',

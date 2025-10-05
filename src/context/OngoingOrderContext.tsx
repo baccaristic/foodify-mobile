@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -22,12 +23,16 @@ type SetOngoingOrderAction =
   | null
   | ((previous: OrderDto | null) => OrderDto | null);
 
+type SetBannerCollapsedAction = boolean | ((previous: boolean) => boolean);
+
 interface OngoingOrderContextValue {
   order: OrderDto | null;
   isLoading: boolean;
   isFetching: boolean;
   refetch: () => Promise<OrderDto | null>;
   setOrder: (action: SetOngoingOrderAction) => void;
+  isBannerCollapsed: boolean;
+  setBannerCollapsed: (action: SetBannerCollapsedAction) => void;
 }
 
 const OngoingOrderContext = createContext<OngoingOrderContextValue | undefined>(undefined);
@@ -37,6 +42,7 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
   const { latestOrderUpdate } = useWebSocketContext();
   const queryClient = useQueryClient();
   const isMountedRef = useRef(true);
+  const [isBannerCollapsed, setIsBannerCollapsed] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -60,8 +66,9 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!requiresAuth) {
       setOrder(null);
+      setIsBannerCollapsed(false);
     }
-  }, [requiresAuth, setOrder]);
+  }, [requiresAuth, setIsBannerCollapsed, setOrder]);
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ONGOING_ORDER_QUERY_KEY,
@@ -129,6 +136,22 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [latestOrderUpdate, refetch, requiresAuth]);
 
+  const setBannerCollapsed = useCallback(
+    (action: SetBannerCollapsedAction) => {
+      setIsBannerCollapsed((previous) => {
+        const next = typeof action === 'function' ? action(previous) : action;
+        return Boolean(next);
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!data || !isOrderStatusActive(data.status)) {
+      setIsBannerCollapsed(false);
+    }
+  }, [data, setIsBannerCollapsed]);
+
   const value = useMemo<OngoingOrderContextValue>(
     () => ({
       order: data ?? null,
@@ -148,8 +171,19 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
         }
       },
       setOrder,
+      isBannerCollapsed,
+      setBannerCollapsed,
     }),
-    [data, isFetching, isLoading, refetchOrder, requiresAuth, setOrder],
+    [
+      data,
+      isBannerCollapsed,
+      isFetching,
+      isLoading,
+      refetchOrder,
+      requiresAuth,
+      setBannerCollapsed,
+      setOrder,
+    ],
   );
 
   return <OngoingOrderContext.Provider value={value}>{children}</OngoingOrderContext.Provider>;
