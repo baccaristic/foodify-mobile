@@ -1,34 +1,45 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Image,
 } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import { Search, SlidersHorizontal, Star } from "lucide-react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import MainLayout from "~/layouts/MainLayout";
 import Header from "~/components/Header";
 import FiltersOverlay from "~/components/FiltersOverlay";
 import useDebounce from "~/hooks/useDebounce";
-import { searchRestaurants } from "~/api/restaurants";
+import MenuDetail from "./MenuDetail";
+import { getRestaurantDetails, searchRestaurants } from "~/api/restaurants";
 import type {
   MenuItemPromotion,
+  RestaurantDetailsResponse,
+  RestaurantMenuCategory,
+  RestaurantMenuItemDetails,
+  RestaurantMenuItemSummary,
   RestaurantSearchItem,
   RestaurantSearchParams,
   RestaurantSearchSort,
 } from "~/interfaces/Restaurant";
+import { useCart } from "~/context/CartContext";
+import type { CartItemOptionSelection } from "~/context/CartContext";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
 const PAGE = 1;
 const PAGE_SIZE = 20;
+const { height: SCREEN_HEIGHT } = Dimensions.get("screen");
+const MODAL_HEIGHT = SCREEN_HEIGHT;
 
 const QUICK_FILTERS_DEFAULT = Object.freeze({
   promotions: false,
@@ -74,14 +85,45 @@ const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButton
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace(".", ",")} DT`;
 
-const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
+const flattenCategories = (categories: RestaurantMenuCategory[] = []) =>
+  categories.reduce<RestaurantMenuItemDetails[]>((acc, category) => acc.concat(category.items), []);
+
+const mapSummaryToDetails = (summary: RestaurantMenuItemSummary): RestaurantMenuItemDetails => ({
+  ...summary,
+  optionGroups: [],
+});
+
+const findMenuItemDetails = (
+  restaurant: RestaurantDetailsResponse,
+  itemId: number
+): RestaurantMenuItemDetails | null => {
+  const categoryMatch = flattenCategories(restaurant.categories).find((item) => item.id === itemId);
+  if (categoryMatch) {
+    return categoryMatch;
+  }
+
+  const topSaleMatch = restaurant.topSales.find((item) => item.id === itemId);
+  if (topSaleMatch) {
+    return mapSummaryToDetails(topSaleMatch);
+  }
+
+  return null;
+};
+
+const RestaurantCard = ({
+  data,
+  onPress,
+}: {
+  data: RestaurantSearchItem;
+  onPress: () => void;
+}) => {
   const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl } = data;
 
   const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.9}>
+    <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
       <Image source={imageSource} style={styles.cardImage} />
 
       {isTopChoice && (
@@ -115,16 +157,18 @@ const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
 const PromotedMenuItemCard = ({
   item,
   restaurantName,
+  onPress,
 }: {
   item: MenuItemPromotion;
   restaurantName: string;
+  onPress: () => void;
 }) => {
   const { name, promotionLabel, price, promotionPrice, imageUrl } = item;
   const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_MENU_IMAGE;
   const hasPromoPrice = typeof promotionPrice === "number" && Number.isFinite(promotionPrice);
 
   return (
-    <TouchableOpacity style={styles.menuCard} activeOpacity={0.9}>
+    <TouchableOpacity style={styles.menuCard} activeOpacity={0.9} onPress={onPress}>
       <Image source={imageSource} style={styles.menuImage} />
       <View style={styles.menuInfo}>
         <Text style={styles.menuTitle} numberOfLines={2}>
@@ -149,12 +193,20 @@ const PromotedMenuItemCard = ({
   );
 };
 
-const RestaurantResult = ({ restaurant }: { restaurant: RestaurantSearchItem }) => {
+const RestaurantResult = ({
+  restaurant,
+  onRestaurantPress,
+  onPromotedItemPress,
+}: {
+  restaurant: RestaurantSearchItem;
+  onRestaurantPress: (restaurantId: number) => void;
+  onPromotedItemPress: (restaurant: RestaurantSearchItem, item: MenuItemPromotion) => void;
+}) => {
   const promotions = restaurant.promotedMenuItems ?? [];
 
   return (
     <View style={styles.restaurantResult}>
-      <RestaurantCard data={restaurant} />
+      <RestaurantCard data={restaurant} onPress={() => onRestaurantPress(restaurant.id)} />
       {promotions.length > 0 && (
         <View style={styles.promotedMenuList}>
           <Text style={styles.promotedMenuHeading}>Promoted items</Text>
@@ -163,6 +215,7 @@ const RestaurantResult = ({ restaurant }: { restaurant: RestaurantSearchItem }) 
               key={`promotion-${restaurant.id}-${item.id}`}
               item={item}
               restaurantName={restaurant.name}
+              onPress={() => onPromotedItemPress(restaurant, item)}
             />
           ))}
         </View>
@@ -173,6 +226,13 @@ const RestaurantResult = ({ restaurant }: { restaurant: RestaurantSearchItem }) 
 
 export default function SearchScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const queryClient = useQueryClient();
+  const { addItem } = useCart();
+
+  const [isMenuModalVisible, setIsMenuModalVisible] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<{ id: number; name: string } | null>(null);
+  const [isFetchingMenuItem, setIsFetchingMenuItem] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
@@ -182,6 +242,28 @@ export default function SearchScreen() {
   }));
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const translateY = useSharedValue(MODAL_HEIGHT);
+
+  const animatedModalStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  useEffect(() => {
+    translateY.value = withTiming(isMenuModalVisible ? 0 : MODAL_HEIGHT, { duration: 300 });
+  }, [isMenuModalVisible, translateY]);
+
+  useEffect(() => {
+    if (!isMenuModalVisible && selectedMenuItem) {
+      const timeout = setTimeout(() => {
+        setSelectedMenuItem(null);
+        setSelectedRestaurant(null);
+      }, 300);
+
+      return () => clearTimeout(timeout);
+    }
+
+    return undefined;
+  }, [isMenuModalVisible, selectedMenuItem]);
 
   const toggleQuickFilter = useCallback((key: QuickFilterKey) => {
     setQuickFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -227,6 +309,89 @@ export default function SearchScreen() {
     queryFn: () => searchRestaurants(queryParams),
     keepPreviousData: true,
   });
+
+  const handleRestaurantPress = useCallback(
+    (restaurantId: number) => {
+      navigation.navigate("RestaurantDetails" as never, { restaurantId } as never);
+    },
+    [navigation]
+  );
+
+  const handlePromotedItemPress = useCallback(
+    async (restaurant: RestaurantSearchItem, promotion: MenuItemPromotion) => {
+      if (isFetchingMenuItem) {
+        return;
+      }
+
+      setIsFetchingMenuItem(true);
+
+      try {
+        const details = await queryClient.fetchQuery({
+          queryKey: ["restaurant-details", restaurant.id],
+          queryFn: () => getRestaurantDetails(restaurant.id),
+        });
+
+        const menuItemDetails = findMenuItemDetails(details, promotion.id);
+
+        if (!menuItemDetails) {
+          Alert.alert(
+            "Menu item unavailable",
+            "We couldn't load this promoted item right now. Please try again later."
+          );
+          return;
+        }
+
+        setSelectedMenuItem(menuItemDetails);
+        setSelectedRestaurant({ id: details.id, name: details.name });
+        setIsMenuModalVisible(true);
+      } catch (error) {
+        Alert.alert("Something went wrong", "We couldn't load this promoted item. Please try again.");
+      } finally {
+        setIsFetchingMenuItem(false);
+      }
+    },
+    [isFetchingMenuItem, queryClient]
+  );
+
+  const handleAddMenuItem = useCallback(
+    (items: { quantity: number; extras: CartItemOptionSelection[] }[]) => {
+      if (!selectedMenuItem || !selectedRestaurant) {
+        setIsMenuModalVisible(false);
+        return;
+      }
+
+      if (items.length === 0) {
+        setIsMenuModalVisible(false);
+        return;
+      }
+
+      items.forEach((item) => {
+        if (item.quantity <= 0) {
+          return;
+        }
+
+        addItem({
+          restaurant: selectedRestaurant,
+          menuItem: {
+            id: selectedMenuItem.id,
+            name: selectedMenuItem.name,
+            description: selectedMenuItem.description,
+            imageUrl: selectedMenuItem.imageUrl,
+            price: selectedMenuItem.price,
+          },
+          quantity: item.quantity,
+          extras: item.extras,
+        });
+      });
+
+      setIsMenuModalVisible(false);
+    },
+    [addItem, selectedMenuItem, selectedRestaurant]
+  );
+
+  const handleCloseMenuModal = useCallback(() => {
+    setIsMenuModalVisible(false);
+  }, []);
 
   const restaurants = data?.items ?? [];
   const totalItems = data?.totalItems ?? 0;
@@ -332,7 +497,12 @@ export default function SearchScreen() {
           </View>
         ) : (
           restaurants.map((restaurant) => (
-            <RestaurantResult key={`restaurant-${restaurant.id}`} restaurant={restaurant} />
+            <RestaurantResult
+              key={`restaurant-${restaurant.id}`}
+              restaurant={restaurant}
+              onRestaurantPress={handleRestaurantPress}
+              onPromotedItemPress={handlePromotedItemPress}
+            />
           ))
         )}
       </View>
@@ -359,6 +529,24 @@ export default function SearchScreen() {
         onClearAll={handleClearAll}
         initialFilters={overlayFilters}
       />
+      {isMenuModalVisible && (
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleCloseMenuModal} />
+      )}
+      {selectedMenuItem && (
+        <Animated.View style={[styles.menuModalContainer, { height: MODAL_HEIGHT }, animatedModalStyle]}>
+          <MenuDetail
+            menuItem={selectedMenuItem}
+            handleAddItem={handleAddMenuItem}
+            onClose={handleCloseMenuModal}
+            actionLabel="Add"
+          />
+        </Animated.View>
+      )}
+      {isFetchingMenuItem && (
+        <View style={styles.menuLoadingOverlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      )}
     </>
   );
 }
@@ -606,5 +794,36 @@ const styles = ScaledSheet.create({
     fontFamily: "Roboto",
     fontSize: "14@ms",
     fontWeight: "600",
+  },
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    zIndex: 30,
+  },
+  menuModalContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "white",
+    borderTopLeftRadius: "24@ms",
+    borderTopRightRadius: "24@ms",
+    overflow: "hidden",
+    zIndex: 40,
+  },
+  menuLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 50,
   },
 });
