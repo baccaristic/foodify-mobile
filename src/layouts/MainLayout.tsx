@@ -1,4 +1,4 @@
-import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
+import { ChevronRight, Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -11,6 +11,7 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,6 +22,7 @@ import Animated, {
   withTiming,
   useAnimatedReaction,
   runOnJS,
+  Easing,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
@@ -131,10 +133,18 @@ export default function MainLayout({
   const route = useOptionalRoute();
   const ongoingOrderContext = useOptionalOngoingOrder();
   const ongoingOrder = ongoingOrderContext?.order ?? null;
+  const [isOngoingCollapsed, setIsOngoingCollapsed] = useState(false);
+  const ongoingCollapseProgress = useSharedValue(0);
+  const ongoingCollapsedWidth = useSharedValue(s(120));
+  const ongoingMeasuredWidth = useSharedValue(0);
+  const ongoingContentShift = s(8);
   const scrollY = useSharedValue(0);
   const [activeHeader, setActiveHeader] = useState<'full' | 'collapsed'>(
     collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
   );
+  const toggleOngoingCollapsed = useCallback(() => {
+    setIsOngoingCollapsed((previous) => !previous);
+  }, []);
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     if (!collapseEnabled) {
@@ -302,11 +312,55 @@ export default function MainLayout({
     return isOrderStatusActive(ongoingOrder.status);
   }, [ongoingOrder, route?.name]);
 
-  const ongoingOrderButton = useMemo(() => {
-    if (!shouldDisplayOngoingOrder || !ongoingOrder) {
-      return null;
-    }
+  useEffect(() => {
+    ongoingCollapseProgress.value = withTiming(isOngoingCollapsed ? 1 : 0, {
+      duration: 320,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [isOngoingCollapsed, ongoingCollapseProgress]);
 
+  useEffect(() => {
+    if (!shouldDisplayOngoingOrder && isOngoingCollapsed) {
+      setIsOngoingCollapsed(false);
+      ongoingCollapseProgress.value = 0;
+    }
+  }, [isOngoingCollapsed, ongoingCollapseProgress, shouldDisplayOngoingOrder]);
+
+  const handleOngoingLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      ongoingMeasuredWidth.value = event.nativeEvent.layout.width;
+    },
+    [ongoingMeasuredWidth]
+  );
+
+  const ongoingOrderSlideStyle = useAnimatedStyle(() => {
+    'worklet';
+    const width = ongoingMeasuredWidth.value;
+    const hiddenWidth = Math.max(width - ongoingCollapsedWidth.value, 0);
+    const translateX = ongoingCollapseProgress.value * hiddenWidth;
+    return { transform: [{ translateX }] };
+  });
+
+  const ongoingOrderContentAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    const progress = ongoingCollapseProgress.value;
+    return {
+      opacity: 1 - progress,
+      transform: [{ translateX: -progress * ongoingContentShift }],
+    };
+  });
+
+  const ongoingOrderArrowStyle = useAnimatedStyle(() => {
+    'worklet';
+    const rotation = interpolate(ongoingCollapseProgress.value, [0, 1], [0, 180]);
+    return {
+      transform: [{ rotate: `${rotation}deg` }],
+    };
+  });
+
+  let ongoingOrderBanner: ReactNode = null;
+
+  if (shouldDisplayOngoingOrder && ongoingOrder) {
     const statusLabel = formatOrderStatusLabel(ongoingOrder.status);
     const itemCount = Array.isArray(ongoingOrder.items)
       ? ongoingOrder.items.reduce((total, item) => total + Number(item.quantity || 0), 0)
@@ -350,49 +404,106 @@ export default function MainLayout({
       navigation.navigate('OrderTracking' as never, { orderId: ongoingOrder.id } as never);
     };
 
-    return (
-      <TouchableOpacity
-        activeOpacity={0.92}
-        style={styles.ongoingOrderButton}
-        onPress={handlePress}
-      >
-        <View style={styles.ongoingOrderHeader}>
-          <Text allowFontScaling={false} style={styles.ongoingOrderTitle} numberOfLines={1}>
-            Order in progress
-          </Text>
-          <View style={styles.ongoingOrderBadge}>
-            <Text allowFontScaling={false} style={styles.ongoingOrderBadgeText} numberOfLines={1}>
-              {statusLabel}
-            </Text>
+    const toggleLabel = isOngoingCollapsed
+      ? 'Expand order in progress banner'
+      : 'Collapse order in progress banner';
+
+    ongoingOrderBanner = (
+      <View style={styles.ongoingOrderWrapper} pointerEvents="box-none">
+        <View style={styles.ongoingOrderShadow}>
+          <View style={styles.ongoingOrderClip}>
+            <Animated.View
+              onLayout={handleOngoingLayout}
+              style={[styles.ongoingOrderSlide, ongoingOrderSlideStyle]}
+            >
+              <View style={styles.ongoingOrderCard}>
+                <TouchableOpacity
+                  activeOpacity={0.92}
+                  style={styles.ongoingOrderContentTouchable}
+                  onPress={handlePress}
+                  disabled={isOngoingCollapsed}
+                  pointerEvents={isOngoingCollapsed ? 'none' : 'auto'}
+                >
+                  <Animated.View
+                    style={[styles.ongoingOrderContent, ongoingOrderContentAnimatedStyle]}
+                  >
+                    <View style={styles.ongoingOrderHeader}>
+                      <Text
+                        allowFontScaling={false}
+                        style={styles.ongoingOrderTitle}
+                        numberOfLines={1}
+                      >
+                        Order in progress
+                      </Text>
+                      <View style={styles.ongoingOrderBadge}>
+                        <Text
+                          allowFontScaling={false}
+                          style={styles.ongoingOrderBadgeText}
+                          numberOfLines={1}
+                        >
+                          {statusLabel}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text
+                      allowFontScaling={false}
+                      style={styles.ongoingOrderSubtitle}
+                      numberOfLines={1}
+                    >
+                      {ongoingOrder.restaurantName}
+                    </Text>
+                    {detailsLabel ? (
+                      <Text
+                        allowFontScaling={false}
+                        style={styles.ongoingOrderDetails}
+                        numberOfLines={1}
+                      >
+                        {detailsLabel}
+                      </Text>
+                    ) : null}
+                    <Text allowFontScaling={false} style={styles.ongoingOrderHint}>
+                      Track your delivery
+                    </Text>
+                  </Animated.View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.ongoingOrderToggle}
+                  onPress={toggleOngoingCollapsed}
+                  accessibilityRole="button"
+                  accessibilityLabel={toggleLabel}
+                >
+                  <Animated.View style={[styles.ongoingOrderArrow, ongoingOrderArrowStyle]}>
+                    <ChevronRight size={s(18)} color="#FFFFFF" />
+                  </Animated.View>
+                  <Text
+                    allowFontScaling={false}
+                    style={styles.ongoingOrderToggleText}
+                    numberOfLines={1}
+                  >
+                    {statusLabel}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
           </View>
         </View>
-        <Text allowFontScaling={false} style={styles.ongoingOrderSubtitle} numberOfLines={1}>
-          {ongoingOrder.restaurantName}
-        </Text>
-        {detailsLabel ? (
-          <Text allowFontScaling={false} style={styles.ongoingOrderDetails} numberOfLines={1}>
-            {detailsLabel}
-          </Text>
-        ) : null}
-        <Text allowFontScaling={false} style={styles.ongoingOrderHint}>
-          Track your delivery
-        </Text>
-      </TouchableOpacity>
+      </View>
     );
-  }, [navigation, ongoingOrder, shouldDisplayOngoingOrder]);
+  }
 
   const combinedFloatingContent = useMemo(() => {
-    if (!ongoingOrderButton && !floatingContent) {
+    if (!ongoingOrderBanner && !floatingContent) {
       return null;
     }
 
     return (
       <View style={styles.floatingStack} pointerEvents="box-none">
-        {ongoingOrderButton}
+        {ongoingOrderBanner}
         {floatingContent}
       </View>
     );
-  }, [floatingContent, ongoingOrderButton]);
+  }, [floatingContent, ongoingOrderBanner]);
 
   const headerNode = !showHeader
     ? null
@@ -505,6 +616,7 @@ const styles = ScaledSheet.create({
   floatingStack: {
     flexDirection: 'column',
     rowGap: '12@vs',
+    alignItems: 'stretch',
   },
   footer: {
     position: 'absolute',
@@ -534,16 +646,41 @@ const styles = ScaledSheet.create({
     fontWeight: '500',
     marginTop: '2@vs',
   },
-  ongoingOrderButton: {
-    backgroundColor: '#17213A',
+  ongoingOrderWrapper: {
+    width: '100%',
+    alignItems: 'flex-end',
+  },
+  ongoingOrderShadow: {
+    width: '100%',
     borderRadius: '18@ms',
-    paddingHorizontal: '18@s',
-    paddingVertical: '14@vs',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 6,
+    backgroundColor: 'transparent',
+  },
+  ongoingOrderClip: {
+    width: '100%',
+    borderRadius: '18@ms',
+    overflow: 'hidden',
+    backgroundColor: '#17213A',
+  },
+  ongoingOrderSlide: {
+    width: '100%',
+  },
+  ongoingOrderCard: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    backgroundColor: '#17213A',
+  },
+  ongoingOrderContentTouchable: {
+    flex: 1,
+  },
+  ongoingOrderContent: {
+    paddingHorizontal: '18@s',
+    paddingVertical: '14@vs',
+    rowGap: '6@vs',
   },
   ongoingOrderHeader: {
     flexDirection: 'row',
@@ -585,6 +722,25 @@ const styles = ScaledSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: '12@ms',
     fontWeight: '500',
+  },
+  ongoingOrderToggle: {
+    width: '110@s',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: '10@s',
+    paddingVertical: '12@vs',
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: 'rgba(255,255,255,0.12)',
+  },
+  ongoingOrderArrow: {
+    marginBottom: '6@vs',
+  },
+  ongoingOrderToggleText: {
+    color: '#FFFFFF',
+    fontSize: '11@ms',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 
