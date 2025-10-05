@@ -75,15 +75,7 @@ const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButton
 const formatCurrency = (value: number) => `${value.toFixed(3).replace(".", ",")} DT`;
 
 const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
-  const {
-    name,
-    deliveryTimeRange,
-    rating,
-    isTopChoice,
-    hasFreeDelivery,
-    promotionLabel,
-    imageUrl,
-  } = data;
+  const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl } = data;
 
   const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
@@ -95,12 +87,6 @@ const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
       {isTopChoice && (
         <View style={styles.badgeTopRight}>
           <Star size={s(16)} color="white" fill="#CA251B" />
-        </View>
-      )}
-
-      {promotionLabel && (
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{promotionLabel}</Text>
         </View>
       )}
 
@@ -503,22 +489,6 @@ const styles = ScaledSheet.create({
     borderRadius: "50@ms",
     padding: "4@s",
     elevation: 3,
-  },
-  discountBadge: {
-    position: "absolute",
-    top: "10@vs",
-    right: "10@s",
-    backgroundColor: "#CA251B",
-    borderRadius: "8@ms",
-    paddingHorizontal: "8@s",
-    paddingVertical: "4@vs",
-    elevation: 3,
-  },
-  discountText: {
-    color: "white",
-    fontFamily: "Roboto",
-    fontSize: "14@ms",
-    fontWeight: "700",
   },
   cardBody: { padding: "10@s" },
   cardTitle: {

@@ -109,7 +109,6 @@ export interface RestaurantSearchItem {
   rating: number;
   isTopChoice: boolean;
   hasFreeDelivery: boolean;
-  promotionLabel?: string | null;
   imageUrl: string;
   promotedMenuItems?: MenuItemPromotion[];
 }
