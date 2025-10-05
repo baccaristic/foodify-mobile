@@ -5,6 +5,7 @@ import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/
 import BackButtonHeader from '~/components/BackButtonHeader';
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
+import AuthBackground from '~/components/AuthBackGround';
 
 const PhoneAcceptTerms = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -79,7 +80,8 @@ const PhoneAcceptTerms = () => {
   }
 
   return (
-    <View className="flex-1 bg-white p-6">
+    <View className="flex-1 bg-white ">
+      <View className='flex-1 p-6'>
       <BackButtonHeader />
 
       <View className="mt-6 mb-10">
@@ -132,6 +134,11 @@ const PhoneAcceptTerms = () => {
           </Text>
         )}
       </TouchableOpacity>
+      <View>
+          <AuthBackground/>
+      </View>
+      </View>
+        
     </View>
   );
 };
