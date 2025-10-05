@@ -1,4 +1,4 @@
-import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
+import { Home, Search, ShoppingBag, User, ChevronDown, ChevronUp } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -8,9 +8,9 @@ import {
   ImageBackground,
   StyleSheet,
   Dimensions,
-  Platform,
   RefreshControl,
   LayoutChangeEvent,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -25,11 +25,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
-import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
-import { Image } from 'expo-image';
+import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import OngoingOrderBanner from '~/components/OngoingOrderBanner';
-import OngoingOrderFooterToggle from '~/components/OngoingOrderFooterToggle';
 import useOngoingOrderBannerStore from '~/store/ongoingOrderBanner';
+import useOngoingOrder from '~/hooks/useOngoingOrder';
+import { formatOrderStatusLabel } from '~/utils/orderStatus';
 
 type NavItem = {
   icon: LucideIcon;
@@ -47,7 +47,7 @@ const defaultNavItems: NavItem[] = [
 const useOptionalNavigation = () => {
   try {
     return useNavigation<NavigationProp<Record<string, object | undefined>>>();
-  } catch (error) {
+  } catch {
     return undefined;
   }
 };
@@ -55,7 +55,7 @@ const useOptionalNavigation = () => {
 const useOptionalRoute = () => {
   try {
     return useRoute();
-  } catch (error) {
+  } catch {
     return undefined;
   }
 };
@@ -298,22 +298,28 @@ export default function MainLayout({
         </View>
       );
 
-  const [bannerHeight, setBannerHeight] = useState(0);
-  const hasOngoingOrder = useOngoingOrderBannerStore((state) => state.lastOrderId !== null);
+  const {
+    data: ongoingOrder,
+    isLoading: isOngoingOrderLoading,
+    isFetching: isOngoingOrderFetching,
+  } = useOngoingOrder();
+  const hasOngoingOrder = Boolean(ongoingOrder);
   const isBannerCollapsed = useOngoingOrderBannerStore((state) => state.isCollapsed);
+  const setBannerCollapsed = useOngoingOrderBannerStore((state) => state.setCollapsed);
+  const [footerExtensionHeight, setFooterExtensionHeight] = useState(0);
 
   useEffect(() => {
-    if (!showOngoingOrderBanner || !hasOngoingOrder || isBannerCollapsed) {
-      setBannerHeight(0);
+    if (!showOngoingOrderBanner || !hasOngoingOrder) {
+      setFooterExtensionHeight(0);
     }
-  }, [hasOngoingOrder, isBannerCollapsed, showOngoingOrderBanner]);
+  }, [hasOngoingOrder, showOngoingOrderBanner]);
 
-  const handleBannerLayout = useCallback((event: LayoutChangeEvent) => {
+  const handleFooterExtensionLayout = useCallback((event: LayoutChangeEvent) => {
     const nextHeight = event.nativeEvent?.layout?.height ?? 0;
     if (!Number.isFinite(nextHeight)) {
       return;
     }
-    setBannerHeight((current) => {
+    setFooterExtensionHeight((current) => {
       if (Math.abs(current - nextHeight) <= 1) {
         return current;
       }
@@ -326,14 +332,46 @@ export default function MainLayout({
     [insets.bottom, showFooter]
   );
 
-  const bannerSpacing = showOngoingOrderBanner ? vs(6) : 0;
-
-  const floatingBottomInset = useMemo(() => {
-    if (!showOngoingOrderBanner) {
-      return baseBottomInset;
+  const effectiveFooterExtension = useMemo(() => {
+    if (!showFooter || !showOngoingOrderBanner || !hasOngoingOrder) {
+      return 0;
     }
-    return baseBottomInset + bannerSpacing + bannerHeight;
-  }, [baseBottomInset, bannerHeight, bannerSpacing, showOngoingOrderBanner]);
+    return footerExtensionHeight;
+  }, [footerExtensionHeight, hasOngoingOrder, showFooter, showOngoingOrderBanner]);
+
+  const floatingBottomInset = useMemo(
+    () => baseBottomInset + effectiveFooterExtension,
+    [baseBottomInset, effectiveFooterExtension]
+  );
+
+  const ongoingOrderStatusLabel = useMemo(() => {
+    if (!ongoingOrder) {
+      return null;
+    }
+    return formatOrderStatusLabel(ongoingOrder.status);
+  }, [ongoingOrder]);
+
+  const footerSummaryLabel = useMemo(() => {
+    if (!hasOngoingOrder) {
+      return null;
+    }
+
+    const normalizedStatus = ongoingOrderStatusLabel?.toLowerCase().trim();
+    if (normalizedStatus) {
+      return `your ongoing order is ${normalizedStatus}`;
+    }
+
+    return 'your ongoing order is on the way';
+  }, [hasOngoingOrder, ongoingOrderStatusLabel]);
+
+  const shouldRenderOngoingOrderUi = showOngoingOrderBanner && hasOngoingOrder;
+  const isSummaryVisible = shouldRenderOngoingOrderUi && Boolean(footerSummaryLabel);
+
+  const showSummarySpinner = isSummaryVisible && (isOngoingOrderLoading || isOngoingOrderFetching);
+
+  const handleToggleBanner = useCallback(() => {
+    setBannerCollapsed(!isBannerCollapsed);
+  }, [isBannerCollapsed, setBannerCollapsed]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -343,7 +381,7 @@ export default function MainLayout({
         style={[styles.scrollView]}
         contentContainerStyle={{
           paddingTop: collapseEnabled ? vs(10) : vs(20),
-          paddingBottom: showFooter ? vs(80) : vs(20),
+          paddingBottom: showFooter ? vs(80) + effectiveFooterExtension : vs(20),
         }}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
@@ -362,18 +400,40 @@ export default function MainLayout({
         </View>
       ) : null}
 
-      {showOngoingOrderBanner ? (
-        <View
-          style={[styles.bannerSlot, { bottom: baseBottomInset + bannerSpacing }]}
-          pointerEvents="box-none"
-          onLayout={handleBannerLayout}>
-          <OngoingOrderBanner placement="inline" />
-        </View>
-      ) : null}
-
       {showFooter && (
         <View style={[styles.footer, { paddingBottom: insets.bottom }]}>
-          {showOngoingOrderBanner ? <OngoingOrderFooterToggle /> : null}
+          <View
+            pointerEvents="box-none"
+            onLayout={shouldRenderOngoingOrderUi ? handleFooterExtensionLayout : undefined}
+            style={shouldRenderOngoingOrderUi ? styles.footerExtensionContainer : undefined}>
+            {isSummaryVisible ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.footerSummary}
+                onPress={handleToggleBanner}>
+                <View style={styles.footerSummaryContent}>
+                  {showSummarySpinner ? (
+                    <ActivityIndicator color="#FACC15" size="small" style={styles.footerSummarySpinner} />
+                  ) : null}
+                  <Text allowFontScaling={false} style={styles.footerSummaryText} numberOfLines={1}>
+                    {footerSummaryLabel}
+                  </Text>
+                </View>
+                {isBannerCollapsed ? (
+                  <ChevronUp size={s(16)} color="#FFFFFF" />
+                ) : (
+                  <ChevronDown size={s(16)} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            ) : null}
+
+            {shouldRenderOngoingOrderUi ? (
+              <View style={styles.footerBannerWrapper} pointerEvents="box-none">
+                <OngoingOrderBanner placement="inline" />
+              </View>
+            ) : null}
+          </View>
+
           <View style={styles.navRow}>
             {resolvedNavItems.map((item) => {
               const Icon = item.icon;
@@ -439,13 +499,6 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '16@s',
     zIndex: 3,
   },
-  bannerSlot: {
-    position: 'absolute',
-    left: '0@s',
-    right: '0@s',
-    paddingHorizontal: '16@s',
-    zIndex: 3,
-  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -457,6 +510,38 @@ const styles = ScaledSheet.create({
     borderTopLeftRadius: '24@ms',
     borderTopRightRadius: '24@ms',
     zIndex: 2,
+  },
+  footerExtensionContainer: {
+    width: '100%',
+    paddingBottom: '12@vs',
+  },
+  footerSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: '18@ms',
+    paddingVertical: '10@vs',
+    paddingHorizontal: '16@s',
+  },
+  footerSummaryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: '12@s',
+  },
+  footerSummarySpinner: {
+    marginRight: '8@s',
+  },
+  footerSummaryText: {
+    color: '#FFFFFF',
+    fontSize: '13@ms',
+    fontWeight: '600',
+    textTransform: 'none',
+    flexShrink: 1,
+  },
+  footerBannerWrapper: {
+    marginTop: '12@vs',
   },
   navRow: {
     flexDirection: 'row',
