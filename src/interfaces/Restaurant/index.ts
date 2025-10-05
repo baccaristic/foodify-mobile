@@ -127,4 +127,5 @@ export interface MenuItemPromotion {
   price: number;
   promotionPrice?: number | null;
   promotionLabel?: string | null;
+  imageUrl: string;
 }

@@ -19,12 +19,14 @@ import FiltersOverlay from "~/components/FiltersOverlay";
 import useDebounce from "~/hooks/useDebounce";
 import { searchRestaurants } from "~/api/restaurants";
 import type {
+  MenuItemPromotion,
   RestaurantSearchItem,
   RestaurantSearchParams,
   RestaurantSearchSort,
 } from "~/interfaces/Restaurant";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
+const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
 const PAGE = 1;
 const PAGE_SIZE = 20;
 
@@ -81,12 +83,10 @@ const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
     hasFreeDelivery,
     promotionLabel,
     imageUrl,
-    promotedMenuItems,
   } = data;
 
   const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
-  const highlightedItems = (promotedMenuItems ?? []).slice(0, 3);
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9}>
@@ -121,43 +121,42 @@ const RestaurantCard = ({ data }: { data: RestaurantSearchItem }) => {
             </View>
           </View>
         )}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
-        {highlightedItems.length > 0 && (
-          <View style={styles.promotedSection}>
-            <Text style={styles.promotedTitle}>Menu promotions</Text>
-            {highlightedItems.map((item) => {
-              const hasPromoPrice =
-                typeof item.promotionPrice === "number" && Number.isFinite(item.promotionPrice);
+const PromotedMenuItemCard = ({
+  item,
+  restaurantName,
+}: {
+  item: MenuItemPromotion;
+  restaurantName: string;
+}) => {
+  const { name, promotionLabel, price, promotionPrice, imageUrl } = item;
+  const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_MENU_IMAGE;
+  const hasPromoPrice = typeof promotionPrice === "number" && Number.isFinite(promotionPrice);
 
-              return (
-                <View key={item.id} style={styles.promotedItemRow}>
-                  <View style={styles.promotedItemInfo}>
-                    <Text style={styles.promotedItemName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    {item.promotionLabel && (
-                      <Text style={styles.promotedItemLabel}>{item.promotionLabel}</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.promotedPriceColumn}>
-                    {hasPromoPrice ? (
-                      <>
-                        <Text style={styles.promotedOriginalPrice}>
-                          {formatCurrency(item.price)}
-                        </Text>
-                        <Text style={styles.promotedPrice}>
-                          {formatCurrency(item.promotionPrice ?? item.price)}
-                        </Text>
-                      </>
-                    ) : (
-                      <Text style={styles.promotedPrice}>{formatCurrency(item.price)}</Text>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+  return (
+    <TouchableOpacity style={styles.menuCard} activeOpacity={0.9}>
+      <Image source={imageSource} style={styles.menuImage} />
+      <View style={styles.menuInfo}>
+        <Text style={styles.menuTitle} numberOfLines={2}>
+          {name}
+        </Text>
+        <Text style={styles.menuSubtitle} numberOfLines={1}>
+          {restaurantName}
+        </Text>
+        {promotionLabel && <Text style={styles.menuBadge}>{promotionLabel}</Text>}
+      </View>
+      <View style={styles.menuPriceColumn}>
+        {hasPromoPrice ? (
+          <>
+            <Text style={styles.menuOriginalPrice}>{formatCurrency(price)}</Text>
+            <Text style={styles.menuPrice}>{formatCurrency(promotionPrice ?? price)}</Text>
+          </>
+        ) : (
+          <Text style={styles.menuPrice}>{formatCurrency(price)}</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -223,6 +222,38 @@ export default function SearchScreen() {
 
   const restaurants = data?.items ?? [];
   const totalItems = data?.totalItems ?? 0;
+
+  const combinedResults = useMemo(
+    () =>
+      restaurants.flatMap((restaurant) => {
+        const entries: (
+          | { type: "restaurant"; restaurant: RestaurantSearchItem }
+          | {
+              type: "promotion";
+              restaurantId: number;
+              restaurantName: string;
+              item: MenuItemPromotion;
+            }
+        )[] = [
+          {
+            type: "restaurant",
+            restaurant,
+          },
+        ];
+
+        (restaurant.promotedMenuItems ?? []).forEach((item) => {
+          entries.push({
+            type: "promotion",
+            restaurantId: restaurant.id,
+            restaurantName: restaurant.name,
+            item,
+          });
+        });
+
+        return entries;
+      }),
+    [restaurants]
+  );
 
   const showResultCount = useMemo(() => {
     const baseQueryActive = debouncedSearchTerm.trim().length > 0;
@@ -324,7 +355,17 @@ export default function SearchScreen() {
             <Text style={styles.stateText}>No restaurants match your filters yet.</Text>
           </View>
         ) : (
-          restaurants.map((item) => <RestaurantCard key={item.id} data={item} />)
+          combinedResults.map((entry) =>
+            entry.type === "restaurant" ? (
+              <RestaurantCard key={`restaurant-${entry.restaurant.id}`} data={entry.restaurant} />
+            ) : (
+              <PromotedMenuItemCard
+                key={`promotion-${entry.restaurantId}-${entry.item.id}`}
+                item={entry.item}
+                restaurantName={entry.restaurantName}
+              />
+            )
+          )
         )}
       </View>
     </View>
@@ -521,51 +562,61 @@ const styles = ScaledSheet.create({
     fontSize: "13@ms",
     fontWeight: "600",
   },
-  promotedSection: {
-    marginTop: "12@vs",
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    paddingTop: "10@vs",
-    gap: "8@vs",
+  menuCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderRadius: "16@ms",
+    padding: "10@s",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 3,
+    gap: "12@s",
   },
-  promotedTitle: {
+  menuImage: {
+    width: "64@s",
+    height: "64@s",
+    borderRadius: "12@ms",
+    backgroundColor: "#F3F4F6",
+  },
+  menuInfo: { flex: 1, gap: "4@vs" },
+  menuTitle: {
     fontFamily: "Roboto",
-    fontSize: "13@ms",
+    fontSize: "15@ms",
     fontWeight: "700",
     color: "#111827",
   },
-  promotedItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "12@s",
-  },
-  promotedItemInfo: { flex: 1 },
-  promotedItemName: {
+  menuSubtitle: {
     fontFamily: "Roboto",
-    fontSize: "13.5@ms",
-    fontWeight: "600",
-    color: "#1F2937",
+    fontSize: "12.5@ms",
+    color: "#6B7280",
   },
-  promotedItemLabel: {
-    fontFamily: "Roboto",
-    fontSize: "12@ms",
-    fontWeight: "500",
-    color: "#CA251B",
-    marginTop: "2@vs",
-  },
-  promotedPriceColumn: {
-    alignItems: "flex-end",
-  },
-  promotedOriginalPrice: {
+  menuBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#FEE2E2",
+    color: "#B91C1C",
     fontFamily: "Roboto",
     fontSize: "11.5@ms",
+    fontWeight: "600",
+    paddingHorizontal: "8@s",
+    paddingVertical: "2@vs",
+    borderRadius: "10@ms",
+  },
+  menuPriceColumn: {
+    alignItems: "flex-end",
+    gap: "2@vs",
+  },
+  menuOriginalPrice: {
+    fontFamily: "Roboto",
+    fontSize: "12@ms",
     color: "#9CA3AF",
     textDecorationLine: "line-through",
   },
-  promotedPrice: {
+  menuPrice: {
     fontFamily: "Roboto",
-    fontSize: "13.5@ms",
+    fontSize: "14@ms",
     fontWeight: "700",
     color: "#047857",
   },
