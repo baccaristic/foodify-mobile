@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bike, ChevronUp, Clock } from 'lucide-react-native';
+import { Bike, Clock } from 'lucide-react-native';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 
 import useAuth from '~/hooks/useAuth';
@@ -110,27 +110,15 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
     return null;
   }
 
+  if (isCollapsed) {
+    return null;
+  }
+
   const handleTrackOrder = () => {
     navigation.navigate('OrderTracking', {
       orderId: ongoingOrder.id,
     });
   };
-
-  const collapsedContent = (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      style={styles.collapsedContainer}
-      onPress={() => setCollapsed(false)}
-    >
-      <View style={styles.collapsedContent}>
-        <Bike size={18} color={accentColor} />
-        <Text allowFontScaling={false} style={styles.collapsedText} numberOfLines={1}>
-          {ongoingOrder.id ? `Order #${ongoingOrder.id}` : 'Order in progress'} · {statusLabel}
-        </Text>
-      </View>
-      <ChevronUp size={18} color={textColor} />
-    </TouchableOpacity>
-  );
 
   const expandedContent = (
     <View style={styles.bannerContainer}>
@@ -185,7 +173,7 @@ const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'gl
 
   return (
     <View pointerEvents="box-none" style={containerStyle}>
-      {isCollapsed ? collapsedContent : expandedContent}
+      {expandedContent}
     </View>
   );
 };
@@ -292,32 +280,6 @@ const styles = StyleSheet.create({
   },
   spinner: {
     marginRight: 8,
-  },
-  collapsedContainer: {
-    backgroundColor,
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  collapsedContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  collapsedText: {
-    color: textColor,
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 10,
   },
 });
 

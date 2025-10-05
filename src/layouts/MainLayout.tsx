@@ -300,12 +300,13 @@ export default function MainLayout({
 
   const [bannerHeight, setBannerHeight] = useState(0);
   const hasOngoingOrder = useOngoingOrderBannerStore((state) => state.lastOrderId !== null);
+  const isBannerCollapsed = useOngoingOrderBannerStore((state) => state.isCollapsed);
 
   useEffect(() => {
-    if (!showOngoingOrderBanner || !hasOngoingOrder) {
+    if (!showOngoingOrderBanner || !hasOngoingOrder || isBannerCollapsed) {
       setBannerHeight(0);
     }
-  }, [hasOngoingOrder, showOngoingOrderBanner]);
+  }, [hasOngoingOrder, isBannerCollapsed, showOngoingOrderBanner]);
 
   const handleBannerLayout = useCallback((event: LayoutChangeEvent) => {
     const nextHeight = event.nativeEvent?.layout?.height ?? 0;
@@ -366,7 +367,7 @@ export default function MainLayout({
           style={[styles.bannerSlot, { bottom: baseBottomInset + bannerSpacing }]}
           pointerEvents="box-none"
           onLayout={handleBannerLayout}>
-          <OngoingOrderBanner placement="inline" />
+          {isBannerCollapsed ? null : <OngoingOrderBanner placement="inline" />}
         </View>
       ) : null}
 
