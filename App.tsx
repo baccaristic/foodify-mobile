@@ -40,7 +40,6 @@ import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
 import Notification from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/Notifications';
-import OngoingOrderBanner from '~/components/OngoingOrderBanner';
 
 const Stack = createNativeStackNavigator();
 
@@ -206,7 +205,6 @@ const RootNavigator = () => {
           </>
         )}
       </Stack.Navigator>
-      {user ? <OngoingOrderBanner /> : null}
     </>
   );
 };

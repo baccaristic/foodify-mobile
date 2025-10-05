@@ -546,6 +546,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         mainContent={mainContent}
         headerMaxHeight={180}
         headerMinHeight={160}
+        showOngoingOrderBanner={false}
       />
       {orderBar}
     </View>

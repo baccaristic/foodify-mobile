@@ -44,7 +44,11 @@ const formatEtaLabel = (value: number | string | null | undefined) => {
   return `~${parsed} min remaining`;
 };
 
-const OngoingOrderBanner: React.FC = () => {
+type OngoingOrderBannerProps = {
+  placement?: 'global' | 'inline';
+};
+
+const OngoingOrderBanner: React.FC<OngoingOrderBannerProps> = ({ placement = 'global' }) => {
   const { user } = useAuth();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const insets = useSafeAreaInsets();
@@ -162,11 +166,13 @@ const OngoingOrderBanner: React.FC = () => {
     </View>
   );
 
+  const containerStyle =
+    placement === 'inline'
+      ? styles.inlinePositioner
+      : [styles.positioner, { bottom: Math.max(insets.bottom, 12) + 16 }];
+
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.positioner, { bottom: Math.max(insets.bottom, 12) + 16 }]}
-    >
+    <View pointerEvents="box-none" style={containerStyle}>
       {isCollapsed ? collapsedContent : expandedContent}
     </View>
   );
@@ -178,6 +184,9 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     zIndex: 1000,
+  },
+  inlinePositioner: {
+    width: '100%',
   },
   bannerContainer: {
     backgroundColor,

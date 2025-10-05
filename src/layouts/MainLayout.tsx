@@ -1,6 +1,6 @@
 import { Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   Platform,
   RefreshControl,
+  LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -26,6 +27,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import { ScaledSheet, s, vs, ms } from 'react-native-size-matters';
 import { Image } from 'expo-image';
+import OngoingOrderBanner from '~/components/OngoingOrderBanner';
 
 type NavItem = {
   icon: LucideIcon;
@@ -74,6 +76,7 @@ interface MainLayoutProps {
   onTabPress?: (route: string) => void;
   onRefresh?: () => void | Promise<any>;
   isRefreshing?: boolean;
+  showOngoingOrderBanner?: boolean;
 }
 
 export default function MainLayout({
@@ -94,6 +97,7 @@ export default function MainLayout({
   onTabPress,
   onRefresh,
   isRefreshing,
+  showOngoingOrderBanner = true,
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
@@ -292,6 +296,35 @@ export default function MainLayout({
         </View>
       );
 
+  const [bannerHeight, setBannerHeight] = useState(0);
+
+  const handleBannerLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = event.nativeEvent?.layout?.height ?? 0;
+    if (!Number.isFinite(nextHeight)) {
+      return;
+    }
+    setBannerHeight((current) => {
+      if (Math.abs(current - nextHeight) <= 1) {
+        return current;
+      }
+      return nextHeight;
+    });
+  }, []);
+
+  const baseBottomInset = useMemo(
+    () => (showFooter ? insets.bottom + vs(84) : insets.bottom + vs(24)),
+    [insets.bottom, showFooter]
+  );
+
+  const bannerSpacing = showOngoingOrderBanner ? vs(12) : 0;
+
+  const floatingBottomInset = useMemo(() => {
+    if (!showOngoingOrderBanner) {
+      return baseBottomInset;
+    }
+    return baseBottomInset + bannerSpacing + bannerHeight;
+  }, [baseBottomInset, bannerHeight, bannerSpacing, showOngoingOrderBanner]);
+
   return (
     <SafeAreaView style={styles.container}>
       {headerNode}
@@ -312,10 +345,19 @@ export default function MainLayout({
         <View
           style={[
             styles.floatingSlot,
-            { bottom: showFooter ? insets.bottom + vs(84) : insets.bottom + vs(24) },
+            { bottom: floatingBottomInset },
           ]}
           pointerEvents="box-none">
           {floatingContent}
+        </View>
+      ) : null}
+
+      {showOngoingOrderBanner ? (
+        <View
+          style={[styles.bannerSlot, { bottom: baseBottomInset + bannerSpacing }]}
+          pointerEvents="box-none"
+          onLayout={handleBannerLayout}>
+          <OngoingOrderBanner placement="inline" />
         </View>
       ) : null}
 
@@ -380,6 +422,13 @@ const styles = ScaledSheet.create({
     flex: 1,
   },
   floatingSlot: {
+    position: 'absolute',
+    left: '0@s',
+    right: '0@s',
+    paddingHorizontal: '16@s',
+    zIndex: 3,
+  },
+  bannerSlot: {
     position: 'absolute',
     left: '0@s',
     right: '0@s',
