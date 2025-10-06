@@ -30,8 +30,8 @@ const SignUpEmailPassword = () => {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View className="flex-1 bg-white ">
-                <View className='p-6 flex1'>
+            <View className="flex-1 bg-white  ">
+                <View className='p-6 flex1 py-0'>
 
                     <BackButtonHeader />
 

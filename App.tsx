@@ -153,6 +153,7 @@ const RootNavigator = () => {
     >
       {user ? (
         <>
+          <Stack.Screen name="Guest" component={AuthScreen} />
           <Stack.Screen
             name="LocationPermission"
             initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}

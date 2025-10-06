@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, InteractionManager } from 'react-native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import {
   Heart,
@@ -125,12 +125,20 @@ const ProfileScreen = () => {
     setIsSigningOut(true);
     try {
       await logout();
+      InteractionManager.runAfterInteractions(() => {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Guest' }],
+          }),
+        );
+      });
     } catch (error) {
       console.warn('Failed to log out', error);
     } finally {
       setIsSigningOut(false);
     }
-  }, [isSigningOut, logout]);
+  }, [isSigningOut, logout, navigation]);
 
   const handleNavigate = (route: string) => {
     if (!route) return;

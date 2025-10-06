@@ -110,12 +110,12 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
                         <Text className="font-bold"> {contact}</Text>
                     </Text>
 
-                    <View className="flex-row justify-between mb-4">
+                    <View className="flex-row justify-between mb-4 ">
                         {code.map((digit, index) => (
                             <TextInput
                                 key={index}
                                 ref={inputRefs[index]}
-                                className={`w-[18%] h-16 text-2xl font-bold text-center rounded-lg border-2 text-black
+                                className={`w-16 h-16 text-2xl font-bold text-center rounded-lg border-2 text-black
                                 ${hasError ? 'border-red-500 text-red-500' :
                                         digit ? 'border-[#CA251B] text-[#CA251B]' : 'border-gray-300'
                                     }
