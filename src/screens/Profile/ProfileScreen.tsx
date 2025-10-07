@@ -104,7 +104,7 @@ const useProfileSections = (
         title: 'Other',
         items: [
           { label: 'Notifications', icon: Bell, route: 'Notifications' },
-          { label: 'Q&A', icon: MessageCircleQuestion, route: 'FAQ' },
+          { label: 'FAQ', icon: MessageCircleQuestion, route: 'FAQ' },
           { label: 'Manage Privacy', icon: ShieldCheck, route: 'Privacy' },
           { label: 'Delete account & Data', icon: Trash2, route: 'DeleteAccount' },
         ],
@@ -154,6 +154,9 @@ const ProfileScreen = () => {
         break;
       case 'DeleteAccount':
         navigation.navigate('DeleteAccount' as never);
+        break;
+        case 'FAQ':
+        navigation.navigate('FAQ' as never);
         break;
       case 'Logout':
         handleLogout();
