@@ -149,6 +149,9 @@ const ProfileScreen = () => {
       case 'AccountSettings':
         navigation.navigate('AccountSettings' as never);
         break;
+        case 'Notifications':
+        navigation.navigate('Notifications' as never);
+        break;
       case 'Logout':
         handleLogout();
         break;
