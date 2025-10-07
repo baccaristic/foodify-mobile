@@ -149,10 +149,10 @@ const ProfileScreen = () => {
       case 'AccountSettings':
         navigation.navigate('AccountSettings' as never);
         break;
-        case 'Notifications':
+      case 'Notifications':
         navigation.navigate('Notifications' as never);
         break;
-         case 'DeleteAccount':
+      case 'DeleteAccount':
         navigation.navigate('DeleteAccount' as never);
         break;
       case 'Logout':
@@ -171,39 +171,51 @@ const ProfileScreen = () => {
 
   const heroHeader = (
     <View style={styles.headerContent}>
-      <View style={styles.greetingRow}>
-        <View style={styles.avatarWrapper}>
-          <Image
-            source={{ uri: 'https://i.pravatar.cc/150?img=5' }}
-            style={styles.avatar}
-          />
-        </View>
-        <View style={styles.greetingText}>
-          <Text allowFontScaling={false} style={styles.greetingLabel}>
-            Hello, {displayName.split(' ')[0]}
-          </Text>
-          <Text allowFontScaling={false} style={styles.roleLabel}>Superstar</Text>
-        </View>
-        <View style={styles.pointsBadge}>
-          <Text allowFontScaling={false} style={styles.pointsValue}>246 pts</Text>
-          <Text allowFontScaling={false} style={styles.pointsHint}>60% to next level</Text>
-        </View>
+      <View style={styles.topRow}>
+        <Text allowFontScaling={false} style={styles.greetingLabel}>
+          Hello, {displayName.split(' ')[0]}
+        </Text>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.logoutButtonHeader}
+          onPress={handleLogout}
+          disabled={isSigningOut}
+        >
+          {isSigningOut ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text allowFontScaling={false} style={styles.logoutLabelHeader}>Logout</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={styles.logoutButtonHeader}
-        onPress={handleLogout}
-        disabled={isSigningOut}
-      >
-        {isSigningOut ? (
-          <ActivityIndicator color="#FFFFFF" size="small" />
-        ) : (
-          <Text allowFontScaling={false} style={styles.logoutLabelHeader}>Log out</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.greetingRow}>
+        <View style={styles.leftProfile}>
+          <View style={styles.avatarWrapper}>
+            <Image
+              source={{ uri: 'https://i.pravatar.cc/150?img=5' }}
+              style={styles.avatar}
+            />
+          </View>
+          <View style={styles.nameBlock}>
+            <Text allowFontScaling={false} style={styles.nameText}>
+              {displayName}
+            </Text>
+            <Text allowFontScaling={false} style={styles.superstarText}>
+              Superstar
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.pointsContainer}>
+          <View style={styles.pointsBadge}>
+            <Text allowFontScaling={false} style={styles.pointsValue}>246 PTS</Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
+
 
   const collapsedHeader = (
     <View style={styles.collapsedHeader}>
@@ -293,7 +305,42 @@ const styles = ScaledSheet.create({
     paddingTop: vs(24),
     paddingBottom: vs(16),
   },
+  greetingLabel: {
+    fontSize: '32@ms',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: vs(8),
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: vs(8),
+  },
+
+
+
+  logoutButtonHeader: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: '18@s',
+    paddingVertical: '8@vs',
+    borderRadius: '16@ms',
+    borderColor: 'white',
+    borderWidth: 2,
+  },
+
+  logoutLabelHeader: {
+    color: '#FFFFFF',
+    fontSize: '12@ms',
+    fontWeight: '600',
+  },
+
   greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  leftProfile: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -309,44 +356,48 @@ const styles = ScaledSheet.create({
     width: '100%',
     height: '100%',
   },
-  greetingText: {
-    flex: 1,
-    marginLeft: '14@s',
+  nameBlock: {
+    marginLeft: '10@s',
   },
-  greetingLabel: {
-    fontSize: '20@ms',
-    fontWeight: '700',
+  nameText: {
     color: '#FFFFFF',
+    fontSize: '16@ms',
+    fontWeight: '700',
   },
-  roleLabel: {
-    marginTop: '4@vs',
+  superstarText: {
     color: 'rgba(255,255,255,0.85)',
     fontSize: '12@ms',
+    marginTop: vs(2),
+  },
+  pointsContainer: {
+    alignItems: 'flex-end',
+
   },
   pointsBadge: {
     backgroundColor: '#17213A',
-    borderRadius: '16@ms',
-    paddingHorizontal: '12@s',
-    paddingVertical: '8@vs',
-    alignItems: 'flex-start',
+    borderRadius: '20@ms',
+    paddingHorizontal: '10@s',
+    paddingVertical: '4@vs',
+
   },
   pointsValue: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: '14@ms',
+    fontSize: '20@ms',
   },
-  pointsHint: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: '10@ms',
-    marginTop: '2@vs',
+  progressText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: '11@ms',
+    marginTop: vs(2),
   },
   logoutButtonHeader: {
-    marginTop: '16@vs',
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: '18@s',
     paddingVertical: '8@vs',
     borderRadius: '16@ms',
+    borderColor: 'white',
+    borderWidth: 2,
   },
   logoutLabelHeader: {
     color: '#FFFFFF',
@@ -358,11 +409,15 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '16@s',
     paddingVertical: '6@vs',
     borderRadius: '16@ms',
+    borderColor: 'white',
+    borderWidth: 2,
   },
   collapsedLogoutLabel: {
     color: '#FFFFFF',
     fontSize: '12@ms',
     fontWeight: '600',
+    paddingHorizontal: '18@s',
+    paddingVertical: '8@vs',
   },
 
   collapsedHeader: {
@@ -431,7 +486,7 @@ const styles = ScaledSheet.create({
   sectionTitle: {
     fontSize: '14@ms',
     fontWeight: '700',
-    color: palette.accent,
+    color: palette.accentDark,
     marginBottom: '12@vs',
     textTransform: 'uppercase',
   },
@@ -451,7 +506,6 @@ const styles = ScaledSheet.create({
     width: '32@s',
     height: '32@s',
     borderRadius: '16@s',
-    backgroundColor: 'rgba(202,37,27,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: '12@s',
@@ -474,6 +528,7 @@ const styles = ScaledSheet.create({
     marginTop: '18@vs',
     alignItems: 'center',
     gap: '8@vs',
+
   },
   logoutButton: {
     backgroundColor: palette.accent,
@@ -493,6 +548,7 @@ const styles = ScaledSheet.create({
     color: '#6B7280',
     textAlign: 'center',
   },
+
 });
 
 export default ProfileScreen;
