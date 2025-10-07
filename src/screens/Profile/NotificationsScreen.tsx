@@ -32,7 +32,7 @@ export default function NotificationsScreen() {
 
   const customHeader = (
     <View>
-      <HeaderWithBackButton title="Notifications" />
+      <HeaderWithBackButton title="Notifications"  titleMarginLeft={s(70)}/>
     </View>
   )
   const mainContent = (

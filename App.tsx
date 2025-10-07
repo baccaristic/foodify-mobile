@@ -42,6 +42,7 @@ import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
 import Notification from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/Notifications';
 import NotificationsScreen from '~/screens/Profile/NotificationsScreen';
+import DeleteAccountScreen from '~/screens/Profile/DeleteAccountScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -187,7 +188,7 @@ const RootNavigator = () => {
           <Stack.Screen name="RestaurantDetails" component={RestaurantDetails} />
           <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
-
+          <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
         </>
       ) : (
         <>

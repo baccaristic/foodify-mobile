@@ -152,6 +152,9 @@ const ProfileScreen = () => {
         case 'Notifications':
         navigation.navigate('Notifications' as never);
         break;
+         case 'DeleteAccount':
+        navigation.navigate('DeleteAccount' as never);
+        break;
       case 'Logout':
         handleLogout();
         break;

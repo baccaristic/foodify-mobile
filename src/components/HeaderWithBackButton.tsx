@@ -8,12 +8,15 @@ interface HeaderWithBackButtonProps {
   title: string;
   onBack?: () => void;
   showBorder?: boolean;
+  titleMarginLeft?: number;
+
 }
 
 const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
   title,
   onBack,
   showBorder = false,
+  titleMarginLeft=s(60),
 }) => {
   const navigation = useNavigation();
 
@@ -40,7 +43,7 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
         <ArrowLeft color="#CA251B" size={s(26)} />
       </TouchableOpacity>
 
-      <Text style={styles.title} numberOfLines={1}>
+      <Text style={[styles.title, { marginLeft: titleMarginLeft }]} numberOfLines={1}>
         {title}
       </Text>
     </View>
@@ -75,6 +78,5 @@ const styles = ScaledSheet.create({
     fontSize: '18@ms',
     fontWeight: '700',
     color: '#17213A',
-    marginLeft: '70@s',
   },
 });
