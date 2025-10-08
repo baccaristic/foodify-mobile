@@ -155,8 +155,11 @@ const ProfileScreen = () => {
       case 'DeleteAccount':
         navigation.navigate('DeleteAccount' as never);
         break;
-        case 'FAQ':
+      case 'FAQ':
         navigation.navigate('FAQ' as never);
+        break;
+      case 'Privacy':
+        navigation.navigate('ManagePrivacy' as never);
         break;
       case 'Logout':
         handleLogout();
@@ -392,20 +395,6 @@ const styles = ScaledSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: '11@ms',
     marginTop: vs(2),
-  },
-  logoutButtonHeader: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: '18@s',
-    paddingVertical: '8@vs',
-    borderRadius: '16@ms',
-    borderColor: 'white',
-    borderWidth: 2,
-  },
-  logoutLabelHeader: {
-    color: '#FFFFFF',
-    fontSize: '12@ms',
-    fontWeight: '600',
   },
   collapsedLogoutButton: {
     backgroundColor: 'rgba(255,255,255,0.12)',

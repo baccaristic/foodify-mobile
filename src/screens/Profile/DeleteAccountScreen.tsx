@@ -124,7 +124,7 @@ export default function DeleteAccountScreen() {
             showFooter
             collapsedHeader={false}
             enableHeaderCollapse={false}
-            headerMaxHeight={vs(70)}
+            headerMaxHeight={vs(60)}
             headerMinHeight={vs(30)}
             activeTab="Profile"
             enforceResponsiveHeaderSize={false}
@@ -138,6 +138,10 @@ const styles = ScaledSheet.create({
     container: {
         paddingHorizontal: '16@s',
         paddingTop: '24@vs',
+         borderTopColor: '#F9FAFB',
+        borderColor:'#F9FAFB',
+        borderTopWidth: 2,
+        borderBottomWidth: 0,
     },
     warningBox: {
         backgroundColor: '#FDEAEA',

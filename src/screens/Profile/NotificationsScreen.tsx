@@ -122,7 +122,7 @@ export default function NotificationsScreen() {
       showFooter
       collapsedHeader={false}
       enableHeaderCollapse={false}
-      headerMaxHeight={vs(70)}
+      headerMaxHeight={vs(60)}
       headerMinHeight={vs(30)}
       activeTab="Profile"
       enforceResponsiveHeaderSize={false}
@@ -137,6 +137,10 @@ const styles = ScaledSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: '16@s',
+     borderTopColor: '#F9FAFB',
+        borderColor:'#F9FAFB',
+        borderTopWidth: 2,
+        borderBottomWidth: 0,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -150,6 +154,7 @@ const styles = ScaledSheet.create({
     borderRadius: '12@ms',
     padding: '16@s',
     fontStyle: 'Roboto',
+    marginTop:'10@s',
   },
   headerTitle: {
     fontSize: '16@ms',

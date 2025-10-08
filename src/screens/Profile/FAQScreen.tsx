@@ -18,6 +18,7 @@ import { ChevronDown } from 'lucide-react-native';
 const palette = {
   accent: '#CA251B',
   accentDark: '#17213A',
+  lightgray:'#F9FAFB',
 };
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -96,7 +97,7 @@ const AnimatedAnswer = ({ isVisible, text }: { isVisible: boolean; text: string 
         if (finished) setShouldRender(false);
       });
     }
-  }, [isVisible,opacityAnim,slideAnim]);
+  }, [isVisible, opacityAnim, slideAnim]);
 
   if (!shouldRender) return null;
 
@@ -186,7 +187,7 @@ const FAQScreen = () => {
       showFooter
       collapsedHeader={false}
       enableHeaderCollapse={false}
-      headerMaxHeight={vs(70)}
+      headerMaxHeight={vs(60)}
       headerMinHeight={vs(30)}
       activeTab="Profile"
       enforceResponsiveHeaderSize={false}
@@ -201,6 +202,10 @@ const styles = ScaledSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: '4@s',
+    borderTopColor: palette.lightgray,
+    borderColor: palette.lightgray,
+    borderTopWidth: 2,
+    borderBottomWidth: 0,
   },
   scrollContent: {
     paddingHorizontal: '16@s',

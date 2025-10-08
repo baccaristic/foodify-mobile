@@ -44,6 +44,7 @@ import Notification from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/Notificat
 import NotificationsScreen from '~/screens/Profile/NotificationsScreen';
 import DeleteAccountScreen from '~/screens/Profile/DeleteAccountScreen';
 import FAQScreen from '~/screens/Profile/FAQScreen';
+import PrivacyScreen from '~/screens/Profile/PrivacyScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -191,6 +192,7 @@ const RootNavigator = () => {
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
           <Stack.Screen name="FAQ" component={FAQScreen} />
+          <Stack.Screen name="ManagePrivacy" component={PrivacyScreen} />
         </>
       ) : (
         <>
