@@ -22,6 +22,7 @@ import Cart from '~/screens/Cart';
 import CheckoutOrder from '~/screens/CheckoutOrder';
 import CouponCode from '~/screens/CouponCode';
 import Home from '~/screens/Home';
+import DashboardScreen from '~/screens/Driver/DashboardScreen';
 import OrderTracking from '~/screens/OrderTracking';
 import LocationPermissionScreen from '~/screens/LocationPermissionScreen';
 import LocationSelectionScreen from '~/screens/LocationSelectionScreen';
@@ -36,6 +37,7 @@ import { LocationOverlayProvider } from '~/context/LocationOverlayContext';
 import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 import { WebSocketProvider } from '~/context/WebSocketContext';
+import { DriverShiftProvider } from '~/context/DriverShiftContext';
 import { OngoingOrderProvider } from '~/context/OngoingOrderContext';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
@@ -60,6 +62,8 @@ const RootNavigator = () => {
   const [needsLocationPermission, setNeedsLocationPermission] = useState(false);
   const [notificationCheckComplete, setNotificationCheckComplete] = useState(false);
   const [needsNotificationPermission, setNeedsNotificationPermission] = useState(false);
+
+  const isDriver = Boolean(user?.role && user.role.toUpperCase().includes('DRIVER'));
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +142,8 @@ const RootNavigator = () => {
       ? 'auth-stack-location'
       : needsNotificationPermission
       ? 'auth-stack-notification'
+      : isDriver
+      ? 'driver-stack'
       : 'auth-stack'
     : 'guest-stack';
 
@@ -146,6 +152,8 @@ const RootNavigator = () => {
       ? 'LocationPermission'
       : needsNotificationPermission
       ? 'Notification'
+      : isDriver
+      ? 'DriverDashboard'
       : 'Home'
     : 'Guest';
 
@@ -178,6 +186,7 @@ const RootNavigator = () => {
               />
             )}
           </Stack.Screen>
+          <Stack.Screen name="DriverDashboard" component={DashboardScreen} />
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="Cart" component={Cart} />
@@ -224,17 +233,19 @@ export default function App() {
         <NavigationContainer>
           <AuthProvider>
             <OngoingOrderProvider>
-              <WebSocketProvider>
-                <PhoneSignupProvider>
-                  <SelectedAddressProvider>
-                    <CartProvider>
-                      <LocationOverlayProvider>
-                        <RootNavigator />
-                      </LocationOverlayProvider>
-                    </CartProvider>
-                  </SelectedAddressProvider>
-                </PhoneSignupProvider>
-              </WebSocketProvider>
+              <DriverShiftProvider>
+                <WebSocketProvider>
+                  <PhoneSignupProvider>
+                    <SelectedAddressProvider>
+                      <CartProvider>
+                        <LocationOverlayProvider>
+                          <RootNavigator />
+                        </LocationOverlayProvider>
+                      </CartProvider>
+                    </SelectedAddressProvider>
+                  </PhoneSignupProvider>
+                </WebSocketProvider>
+              </DriverShiftProvider>
             </OngoingOrderProvider>
           </AuthProvider>
         </NavigationContainer>

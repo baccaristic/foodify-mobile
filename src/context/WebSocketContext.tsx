@@ -15,6 +15,7 @@ import * as Notifications from 'expo-notifications';
 import useAuth from '~/hooks/useAuth';
 import { BASE_WS_URL } from '@env';
 import { useOngoingOrderContext } from '~/context/OngoingOrderContext';
+import useDriverShift from '~/hooks/useDriverShift';
 import type {
   CreateOrderResponse,
   OrderNotificationDto,
@@ -46,6 +47,7 @@ export type OrderUpdatePayload = Partial<OrderNotificationDto> &
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, requiresAuth, user } = useAuth();
   const { updateOrder: updateOngoingOrder } = useOngoingOrderContext();
+  const { refresh: refreshDriverShift, isDriver } = useDriverShift();
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [latestOrderUpdate, setLatestOrderUpdate] = useState<OrderUpdatePayload | null>(null);
@@ -137,6 +139,12 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ STOMP connected');
       setIsConnected(true);
 
+      if (isDriver) {
+        refreshDriverShift().catch((err) => {
+          console.warn('Failed to refresh driver shift after socket connect:', err);
+        });
+      }
+
       stompClient.subscribe(`/user/${user?.id}/queue/orders`, (message: IMessage) => {
         try {
           const data = JSON.parse(message.body) as OrderUpdatePayload;
@@ -179,7 +187,15 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       setLatestOrderUpdate(null);
       setOrderUpdates({});
     };
-  }, [accessToken, requiresAuth, user?.id, displayOrderStatusNotification, updateOngoingOrder]);
+  }, [
+    accessToken,
+    requiresAuth,
+    user?.id,
+    displayOrderStatusNotification,
+    updateOngoingOrder,
+    isDriver,
+    refreshDriverShift,
+  ]);
 
   const sendMessage = useCallback((destination: string, body: any) => {
     const client = clientRef.current;
