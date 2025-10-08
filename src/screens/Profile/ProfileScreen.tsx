@@ -8,22 +8,16 @@ import {
   History,
   Gift,
   Share2,
-  Contact,
-  Phone,
-  Mail,
-  KeyRound,
-  Medal,
-  Languages,
   Bell,
   MessageCircleQuestion,
   ShieldCheck,
   Trash2,
+  UserRound,
 } from 'lucide-react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
-
 const palette = {
   accent: '#CA251B',
   accentDark: '#17213A',
@@ -44,9 +38,6 @@ type ProfileSection = {
 
 const useProfileSections = (
   onNavigate: (route: string) => void,
-  userName?: string,
-  userEmail?: string,
-  userPhone?: string,
 ): ProfileSection[] =>
   useMemo(
     () => [
@@ -72,32 +63,13 @@ const useProfileSections = (
       {
         title: 'Profile',
         items: [
-          { label: userName ?? 'Guest User', icon: Contact },
           {
-            label: userPhone ?? 'Add phone number',
-            icon: Phone,
-            extra: (
-              <TouchableOpacity onPress={() => onNavigate('AccountSettings')}>
-                <Text allowFontScaling={false} style={styles.inlineAction}>
-                  Edit
-                </Text>
-              </TouchableOpacity>
-            ),
+            label: 'Profile Settings',
+            icon: UserRound,
+            route:'ProfilSettings'
           },
-          {
-            label: userEmail ?? 'Add email address',
-            icon: Mail,
-            extra: (
-              <TouchableOpacity onPress={() => onNavigate('AccountSettings')}>
-                <Text allowFontScaling={false} style={styles.inlineAction}>
-                  Edit
-                </Text>
-              </TouchableOpacity>
-            ),
-          },
-          { label: 'Change Password', icon: KeyRound, route: 'ChangePassword' },
-          { label: 'Points & Level', icon: Medal, route: 'PointsLevel' },
-          { label: 'Language', icon: Languages, route: 'Language' },
+          
+          
         ],
       },
       {
@@ -110,7 +82,7 @@ const useProfileSections = (
         ],
       },
     ],
-    [onNavigate, userName, userEmail, userPhone],
+    [onNavigate],
   );
 
 const ProfileScreen = () => {
@@ -161,6 +133,12 @@ const ProfileScreen = () => {
       case 'Privacy':
         navigation.navigate('ManagePrivacy' as never);
         break;
+      case 'ProfilSettings':
+        navigation.navigate('ProfilSettings' as never);
+        break;
+      case 'CouponCodes':
+        navigation.navigate('CouponCodes' as never);
+        break;
       case 'Logout':
         handleLogout();
         break;
@@ -173,7 +151,7 @@ const ProfileScreen = () => {
   const displayEmail = user?.email ?? 'Add email address';
   const displayPhone = user?.phone ?? 'Add phone number';
 
-  const sections = useProfileSections(handleNavigate, displayName, displayEmail, displayPhone);
+  const sections = useProfileSections(handleNavigate);
 
   const heroHeader = (
     <View style={styles.headerContent}>
