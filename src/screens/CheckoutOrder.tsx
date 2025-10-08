@@ -285,8 +285,8 @@ const CheckoutOrder: React.FC = () => {
       ? String(viewOrder.delivery.savedAddress?.label)
       : 'Delivery address'
     : selectedAddress?.label?.trim()?.length
-    ? selectedAddress.label
-    : 'Saved address';
+      ? selectedAddress.label
+      : 'Saved address';
   const hasDeliveryAddress = isViewMode ? Boolean(deliveryAddressValue) : Boolean(selectedAddress);
   const emptyAddressMessage = isViewMode
     ? 'Delivery details unavailable for this order.'
@@ -848,6 +848,40 @@ const CheckoutOrder: React.FC = () => {
               </View>
             </View>
           </View>
+          {isViewMode && (
+            <View className="mt-4 rounded-3xl border border-[#F0F1F3] bg-white p-5">
+              <Text
+                allowFontScaling={false}
+                className="text-center text-lg font-bold mb-3"
+                style={{ color: sectionTitleColor }}
+              >
+                YOUR DELIVERY CODE
+              </Text>
+
+              <Text
+                allowFontScaling={false}
+                className="text-center text-sm text-[#4B5563] mb-5"
+              >
+                Give this code to the deliverer when you pick up your order to confirm that you’ve received your meal
+              </Text>
+
+              <View className="items-center justify-center">
+                <View
+                  className="rounded-full px-10 py-3"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  <Text
+                    allowFontScaling={false}
+                    className="text-white text-2xl font-bold text-center tracking-[2]"
+                  >
+                    483254
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+
         </View>
       </ScrollView>
 
