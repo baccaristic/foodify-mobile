@@ -43,7 +43,6 @@ const ProfileSettingsScreen = () => {
 
       <Text allowFontScaling={false} style={styles.sectionTitle}>Personal informations</Text>
       <View style={styles.infoCard}>
-        {/* Modify Name */}
         <View style={styles.infoRow}>
           <View style={styles.infoLeft}>
             <User size={20} color={palette.accent} />
@@ -56,7 +55,6 @@ const ProfileSettingsScreen = () => {
 
         <View style={styles.divider} />
 
-        {/* Modify Phone */}
         <View style={styles.infoRow}>
           <View style={styles.infoLeft}>
             <Phone size={20} color={palette.accent} />
@@ -69,14 +67,14 @@ const ProfileSettingsScreen = () => {
 
         <View style={styles.divider} />
 
-        {/* Modify Email */}
         <View style={styles.infoRow}>
           <View style={styles.infoLeft}>
             <Mail size={20} color={palette.accent} />
             <Text allowFontScaling={false} style={styles.infoText}>{displayEmail}</Text>
           </View>
           <TouchableOpacity style={styles.modifyButton} onPress={() => openOverlay('email')}>
-            <Text allowFontScaling={false} style={styles.modifyText}>Modify</Text>
+            <Text allowFontScaling={false} style={styles.modifyText} numberOfLines={1}
+            >Modify</Text>
           </TouchableOpacity>
         </View>
 
@@ -129,7 +127,6 @@ const ProfileSettingsScreen = () => {
         mainContent={mainContent}
       />
 
-      {/* Overlays */}
       <Modal visible={visibleOverlay === 'name'} animationType="slide" transparent>
         <ModifyNameOverlay onClose={closeOverlay} />
       </Modal>
@@ -175,9 +172,13 @@ const styles = ScaledSheet.create({
     elevation: 2,
   },
   infoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: '10@vs' },
-  infoLeft: { flexDirection: 'row', alignItems: 'center', gap: '10@s' },
-  infoText: { color: palette.accentDark, fontSize: '15@ms', fontWeight: '600' },
-  modifyButton: {
+  infoLeft: { flexDirection: 'row', alignItems: 'center', gap: '6@s' },
+  infoText: {
+    color: palette.accentDark,
+    fontSize: '14@ms',
+    fontWeight: '600',
+    maxWidth: '90%',
+  }, modifyButton: {
     backgroundColor: palette.accent,
     paddingVertical: '4@vs',
     paddingHorizontal: '16@s',
