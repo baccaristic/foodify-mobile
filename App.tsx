@@ -27,7 +27,6 @@ import LocationPermissionScreen from '~/screens/LocationPermissionScreen';
 import LocationSelectionScreen from '~/screens/LocationSelectionScreen';
 import ProfileScreen from '~/screens/Profile/ProfileScreen';
 import OrderHistoryScreen from '~/screens/Profile/OrderHistoryScreen';
-import AccountScreen from '~/screens/Profile/AccountScreen';
 import RestaurantDetails from '~/screens/RestaurantDetails';
 import SearchScreen from '~/screens/SearchScreen';
 import { CartProvider } from '~/context/CartContext';
@@ -45,6 +44,8 @@ import NotificationsScreen from '~/screens/Profile/NotificationsScreen';
 import DeleteAccountScreen from '~/screens/Profile/DeleteAccountScreen';
 import FAQScreen from '~/screens/Profile/FAQScreen';
 import PrivacyScreen from '~/screens/Profile/PrivacyScreen';
+import ProfileSettingsScreen from '~/screens/Profile/ProfilSettingsScreen';
+import CouponCodeScreen from '~/screens/Profile/CouponCodeScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -186,13 +187,14 @@ const RootNavigator = () => {
           <Stack.Screen name="CouponCode" component={CouponCode} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
-          <Stack.Screen name="AccountSettings" component={AccountScreen} />
           <Stack.Screen name="RestaurantDetails" component={RestaurantDetails} />
           <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
           <Stack.Screen name="FAQ" component={FAQScreen} />
           <Stack.Screen name="ManagePrivacy" component={PrivacyScreen} />
+          <Stack.Screen name="CouponCodes" component={CouponCodeScreen} />
+          <Stack.Screen name="ProfilSettings" component={ProfileSettingsScreen} />
         </>
       ) : (
         <>

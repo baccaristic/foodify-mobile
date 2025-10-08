@@ -44,33 +44,33 @@ export default function NotificationsScreen() {
       )}
 
       <View style={styles.headerBox}>
-        <Text style={styles.headerTitle}>Stay in the Loop — Get Real-Time Updates!</Text>
-        <Text style={styles.headerText}>
+        <Text  allowFontScaling={false} style={styles.headerTitle}>Stay in the Loop — Get Real-Time Updates!</Text>
+        <Text  allowFontScaling={false} style={styles.headerText}>
           Turn on notifications to never miss order updates, delivery alerts, or exclusive deals.
           You’re in control — pick what matters most.
         </Text>
 
         <TouchableOpacity style={styles.enableButton} onPress={handleEnableAll}>
-          <Text style={styles.enableButtonText}>Enable All & Customize Later</Text>
+          <Text  allowFontScaling={false} style={styles.enableButtonText}>Enable All & Customize Later</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
         <View style={styles.titleRow}>
-          <Text style={styles.sectionTitle}>Order Status</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Order Status</Text>
           <View style={styles.recommendedContainer}>
-            <Text style={styles.recommendedText}>Recommended</Text>
+            <Text allowFontScaling={false} style={styles.recommendedText}>Recommended</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionDesc}>
+        <Text  allowFontScaling={false} style={styles.sectionDesc}>
           Get real-time updates from your courier + support team. We recommend this!
         </Text>
 
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <Bell size={24} color="#CA251B" style={styles.icon} />
-            <Text style={styles.switchLabel}>Push Notifications</Text>
+            <Text allowFontScaling={false}  style={styles.switchLabel}>Push Notifications</Text>
           </View>
           <Switch
             trackColor={{ false: '#ccc', true: '#CA251B' }}
@@ -82,15 +82,15 @@ export default function NotificationsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Special offers just for you</Text>
-        <Text style={styles.sectionDesc}>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>Special offers just for you</Text>
+        <Text allowFontScaling={false} style={styles.sectionDesc}>
           Unlock discounts, promos, and coupons tailored to your tastes.
         </Text>
 
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <Bell size={24} color="#CA251B" style={styles.icon} />
-            <Text style={styles.switchLabel}>Push Notifications</Text>
+            <Text allowFontScaling={false} style={styles.switchLabel}>Push Notifications</Text>
           </View>
           <Switch
             trackColor={{ false: '#ccc', true: '#CA251B' }}
@@ -103,7 +103,7 @@ export default function NotificationsScreen() {
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <MailOpen size={24} color="#CA251B" style={styles.icon} />
-            <Text style={styles.switchLabel}>Personalized Emails</Text>
+            <Text allowFontScaling={false} style={styles.switchLabel}>Personalized Emails</Text>
           </View>
           <Switch
             trackColor={{ false: '#ccc', true: '#CA251B' }}

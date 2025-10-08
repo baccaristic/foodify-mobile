@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import MainLayout from '~/layouts/MainLayout';
 import { getMyOrders } from '~/api/orders';
 import type { OrderDto } from '~/interfaces/Order';
+import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 
 const accentColor = '#CA251B';
 const primaryColor = '#17213A';
@@ -163,6 +164,12 @@ const OrderHistoryScreen = () => {
     );
   }
 
+  const customHeader = (
+    <View>
+      <HeaderWithBackButton title="Order History" titleMarginLeft={s(70)} />
+    </View>
+  )
+
   const continueOrderingButton = hasOrders ? (
     <View style={styles.continueContainer} pointerEvents="box-none">
       <TouchableOpacity
@@ -182,25 +189,10 @@ const OrderHistoryScreen = () => {
       showFooter
       enableHeaderCollapse={false}
       enforceResponsiveHeaderSize={false}
-      headerMaxHeight={vs(70)}
+      headerMaxHeight={vs(60)}
       headerMinHeight={vs(40)}
       activeTab="Profile"
-      headerBackgroundImage={require('../../../assets/background.png')}
-      customHeader={
-        <View style={styles.headerBar}>
-          <TouchableOpacity
-            style={styles.headerBack}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
-            <ArrowLeft size={s(18)} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text allowFontScaling={false} style={styles.headerTitle}>
-            Order History
-          </Text>
-          <View style={{ width: s(32) }} />
-        </View>
-      }
+      customHeader={customHeader}
       mainContent={content}
       floatingContent={continueOrderingButton}
       onRefresh={refetch}
@@ -210,27 +202,7 @@ const OrderHistoryScreen = () => {
 };
 
 const styles = ScaledSheet.create({
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: '16@s',
-    paddingTop: vs(24),
-    paddingBottom: vs(16),
-  },
-  headerBack: {
-    width: '32@s',
-    height: '32@s',
-    borderRadius: '16@s',
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: '16@ms',
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+
   stateWrapper: {
     flex: 1,
     alignItems: 'center',
@@ -238,6 +210,10 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '24@s',
     paddingBottom: '32@vs',
     gap: '16@vs',
+    borderTopColor: '#F9FAFB',
+    borderColor: '#F9FAFB',
+    borderTopWidth: 2,
+    borderBottomWidth: 0,
   },
   stateTitle: {
     fontSize: '16@ms',
@@ -271,6 +247,10 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '24@s',
     paddingBottom: '32@vs',
     gap: '16@vs',
+    borderTopColor: '#F9FAFB',
+    borderColor: '#F9FAFB',
+    borderTopWidth: 2,
+    borderBottomWidth: 0,
   },
   emptyIllustration: {
     width: '220@s',
@@ -307,6 +287,10 @@ const styles = ScaledSheet.create({
     paddingBottom: '140@vs',
     paddingTop: '8@vs',
     gap: '16@vs',
+    borderTopColor: '#F9FAFB',
+    borderColor: '#F9FAFB',
+    borderTopWidth: 2,
+    borderBottomWidth: 0,
   },
   orderCard: {
     flexDirection: 'row',
