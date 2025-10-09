@@ -18,6 +18,7 @@ import { ScaledSheet, s, vs } from 'react-native-size-matters';
 
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
+import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
 const palette = {
   accent: '#CA251B',
   accentDark: '#17213A',
@@ -148,8 +149,7 @@ const ProfileScreen = () => {
   };
 
   const displayName = user?.name ?? 'Guest User';
-  const displayEmail = user?.email ?? 'Add email address';
-  const displayPhone = user?.phone ?? 'Add phone number';
+
 
   const sections = useProfileSections(handleNavigate);
 
@@ -176,11 +176,10 @@ const ProfileScreen = () => {
       <View style={styles.greetingRow}>
         <View style={styles.leftProfile}>
           <View style={styles.avatarWrapper}>
-            <Image
-              source={{ uri: 'https://i.pravatar.cc/150?img=5' }}
-              style={styles.avatar}
-            />
-          </View>
+  <LetteredAvatar name={displayName} size={56} />
+</View>
+
+
           <View style={styles.nameBlock}>
             <Text allowFontScaling={false} style={styles.nameText}>
               {displayName}
@@ -205,11 +204,9 @@ const ProfileScreen = () => {
     <View style={styles.collapsedHeader}>
       <View style={styles.collapsedLeft}>
         <View style={styles.collapsedAvatar}>
-          <Image
-            source={{ uri: 'https://i.pravatar.cc/150?img=5' }}
-            style={styles.collapsedAvatarImage}
-          />
-        </View>
+  <LetteredAvatar name={displayName} size={38} borderWidth={1.5} borderColor="rgba(255,255,255,0.5)" />
+</View>
+
         <View style={styles.collapsedText}>
           <Text allowFontScaling={false} style={styles.collapsedGreeting}>
             {displayName.split(' ')[0]}
@@ -328,14 +325,7 @@ const styles = ScaledSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatarWrapper: {
-    width: '56@s',
-    height: '56@s',
-    borderRadius: '28@s',
-    overflow: 'hidden',
-    borderWidth: '2@s',
-    borderColor: 'rgba(255,255,255,0.6)',
-  },
+  
   avatar: {
     width: '100%',
     height: '100%',
@@ -402,12 +392,7 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
   },
   collapsedAvatar: {
-    width: '38@s',
-    height: '38@s',
-    borderRadius: '19@s',
-    overflow: 'hidden',
-    borderWidth: '1.5@s',
-    borderColor: 'rgba(255,255,255,0.5)',
+  
     marginRight: '10@s',
   },
   collapsedAvatarImage: {

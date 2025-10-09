@@ -11,6 +11,7 @@ import ModifyNameOverlay from '~/components/ProfilSettings/ModifyNameOverlay';
 import ModifyEmailOverlay from '~/components/ProfilSettings/ModifyEmailOverlay';
 import ModifyPhoneOverlay from '~/components/ProfilSettings/ModifyPhoneOverlay';
 import ModifyPasswordOverlay from '~/components/ProfilSettings/ModifyPasswordOverlay';
+import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
 
 const palette = {
   accent: '#CA251B',
@@ -37,9 +38,9 @@ const ProfileSettingsScreen = () => {
   const mainContent = (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.profileCard}>
-        <Image source={{ uri: 'https://i.pravatar.cc/150?img=5' }} style={styles.avatar} />
-        <Text allowFontScaling={false} style={styles.userName}>{displayName}</Text>
-      </View>
+  <LetteredAvatar name={displayName} size={80} />
+</View>
+
 
       <Text allowFontScaling={false} style={styles.sectionTitle}>Personal informations</Text>
       <View style={styles.infoCard}>
@@ -150,14 +151,12 @@ const styles = ScaledSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: '12@ms',
     alignItems: 'center',
-    padding: '16@vs',
-    marginBottom: '16@vs',
+    padding: '8@vs',
+    marginBottom: '8@vs',
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    elevation: 2,
   },
-  avatar: { width: '90@s', height: '90@s', borderRadius: '45@s', marginBottom: '8@vs' },
   userName: { color: palette.accentDark, fontWeight: '700', fontSize: '16@ms' },
   sectionTitle: { color: palette.accent, fontSize: '18@ms', fontWeight: '700', marginVertical: '10@vs' },
   infoCard: {
