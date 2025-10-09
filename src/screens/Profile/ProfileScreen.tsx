@@ -58,7 +58,6 @@ const useProfileSections = (
           { label: 'Payment methods', icon: CreditCard, route: 'PaymentMethods' },
           { label: 'Order history', icon: History, route: 'OrderHistory' },
           { label: 'Coupon codes', icon: Gift, route: 'CouponCodes' },
-          { label: 'Share and win', icon: Share2, route: 'ShareWin' },
         ],
       },
       {
