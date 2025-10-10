@@ -34,12 +34,11 @@ import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
-const COLLAPSED_HEADER_HEIGHT = vs(110);
 const CATEGORY_TAB_HEIGHT = vs(44);
-const CATEGORY_TAB_VERTICAL_MARGIN = vs(12);
 const CATEGORY_TAB_OVERLAY_TOP = vs(92);
-const CATEGORY_SCROLL_OFFSET = COLLAPSED_HEADER_HEIGHT + CATEGORY_TAB_HEIGHT + CATEGORY_TAB_VERTICAL_MARGIN;
-const CATEGORY_SCROLL_TARGET_OFFSET = COLLAPSED_HEADER_HEIGHT + CATEGORY_TAB_HEIGHT - vs(8);
+const MENU_TAB_SHOW_THRESHOLD = vs(24);
+const VIEWPORT_BUFFER_NO_TABS = vs(24);
+const VIEWPORT_BUFFER_WITH_TABS = CATEGORY_TAB_HEIGHT + vs(16);
 
 interface RestaurantDetailsRouteParams {
   RestaurantDetails: {
@@ -149,7 +148,8 @@ export default function RestaurantDetails() {
   const [showMenuTabs, setShowMenuTabs] = useState(false);
 
   const scrollViewRef = useRef<ScrollViewType | null>(null);
-  const sectionOffsetsRef = useRef<Record<string, number>>({});
+  const menuContentOffsetRef = useRef<number | null>(null);
+  const sectionRelativeOffsetsRef = useRef<Record<string, number>>({});
 
   const insets = useSafeAreaInsets();
   const { addItem, itemCount, items: cartItems, removeItem, restaurant: cartRestaurant } = useCart();
@@ -198,7 +198,8 @@ export default function RestaurantDetails() {
   }));
 
   useEffect(() => {
-    sectionOffsetsRef.current = {};
+    sectionRelativeOffsetsRef.current = {};
+    menuContentOffsetRef.current = null;
     setShowMenuTabs(false);
     setActiveMenuSection(menuSections[0]?.key ?? null);
   }, [menuSections, restaurant?.id]);
@@ -250,8 +251,12 @@ export default function RestaurantDetails() {
     restaurant,
   ]);
 
+  const handleMenuContentLayout = useCallback((event: LayoutChangeEvent) => {
+    menuContentOffsetRef.current = event.nativeEvent.layout.y;
+  }, []);
+
   const handleSectionLayout = useCallback((key: string, event: LayoutChangeEvent) => {
-    sectionOffsetsRef.current[key] = event.nativeEvent.layout.y;
+    sectionRelativeOffsetsRef.current[key] = event.nativeEvent.layout.y;
   }, []);
 
   const handleMenuScroll = useCallback(
@@ -260,32 +265,37 @@ export default function RestaurantDetails() {
         return;
       }
 
-      const entries = Object.entries(sectionOffsetsRef.current)
-        .map(([key, value]) => [key, value] as [string, number])
+      const relativeEntries = Object.entries(sectionRelativeOffsetsRef.current);
+      if (!relativeEntries.length) {
+        return;
+      }
+
+      const menuContentOffset = menuContentOffsetRef.current;
+      let shouldShowTabs = false;
+
+      if (typeof menuContentOffset === 'number') {
+        shouldShowTabs = offsetY >= Math.max(menuContentOffset - MENU_TAB_SHOW_THRESHOLD, 0);
+        setShowMenuTabs((previous) => (previous === shouldShowTabs ? previous : shouldShowTabs));
+      } else {
+        shouldShowTabs = showMenuTabs;
+      }
+
+      const baseOffset = typeof menuContentOffset === 'number' ? menuContentOffset : 0;
+
+      const entries = relativeEntries
+        .map(([key, value]) => [key, value + baseOffset] as [string, number])
         .sort((a, b) => a[1] - b[1]);
 
-      if (!entries.length) {
-        return;
-      }
+      const viewportOffset = offsetY + (shouldShowTabs ? VIEWPORT_BUFFER_WITH_TABS : VIEWPORT_BUFFER_NO_TABS);
 
-      const [firstKey, firstOffset] = entries[0];
-
-      if (!Number.isFinite(firstOffset)) {
-        return;
-      }
-
-      const shouldShowTabs = offsetY + COLLAPSED_HEADER_HEIGHT >= firstOffset - vs(24);
-      setShowMenuTabs((previous) => (previous === shouldShowTabs ? previous : shouldShowTabs));
-
-      const adjustedOffset = offsetY + CATEGORY_SCROLL_OFFSET;
-      let currentKey = firstKey;
+      let currentKey = entries[0][0];
 
       for (const [key, value] of entries) {
         if (!Number.isFinite(value)) {
           continue;
         }
 
-        if (adjustedOffset >= value - vs(16)) {
+        if (viewportOffset >= value) {
           currentKey = key;
         } else {
           break;
@@ -294,20 +304,21 @@ export default function RestaurantDetails() {
 
       setActiveMenuSection((previous) => (previous === currentKey ? previous : currentKey));
     },
-    [hasMenuSections]
+    [hasMenuSections, showMenuTabs]
   );
 
   const handleTabPress = useCallback(
     (key: string) => {
       setActiveMenuSection((previous) => (previous === key ? previous : key));
 
-      const targetOffset = sectionOffsetsRef.current[key];
+      const menuContentOffset = menuContentOffsetRef.current ?? 0;
+      const relativeOffset = sectionRelativeOffsetsRef.current[key];
 
-      if (!scrollViewRef.current || typeof targetOffset !== 'number') {
+      if (!scrollViewRef.current || typeof relativeOffset !== 'number') {
         return;
       }
 
-      const scrollTarget = Math.max(targetOffset - CATEGORY_SCROLL_TARGET_OFFSET, 0);
+      const scrollTarget = Math.max(menuContentOffset + relativeOffset - VIEWPORT_BUFFER_WITH_TABS, 0);
       scrollViewRef.current.scrollTo({ y: scrollTarget, animated: true });
     },
     []
@@ -414,28 +425,6 @@ export default function RestaurantDetails() {
     );
   };
 
-  const renderQuickFilters = () => {
-    if (!restaurant?.quickFilters?.length) {
-      return null;
-    }
-
-    return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="scrollbar-hide flex gap-2 overflow-x-auto p-4 py-2">
-        {restaurant.quickFilters.map((filter, idx) => (
-          <View
-            key={`${filter}-${idx}`}
-            className={`mr-2 rounded-xl border border-[#CA251B] px-4 py-2 ${idx === 0 ? 'bg-[#CA251B]' : 'bg-white'}`}>
-            <Text
-              allowFontScaling={false}
-              className={`font-['roboto'] text-sm font-semibold ${idx === 0 ? 'text-white' : 'text-[#CA251B]'}`}>
-              {filter}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-    );
-  };
-
   const renderTopSales = () => {
     if (!restaurant?.topSales?.length) {
       return null;
@@ -475,11 +464,11 @@ export default function RestaurantDetails() {
               </Text>
               <View className="flex-row flex-wrap justify-between gap-y-4">
                 {category.items.map((item) => (
-                <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
-                  <MenuItemCard item={item} onOpenModal={handleOpen} />
-                </View>
-              ))}
-            </View>
+                  <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+                    <MenuItemCard item={item} onOpenModal={handleOpen} />
+                  </View>
+                ))}
+              </View>
             </View>
           );
         })}
@@ -588,9 +577,12 @@ export default function RestaurantDetails() {
           </View>
         </View>
 
-        {renderQuickFilters()}
-        {renderTopSales()}
-        {renderCategories()}
+        {hasMenuSections ? (
+          <View onLayout={handleMenuContentLayout}>
+            {renderTopSales()}
+            {renderCategories()}
+          </View>
+        ) : null}
 
         <View style={{ height: hasCartItems ? 140 : 60 }} />
       </View>
