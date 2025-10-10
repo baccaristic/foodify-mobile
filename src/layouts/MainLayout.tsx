@@ -220,16 +220,20 @@ export default function MainLayout({
   });
 
   const headerHeightStyle = useAnimatedStyle(() => {
+    const stretch = scrollY.value < 0 ? -scrollY.value : 0;
+
     if (!collapseEnabled) {
-      return { height: MAX_HEIGHT + 20 };
+      return { height: MAX_HEIGHT + stretch + 20 };
     }
+
     const height = interpolate(
       scrollY.value,
       [0, SCROLL_DISTANCE],
       [MAX_HEIGHT, MIN_HEIGHT],
       Extrapolate.CLAMP
     );
-    return { height: height + 20 };
+
+    return { height: height + stretch + 20 };
   });
 
   const renderHeaderContent = (isAnimated: boolean) => {
