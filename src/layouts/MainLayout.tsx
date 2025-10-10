@@ -137,7 +137,6 @@ export default function MainLayout({
   const { order: ongoingOrder } = useOngoingOrder();
   const [isOngoingExpanded, setIsOngoingExpanded] = useState(false);
   const scrollY = useSharedValue(0);
-  const overscroll = useSharedValue(0);
   const pendingScrollOffset = useSharedValue(0);
   const [activeHeader, setActiveHeader] = useState<'full' | 'collapsed'>(
     collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
@@ -192,7 +191,6 @@ export default function MainLayout({
     (event) => {
       const offsetY = event.contentOffset.y;
       scrollY.value = offsetY;
-      overscroll.value = offsetY < 0 ? -offsetY : 0;
 
       if (shouldNotifyScroll) {
         pendingScrollOffset.value = offsetY;
@@ -289,10 +287,8 @@ export default function MainLayout({
   });
 
   const headerHeightStyle = useAnimatedStyle(() => {
-    const extra = Math.min(overscroll.value, 160);
-
     if (!collapseEnabled) {
-      return { height: MAX_HEIGHT + extra + 20 };
+      return { height: MAX_HEIGHT + 20 };
     }
 
     const height = interpolate(
@@ -302,21 +298,7 @@ export default function MainLayout({
       Extrapolate.CLAMP
     );
 
-    return { height: height + extra + 20 };
-  });
-
-  const flattenedScrollViewStyle = useMemo(() => StyleSheet.flatten(styles.scrollView), []);
-  const baseScrollMarginTop =
-    typeof flattenedScrollViewStyle?.marginTop === 'number' ? flattenedScrollViewStyle.marginTop : 0;
-
-  const scrollBounceCompensationStyle = useAnimatedStyle(() => {
-    const extra = Math.min(overscroll.value, 160);
-
-    if (extra <= 0) {
-      return { marginTop: baseScrollMarginTop };
-    }
-
-    return { marginTop: baseScrollMarginTop + extra };
+    return { height: height + 20 };
   });
 
   const renderHeaderContent = (isAnimated: boolean) => {
@@ -468,16 +450,13 @@ export default function MainLayout({
 
       <Animated.ScrollView
         ref={setScrollViewRef}
-        style={[styles.scrollView, scrollBounceCompensationStyle]}
+        style={[styles.scrollView]}
         contentContainerStyle={{
           paddingTop: collapseEnabled ? vs(10) : vs(20),
           paddingBottom: showFooter ? resolvedFooterHeight : fallbackContentPadding,
         }}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
-        alwaysBounceVertical
-        bounces
-        overScrollMode="always"
         onScroll={needsScrollHandling ? scrollHandler : undefined}>
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>

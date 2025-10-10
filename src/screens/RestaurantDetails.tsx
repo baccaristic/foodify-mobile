@@ -653,7 +653,7 @@ export default function RestaurantDetails() {
         scrollRef={scrollViewRef}
       />
 
-      {showMenuTabs && hasMenuSections ? (
+      {showMenuTabs && hasMenuSections && !isModalVisible ? (
         <View
           pointerEvents="box-none"
           style={{
