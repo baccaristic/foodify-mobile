@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { MutableRefObject, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
+import type { ScrollView } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -75,6 +76,8 @@ interface MainLayoutProps {
   onRefresh?: () => void | Promise<any>;
   isRefreshing?: boolean;
   showOnGoingOrder?: boolean;
+  onScrollOffsetChange?: (offsetY: number) => void;
+  scrollRef?: MutableRefObject<ScrollView | null> | null;
 }
 
 export default function MainLayout({
@@ -95,7 +98,9 @@ export default function MainLayout({
   onTabPress,
   onRefresh,
   isRefreshing,
-  showOnGoingOrder = true
+  showOnGoingOrder = true,
+  onScrollOffsetChange,
+  scrollRef,
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
@@ -128,12 +133,20 @@ export default function MainLayout({
     collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
   );
 
-  const scrollHandler = useAnimatedScrollHandler((event) => {
-    if (!collapseEnabled) {
-      return;
-    }
-    scrollY.value = event.contentOffset.y;
-  });
+  const needsScrollHandling = collapseEnabled || typeof onScrollOffsetChange === 'function';
+
+  const scrollHandler = useAnimatedScrollHandler(
+    (event) => {
+      if (collapseEnabled) {
+        scrollY.value = event.contentOffset.y;
+      }
+
+      if (onScrollOffsetChange) {
+        runOnJS(onScrollOffsetChange)(event.contentOffset.y);
+      }
+    },
+    [collapseEnabled, onScrollOffsetChange]
+  );
 
   useEffect(() => {
     if (!collapseEnabled) {
@@ -353,11 +366,21 @@ export default function MainLayout({
         </View>
       );
 
+  const setScrollViewRef = useCallback(
+    (node: ScrollView | null) => {
+      if (scrollRef) {
+        scrollRef.current = node;
+      }
+    },
+    [scrollRef]
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {headerNode}
 
       <Animated.ScrollView
+        ref={setScrollViewRef}
         style={[styles.scrollView]}
         contentContainerStyle={{
           paddingTop: collapseEnabled ? vs(10) : vs(20),
@@ -365,7 +388,7 @@ export default function MainLayout({
         }}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
-        onScroll={collapseEnabled ? scrollHandler : undefined}>
+        onScroll={needsScrollHandling ? scrollHandler : undefined}>
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>
 
