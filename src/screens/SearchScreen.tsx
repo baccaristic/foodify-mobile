@@ -89,6 +89,7 @@ const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButton
 };
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace(".", ",")} DT`;
+const formatDeliveryFee = (fee: number) => (fee > 0 ? `${formatCurrency(fee)} delivery fee` : "Free delivery");
 
 const flattenCategories = (categories: RestaurantMenuCategory[] = []) =>
   categories.reduce<RestaurantMenuItemDetails[]>((acc, category) => acc.concat(category.items), []);
@@ -122,7 +123,7 @@ const RestaurantCard = ({
   data: RestaurantSearchItem;
   onPress: () => void;
 }) => {
-  const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl } = data;
+  const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl, deliveryFee } = data;
 
   const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
@@ -146,6 +147,8 @@ const RestaurantCard = ({
             <Text style={styles.ratingText}>{formattedRating}</Text>
           </View>
         </View>
+
+        <Text style={styles.deliveryFee}>{formatDeliveryFee(deliveryFee)}</Text>
 
         {hasFreeDelivery && (
           <View style={styles.promoContainer}>
@@ -233,6 +236,8 @@ export default function SearchScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const queryClient = useQueryClient();
   const { addItem } = useCart();
+  const userLatitude = 36.8065;
+  const userLongitude = 10.1815;
 
   const [isMenuModalVisible, setIsMenuModalVisible] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
@@ -300,6 +305,8 @@ export default function SearchScreen() {
     const trimmedQuery = debouncedSearchTerm.trim();
 
     return {
+      lat: userLatitude,
+      lng: userLongitude,
       query: trimmedQuery,
       hasPromotion: promotions,
       isTopChoice: topChoice,
@@ -310,7 +317,7 @@ export default function SearchScreen() {
       page: PAGE,
       pageSize: PAGE_SIZE,
     };
-  }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee]);
+  }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee, userLatitude, userLongitude]);
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["restaurants-search", queryParams],
@@ -351,8 +358,9 @@ export default function SearchScreen() {
 
       try {
         const details = await queryClient.fetchQuery({
-          queryKey: ["restaurant-details", restaurant.id],
-          queryFn: () => getRestaurantDetails(restaurant.id),
+          queryKey: ["restaurant-details", restaurant.id, userLatitude, userLongitude],
+          queryFn: () =>
+            getRestaurantDetails({ id: restaurant.id, lat: userLatitude, lng: userLongitude }),
         });
 
         const menuItemDetails = findMenuItemDetails(details, promotion.id);
@@ -374,7 +382,7 @@ export default function SearchScreen() {
         setIsFetchingMenuItem(false);
       }
     },
-    [isFetchingMenuItem, queryClient]
+    [isFetchingMenuItem, queryClient, userLatitude, userLongitude]
   );
 
   const handleToggleMenuItemFavorite = useCallback(
@@ -384,12 +392,17 @@ export default function SearchScreen() {
           ? queryClient.getQueryData<RestaurantDetailsResponse>([
               "restaurant-details",
               selectedRestaurantId,
+              userLatitude,
+              userLongitude,
             ])
           : undefined;
 
       if (previousData && selectedRestaurantId !== null) {
         const updatedData = updateMenuItemFavoriteState(previousData, menuItemId, nextFavorite);
-        queryClient.setQueryData(["restaurant-details", selectedRestaurantId], updatedData);
+        queryClient.setQueryData(
+          ["restaurant-details", selectedRestaurantId, userLatitude, userLongitude],
+          updatedData
+        );
       }
 
       setSelectedMenuItem((prev) => (prev && prev.id === menuItemId ? { ...prev, favorite: nextFavorite } : prev));
@@ -400,7 +413,10 @@ export default function SearchScreen() {
         {
           onError: () => {
             if (previousData && selectedRestaurantId !== null) {
-              queryClient.setQueryData(["restaurant-details", selectedRestaurantId], previousData);
+              queryClient.setQueryData(
+                ["restaurant-details", selectedRestaurantId, userLatitude, userLongitude],
+                previousData
+              );
             }
 
             setSelectedMenuItem((prev) =>
@@ -412,14 +428,14 @@ export default function SearchScreen() {
 
             if (selectedRestaurantId !== null) {
               queryClient.invalidateQueries({
-                queryKey: ["restaurant-details", selectedRestaurantId],
+                queryKey: ["restaurant-details", selectedRestaurantId, userLatitude, userLongitude],
               });
             }
           },
         }
       );
     },
-    [menuItemFavoriteMutation, queryClient, selectedRestaurantId]
+    [menuItemFavoriteMutation, queryClient, selectedRestaurantId, userLatitude, userLongitude]
   );
 
   const handleAddMenuItem = useCallback(
@@ -555,7 +571,7 @@ export default function SearchScreen() {
           </View>
         ) : isError ? (
           <View style={styles.stateContainer}>
-            <Text style={styles.stateText}>We couldn't load restaurants. Please try again.</Text>
+            <Text style={styles.stateText}>We couldn’t load restaurants. Please try again.</Text>
             <TouchableOpacity style={styles.retryButton} activeOpacity={0.8} onPress={() => refetch()}>
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
@@ -765,6 +781,12 @@ const styles = ScaledSheet.create({
     color: "#6B7280",
     fontFamily: "Roboto",
     fontSize: "14@ms",
+  },
+  deliveryFee: {
+    color: "#4B5563",
+    fontFamily: "Roboto",
+    fontSize: "13@ms",
+    marginTop: "4@vs",
   },
   ratingRow: { flexDirection: "row", alignItems: "center" },
   ratingText: {

@@ -22,6 +22,9 @@ interface CategoryOverlayProps {
     onClose: () => void;
 }
 
+const formatDeliveryFee = (fee: number) =>
+    fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
+
 export default function CategoryOverlay({
     visible,
     category,
@@ -37,7 +40,7 @@ export default function CategoryOverlay({
         isError,
         refetch,
     } = useQuery<RestaurantSummary[]>({
-        queryKey: ["category-restaurants", category],
+        queryKey: ["category-restaurants", category, userLatitude, userLongitude],
         queryFn: () =>
             getNearbyRestaurants({
                 lat: userLatitude,
@@ -111,6 +114,7 @@ export default function CategoryOverlay({
                                     </Text>
                                 </View>
                             </View>
+                            <Text style={styles.deliveryFee}>{formatDeliveryFee(restaurant.deliveryFee)}</Text>
                         </View>
                     </TouchableOpacity>
                 ))}
@@ -196,4 +200,5 @@ const styles = ScaledSheet.create({
     ratingRow: { flexDirection: "row", alignItems: "center" },
     ratingText: { fontSize: "12@ms", marginLeft: "4@s", color: "#17213A" },
     deliveryTime: { color: "#CA251B", fontSize: "12@ms" },
+    deliveryFee: { color: "#4B5563", fontSize: "11@ms", marginTop: "4@vs" },
 });

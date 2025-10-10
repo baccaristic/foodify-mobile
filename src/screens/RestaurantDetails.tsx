@@ -57,6 +57,7 @@ type MenuCardItem = RestaurantMenuItemDetails | RestaurantMenuItemSummary;
 const FALLBACK_IMAGE = require('../../assets/baguette.png');
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
+const formatDeliveryFee = (fee: number) => (fee > 0 ? `${formatCurrency(fee)} delivery fee` : 'Free delivery');
 
 const resolveImageSource = (imagePath?: string | null) => {
   if (imagePath) {
@@ -168,6 +169,8 @@ export default function RestaurantDetails() {
   const [handledCartItemId, setHandledCartItemId] = useState<string | null>(null);
   const isRestaurantIdValid = typeof restaurantId === 'number' && !Number.isNaN(restaurantId);
   const queryClient = useQueryClient();
+  const userLatitude = 36.8065;
+  const userLongitude = 10.1815;
 
   const {
     data: restaurant,
@@ -175,8 +178,12 @@ export default function RestaurantDetails() {
     isError,
     refetch,
   } = useQuery<RestaurantDetailsResponse>({
-    queryKey: ['restaurant-details', restaurantId],
-    queryFn: () => getRestaurantDetails(restaurantId as number),
+    queryKey: ['restaurant-details', restaurantId, userLatitude, userLongitude],
+    queryFn: () => getRestaurantDetails({
+      id: restaurantId as number,
+      lat: userLatitude,
+      lng: userLongitude,
+    }),
     enabled: isRestaurantIdValid,
   });
 
@@ -480,7 +487,7 @@ export default function RestaurantDetails() {
     const nextFavorite = !(restaurant.favorite ?? false);
     const previousRestaurant = restaurant;
 
-    queryClient.setQueryData(['restaurant-details', restaurant.id], {
+    queryClient.setQueryData(['restaurant-details', restaurant.id, userLatitude, userLongitude], {
       ...previousRestaurant,
       favorite: nextFavorite,
     });
@@ -489,14 +496,19 @@ export default function RestaurantDetails() {
       { restaurantId: restaurant.id, shouldFavorite: nextFavorite },
       {
         onError: () => {
-          queryClient.setQueryData(['restaurant-details', previousRestaurant.id], previousRestaurant);
+          queryClient.setQueryData(
+            ['restaurant-details', previousRestaurant.id, userLatitude, userLongitude],
+            previousRestaurant
+          );
         },
         onSettled: () => {
-          queryClient.invalidateQueries({ queryKey: ['restaurant-details', previousRestaurant.id] });
+          queryClient.invalidateQueries({
+            queryKey: ['restaurant-details', previousRestaurant.id, userLatitude, userLongitude],
+          });
         },
       }
     );
-  }, [isRestaurantIdValid, queryClient, restaurant, restaurantFavoriteMutation]);
+  }, [isRestaurantIdValid, queryClient, restaurant, restaurantFavoriteMutation, userLatitude, userLongitude]);
 
   const handleToggleMenuItemFavorite = useCallback(
     (menuItemId: number, nextFavorite: boolean) => {
@@ -507,11 +519,13 @@ export default function RestaurantDetails() {
       const previousData = queryClient.getQueryData<RestaurantDetailsResponse>([
         'restaurant-details',
         restaurantId,
+        userLatitude,
+        userLongitude,
       ]);
 
       if (previousData) {
         const updatedData = updateMenuItemFavoriteState(previousData, menuItemId, nextFavorite);
-        queryClient.setQueryData(['restaurant-details', restaurantId], updatedData);
+        queryClient.setQueryData(['restaurant-details', restaurantId, userLatitude, userLongitude], updatedData);
       }
 
       setSelectedMenuItem((prev) => (prev && prev.id === menuItemId ? { ...prev, favorite: nextFavorite } : prev));
@@ -522,7 +536,10 @@ export default function RestaurantDetails() {
         {
           onError: () => {
             if (previousData) {
-              queryClient.setQueryData(['restaurant-details', restaurantId], previousData);
+              queryClient.setQueryData(
+                ['restaurant-details', restaurantId, userLatitude, userLongitude],
+                previousData
+              );
             }
 
             setSelectedMenuItem((prev) =>
@@ -531,12 +548,21 @@ export default function RestaurantDetails() {
           },
           onSettled: () => {
             setPendingFavoriteMenuItemId(null);
-            queryClient.invalidateQueries({ queryKey: ['restaurant-details', restaurantId] });
+            queryClient.invalidateQueries({
+              queryKey: ['restaurant-details', restaurantId, userLatitude, userLongitude],
+            });
           },
         }
       );
     },
-    [isRestaurantIdValid, menuItemFavoriteMutation, queryClient, restaurantId]
+    [
+      isRestaurantIdValid,
+      menuItemFavoriteMutation,
+      queryClient,
+      restaurantId,
+      userLatitude,
+      userLongitude,
+    ]
   );
 
   const handleSeeCart = () => {
@@ -689,6 +715,12 @@ export default function RestaurantDetails() {
                 <MapPin size={16} color="#CA251B" />
                 <Text allowFontScaling={false} className="text-sm text-gray-700">
                   {restaurant.type}
+                </Text>
+              </View>
+
+              <View className="flex flex-row items-center gap-1 font-sans">
+                <Text allowFontScaling={false} className="text-sm text-gray-700">
+                  {formatDeliveryFee(restaurant.deliveryFee)}
                 </Text>
               </View>
             </View>
