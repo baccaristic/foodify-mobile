@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Image,
   Easing,
   Vibration,
+  Pressable,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -166,10 +167,16 @@ const OrderTrackingScreen: React.FC = () => {
   const statusPulse = useRef(new Animated.Value(0)).current;
   const statusAnnouncementOpacity = useRef(new Animated.Value(0)).current;
   const highlightPulse = useRef(new Animated.Value(0)).current;
+  const deliveryCelebrationOpacity = useRef(new Animated.Value(0)).current;
+  const deliveryCardScale = useRef(new Animated.Value(0.92)).current;
+  const deliveryCheckScale = useRef(new Animated.Value(0.6)).current;
+  const deliveryTextOpacity = useRef(new Animated.Value(0)).current;
   const previousStatusRef = useRef<string | null>(null);
+  const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
+  const [showDeliveryCelebration, setShowDeliveryCelebration] = useState(false);
   const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
   const { order: ongoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
 
@@ -290,11 +297,54 @@ const OrderTrackingScreen: React.FC = () => {
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
   const formattedStatus = formatOrderStatusLabel(order?.status);
 
+  const clearCelebrationTimeout = useCallback(() => {
+    if (celebrationTimeoutRef.current) {
+      clearTimeout(celebrationTimeoutRef.current);
+      celebrationTimeoutRef.current = null;
+    }
+  }, []);
+
+  const dismissDeliveryCelebration = useCallback(() => {
+    if (!showDeliveryCelebration) {
+      return;
+    }
+
+    clearCelebrationTimeout();
+
+    Animated.timing(deliveryCelebrationOpacity, {
+      toValue: 0,
+      duration: 220,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: true,
+    }).start(() => {
+      setShowDeliveryCelebration(false);
+    });
+  }, [clearCelebrationTimeout, deliveryCelebrationOpacity, showDeliveryCelebration]);
+
+  useEffect(() => {
+    return () => {
+      clearCelebrationTimeout();
+    };
+  }, [clearCelebrationTimeout]);
+
   useEffect(() => {
     previousStatusRef.current = null;
     setStatusChangeInfo(null);
     setHighlightedStepKey(null);
-  }, [order?.orderId]);
+    setShowDeliveryCelebration(false);
+    deliveryCelebrationOpacity.setValue(0);
+    deliveryCardScale.setValue(0.92);
+    deliveryCheckScale.setValue(0.6);
+    deliveryTextOpacity.setValue(0);
+    clearCelebrationTimeout();
+  }, [
+    clearCelebrationTimeout,
+    deliveryCardScale,
+    deliveryCelebrationOpacity,
+    deliveryCheckScale,
+    deliveryTextOpacity,
+    order?.orderId,
+  ]);
 
   useEffect(() => {
     if (!statusChangeInfo) {
@@ -368,6 +418,82 @@ const OrderTrackingScreen: React.FC = () => {
     };
   }, [highlightPulse, highlightedStepKey]);
 
+  useEffect(() => {
+    if (!showDeliveryCelebration) {
+      return;
+    }
+
+    deliveryCelebrationOpacity.setValue(0);
+    deliveryCardScale.setValue(0.92);
+    deliveryCheckScale.setValue(0.6);
+    deliveryTextOpacity.setValue(0);
+
+    const overlayAnimation = Animated.parallel(
+      [
+        Animated.timing(deliveryCelebrationOpacity, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(deliveryCardScale, {
+          toValue: 1,
+          damping: 7,
+          mass: 0.9,
+          stiffness: 160,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(160),
+          Animated.spring(deliveryCheckScale, {
+            toValue: 1.12,
+            damping: 6,
+            mass: 0.8,
+            stiffness: 200,
+            useNativeDriver: true,
+          }),
+          Animated.spring(deliveryCheckScale, {
+            toValue: 1,
+            damping: 7,
+            mass: 0.8,
+            stiffness: 220,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.delay(300),
+          Animated.timing(deliveryTextOpacity, {
+            toValue: 1,
+            duration: 320,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      ],
+      { stopTogether: false },
+    );
+
+    overlayAnimation.start();
+
+    clearCelebrationTimeout();
+    celebrationTimeoutRef.current = setTimeout(() => {
+      dismissDeliveryCelebration();
+    }, 4200);
+
+    return () => {
+      overlayAnimation.stop();
+      clearCelebrationTimeout();
+    };
+  }, [
+    clearCelebrationTimeout,
+    deliveryCardScale,
+    deliveryCelebrationOpacity,
+    deliveryCheckScale,
+    deliveryTextOpacity,
+    dismissDeliveryCelebration,
+    showDeliveryCelebration,
+  ]);
+
   const highlightBackground = useMemo(
     () =>
       highlightPulse.interpolate({
@@ -408,6 +534,10 @@ const OrderTrackingScreen: React.FC = () => {
     const normalizedStatus = order?.status ? String(order.status).toUpperCase() : null;
     const previousStatus = previousStatusRef.current;
 
+    if (normalizedStatus === 'DELIVERED' && previousStatus !== 'DELIVERED') {
+      setShowDeliveryCelebration(true);
+    }
+
     if (normalizedStatus && previousStatus && normalizedStatus !== previousStatus) {
       const statusLabel = formatOrderStatusLabel(normalizedStatus) ?? 'Status updated';
       const statusHistory = Array.isArray(order?.statusHistory) ? order?.statusHistory ?? [] : [];
@@ -437,7 +567,7 @@ const OrderTrackingScreen: React.FC = () => {
     if (normalizedStatus) {
       previousStatusRef.current = normalizedStatus;
     }
-  }, [order?.status, order?.statusHistory, previousStatusRef, steps]);
+  }, [order?.status, order?.statusHistory, steps]);
 
   const orderTotal = formatCurrency(order?.payment?.total);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
@@ -947,6 +1077,59 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         </View>
       </View>
+
+      {showDeliveryCelebration ? (
+        <Animated.View
+          pointerEvents="auto"
+          style={[
+            styles.deliveryCelebrationOverlay,
+            { opacity: deliveryCelebrationOpacity },
+          ]}
+        >
+          <Pressable
+            style={styles.deliveryCelebrationBackdrop}
+            onPress={dismissDeliveryCelebration}
+          />
+          <Animated.View
+            style={[
+              styles.deliveryCelebrationCard,
+              { transform: [{ scale: deliveryCardScale }] },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.deliveryCelebrationIcon,
+                { transform: [{ scale: deliveryCheckScale }] },
+              ]}
+            >
+              <Check size={32} color="#FFFFFF" strokeWidth={3} />
+            </Animated.View>
+            <Animated.Text
+              style={[
+                styles.deliveryCelebrationTitle,
+                { opacity: deliveryTextOpacity },
+              ]}
+            >
+              Enjoy your order
+            </Animated.Text>
+            <Animated.Text
+              style={[
+                styles.deliveryCelebrationSubtitle,
+                { opacity: deliveryTextOpacity },
+              ]}
+            >
+              It’s been delivered. Bon appétit!
+            </Animated.Text>
+            <TouchableOpacity
+              style={styles.deliveryCelebrationDismissButton}
+              onPress={dismissDeliveryCelebration}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.deliveryCelebrationDismissText}>Close</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
+      ) : null}
     </View>
   );
 };
@@ -1392,5 +1575,68 @@ const styles = StyleSheet.create({
   },
   courierActionButtonSpacing: {
     marginLeft: 8,
+  },
+  deliveryCelebrationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  deliveryCelebrationBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  deliveryCelebrationCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: softSurface,
+    borderRadius: 28,
+    paddingHorizontal: 28,
+    paddingVertical: 32,
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+  },
+  deliveryCelebrationIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: accentColor,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: accentColor,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  deliveryCelebrationTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: textPrimary,
+    textAlign: 'center',
+  },
+  deliveryCelebrationSubtitle: {
+    marginTop: 12,
+    fontSize: 15,
+    lineHeight: 22,
+    color: textSecondary,
+    textAlign: 'center',
+  },
+  deliveryCelebrationDismissButton: {
+    marginTop: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: accentColor,
+  },
+  deliveryCelebrationDismissText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
