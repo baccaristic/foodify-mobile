@@ -331,10 +331,18 @@ const OrderTrackingScreen: React.FC = () => {
       duration: 220,
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
-    }).start(() => {
-      setShowDeliveryCelebration(false);
+    }).start(({ finished }) => {
+      if (finished) {
+        setShowDeliveryCelebration(false);
+        navigation.navigate('Home' as never);
+      }
     });
-  }, [clearCelebrationTimeout, deliveryCelebrationOpacity, showDeliveryCelebration]);
+  }, [
+    clearCelebrationTimeout,
+    deliveryCelebrationOpacity,
+    navigation,
+    showDeliveryCelebration,
+  ]);
 
   useEffect(() => {
     return () => {
