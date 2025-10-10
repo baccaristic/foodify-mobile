@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -246,10 +247,12 @@ const FavoritesScreen = () => {
               Cozy corners and go-to kitchens
             </Text>
           </View>
-          <View style={styles.restaurantGrid}>
-            {favoriteRestaurants.map((restaurant) => (
+          <FlatList
+            horizontal
+            data={favoriteRestaurants}
+            keyExtractor={(restaurant) => `favorite-restaurant-${restaurant.id}`}
+            renderItem={({ item: restaurant }) => (
               <FavoriteRestaurantCard
-                key={`favorite-restaurant-${restaurant.id}`}
                 restaurant={restaurant}
                 onPress={() =>
                   navigation.navigate('RestaurantDetails' as never, {
@@ -257,8 +260,12 @@ const FavoritesScreen = () => {
                   } as never)
                 }
               />
-            ))}
-          </View>
+            )}
+            showsHorizontalScrollIndicator={false}
+            style={styles.restaurantCarousel}
+            contentContainerStyle={styles.restaurantCarouselContent}
+            ItemSeparatorComponent={() => <View style={styles.restaurantSeparator} />}
+          />
         </View>
 
         <View style={styles.section}>
@@ -327,10 +334,14 @@ const styles = ScaledSheet.create({
     fontSize: '14@ms',
     color: mutedText,
   },
-  restaurantGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: '14@s',
+  restaurantCarousel: {
+    marginHorizontal: -s(18),
+  },
+  restaurantCarouselContent: {
+    paddingHorizontal: s(18),
+  },
+  restaurantSeparator: {
+    width: '14@s',
   },
   restaurantCard: {
     width: '160@s',
