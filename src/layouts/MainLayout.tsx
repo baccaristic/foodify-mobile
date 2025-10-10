@@ -305,7 +305,9 @@ export default function MainLayout({
     return { height: height + extra + 20 };
   });
 
-  const baseScrollMarginTop = (styles.scrollView.marginTop as number) ?? 0;
+  const flattenedScrollViewStyle = useMemo(() => StyleSheet.flatten(styles.scrollView), []);
+  const baseScrollMarginTop =
+    typeof flattenedScrollViewStyle?.marginTop === 'number' ? flattenedScrollViewStyle.marginTop : 0;
 
   const scrollBounceCompensationStyle = useAnimatedStyle(() => {
     const extra = Math.min(overscroll.value, 160);
@@ -314,7 +316,7 @@ export default function MainLayout({
       return { marginTop: baseScrollMarginTop };
     }
 
-    return { marginTop: baseScrollMarginTop - extra };
+    return { marginTop: baseScrollMarginTop + extra };
   });
 
   const renderHeaderContent = (isAnimated: boolean) => {
