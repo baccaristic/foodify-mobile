@@ -289,7 +289,7 @@ export default function MainLayout({
   });
 
   const headerHeightStyle = useAnimatedStyle(() => {
-    const extra = overscroll.value;
+    const extra = Math.min(overscroll.value, 160);
 
     if (!collapseEnabled) {
       return { height: MAX_HEIGHT + extra + 20 };
@@ -303,6 +303,18 @@ export default function MainLayout({
     );
 
     return { height: height + extra + 20 };
+  });
+
+  const baseScrollMarginTop = (styles.scrollView.marginTop as number) ?? 0;
+
+  const scrollBounceCompensationStyle = useAnimatedStyle(() => {
+    const extra = Math.min(overscroll.value, 160);
+
+    if (extra <= 0) {
+      return { marginTop: baseScrollMarginTop };
+    }
+
+    return { marginTop: baseScrollMarginTop - extra };
   });
 
   const renderHeaderContent = (isAnimated: boolean) => {
@@ -454,7 +466,7 @@ export default function MainLayout({
 
       <Animated.ScrollView
         ref={setScrollViewRef}
-        style={[styles.scrollView]}
+        style={[styles.scrollView, scrollBounceCompensationStyle]}
         contentContainerStyle={{
           paddingTop: collapseEnabled ? vs(10) : vs(20),
           paddingBottom: showFooter ? resolvedFooterHeight : fallbackContentPadding,
