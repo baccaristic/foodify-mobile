@@ -1,6 +1,14 @@
 import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { MutableRefObject, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  MutableRefObject,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   TouchableOpacity,
@@ -129,23 +137,68 @@ export default function MainLayout({
   const { order: ongoingOrder } = useOngoingOrder();
   const [isOngoingExpanded, setIsOngoingExpanded] = useState(false);
   const scrollY = useSharedValue(0);
+  const overscroll = useSharedValue(0);
+  const pendingScrollOffset = useSharedValue(0);
   const [activeHeader, setActiveHeader] = useState<'full' | 'collapsed'>(
     collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
   );
 
-  const needsScrollHandling = collapseEnabled || typeof onScrollOffsetChange === 'function';
+  const shouldNotifyScroll = typeof onScrollOffsetChange === 'function';
+  const needsScrollHandling = collapseEnabled || shouldNotifyScroll;
+
+  const onScrollOffsetChangeRef = useRef<typeof onScrollOffsetChange>();
+  const pendingOffsetFrameRef = useRef<number | null>(null);
+  const latestOffsetRef = useRef(0);
+
+  useEffect(() => {
+    onScrollOffsetChangeRef.current = onScrollOffsetChange;
+  }, [onScrollOffsetChange]);
+
+  useEffect(
+    () => () => {
+      if (pendingOffsetFrameRef.current != null) {
+        if (typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(pendingOffsetFrameRef.current);
+        }
+        pendingOffsetFrameRef.current = null;
+      }
+    },
+    []
+  );
+
+  const flushPendingOffset = useCallback(() => {
+    pendingOffsetFrameRef.current = null;
+    const callback = onScrollOffsetChangeRef.current;
+    if (callback) {
+      callback(latestOffsetRef.current);
+    }
+  }, []);
+
+  const scheduleOffsetNotification = useCallback((offset: number) => {
+    latestOffsetRef.current = offset;
+    if (pendingOffsetFrameRef.current != null) {
+      return;
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      pendingOffsetFrameRef.current = requestAnimationFrame(flushPendingOffset);
+      return;
+    }
+
+    flushPendingOffset();
+  }, [flushPendingOffset]);
 
   const scrollHandler = useAnimatedScrollHandler(
     (event) => {
-      if (collapseEnabled) {
-        scrollY.value = event.contentOffset.y;
-      }
+      const offsetY = event.contentOffset.y;
+      scrollY.value = offsetY;
+      overscroll.value = offsetY < 0 ? -offsetY : 0;
 
-      if (onScrollOffsetChange) {
-        runOnJS(onScrollOffsetChange)(event.contentOffset.y);
+      if (shouldNotifyScroll) {
+        pendingScrollOffset.value = offsetY;
       }
     },
-    [collapseEnabled, onScrollOffsetChange]
+    [shouldNotifyScroll]
   );
 
   useEffect(() => {
@@ -185,6 +238,22 @@ export default function MainLayout({
     [collapseEnabled, SCROLL_DISTANCE, updateActiveHeader]
   );
 
+  useAnimatedReaction(
+    () => (shouldNotifyScroll ? pendingScrollOffset.value : null),
+    (current, previous) => {
+      if (current == null || current === previous) {
+        return;
+      }
+
+      if (previous != null && Math.abs(current - previous) < 0.5) {
+        return;
+      }
+
+      runOnJS(scheduleOffsetNotification)(current);
+    },
+    [shouldNotifyScroll, scheduleOffsetNotification]
+  );
+
   const fullHeaderPointerEvents: 'auto' | 'none' =
     !collapseEnabled || activeHeader === 'full' ? 'auto' : 'none';
 
@@ -220,10 +289,10 @@ export default function MainLayout({
   });
 
   const headerHeightStyle = useAnimatedStyle(() => {
-    const stretch = scrollY.value < 0 ? -scrollY.value : 0;
+    const extra = overscroll.value;
 
     if (!collapseEnabled) {
-      return { height: MAX_HEIGHT + stretch + 20 };
+      return { height: MAX_HEIGHT + extra + 20 };
     }
 
     const height = interpolate(
@@ -233,7 +302,7 @@ export default function MainLayout({
       Extrapolate.CLAMP
     );
 
-    return { height: height + stretch + 20 };
+    return { height: height + extra + 20 };
   });
 
   const renderHeaderContent = (isAnimated: boolean) => {
@@ -392,6 +461,9 @@ export default function MainLayout({
         }}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
+        alwaysBounceVertical
+        bounces
+        overScrollMode="always"
         onScroll={needsScrollHandling ? scrollHandler : undefined}>
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>
