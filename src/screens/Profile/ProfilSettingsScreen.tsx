@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { User, Phone, Mail, Lock, Star, Languages, ChevronRight } from 'lucide-react-native';
-import { Image } from 'expo-image';
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
@@ -81,7 +80,6 @@ const ProfileSettingsScreen = () => {
 
         <View style={styles.divider} />
 
-        {/* Modify Password */}
         <TouchableOpacity style={styles.infoRow} onPress={() => openOverlay('password')}>
           <View style={styles.infoLeft}>
             <Lock size={20} color={palette.accent} />

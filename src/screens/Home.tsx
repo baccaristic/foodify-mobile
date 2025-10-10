@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Dimensions } from "react-native";
 import { Percent, Star, Gift, Pizza, Hamburger, ChevronDown, Search, Utensils } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
-import { ScaledSheet, s, vs } from "react-native-size-matters";
+import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
 import type { RestaurantSummary } from "~/interfaces/Restaurant";
@@ -45,7 +45,7 @@ export default function HomePage() {
     contentBody = (
       <View style={styles.errorWrapper}>
         <Text allowFontScaling={false} style={styles.errorTitle}>
-          We can't fetch restaurants right now.
+          We can&apos;t fetch restaurants right now.
         </Text>
         <TouchableOpacity activeOpacity={0.8} style={styles.retryButton} onPress={() => refetch()}>
           <Text allowFontScaling={false} style={styles.retryLabel}>Try again</Text>
@@ -119,7 +119,6 @@ export default function HomePage() {
           horizontal
           showsHorizontalScrollIndicator={false}
           style={{ marginTop: vs(10) }}
-          contentContainerStyle={{}}
         >
           {[
             { icon: Percent, label: "Discount" },
@@ -169,7 +168,7 @@ export default function HomePage() {
         showHeader
         showFooter
         headerMaxHeight={vs(160)}
-        headerMinHeight={vs(140)}
+        headerMinHeight={vs(120)}
         customHeader={customHeader}
         collapsedHeader={collapsedHeader}
         onRefresh={() => {
@@ -188,8 +187,9 @@ export default function HomePage() {
     </>
   );
 }
-
+const { height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const styles = ScaledSheet.create({
+
   mainWrapper: { paddingHorizontal: "16@s" },
   sectionTitle: { fontSize: "18@ms", fontWeight: "700", marginTop: "16@vs", marginBottom: "12@vs" },
   loadingWrapper: {
@@ -253,7 +253,13 @@ const styles = ScaledSheet.create({
   ratingText: { fontSize: "12@ms", marginLeft: "4@s" },
   deliveryTime: { color: "red", fontSize: "12@ms", marginTop: "4@vs" },
 
-  headerWrapper: { padding: "6@s", paddingBottom: "20@vs" },
+  headerWrapper: {
+    padding: "6@s",
+    paddingTop:
+      SCREEN_HEIGHT < 700
+        ? vs(0)
+        : vs(6),
+  },
   headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   headerTitle: { color: "white", fontSize: "16@ms", fontWeight: "400", marginLeft: "20@ms" },
   searchBar: {

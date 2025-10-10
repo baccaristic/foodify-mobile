@@ -1,13 +1,11 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, InteractionManager } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
-import { Image } from 'expo-image';
 import {
   Heart,
   CreditCard,
   History,
   Gift,
-  Share2,
   Bell,
   MessageCircleQuestion,
   ShieldCheck,
@@ -66,10 +64,10 @@ const useProfileSections = (
           {
             label: 'Profile Settings',
             icon: UserRound,
-            route:'ProfilSettings'
+            route: 'ProfilSettings'
           },
-          
-          
+
+
         ],
       },
       {
@@ -174,9 +172,9 @@ const ProfileScreen = () => {
 
       <View style={styles.greetingRow}>
         <View style={styles.leftProfile}>
-          <View style={styles.avatarWrapper}>
-  <LetteredAvatar name={displayName} size={56} />
-</View>
+          <View >
+            <LetteredAvatar name={displayName} size={56} />
+          </View>
 
 
           <View style={styles.nameBlock}>
@@ -203,8 +201,8 @@ const ProfileScreen = () => {
     <View style={styles.collapsedHeader}>
       <View style={styles.collapsedLeft}>
         <View style={styles.collapsedAvatar}>
-  <LetteredAvatar name={displayName} size={38} borderWidth={1.5} borderColor="rgba(255,255,255,0.5)" />
-</View>
+          <LetteredAvatar name={displayName} size={38} borderWidth={1.5} borderColor="rgba(255,255,255,0.5)" />
+        </View>
 
         <View style={styles.collapsedText}>
           <Text allowFontScaling={false} style={styles.collapsedGreeting}>
@@ -324,11 +322,6 @@ const styles = ScaledSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
-  avatar: {
-    width: '100%',
-    height: '100%',
-  },
   nameBlock: {
     marginLeft: '10@s',
   },
@@ -391,7 +384,6 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
   },
   collapsedAvatar: {
-  
     marginRight: '10@s',
   },
   collapsedAvatarImage: {
