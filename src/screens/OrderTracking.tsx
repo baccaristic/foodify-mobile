@@ -95,6 +95,21 @@ const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   return undefined;
 };
 
+const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(',', '.'));
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+};
+
 const buildWorkflowSteps = (order: OrderTrackingData | null | undefined): WorkflowStep[] => {
   if (!order) {
     return [];
@@ -1004,15 +1019,53 @@ const OrderTrackingScreen: React.FC = () => {
             {hasItems ? (
               order?.items?.map((item, index) => {
                 const isLast = index === (order?.items?.length ?? 0) - 1;
+                const extrasLabel = Array.isArray(item?.extras)
+                  ? item.extras
+                      .map((extra) => extra?.name)
+                      .filter((name): name is string => Boolean(name && name.trim().length))
+                      .join(', ')
+                  : undefined;
+                const quantity = item?.quantity ?? 1;
+                const displayName =
+                  item?.name ??
+                  (item as { menuItemName?: string } | null | undefined)?.menuItemName ??
+                  'Menu item';
+                const totalDisplay = (() => {
+                  const formattedTotal = formatCurrency(item?.lineTotal);
+                  if (formattedTotal) {
+                    return formattedTotal;
+                  }
+
+                  const computedTotal =
+                    parseCurrencyValue(item?.unitPrice) * quantity +
+                    parseCurrencyValue(item?.extrasPrice);
+
+                  if (!Number.isFinite(computedTotal) || computedTotal <= 0) {
+                    return undefined;
+                  }
+
+                  return formatCurrency(computedTotal);
+                })();
+
                 return (
                   <View
                     key={`${item?.menuItemId ?? index}-${index}`}
                     style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
                   >
-                    <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
-                    <Text style={styles.summaryItemName} numberOfLines={1}>
-                      {item?.name ?? item.name ?? 'Menu item'}
-                    </Text>
+                    <View style={styles.summaryItemInfo}>
+                      <View style={styles.summaryItemPrimaryRow}>
+                        <Text style={styles.summaryItemQuantity}>{quantity}x</Text>
+                        <Text style={styles.summaryItemName} numberOfLines={1}>
+                          {displayName}
+                        </Text>
+                      </View>
+                      {extrasLabel ? (
+                        <Text style={styles.summaryItemExtras} numberOfLines={1}>
+                          {extrasLabel}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.summaryItemPrice}>{totalDisplay ?? '—'}</Text>
                   </View>
                 );
               })
@@ -1454,10 +1507,19 @@ const styles = StyleSheet.create({
   },
   summaryItemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   summaryItemRowSpacing: {
     marginBottom: 6,
+  },
+  summaryItemInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  summaryItemPrimaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   summaryItemQuantity: {
     fontSize: 11,
@@ -1466,9 +1528,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   summaryItemName: {
-    flex: 1,
     fontSize: 12,
     color: textPrimary,
+    flexShrink: 1,
+  },
+  summaryItemExtras: {
+    fontSize: 11,
+    color: textSecondary,
+    marginTop: 2,
+  },
+  summaryItemPrice: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: textPrimary,
+    textAlign: 'right',
   },
   summaryEmptyText: {
     fontSize: 12,
