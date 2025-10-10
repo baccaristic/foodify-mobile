@@ -7,6 +7,7 @@ import {
   Animated,
   Image,
   Easing,
+  Vibration,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -69,6 +70,11 @@ type OrderTrackingData = Partial<CreateOrderResponse> &
   Partial<OrderNotificationDto> & {
   orderId?: number | string | null;
   statusHistory?: (OrderStatusHistoryDto | OrderStatusHistoryEntry)[];
+};
+
+type StatusChangeInfo = {
+  title: string;
+  description?: string | null;
 };
 
 const formatCurrency = (value: MonetaryAmount | null | undefined) => {
@@ -158,7 +164,12 @@ const OrderTrackingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const statusPulse = useRef(new Animated.Value(0)).current;
+  const statusAnnouncementOpacity = useRef(new Animated.Value(0)).current;
+  const highlightPulse = useRef(new Animated.Value(0)).current;
+  const previousStatusRef = useRef<string | null>(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
+  const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
   const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
   const { order: ongoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
 
@@ -278,6 +289,155 @@ const OrderTrackingScreen: React.FC = () => {
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
   const formattedStatus = formatOrderStatusLabel(order?.status);
+
+  useEffect(() => {
+    previousStatusRef.current = null;
+    setStatusChangeInfo(null);
+    setHighlightedStepKey(null);
+  }, [order?.orderId]);
+
+  useEffect(() => {
+    if (!statusChangeInfo) {
+      return;
+    }
+
+    statusAnnouncementOpacity.setValue(0);
+    let isActive = true;
+
+    const animation = Animated.sequence([
+      Animated.timing(statusAnnouncementOpacity, {
+        toValue: 1,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.delay(2400),
+      Animated.timing(statusAnnouncementOpacity, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished && isActive) {
+        setStatusChangeInfo(null);
+      }
+    });
+
+    return () => {
+      isActive = false;
+      animation.stop();
+    };
+  }, [statusAnnouncementOpacity, statusChangeInfo]);
+
+  useEffect(() => {
+    if (!highlightedStepKey) {
+      return;
+    }
+
+    highlightPulse.setValue(0);
+    let isActive = true;
+
+    const animation = Animated.sequence([
+      Animated.timing(highlightPulse, {
+        toValue: 1,
+        duration: 420,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }),
+      Animated.delay(1600),
+      Animated.timing(highlightPulse, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false,
+      }),
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished && isActive) {
+        setHighlightedStepKey(null);
+      }
+    });
+
+    return () => {
+      isActive = false;
+      animation.stop();
+    };
+  }, [highlightPulse, highlightedStepKey]);
+
+  const highlightBackground = useMemo(
+    () =>
+      highlightPulse.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(216,58,46,0)', 'rgba(216,58,46,0.12)'],
+      }),
+    [highlightPulse],
+  );
+
+  const highlightScale = useMemo(
+    () =>
+      highlightPulse.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.015],
+      }),
+    [highlightPulse],
+  );
+
+  const statusAnnouncementScale = useMemo(
+    () =>
+      statusAnnouncementOpacity.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.96, 1],
+      }),
+    [statusAnnouncementOpacity],
+  );
+
+  const statusAnnouncementTranslateY = useMemo(
+    () =>
+      statusAnnouncementOpacity.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-8, 0],
+      }),
+    [statusAnnouncementOpacity],
+  );
+
+  useEffect(() => {
+    const normalizedStatus = order?.status ? String(order.status).toUpperCase() : null;
+    const previousStatus = previousStatusRef.current;
+
+    if (normalizedStatus && previousStatus && normalizedStatus !== previousStatus) {
+      const statusLabel = formatOrderStatusLabel(normalizedStatus) ?? 'Status updated';
+      const statusHistory = Array.isArray(order?.statusHistory) ? order?.statusHistory ?? [] : [];
+      const latestStatusEntry =
+        statusHistory.length > 0 ? statusHistory[statusHistory.length - 1] : null;
+
+      setStatusChangeInfo({
+        title: statusLabel,
+        description:
+          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.reason ??
+          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.action ??
+          'Your order moved to the next step.',
+      });
+
+      const activeStep = steps.find((step) => step.state === 'active') ?? null;
+      const fallbackStep =
+        activeStep ??
+        [...steps].reverse().find((step) => step.state === 'completed') ??
+        null;
+      setHighlightedStepKey((current) =>
+        current === (fallbackStep?.key ?? null) ? current : fallbackStep?.key ?? null,
+      );
+
+      Vibration.vibrate(40);
+    }
+
+    if (normalizedStatus) {
+      previousStatusRef.current = normalizedStatus;
+    }
+  }, [order?.status, order?.statusHistory, previousStatusRef, steps]);
 
   const orderTotal = formatCurrency(order?.payment?.total);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
@@ -528,6 +688,27 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         ) : null}
       </View>
+      {statusChangeInfo ? (
+        <Animated.View
+          style={[
+            styles.statusAnnouncement,
+            {
+              opacity: statusAnnouncementOpacity,
+              transform: [
+                { scale: statusAnnouncementScale },
+                { translateY: statusAnnouncementTranslateY },
+              ],
+            },
+          ]}
+        >
+          <Text style={styles.statusAnnouncementTitle}>{statusChangeInfo.title}</Text>
+          {statusChangeInfo.description ? (
+            <Text style={styles.statusAnnouncementDescription}>
+              {statusChangeInfo.description}
+            </Text>
+          ) : null}
+        </Animated.View>
+      ) : null}
       {steps.length === 0 ? (
         <Text style={styles.stepsEmptyText}>
           Tracking updates will appear once we receive status changes from the restaurant.
@@ -539,6 +720,7 @@ const OrderTrackingScreen: React.FC = () => {
           const isActive = step.state === 'active';
           const isPending = !isCompleted && !isActive;
           const previousStep = index > 0 ? steps[index - 1] : null;
+          const isHighlighted = highlightedStepKey != null && highlightedStepKey === step.key;
 
           const topConnectorActive =
             index > 0 &&
@@ -546,83 +728,93 @@ const OrderTrackingScreen: React.FC = () => {
           const bottomConnectorActive = !isLast && isCompleted;
 
           return (
-            <View
+            <Animated.View
               key={`${step.key}-${index}`}
-              style={[styles.stepRow, !isLast && styles.stepRowDivider]}
+              style={[
+                styles.stepRow,
+                !isLast && styles.stepRowDivider,
+                isHighlighted && styles.stepRowHighlighted,
+                isHighlighted
+                  ? {
+                      backgroundColor: highlightBackground,
+                      transform: [{ scale: highlightScale }],
+                    }
+                  : null,
+              ]}
             >
-            <View style={styles.stepTimeline}>
-              {index > 0 ? (
-                <View
-                  style={[
-                    styles.stepConnector,
-                    styles.stepConnectorTop,
-                    topConnectorActive && styles.stepConnectorActive,
-                  ]}
-                />
-              ) : null}
-
-              <View
-                style={[
-                  styles.stepDot,
-                  isCompleted && styles.stepDotCompleted,
-                  isActive && styles.stepDotActive,
-                  isPending && styles.stepDotPending,
-                ]}
-              >
-                {isCompleted ? (
-                  <Check size={12} color={accentColor} />
-                ) : isActive ? (
-                  <Clock size={12} color={accentColor} />
+              <View style={styles.stepTimeline}>
+                {index > 0 ? (
+                  <View
+                    style={[
+                      styles.stepConnector,
+                      styles.stepConnectorTop,
+                      topConnectorActive && styles.stepConnectorActive,
+                    ]}
+                  />
                 ) : null}
-              </View>
 
-              {!isLast ? (
                 <View
                   style={[
-                    styles.stepConnector,
-                    styles.stepConnectorBottom,
-                    bottomConnectorActive && styles.stepConnectorActive,
-                  ]}
-                />
-              ) : null}
-            </View>
-            <View style={styles.stepTexts}>
-              <Text
-                style={[
-                  styles.stepTitle,
-                  (isCompleted || isActive) && styles.stepTitleActive,
-                  isPending && styles.stepTitlePending,
-                ]}
-              >
-                {step.title}
-              </Text>
-              <Text
-                style={[
-                  styles.stepDescription,
-                  isPending && styles.stepDescriptionPending,
-                ]}
-              >
-                {step.description}
-              </Text>
-            </View>
-            <View style={styles.stepMeta}>
-              <View
-                style={[
-                  styles.stepEtaBadge,
-                  isPending && styles.stepEtaBadgePending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.stepEtaText,
-                    isPending && styles.stepEtaTextPending,
+                    styles.stepDot,
+                    isCompleted && styles.stepDotCompleted,
+                    isActive && styles.stepDotActive,
+                    isPending && styles.stepDotPending,
                   ]}
                 >
-                  {step.etaLabel}
+                  {isCompleted ? (
+                    <Check size={12} color={accentColor} />
+                  ) : isActive ? (
+                    <Clock size={12} color={accentColor} />
+                  ) : null}
+                </View>
+
+                {!isLast ? (
+                  <View
+                    style={[
+                      styles.stepConnector,
+                      styles.stepConnectorBottom,
+                      bottomConnectorActive && styles.stepConnectorActive,
+                    ]}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.stepTexts}>
+                <Text
+                  style={[
+                    styles.stepTitle,
+                    (isCompleted || isActive) && styles.stepTitleActive,
+                    isPending && styles.stepTitlePending,
+                  ]}
+                >
+                  {step.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.stepDescription,
+                    isPending && styles.stepDescriptionPending,
+                  ]}
+                >
+                  {step.description}
                 </Text>
               </View>
-            </View>
-            </View>
+              <View style={styles.stepMeta}>
+                <View
+                  style={[
+                    styles.stepEtaBadge,
+                    isPending && styles.stepEtaBadgePending,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stepEtaText,
+                      isPending && styles.stepEtaTextPending,
+                    ]}
+                  >
+                    {step.etaLabel}
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
           );
         })
       )}
@@ -895,10 +1087,35 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: textSecondary,
   },
+  statusAnnouncement: {
+    marginBottom: 20,
+    backgroundColor: 'rgba(216,58,46,0.12)',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  statusAnnouncementTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: accentColor,
+  },
+  statusAnnouncementDescription: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 18,
+    color: textPrimary,
+    opacity: 0.75,
+  },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingBottom: 24,
+  },
+  stepRowHighlighted: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    marginHorizontal: -12,
   },
   stepRowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
