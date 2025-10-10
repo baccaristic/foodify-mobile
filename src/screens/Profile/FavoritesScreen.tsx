@@ -10,14 +10,7 @@ import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/
 import { useQuery } from '@tanstack/react-query';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { Image } from 'expo-image';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Flame,
-  Sparkles,
-  Star,
-  UtensilsCrossed,
-} from 'lucide-react-native';
+import { ArrowRight, Flame, Sparkles, Star, UtensilsCrossed } from 'lucide-react-native';
 
 import MainLayout from '~/layouts/MainLayout';
 import { getClientFavorites } from '~/api/favorites';
@@ -27,8 +20,8 @@ import type {
   FavoriteRestaurant,
 } from '~/interfaces/Favorites';
 import { BASE_API_URL } from '@env';
+import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 
-const headerBackground = require('../../../assets/pattern1.png');
 const fallbackImage = require('../../../assets/baguette.png');
 
 const accentColor = '#CA251B';
@@ -185,42 +178,8 @@ const FavoritesScreen = () => {
   const hasFavorites = favoriteRestaurants.length > 0 || favoriteMenuItems.length > 0;
 
   const customHeader = (
-    <View style={styles.headerWrapper}>
-      <View style={styles.headerTopRow}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => navigation.goBack()}
-          style={styles.headerBackButton}
-        >
-          <ArrowLeft size={s(22)} color={accentColor} />
-        </TouchableOpacity>
-        <View style={styles.headerTextBlock}>
-          <Text allowFontScaling={false} style={styles.headerTitle}>
-            Your saved flavors
-          </Text>
-          <Text allowFontScaling={false} style={styles.headerSubtitle} numberOfLines={2}>
-            Revisit the restaurants and dishes that stole your heart.
-          </Text>
-        </View>
-      </View>
-      <View style={styles.headerStatsRow}>
-        <View style={styles.statCard}>
-          <Text allowFontScaling={false} style={styles.statLabel}>
-            Restaurants
-          </Text>
-          <Text allowFontScaling={false} style={styles.statValue}>
-            {favoriteRestaurants.length}
-          </Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text allowFontScaling={false} style={styles.statLabel}>
-            Dishes
-          </Text>
-          <Text allowFontScaling={false} style={styles.statValue}>
-            {favoriteMenuItems.length}
-          </Text>
-        </View>
-      </View>
+    <View>
+      <HeaderWithBackButton title="Favorites" titleMarginLeft={s(70)} onBack={() => navigation.goBack()} />
     </View>
   );
 
@@ -336,9 +295,8 @@ const FavoritesScreen = () => {
       activeTab="Profile"
       enableHeaderCollapse={false}
       enforceResponsiveHeaderSize={false}
-      headerMaxHeight={vs(200)}
-      headerMinHeight={vs(120)}
-      headerBackgroundImage={headerBackground}
+      headerMaxHeight={vs(60)}
+      headerMinHeight={vs(40)}
       customHeader={customHeader}
       mainContent={mainContent}
       onRefresh={refetch}
@@ -350,75 +308,6 @@ const FavoritesScreen = () => {
 export default FavoritesScreen;
 
 const styles = ScaledSheet.create({
-  headerWrapper: {
-    flex: 1,
-    paddingHorizontal: '18@s',
-    paddingTop: '32@vs',
-    paddingBottom: '12@vs',
-    justifyContent: 'space-between',
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: '12@s',
-  },
-  headerBackButton: {
-    width: '42@s',
-    height: '42@s',
-    borderRadius: '21@s',
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  headerTextBlock: {
-    flex: 1,
-    gap: '6@vs',
-  },
-  headerTitle: {
-    fontSize: '22@ms',
-    fontWeight: '700',
-    color: primaryText,
-  },
-  headerSubtitle: {
-    fontSize: '14@ms',
-    color: '#f5f5f5',
-    fontWeight: '500',
-  },
-  headerStatsRow: {
-    flexDirection: 'row',
-    marginTop: '18@vs',
-    gap: '12@s',
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: '18@ms',
-    paddingVertical: '14@vs',
-    paddingHorizontal: '16@s',
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  statLabel: {
-    fontSize: '13@ms',
-    color: mutedText,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  statValue: {
-    marginTop: '6@vs',
-    fontSize: '24@ms',
-    fontWeight: '700',
-    color: accentColor,
-  },
   contentWrapper: {
     gap: '32@vs',
     paddingHorizontal: '18@s',
