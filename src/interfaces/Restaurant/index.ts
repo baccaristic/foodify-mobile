@@ -57,6 +57,7 @@ export interface RestaurantDetailsResponse {
   id: number;
   name: string;
   description: string;
+  deliveryFee: number;
   imageUrl: string;
   address: string;
   phone: string;
@@ -77,6 +78,7 @@ export interface RestaurantSummary {
   id: number;
   name: string;
   address: string;
+  deliveryFee: number;
   phone: string;
   type: string;
   rating: string;
@@ -96,11 +98,14 @@ export interface NearbyRestaurantsParams {
   lat: number;
   lng: number;
   radiusKm?: number;
+  category?: string;
 }
 
 export type RestaurantSearchSort = "picked" | "popular" | "rating";
 
 export interface RestaurantSearchParams {
+  lat: number;
+  lng: number;
   query?: string;
   hasPromotion?: boolean;
   isTopChoice?: boolean;
@@ -116,6 +121,7 @@ export interface RestaurantSearchItem {
   id: number;
   name: string;
   deliveryTimeRange: string;
+  deliveryFee: number;
   rating: number;
   isTopChoice: boolean;
   hasFreeDelivery: boolean;

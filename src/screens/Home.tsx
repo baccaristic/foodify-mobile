@@ -13,6 +13,9 @@ import type { RestaurantSummary } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 
+const formatDeliveryFee = (fee: number) =>
+  fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
+
 export default function HomePage() {
   const navigation = useNavigation();
 
@@ -88,6 +91,7 @@ export default function HomePage() {
                 </Text>
               </View>
               <Text allowFontScaling={false} style={styles.deliveryTime}>{restaurant.type || 'Restaurant'}</Text>
+              <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(restaurant.deliveryFee)}</Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -252,6 +256,7 @@ const styles = ScaledSheet.create({
   ratingRow: { flexDirection: "row", alignItems: "center", marginTop: "4@vs" },
   ratingText: { fontSize: "12@ms", marginLeft: "4@s" },
   deliveryTime: { color: "red", fontSize: "12@ms", marginTop: "4@vs" },
+  deliveryFee: { color: "#4B5563", fontSize: "11@ms", marginTop: "2@vs" },
 
   headerWrapper: {
     padding: "6@s",
