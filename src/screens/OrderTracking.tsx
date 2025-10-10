@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Animated,
   Image,
   Easing,
+  Vibration,
+  Pressable,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,6 +73,11 @@ type OrderTrackingData = Partial<CreateOrderResponse> &
   statusHistory?: (OrderStatusHistoryDto | OrderStatusHistoryEntry)[];
 };
 
+type StatusChangeInfo = {
+  title: string;
+  description?: string | null;
+};
+
 const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   if (value == null) {
     return undefined;
@@ -86,6 +93,21 @@ const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   }
 
   return undefined;
+};
+
+const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(',', '.'));
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
 };
 
 const buildWorkflowSteps = (order: OrderTrackingData | null | undefined): WorkflowStep[] => {
@@ -158,7 +180,18 @@ const OrderTrackingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const statusPulse = useRef(new Animated.Value(0)).current;
+  const statusAnnouncementOpacity = useRef(new Animated.Value(0)).current;
+  const highlightPulse = useRef(new Animated.Value(0)).current;
+  const deliveryCelebrationOpacity = useRef(new Animated.Value(0)).current;
+  const deliveryCardScale = useRef(new Animated.Value(0.92)).current;
+  const deliveryCheckScale = useRef(new Animated.Value(0.6)).current;
+  const deliveryTextOpacity = useRef(new Animated.Value(0)).current;
+  const previousStatusRef = useRef<string | null>(null);
+  const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
+  const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
+  const [showDeliveryCelebration, setShowDeliveryCelebration] = useState(false);
   const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
   const { order: ongoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
 
@@ -278,6 +311,286 @@ const OrderTrackingScreen: React.FC = () => {
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
   const formattedStatus = formatOrderStatusLabel(order?.status);
+
+  const clearCelebrationTimeout = useCallback(() => {
+    if (celebrationTimeoutRef.current) {
+      clearTimeout(celebrationTimeoutRef.current);
+      celebrationTimeoutRef.current = null;
+    }
+  }, []);
+
+  const dismissDeliveryCelebration = useCallback(() => {
+    if (!showDeliveryCelebration) {
+      return;
+    }
+
+    clearCelebrationTimeout();
+
+    Animated.timing(deliveryCelebrationOpacity, {
+      toValue: 0,
+      duration: 220,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setShowDeliveryCelebration(false);
+        navigation.navigate('Home' as never);
+      }
+    });
+  }, [
+    clearCelebrationTimeout,
+    deliveryCelebrationOpacity,
+    navigation,
+    showDeliveryCelebration,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      clearCelebrationTimeout();
+    };
+  }, [clearCelebrationTimeout]);
+
+  useEffect(() => {
+    previousStatusRef.current = null;
+    setStatusChangeInfo(null);
+    setHighlightedStepKey(null);
+    setShowDeliveryCelebration(false);
+    deliveryCelebrationOpacity.setValue(0);
+    deliveryCardScale.setValue(0.92);
+    deliveryCheckScale.setValue(0.6);
+    deliveryTextOpacity.setValue(0);
+    clearCelebrationTimeout();
+  }, [
+    clearCelebrationTimeout,
+    deliveryCardScale,
+    deliveryCelebrationOpacity,
+    deliveryCheckScale,
+    deliveryTextOpacity,
+    order?.orderId,
+  ]);
+
+  useEffect(() => {
+    if (!statusChangeInfo) {
+      return;
+    }
+
+    statusAnnouncementOpacity.setValue(0);
+    let isActive = true;
+
+    const animation = Animated.sequence([
+      Animated.timing(statusAnnouncementOpacity, {
+        toValue: 1,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.delay(2400),
+      Animated.timing(statusAnnouncementOpacity, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished && isActive) {
+        setStatusChangeInfo(null);
+      }
+    });
+
+    return () => {
+      isActive = false;
+      animation.stop();
+    };
+  }, [statusAnnouncementOpacity, statusChangeInfo]);
+
+  useEffect(() => {
+    if (!highlightedStepKey) {
+      return;
+    }
+
+    highlightPulse.setValue(0);
+    let isActive = true;
+
+    const animation = Animated.sequence([
+      Animated.timing(highlightPulse, {
+        toValue: 1,
+        duration: 420,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }),
+      Animated.delay(1600),
+      Animated.timing(highlightPulse, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false,
+      }),
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished && isActive) {
+        setHighlightedStepKey(null);
+      }
+    });
+
+    return () => {
+      isActive = false;
+      animation.stop();
+    };
+  }, [highlightPulse, highlightedStepKey]);
+
+  useEffect(() => {
+    if (!showDeliveryCelebration) {
+      return;
+    }
+
+    deliveryCelebrationOpacity.setValue(0);
+    deliveryCardScale.setValue(0.92);
+    deliveryCheckScale.setValue(0.6);
+    deliveryTextOpacity.setValue(0);
+
+    const overlayAnimation = Animated.parallel(
+      [
+        Animated.timing(deliveryCelebrationOpacity, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(deliveryCardScale, {
+          toValue: 1,
+          damping: 7,
+          mass: 0.9,
+          stiffness: 160,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(160),
+          Animated.spring(deliveryCheckScale, {
+            toValue: 1.12,
+            damping: 6,
+            mass: 0.8,
+            stiffness: 200,
+            useNativeDriver: true,
+          }),
+          Animated.spring(deliveryCheckScale, {
+            toValue: 1,
+            damping: 7,
+            mass: 0.8,
+            stiffness: 220,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.delay(300),
+          Animated.timing(deliveryTextOpacity, {
+            toValue: 1,
+            duration: 320,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      ],
+      { stopTogether: false },
+    );
+
+    overlayAnimation.start();
+
+    clearCelebrationTimeout();
+    celebrationTimeoutRef.current = setTimeout(() => {
+      dismissDeliveryCelebration();
+    }, 4200);
+
+    return () => {
+      overlayAnimation.stop();
+      clearCelebrationTimeout();
+    };
+  }, [
+    clearCelebrationTimeout,
+    deliveryCardScale,
+    deliveryCelebrationOpacity,
+    deliveryCheckScale,
+    deliveryTextOpacity,
+    dismissDeliveryCelebration,
+    showDeliveryCelebration,
+  ]);
+
+  const highlightBackground = useMemo(
+    () =>
+      highlightPulse.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['rgba(216,58,46,0)', 'rgba(216,58,46,0.12)'],
+      }),
+    [highlightPulse],
+  );
+
+  const highlightScale = useMemo(
+    () =>
+      highlightPulse.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.015],
+      }),
+    [highlightPulse],
+  );
+
+  const statusAnnouncementScale = useMemo(
+    () =>
+      statusAnnouncementOpacity.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.96, 1],
+      }),
+    [statusAnnouncementOpacity],
+  );
+
+  const statusAnnouncementTranslateY = useMemo(
+    () =>
+      statusAnnouncementOpacity.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-8, 0],
+      }),
+    [statusAnnouncementOpacity],
+  );
+
+  useEffect(() => {
+    const normalizedStatus = order?.status ? String(order.status).toUpperCase() : null;
+    const previousStatus = previousStatusRef.current;
+
+    if (normalizedStatus === 'DELIVERED' && previousStatus !== 'DELIVERED') {
+      setShowDeliveryCelebration(true);
+    }
+
+    if (normalizedStatus && previousStatus && normalizedStatus !== previousStatus) {
+      const statusLabel = formatOrderStatusLabel(normalizedStatus) ?? 'Status updated';
+      const statusHistory = Array.isArray(order?.statusHistory) ? order?.statusHistory ?? [] : [];
+      const latestStatusEntry =
+        statusHistory.length > 0 ? statusHistory[statusHistory.length - 1] : null;
+
+      setStatusChangeInfo({
+        title: statusLabel,
+        description:
+          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.reason ??
+          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.action ??
+          'Your order moved to the next step.',
+      });
+
+      const activeStep = steps.find((step) => step.state === 'active') ?? null;
+      const fallbackStep =
+        activeStep ??
+        [...steps].reverse().find((step) => step.state === 'completed') ??
+        null;
+      setHighlightedStepKey((current) =>
+        current === (fallbackStep?.key ?? null) ? current : fallbackStep?.key ?? null,
+      );
+
+      Vibration.vibrate(40);
+    }
+
+    if (normalizedStatus) {
+      previousStatusRef.current = normalizedStatus;
+    }
+  }, [order?.status, order?.statusHistory, steps]);
 
   const orderTotal = formatCurrency(order?.payment?.total);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
@@ -528,6 +841,27 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         ) : null}
       </View>
+      {statusChangeInfo ? (
+        <Animated.View
+          style={[
+            styles.statusAnnouncement,
+            {
+              opacity: statusAnnouncementOpacity,
+              transform: [
+                { scale: statusAnnouncementScale },
+                { translateY: statusAnnouncementTranslateY },
+              ],
+            },
+          ]}
+        >
+          <Text style={styles.statusAnnouncementTitle}>{statusChangeInfo.title}</Text>
+          {statusChangeInfo.description ? (
+            <Text style={styles.statusAnnouncementDescription}>
+              {statusChangeInfo.description}
+            </Text>
+          ) : null}
+        </Animated.View>
+      ) : null}
       {steps.length === 0 ? (
         <Text style={styles.stepsEmptyText}>
           Tracking updates will appear once we receive status changes from the restaurant.
@@ -539,6 +873,7 @@ const OrderTrackingScreen: React.FC = () => {
           const isActive = step.state === 'active';
           const isPending = !isCompleted && !isActive;
           const previousStep = index > 0 ? steps[index - 1] : null;
+          const isHighlighted = highlightedStepKey != null && highlightedStepKey === step.key;
 
           const topConnectorActive =
             index > 0 &&
@@ -546,83 +881,93 @@ const OrderTrackingScreen: React.FC = () => {
           const bottomConnectorActive = !isLast && isCompleted;
 
           return (
-            <View
+            <Animated.View
               key={`${step.key}-${index}`}
-              style={[styles.stepRow, !isLast && styles.stepRowDivider]}
+              style={[
+                styles.stepRow,
+                !isLast && styles.stepRowDivider,
+                isHighlighted && styles.stepRowHighlighted,
+                isHighlighted
+                  ? {
+                      backgroundColor: highlightBackground,
+                      transform: [{ scale: highlightScale }],
+                    }
+                  : null,
+              ]}
             >
-            <View style={styles.stepTimeline}>
-              {index > 0 ? (
-                <View
-                  style={[
-                    styles.stepConnector,
-                    styles.stepConnectorTop,
-                    topConnectorActive && styles.stepConnectorActive,
-                  ]}
-                />
-              ) : null}
-
-              <View
-                style={[
-                  styles.stepDot,
-                  isCompleted && styles.stepDotCompleted,
-                  isActive && styles.stepDotActive,
-                  isPending && styles.stepDotPending,
-                ]}
-              >
-                {isCompleted ? (
-                  <Check size={12} color={accentColor} />
-                ) : isActive ? (
-                  <Clock size={12} color={accentColor} />
+              <View style={styles.stepTimeline}>
+                {index > 0 ? (
+                  <View
+                    style={[
+                      styles.stepConnector,
+                      styles.stepConnectorTop,
+                      topConnectorActive && styles.stepConnectorActive,
+                    ]}
+                  />
                 ) : null}
-              </View>
 
-              {!isLast ? (
                 <View
                   style={[
-                    styles.stepConnector,
-                    styles.stepConnectorBottom,
-                    bottomConnectorActive && styles.stepConnectorActive,
-                  ]}
-                />
-              ) : null}
-            </View>
-            <View style={styles.stepTexts}>
-              <Text
-                style={[
-                  styles.stepTitle,
-                  (isCompleted || isActive) && styles.stepTitleActive,
-                  isPending && styles.stepTitlePending,
-                ]}
-              >
-                {step.title}
-              </Text>
-              <Text
-                style={[
-                  styles.stepDescription,
-                  isPending && styles.stepDescriptionPending,
-                ]}
-              >
-                {step.description}
-              </Text>
-            </View>
-            <View style={styles.stepMeta}>
-              <View
-                style={[
-                  styles.stepEtaBadge,
-                  isPending && styles.stepEtaBadgePending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.stepEtaText,
-                    isPending && styles.stepEtaTextPending,
+                    styles.stepDot,
+                    isCompleted && styles.stepDotCompleted,
+                    isActive && styles.stepDotActive,
+                    isPending && styles.stepDotPending,
                   ]}
                 >
-                  {step.etaLabel}
+                  {isCompleted ? (
+                    <Check size={12} color={accentColor} />
+                  ) : isActive ? (
+                    <Clock size={12} color={accentColor} />
+                  ) : null}
+                </View>
+
+                {!isLast ? (
+                  <View
+                    style={[
+                      styles.stepConnector,
+                      styles.stepConnectorBottom,
+                      bottomConnectorActive && styles.stepConnectorActive,
+                    ]}
+                  />
+                ) : null}
+              </View>
+              <View style={styles.stepTexts}>
+                <Text
+                  style={[
+                    styles.stepTitle,
+                    (isCompleted || isActive) && styles.stepTitleActive,
+                    isPending && styles.stepTitlePending,
+                  ]}
+                >
+                  {step.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.stepDescription,
+                    isPending && styles.stepDescriptionPending,
+                  ]}
+                >
+                  {step.description}
                 </Text>
               </View>
-            </View>
-            </View>
+              <View style={styles.stepMeta}>
+                <View
+                  style={[
+                    styles.stepEtaBadge,
+                    isPending && styles.stepEtaBadgePending,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stepEtaText,
+                      isPending && styles.stepEtaTextPending,
+                    ]}
+                  >
+                    {step.etaLabel}
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
           );
         })
       )}
@@ -682,15 +1027,53 @@ const OrderTrackingScreen: React.FC = () => {
             {hasItems ? (
               order?.items?.map((item, index) => {
                 const isLast = index === (order?.items?.length ?? 0) - 1;
+                const extrasLabel = Array.isArray(item?.extras)
+                  ? item.extras
+                      .map((extra) => extra?.name)
+                      .filter((name): name is string => Boolean(name && name.trim().length))
+                      .join(', ')
+                  : undefined;
+                const quantity = item?.quantity ?? 1;
+                const displayName =
+                  item?.name ??
+                  (item as { menuItemName?: string } | null | undefined)?.menuItemName ??
+                  'Menu item';
+                const totalDisplay = (() => {
+                  const formattedTotal = formatCurrency(item?.lineTotal);
+                  if (formattedTotal) {
+                    return formattedTotal;
+                  }
+
+                  const computedTotal =
+                    parseCurrencyValue(item?.unitPrice) * quantity +
+                    parseCurrencyValue(item?.extrasPrice);
+
+                  if (!Number.isFinite(computedTotal) || computedTotal <= 0) {
+                    return undefined;
+                  }
+
+                  return formatCurrency(computedTotal);
+                })();
+
                 return (
                   <View
                     key={`${item?.menuItemId ?? index}-${index}`}
                     style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
                   >
-                    <Text style={styles.summaryItemQuantity}>{item.quantity ?? 1}x</Text>
-                    <Text style={styles.summaryItemName} numberOfLines={1}>
-                      {item?.name ?? item.name ?? 'Menu item'}
-                    </Text>
+                    <View style={styles.summaryItemInfo}>
+                      <View style={styles.summaryItemPrimaryRow}>
+                        <Text style={styles.summaryItemQuantity}>{quantity}x</Text>
+                        <Text style={styles.summaryItemName} numberOfLines={1}>
+                          {displayName}
+                        </Text>
+                      </View>
+                      {extrasLabel ? (
+                        <Text style={styles.summaryItemExtras} numberOfLines={1}>
+                          {extrasLabel}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.summaryItemPrice}>{totalDisplay ?? '—'}</Text>
                   </View>
                 );
               })
@@ -755,6 +1138,59 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         </View>
       </View>
+
+      {showDeliveryCelebration ? (
+        <Animated.View
+          pointerEvents="auto"
+          style={[
+            styles.deliveryCelebrationOverlay,
+            { opacity: deliveryCelebrationOpacity },
+          ]}
+        >
+          <Pressable
+            style={styles.deliveryCelebrationBackdrop}
+            onPress={dismissDeliveryCelebration}
+          />
+          <Animated.View
+            style={[
+              styles.deliveryCelebrationCard,
+              { transform: [{ scale: deliveryCardScale }] },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.deliveryCelebrationIcon,
+                { transform: [{ scale: deliveryCheckScale }] },
+              ]}
+            >
+              <Check size={32} color="#FFFFFF" strokeWidth={3} />
+            </Animated.View>
+            <Animated.Text
+              style={[
+                styles.deliveryCelebrationTitle,
+                { opacity: deliveryTextOpacity },
+              ]}
+            >
+              Enjoy your order
+            </Animated.Text>
+            <Animated.Text
+              style={[
+                styles.deliveryCelebrationSubtitle,
+                { opacity: deliveryTextOpacity },
+              ]}
+            >
+              It’s been delivered. Bon appétit!
+            </Animated.Text>
+            <TouchableOpacity
+              style={styles.deliveryCelebrationDismissButton}
+              onPress={dismissDeliveryCelebration}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.deliveryCelebrationDismissText}>Close</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
+      ) : null}
     </View>
   );
 };
@@ -895,10 +1331,35 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: textSecondary,
   },
+  statusAnnouncement: {
+    marginBottom: 20,
+    backgroundColor: 'rgba(216,58,46,0.12)',
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  statusAnnouncementTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: accentColor,
+  },
+  statusAnnouncementDescription: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 18,
+    color: textPrimary,
+    opacity: 0.75,
+  },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingBottom: 24,
+  },
+  stepRowHighlighted: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    marginHorizontal: -12,
   },
   stepRowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -1054,10 +1515,19 @@ const styles = StyleSheet.create({
   },
   summaryItemRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   summaryItemRowSpacing: {
     marginBottom: 6,
+  },
+  summaryItemInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  summaryItemPrimaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   summaryItemQuantity: {
     fontSize: 11,
@@ -1066,9 +1536,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   summaryItemName: {
-    flex: 1,
     fontSize: 12,
     color: textPrimary,
+    flexShrink: 1,
+  },
+  summaryItemExtras: {
+    fontSize: 11,
+    color: textSecondary,
+    marginTop: 2,
+  },
+  summaryItemPrice: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: textPrimary,
+    textAlign: 'right',
   },
   summaryEmptyText: {
     fontSize: 12,
@@ -1175,5 +1656,68 @@ const styles = StyleSheet.create({
   },
   courierActionButtonSpacing: {
     marginLeft: 8,
+  },
+  deliveryCelebrationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  deliveryCelebrationBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  deliveryCelebrationCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: softSurface,
+    borderRadius: 28,
+    paddingHorizontal: 28,
+    paddingVertical: 32,
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+  },
+  deliveryCelebrationIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: accentColor,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: accentColor,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  deliveryCelebrationTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: textPrimary,
+    textAlign: 'center',
+  },
+  deliveryCelebrationSubtitle: {
+    marginTop: 12,
+    fontSize: 15,
+    lineHeight: 22,
+    color: textSecondary,
+    textAlign: 'center',
+  },
+  deliveryCelebrationDismissButton: {
+    marginTop: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: accentColor,
+  },
+  deliveryCelebrationDismissText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
