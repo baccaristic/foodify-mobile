@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -29,6 +30,9 @@ const accentColor = '#CA251B';
 const primaryText = '#17213A';
 const mutedText = '#6B7280';
 
+const carouselHorizontalPadding = s(18);
+const restaurantItemGap = s(14);
+
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
 const resolveImageSource = (imagePath?: string | null) => {
@@ -41,9 +45,11 @@ const resolveImageSource = (imagePath?: string | null) => {
 const FavoriteRestaurantCard = ({
   restaurant,
   onPress,
+  width,
 }: {
   restaurant: FavoriteRestaurant;
   onPress: () => void;
+  width: number;
 }) => {
   const ratingLabel = useMemo(() => {
     if (restaurant.rating == null) {
@@ -60,7 +66,11 @@ const FavoriteRestaurantCard = ({
   }, [restaurant.rating]);
 
   return (
-    <TouchableOpacity style={styles.restaurantCard} activeOpacity={0.9} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.restaurantCard, { width }]}
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
       <Image source={resolveImageSource(restaurant.imageUrl)} style={styles.restaurantImage} contentFit="cover" />
       <View style={styles.restaurantOverlay} />
       <View style={styles.restaurantContent}>
@@ -168,6 +178,17 @@ const FavoriteMenuItemCard = ({
 
 const FavoritesScreen = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const { width: screenWidth } = useWindowDimensions();
+
+  const restaurantCardWidth = useMemo(
+    () => Math.max(screenWidth - carouselHorizontalPadding * 2, s(240)),
+    [screenWidth],
+  );
+
+  const restaurantSnapInterval = useMemo(
+    () => restaurantCardWidth + restaurantItemGap,
+    [restaurantCardWidth],
+  );
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery<ClientFavoritesResponse>({
     queryKey: ['client', 'favorites'],
@@ -176,6 +197,7 @@ const FavoritesScreen = () => {
 
   const favoriteRestaurants = data?.restaurants ?? [];
   const favoriteMenuItems = data?.menuItems ?? [];
+  const enableRestaurantPaging = favoriteRestaurants.length > 1;
   const hasFavorites = favoriteRestaurants.length > 0 || favoriteMenuItems.length > 0;
 
   const customHeader = (
@@ -249,11 +271,16 @@ const FavoritesScreen = () => {
           </View>
           <FlatList
             horizontal
+            pagingEnabled={enableRestaurantPaging}
+            decelerationRate={enableRestaurantPaging ? 'fast' : 'normal'}
+            snapToAlignment="start"
+            snapToInterval={enableRestaurantPaging ? restaurantSnapInterval : undefined}
             data={favoriteRestaurants}
             keyExtractor={(restaurant) => `favorite-restaurant-${restaurant.id}`}
             renderItem={({ item: restaurant }) => (
               <FavoriteRestaurantCard
                 restaurant={restaurant}
+                width={restaurantCardWidth}
                 onPress={() =>
                   navigation.navigate('RestaurantDetails' as never, {
                     restaurantId: restaurant.id,
@@ -338,13 +365,12 @@ const styles = ScaledSheet.create({
     marginHorizontal: -s(18),
   },
   restaurantCarouselContent: {
-    paddingHorizontal: s(18),
+    paddingHorizontal: carouselHorizontalPadding,
   },
   restaurantSeparator: {
-    width: '14@s',
+    width: restaurantItemGap,
   },
   restaurantCard: {
-    width: '160@s',
     height: '200@vs',
     borderRadius: '20@ms',
     overflow: 'hidden',
