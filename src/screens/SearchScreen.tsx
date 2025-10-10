@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import { Search, SlidersHorizontal, Star } from "lucide-react-native";
@@ -22,6 +22,7 @@ import FiltersOverlay from "~/components/FiltersOverlay";
 import useDebounce from "~/hooks/useDebounce";
 import MenuDetail from "./MenuDetail";
 import { getRestaurantDetails, searchRestaurants } from "~/api/restaurants";
+import { favoriteMenuItem, unfavoriteMenuItem } from "~/api/favorites";
 import type {
   MenuItemPromotion,
   RestaurantDetailsResponse,
@@ -35,6 +36,7 @@ import type {
 import { useCart } from "~/context/CartContext";
 import type { CartItemOptionSelection } from "~/context/CartContext";
 import { getMenuItemBasePrice } from "~/utils/menuPricing";
+import { updateMenuItemFavoriteState } from "~/utils/restaurantFavorites";
 import { BASE_API_URL } from "@env";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
@@ -234,8 +236,11 @@ export default function SearchScreen() {
 
   const [isMenuModalVisible, setIsMenuModalVisible] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
+  const [pendingFavoriteMenuItemId, setPendingFavoriteMenuItemId] = useState<number | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<{ id: number; name: string } | null>(null);
   const [isFetchingMenuItem, setIsFetchingMenuItem] = useState(false);
+
+  const selectedRestaurantId = selectedRestaurant?.id ?? null;
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
@@ -313,6 +318,22 @@ export default function SearchScreen() {
     keepPreviousData: true,
   });
 
+  const menuItemFavoriteMutation = useMutation({
+    mutationFn: async ({
+      menuItemId,
+      shouldFavorite,
+    }: {
+      menuItemId: number;
+      shouldFavorite: boolean;
+    }) => {
+      if (shouldFavorite) {
+        await favoriteMenuItem(menuItemId);
+      } else {
+        await unfavoriteMenuItem(menuItemId);
+      }
+    },
+  });
+
   const handleRestaurantPress = useCallback(
     (restaurantId: number) => {
       navigation.navigate("RestaurantDetails" as never, { restaurantId } as never);
@@ -354,6 +375,51 @@ export default function SearchScreen() {
       }
     },
     [isFetchingMenuItem, queryClient]
+  );
+
+  const handleToggleMenuItemFavorite = useCallback(
+    (menuItemId: number, nextFavorite: boolean) => {
+      const previousData =
+        selectedRestaurantId !== null
+          ? queryClient.getQueryData<RestaurantDetailsResponse>([
+              "restaurant-details",
+              selectedRestaurantId,
+            ])
+          : undefined;
+
+      if (previousData && selectedRestaurantId !== null) {
+        const updatedData = updateMenuItemFavoriteState(previousData, menuItemId, nextFavorite);
+        queryClient.setQueryData(["restaurant-details", selectedRestaurantId], updatedData);
+      }
+
+      setSelectedMenuItem((prev) => (prev && prev.id === menuItemId ? { ...prev, favorite: nextFavorite } : prev));
+      setPendingFavoriteMenuItemId(menuItemId);
+
+      menuItemFavoriteMutation.mutate(
+        { menuItemId, shouldFavorite: nextFavorite },
+        {
+          onError: () => {
+            if (previousData && selectedRestaurantId !== null) {
+              queryClient.setQueryData(["restaurant-details", selectedRestaurantId], previousData);
+            }
+
+            setSelectedMenuItem((prev) =>
+              prev && prev.id === menuItemId ? { ...prev, favorite: !nextFavorite } : prev
+            );
+          },
+          onSettled: () => {
+            setPendingFavoriteMenuItemId(null);
+
+            if (selectedRestaurantId !== null) {
+              queryClient.invalidateQueries({
+                queryKey: ["restaurant-details", selectedRestaurantId],
+              });
+            }
+          },
+        }
+      );
+    },
+    [menuItemFavoriteMutation, queryClient, selectedRestaurantId]
   );
 
   const handleAddMenuItem = useCallback(
@@ -542,6 +608,13 @@ export default function SearchScreen() {
             handleAddItem={handleAddMenuItem}
             onClose={handleCloseMenuModal}
             actionLabel="Add"
+            onToggleFavorite={(nextFavorite) =>
+              handleToggleMenuItemFavorite(selectedMenuItem.id, nextFavorite)
+            }
+            isFavoriteLoading={
+              menuItemFavoriteMutation.isPending &&
+              pendingFavoriteMenuItemId === selectedMenuItem.id
+            }
           />
         </Animated.View>
       )}

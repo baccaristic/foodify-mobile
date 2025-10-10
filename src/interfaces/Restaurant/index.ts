@@ -31,6 +31,7 @@ export interface RestaurantMenuItemDetails {
   promotionActive?: boolean;
   promotionPrice?: number | null;
   promotionLabel?: string | null;
+  favorite?: boolean;
 }
 
 export interface RestaurantMenuCategory {
@@ -49,6 +50,7 @@ export interface RestaurantMenuItemSummary {
   promotionActive?: boolean;
   promotionPrice?: number | null;
   promotionLabel?: string | null;
+  favorite?: boolean;
 }
 
 export interface RestaurantDetailsResponse {
@@ -68,6 +70,7 @@ export interface RestaurantDetailsResponse {
   quickFilters: string[];
   topSales: RestaurantMenuItemSummary[];
   categories: RestaurantMenuCategory[];
+  favorite?: boolean;
 }
 
 export interface RestaurantSummary {
@@ -86,6 +89,7 @@ export interface RestaurantSummary {
   longitude: number;
   imageUrl: string;
   menu: RestaurantMenuItemDetails[];
+  favorite?: boolean;
 }
 
 export interface NearbyRestaurantsParams {

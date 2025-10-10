@@ -14,12 +14,13 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { Image } from 'expo-image';
 import { NavigationProp, ParamListBase, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import MainLayout from '~/layouts/MainLayout';
 import FixedOrderBar from '~/components/FixedOrderBar';
 import MenuDetail from './MenuDetail';
 import { getRestaurantDetails } from '~/api/restaurants';
+import { favoriteMenuItem, favoriteRestaurant, unfavoriteMenuItem, unfavoriteRestaurant } from '~/api/favorites';
 import type {
   RestaurantDetailsResponse,
   RestaurantMenuCategory,
@@ -31,6 +32,7 @@ import { useCart } from '~/context/CartContext';
 import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 import { vs } from 'react-native-size-matters';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
+import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -44,6 +46,7 @@ interface RestaurantDetailsRouteParams {
   RestaurantDetails: {
     restaurantId: number;
     cartItemId?: string;
+    menuItemId?: number;
   };
 }
 
@@ -146,6 +149,8 @@ export default function RestaurantDetails() {
     useState<Record<number, number[]>[] | null>(null);
   const [activeMenuSection, setActiveMenuSection] = useState<string | null>(null);
   const [showMenuTabs, setShowMenuTabs] = useState(false);
+  const [pendingFavoriteMenuItemId, setPendingFavoriteMenuItemId] = useState<number | null>(null);
+  const [handledMenuItemParamKey, setHandledMenuItemParamKey] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollViewType | null>(null);
   const menuContentOffsetRef = useRef<number | null>(null);
@@ -159,8 +164,10 @@ export default function RestaurantDetails() {
   const route = useRoute<RestaurantDetailsRouteProp>();
   const restaurantId = route.params?.restaurantId;
   const cartItemIdFromParams = route.params?.cartItemId;
+  const menuItemIdFromParams = route.params?.menuItemId;
   const [handledCartItemId, setHandledCartItemId] = useState<string | null>(null);
   const isRestaurantIdValid = typeof restaurantId === 'number' && !Number.isNaN(restaurantId);
+  const queryClient = useQueryClient();
 
   const {
     data: restaurant,
@@ -193,6 +200,38 @@ export default function RestaurantDetails() {
   }, [restaurant]);
   const hasMenuSections = menuSections.length > 0;
 
+  const restaurantFavoriteMutation = useMutation({
+    mutationFn: async ({
+      restaurantId: targetRestaurantId,
+      shouldFavorite,
+    }: {
+      restaurantId: number;
+      shouldFavorite: boolean;
+    }) => {
+      if (shouldFavorite) {
+        await favoriteRestaurant(targetRestaurantId);
+      } else {
+        await unfavoriteRestaurant(targetRestaurantId);
+      }
+    },
+  });
+
+  const menuItemFavoriteMutation = useMutation({
+    mutationFn: async ({
+      menuItemId,
+      shouldFavorite,
+    }: {
+      menuItemId: number;
+      shouldFavorite: boolean;
+    }) => {
+      if (shouldFavorite) {
+        await favoriteMenuItem(menuItemId);
+      } else {
+        await unfavoriteMenuItem(menuItemId);
+      }
+    },
+  });
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
@@ -215,6 +254,12 @@ export default function RestaurantDetails() {
       setHandledCartItemId(null);
     }
   }, [cartItemIdFromParams]);
+
+  useEffect(() => {
+    if (!menuItemIdFromParams) {
+      setHandledMenuItemParamKey(null);
+    }
+  }, [menuItemIdFromParams]);
 
   useEffect(() => {
     if (!restaurant || !cartItemIdFromParams) {
@@ -248,6 +293,29 @@ export default function RestaurantDetails() {
     cartRestaurant,
     handleOpenMenuItem,
     handledCartItemId,
+    restaurant,
+  ]);
+
+  useEffect(() => {
+    if (!restaurant || !menuItemIdFromParams) {
+      return;
+    }
+
+    const key = `${restaurant.id}-${menuItemIdFromParams}`;
+    if (handledMenuItemParamKey && handledMenuItemParamKey.startsWith(key)) {
+      return;
+    }
+
+    const didOpen = handleOpenMenuItem(menuItemIdFromParams, {
+      editingCartItemId: null,
+      initialDrafts: null,
+    });
+
+    setHandledMenuItemParamKey(`${key}-${didOpen ? 'opened' : 'missing'}`);
+  }, [
+    handleOpenMenuItem,
+    handledMenuItemParamKey,
+    menuItemIdFromParams,
     restaurant,
   ]);
 
@@ -328,9 +396,9 @@ export default function RestaurantDetails() {
     (
       itemId: number,
       options?: { editingCartItemId?: string | null; initialDrafts?: Record<number, number[]>[] | null }
-    ) => {
+    ): boolean => {
       if (!restaurant) {
-        return;
+        return false;
       }
 
       const detailedItem = allMenuItems.find((item) => item.id === itemId);
@@ -339,7 +407,7 @@ export default function RestaurantDetails() {
         setEditingCartItemId(options?.editingCartItemId ?? null);
         setInitialDraftSelections(options?.initialDrafts ?? null);
         setIsModalVisible(true);
-        return;
+        return true;
       }
 
       const topSaleMatch = restaurant.topSales.find((item) => item.id === itemId);
@@ -348,7 +416,10 @@ export default function RestaurantDetails() {
         setEditingCartItemId(options?.editingCartItemId ?? null);
         setInitialDraftSelections(options?.initialDrafts ?? null);
         setIsModalVisible(true);
+        return true;
       }
+
+      return false;
     },
     [allMenuItems, restaurant]
   );
@@ -399,6 +470,73 @@ export default function RestaurantDetails() {
       setInitialDraftSelections(null);
     },
     [addItem, editingCartItemId, removeItem, restaurant, selectedMenuItem]
+  );
+
+  const handleToggleRestaurantFavorite = useCallback(() => {
+    if (!restaurant || !isRestaurantIdValid) {
+      return;
+    }
+
+    const nextFavorite = !(restaurant.favorite ?? false);
+    const previousRestaurant = restaurant;
+
+    queryClient.setQueryData(['restaurant-details', restaurant.id], {
+      ...previousRestaurant,
+      favorite: nextFavorite,
+    });
+
+    restaurantFavoriteMutation.mutate(
+      { restaurantId: restaurant.id, shouldFavorite: nextFavorite },
+      {
+        onError: () => {
+          queryClient.setQueryData(['restaurant-details', previousRestaurant.id], previousRestaurant);
+        },
+        onSettled: () => {
+          queryClient.invalidateQueries({ queryKey: ['restaurant-details', previousRestaurant.id] });
+        },
+      }
+    );
+  }, [isRestaurantIdValid, queryClient, restaurant, restaurantFavoriteMutation]);
+
+  const handleToggleMenuItemFavorite = useCallback(
+    (menuItemId: number, nextFavorite: boolean) => {
+      if (!isRestaurantIdValid) {
+        return;
+      }
+
+      const previousData = queryClient.getQueryData<RestaurantDetailsResponse>([
+        'restaurant-details',
+        restaurantId,
+      ]);
+
+      if (previousData) {
+        const updatedData = updateMenuItemFavoriteState(previousData, menuItemId, nextFavorite);
+        queryClient.setQueryData(['restaurant-details', restaurantId], updatedData);
+      }
+
+      setSelectedMenuItem((prev) => (prev && prev.id === menuItemId ? { ...prev, favorite: nextFavorite } : prev));
+      setPendingFavoriteMenuItemId(menuItemId);
+
+      menuItemFavoriteMutation.mutate(
+        { menuItemId, shouldFavorite: nextFavorite },
+        {
+          onError: () => {
+            if (previousData) {
+              queryClient.setQueryData(['restaurant-details', restaurantId], previousData);
+            }
+
+            setSelectedMenuItem((prev) =>
+              prev && prev.id === menuItemId ? { ...prev, favorite: !nextFavorite } : prev
+            );
+          },
+          onSettled: () => {
+            setPendingFavoriteMenuItemId(null);
+            queryClient.invalidateQueries({ queryKey: ['restaurant-details', restaurantId] });
+          },
+        }
+      );
+    },
+    [isRestaurantIdValid, menuItemFavoriteMutation, queryClient, restaurantId]
   );
 
   const handleSeeCart = () => {
@@ -617,8 +755,16 @@ export default function RestaurantDetails() {
             borderRadius: 9999,
             backgroundColor: 'white',
             padding: 8,
-          }}>
-          <Heart size={24} color="#CA251B" />
+            opacity: restaurant && !restaurantFavoriteMutation.isPending ? 1 : 0.5,
+          }}
+          disabled={!restaurant || restaurantFavoriteMutation.isPending}
+          onPress={handleToggleRestaurantFavorite}
+        >
+          <Heart
+            size={24}
+            color="#CA251B"
+            fill={restaurant?.favorite ? '#CA251B' : 'white'}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -632,8 +778,17 @@ export default function RestaurantDetails() {
       <Text allowFontScaling={false} className="flex-1 text-center text-lg font-bold text-gray-800">
         {restaurant?.name ?? 'Restaurant'}
       </Text>
-      <TouchableOpacity className="p-2">
-        <Heart size={20} color="#CA251B" />
+      <TouchableOpacity
+        className="p-2"
+        disabled={!restaurant || restaurantFavoriteMutation.isPending}
+        onPress={handleToggleRestaurantFavorite}
+        style={{ opacity: restaurant && !restaurantFavoriteMutation.isPending ? 1 : 0.5 }}
+      >
+        <Heart
+          size={20}
+          color="#CA251B"
+          fill={restaurant?.favorite ? '#CA251B' : 'white'}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -745,6 +900,13 @@ export default function RestaurantDetails() {
               onClose={() => handleUpdateCartAndClose([])}
               initialDraftSelections={initialDraftSelections ?? undefined}
               actionLabel={editingCartItemId ? 'Update' : 'Add'}
+              onToggleFavorite={(nextFavorite) =>
+                handleToggleMenuItemFavorite(selectedMenuItem.id, nextFavorite)
+              }
+              isFavoriteLoading={
+                menuItemFavoriteMutation.isPending &&
+                pendingFavoriteMenuItemId === selectedMenuItem.id
+              }
             />
           </Animated.View>
         </>

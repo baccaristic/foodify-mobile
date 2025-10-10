@@ -137,6 +137,9 @@ const ProfileScreen = () => {
       case 'CouponCodes':
         navigation.navigate('CouponCodes' as never);
         break;
+      case 'Favorites':
+        navigation.navigate('Favorites' as never);
+        break;
       case 'Logout':
         handleLogout();
         break;
