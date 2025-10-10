@@ -46,6 +46,7 @@ import FAQScreen from '~/screens/Profile/FAQScreen';
 import PrivacyScreen from '~/screens/Profile/PrivacyScreen';
 import ProfileSettingsScreen from '~/screens/Profile/ProfilSettingsScreen';
 import CouponCodeScreen from '~/screens/Profile/CouponCodeScreen';
+import FavoritesScreen from '~/screens/Profile/FavoritesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -195,6 +196,7 @@ const RootNavigator = () => {
           <Stack.Screen name="ManagePrivacy" component={PrivacyScreen} />
           <Stack.Screen name="CouponCodes" component={CouponCodeScreen} />
           <Stack.Screen name="ProfilSettings" component={ProfileSettingsScreen} />
+          <Stack.Screen name="Favorites" component={FavoritesScreen} />
         </>
       ) : (
         <>

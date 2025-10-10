@@ -46,6 +46,7 @@ interface RestaurantDetailsRouteParams {
   RestaurantDetails: {
     restaurantId: number;
     cartItemId?: string;
+    menuItemId?: number;
   };
 }
 
@@ -149,6 +150,7 @@ export default function RestaurantDetails() {
   const [activeMenuSection, setActiveMenuSection] = useState<string | null>(null);
   const [showMenuTabs, setShowMenuTabs] = useState(false);
   const [pendingFavoriteMenuItemId, setPendingFavoriteMenuItemId] = useState<number | null>(null);
+  const [handledMenuItemParamKey, setHandledMenuItemParamKey] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollViewType | null>(null);
   const menuContentOffsetRef = useRef<number | null>(null);
@@ -162,6 +164,7 @@ export default function RestaurantDetails() {
   const route = useRoute<RestaurantDetailsRouteProp>();
   const restaurantId = route.params?.restaurantId;
   const cartItemIdFromParams = route.params?.cartItemId;
+  const menuItemIdFromParams = route.params?.menuItemId;
   const [handledCartItemId, setHandledCartItemId] = useState<string | null>(null);
   const isRestaurantIdValid = typeof restaurantId === 'number' && !Number.isNaN(restaurantId);
   const queryClient = useQueryClient();
@@ -253,6 +256,12 @@ export default function RestaurantDetails() {
   }, [cartItemIdFromParams]);
 
   useEffect(() => {
+    if (!menuItemIdFromParams) {
+      setHandledMenuItemParamKey(null);
+    }
+  }, [menuItemIdFromParams]);
+
+  useEffect(() => {
     if (!restaurant || !cartItemIdFromParams) {
       return;
     }
@@ -284,6 +293,29 @@ export default function RestaurantDetails() {
     cartRestaurant,
     handleOpenMenuItem,
     handledCartItemId,
+    restaurant,
+  ]);
+
+  useEffect(() => {
+    if (!restaurant || !menuItemIdFromParams) {
+      return;
+    }
+
+    const key = `${restaurant.id}-${menuItemIdFromParams}`;
+    if (handledMenuItemParamKey && handledMenuItemParamKey.startsWith(key)) {
+      return;
+    }
+
+    const didOpen = handleOpenMenuItem(menuItemIdFromParams, {
+      editingCartItemId: null,
+      initialDrafts: null,
+    });
+
+    setHandledMenuItemParamKey(`${key}-${didOpen ? 'opened' : 'missing'}`);
+  }, [
+    handleOpenMenuItem,
+    handledMenuItemParamKey,
+    menuItemIdFromParams,
     restaurant,
   ]);
 
@@ -364,9 +396,9 @@ export default function RestaurantDetails() {
     (
       itemId: number,
       options?: { editingCartItemId?: string | null; initialDrafts?: Record<number, number[]>[] | null }
-    ) => {
+    ): boolean => {
       if (!restaurant) {
-        return;
+        return false;
       }
 
       const detailedItem = allMenuItems.find((item) => item.id === itemId);
@@ -375,7 +407,7 @@ export default function RestaurantDetails() {
         setEditingCartItemId(options?.editingCartItemId ?? null);
         setInitialDraftSelections(options?.initialDrafts ?? null);
         setIsModalVisible(true);
-        return;
+        return true;
       }
 
       const topSaleMatch = restaurant.topSales.find((item) => item.id === itemId);
@@ -384,7 +416,10 @@ export default function RestaurantDetails() {
         setEditingCartItemId(options?.editingCartItemId ?? null);
         setInitialDraftSelections(options?.initialDrafts ?? null);
         setIsModalVisible(true);
+        return true;
       }
+
+      return false;
     },
     [allMenuItems, restaurant]
   );
