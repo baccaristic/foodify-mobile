@@ -23,6 +23,8 @@ interface MenuDetailProps {
   onClose?: () => void;
   initialDraftSelections?: Record<number, number[]>[];
   actionLabel?: string;
+  onToggleFavorite?: (nextFavorite: boolean) => void;
+  isFavoriteLoading?: boolean;
 }
 
 interface AddToCartDetails {
@@ -192,6 +194,8 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
   onClose,
   initialDraftSelections,
   actionLabel = 'Add',
+  onToggleFavorite,
+  isFavoriteLoading = false,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -199,6 +203,23 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
     createDraftsFromInitialSelections(menuItem, initialDraftSelections)
   );
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(menuItem.favorite ?? false);
+
+  useEffect(() => {
+    setIsFavorite(menuItem.favorite ?? false);
+  }, [menuItem.favorite, menuItem.id]);
+
+  const canToggleFavorite = Boolean(onToggleFavorite) && !isFavoriteLoading;
+
+  const handleFavoritePress = useCallback(() => {
+    if (!onToggleFavorite || isFavoriteLoading) {
+      return;
+    }
+
+    const nextFavorite = !isFavorite;
+    setIsFavorite(nextFavorite);
+    onToggleFavorite(nextFavorite);
+  }, [isFavorite, isFavoriteLoading, onToggleFavorite]);
 
   useEffect(() => {
     setDrafts(createDraftsFromInitialSelections(menuItem, initialDraftSelections));
@@ -343,8 +364,13 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         </TouchableOpacity>
       </View>
       <View className="absolute right-4 top-8">
-        <TouchableOpacity className="rounded-full bg-white p-2">
-          <Heart size={20} color={primaryColor} />
+        <TouchableOpacity
+          className="rounded-full bg-white p-2"
+          onPress={handleFavoritePress}
+          disabled={!canToggleFavorite}
+          style={{ opacity: canToggleFavorite ? 1 : 0.5 }}
+        >
+          <Heart size={20} color={primaryColor} fill={isFavorite ? primaryColor : 'white'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -358,8 +384,13 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       <Text allowFontScaling={false} className="flex-1 text-center text-lg font-bold text-gray-800">
         {menuItem.name}
       </Text>
-      <TouchableOpacity className="p-2">
-        <Heart size={20} color={primaryColor} />
+      <TouchableOpacity
+        className="p-2"
+        onPress={handleFavoritePress}
+        disabled={!canToggleFavorite}
+        style={{ opacity: canToggleFavorite ? 1 : 0.5 }}
+      >
+        <Heart size={20} color={primaryColor} fill={isFavorite ? primaryColor : 'white'} />
       </TouchableOpacity>
     </View>
   );
