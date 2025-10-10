@@ -1,6 +1,14 @@
 import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  MutableRefObject,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   TouchableOpacity,
@@ -10,6 +18,7 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
+import type { ScrollView } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -75,6 +84,8 @@ interface MainLayoutProps {
   onRefresh?: () => void | Promise<any>;
   isRefreshing?: boolean;
   showOnGoingOrder?: boolean;
+  onScrollOffsetChange?: (offsetY: number) => void;
+  scrollRef?: MutableRefObject<ScrollView | null> | null;
 }
 
 export default function MainLayout({
@@ -95,7 +106,9 @@ export default function MainLayout({
   onTabPress,
   onRefresh,
   isRefreshing,
-  showOnGoingOrder = true
+  showOnGoingOrder = true,
+  onScrollOffsetChange,
+  scrollRef,
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
@@ -124,16 +137,67 @@ export default function MainLayout({
   const { order: ongoingOrder } = useOngoingOrder();
   const [isOngoingExpanded, setIsOngoingExpanded] = useState(false);
   const scrollY = useSharedValue(0);
+  const pendingScrollOffset = useSharedValue(0);
   const [activeHeader, setActiveHeader] = useState<'full' | 'collapsed'>(
     collapseEnabled && headerCollapsed ? 'collapsed' : 'full'
   );
 
-  const scrollHandler = useAnimatedScrollHandler((event) => {
-    if (!collapseEnabled) {
+  const shouldNotifyScroll = typeof onScrollOffsetChange === 'function';
+  const needsScrollHandling = collapseEnabled || shouldNotifyScroll;
+
+  const onScrollOffsetChangeRef = useRef<typeof onScrollOffsetChange>();
+  const pendingOffsetFrameRef = useRef<number | null>(null);
+  const latestOffsetRef = useRef(0);
+
+  useEffect(() => {
+    onScrollOffsetChangeRef.current = onScrollOffsetChange;
+  }, [onScrollOffsetChange]);
+
+  useEffect(
+    () => () => {
+      if (pendingOffsetFrameRef.current != null) {
+        if (typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(pendingOffsetFrameRef.current);
+        }
+        pendingOffsetFrameRef.current = null;
+      }
+    },
+    []
+  );
+
+  const flushPendingOffset = useCallback(() => {
+    pendingOffsetFrameRef.current = null;
+    const callback = onScrollOffsetChangeRef.current;
+    if (callback) {
+      callback(latestOffsetRef.current);
+    }
+  }, []);
+
+  const scheduleOffsetNotification = useCallback((offset: number) => {
+    latestOffsetRef.current = offset;
+    if (pendingOffsetFrameRef.current != null) {
       return;
     }
-    scrollY.value = event.contentOffset.y;
-  });
+
+    if (typeof requestAnimationFrame === 'function') {
+      pendingOffsetFrameRef.current = requestAnimationFrame(flushPendingOffset);
+      return;
+    }
+
+    flushPendingOffset();
+  }, [flushPendingOffset]);
+
+  const scrollHandler = useAnimatedScrollHandler(
+    (event) => {
+      const offsetY = event.contentOffset.y;
+      scrollY.value = offsetY;
+
+      if (shouldNotifyScroll) {
+        pendingScrollOffset.value = offsetY;
+      }
+    },
+    [shouldNotifyScroll]
+  );
 
   useEffect(() => {
     if (!collapseEnabled) {
@@ -170,6 +234,22 @@ export default function MainLayout({
       runOnJS(updateActiveHeader)(isCollapsed ? 'collapsed' : 'full');
     },
     [collapseEnabled, SCROLL_DISTANCE, updateActiveHeader]
+  );
+
+  useAnimatedReaction(
+    () => (shouldNotifyScroll ? pendingScrollOffset.value : null),
+    (current, previous) => {
+      if (current == null || current === previous) {
+        return;
+      }
+
+      if (previous != null && Math.abs(current - previous) < 0.5) {
+        return;
+      }
+
+      runOnJS(scheduleOffsetNotification)(current);
+    },
+    [shouldNotifyScroll, scheduleOffsetNotification]
   );
 
   const fullHeaderPointerEvents: 'auto' | 'none' =
@@ -210,12 +290,14 @@ export default function MainLayout({
     if (!collapseEnabled) {
       return { height: MAX_HEIGHT + 20 };
     }
+
     const height = interpolate(
       scrollY.value,
       [0, SCROLL_DISTANCE],
       [MAX_HEIGHT, MIN_HEIGHT],
       Extrapolate.CLAMP
     );
+
     return { height: height + 20 };
   });
 
@@ -353,11 +435,21 @@ export default function MainLayout({
         </View>
       );
 
+  const setScrollViewRef = useCallback(
+    (node: ScrollView | null) => {
+      if (scrollRef) {
+        scrollRef.current = node;
+      }
+    },
+    [scrollRef]
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {headerNode}
 
       <Animated.ScrollView
+        ref={setScrollViewRef}
         style={[styles.scrollView]}
         contentContainerStyle={{
           paddingTop: collapseEnabled ? vs(10) : vs(20),
@@ -365,7 +457,7 @@ export default function MainLayout({
         }}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
-        onScroll={collapseEnabled ? scrollHandler : undefined}>
+        onScroll={needsScrollHandling ? scrollHandler : undefined}>
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>
 

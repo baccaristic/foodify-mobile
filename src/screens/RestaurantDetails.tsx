@@ -1,5 +1,5 @@
 import { ArrowLeft, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { NavigationProp, ParamListBase, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -33,6 +34,11 @@ import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
+const CATEGORY_TAB_HEIGHT = vs(44);
+const CATEGORY_TAB_OVERLAY_TOP = vs(92);
+const MENU_TAB_SHOW_THRESHOLD = vs(24);
+const VIEWPORT_BUFFER_NO_TABS = vs(24);
+const VIEWPORT_BUFFER_WITH_TABS = CATEGORY_TAB_HEIGHT + vs(16);
 
 interface RestaurantDetailsRouteParams {
   RestaurantDetails: {
@@ -138,6 +144,12 @@ export default function RestaurantDetails() {
   const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
   const [initialDraftSelections, setInitialDraftSelections] =
     useState<Record<number, number[]>[] | null>(null);
+  const [activeMenuSection, setActiveMenuSection] = useState<string | null>(null);
+  const [showMenuTabs, setShowMenuTabs] = useState(false);
+
+  const scrollViewRef = useRef<ScrollViewType | null>(null);
+  const menuContentOffsetRef = useRef<number | null>(null);
+  const sectionRelativeOffsetsRef = useRef<Record<string, number>>({});
 
   const insets = useSafeAreaInsets();
   const { addItem, itemCount, items: cartItems, removeItem, restaurant: cartRestaurant } = useCart();
@@ -162,10 +174,35 @@ export default function RestaurantDetails() {
   });
 
   const allMenuItems = useMemo(() => (restaurant ? flattenCategories(restaurant.categories) : []), [restaurant]);
+  const menuSections = useMemo(() => {
+    if (!restaurant) {
+      return [] as { key: string; label: string }[];
+    }
+
+    const sections: { key: string; label: string }[] = [];
+
+    if (restaurant.topSales?.length) {
+      sections.push({ key: 'top-sales', label: 'Top Sales' });
+    }
+
+    restaurant.categories.forEach((category, index) => {
+      sections.push({ key: `category-${index}`, label: category.name });
+    });
+
+    return sections;
+  }, [restaurant]);
+  const hasMenuSections = menuSections.length > 0;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+
+  useEffect(() => {
+    sectionRelativeOffsetsRef.current = {};
+    menuContentOffsetRef.current = null;
+    setShowMenuTabs(false);
+    setActiveMenuSection(menuSections[0]?.key ?? null);
+  }, [menuSections, restaurant?.id]);
 
   useEffect(() => {
     if (isModalVisible) {
@@ -213,6 +250,79 @@ export default function RestaurantDetails() {
     handledCartItemId,
     restaurant,
   ]);
+
+  const handleMenuContentLayout = useCallback((event: LayoutChangeEvent) => {
+    menuContentOffsetRef.current = event.nativeEvent.layout.y;
+  }, []);
+
+  const handleSectionLayout = useCallback((key: string, event: LayoutChangeEvent) => {
+    sectionRelativeOffsetsRef.current[key] = event.nativeEvent.layout.y;
+  }, []);
+
+  const handleMenuScroll = useCallback(
+    (offsetY: number) => {
+      if (!hasMenuSections) {
+        return;
+      }
+
+      const relativeEntries = Object.entries(sectionRelativeOffsetsRef.current);
+      if (!relativeEntries.length) {
+        return;
+      }
+
+      const menuContentOffset = menuContentOffsetRef.current;
+      let shouldShowTabs = false;
+
+      if (typeof menuContentOffset === 'number') {
+        shouldShowTabs = offsetY >= Math.max(menuContentOffset - MENU_TAB_SHOW_THRESHOLD, 0);
+        setShowMenuTabs((previous) => (previous === shouldShowTabs ? previous : shouldShowTabs));
+      } else {
+        shouldShowTabs = showMenuTabs;
+      }
+
+      const baseOffset = typeof menuContentOffset === 'number' ? menuContentOffset : 0;
+
+      const entries = relativeEntries
+        .map(([key, value]) => [key, value + baseOffset] as [string, number])
+        .sort((a, b) => a[1] - b[1]);
+
+      const viewportOffset = offsetY + (shouldShowTabs ? VIEWPORT_BUFFER_WITH_TABS : VIEWPORT_BUFFER_NO_TABS);
+
+      let currentKey = entries[0][0];
+
+      for (const [key, value] of entries) {
+        if (!Number.isFinite(value)) {
+          continue;
+        }
+
+        if (viewportOffset >= value) {
+          currentKey = key;
+        } else {
+          break;
+        }
+      }
+
+      setActiveMenuSection((previous) => (previous === currentKey ? previous : currentKey));
+    },
+    [hasMenuSections, showMenuTabs]
+  );
+
+  const handleTabPress = useCallback(
+    (key: string) => {
+      setActiveMenuSection((previous) => (previous === key ? previous : key));
+
+      const menuContentOffset = menuContentOffsetRef.current ?? 0;
+      const relativeOffset = sectionRelativeOffsetsRef.current[key];
+
+      if (!scrollViewRef.current || typeof relativeOffset !== 'number') {
+        return;
+      }
+
+      const scrollTarget = Math.max(menuContentOffset + relativeOffset - VIEWPORT_BUFFER_WITH_TABS, 0);
+      scrollViewRef.current.scrollTo({ y: scrollTarget, animated: true });
+    },
+    []
+  );
 
   const handleOpenMenuItem = useCallback(
     (
@@ -315,35 +425,13 @@ export default function RestaurantDetails() {
     );
   };
 
-  const renderQuickFilters = () => {
-    if (!restaurant?.quickFilters?.length) {
-      return null;
-    }
-
-    return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="scrollbar-hide flex gap-2 overflow-x-auto p-4 py-2">
-        {restaurant.quickFilters.map((filter, idx) => (
-          <View
-            key={`${filter}-${idx}`}
-            className={`mr-2 rounded-xl border border-[#CA251B] px-4 py-2 ${idx === 0 ? 'bg-[#CA251B]' : 'bg-white'}`}>
-            <Text
-              allowFontScaling={false}
-              className={`font-['roboto'] text-sm font-semibold ${idx === 0 ? 'text-white' : 'text-[#CA251B]'}`}>
-              {filter}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-    );
-  };
-
   const renderTopSales = () => {
     if (!restaurant?.topSales?.length) {
       return null;
     }
 
     return (
-      <View className="px-4">
+      <View className="px-4" onLayout={(event) => handleSectionLayout('top-sales', event)}>
         <Text allowFontScaling={false} className="mb-4 text-lg font-semibold text-black/60">
           Top Sales ({restaurant.topSales.length})
         </Text>
@@ -366,20 +454,24 @@ export default function RestaurantDetails() {
 
     return (
       <View className="px-4">
-        {restaurant.categories.map((category) => (
-          <View key={category.name} className="mb-8">
-            <Text allowFontScaling={false} className="mb-4 text-lg font-semibold text-[#17213A]">
-              {category.name}
-            </Text>
-            <View className="flex-row flex-wrap justify-between gap-y-4">
-              {category.items.map((item) => (
-                <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
-                  <MenuItemCard item={item} onOpenModal={handleOpen} />
-                </View>
-              ))}
+        {restaurant.categories.map((category, index) => {
+          const sectionKey = `category-${index}`;
+
+          return (
+            <View key={sectionKey} className="mb-8" onLayout={(event) => handleSectionLayout(sectionKey, event)}>
+              <Text allowFontScaling={false} className="mb-4 text-lg font-semibold text-[#17213A]">
+                {category.name}
+              </Text>
+              <View className="flex-row flex-wrap justify-between gap-y-4">
+                {category.items.map((item) => (
+                  <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+                    <MenuItemCard item={item} onOpenModal={handleOpen} />
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
     );
   };
@@ -485,9 +577,12 @@ export default function RestaurantDetails() {
           </View>
         </View>
 
-        {renderQuickFilters()}
-        {renderTopSales()}
-        {renderCategories()}
+        {hasMenuSections ? (
+          <View onLayout={handleMenuContentLayout}>
+            {renderTopSales()}
+            {renderCategories()}
+          </View>
+        ) : null}
 
         <View style={{ height: hasCartItems ? 140 : 60 }} />
       </View>
@@ -554,7 +649,81 @@ export default function RestaurantDetails() {
         collapsedHeader={collapsedHeader}
         mainContent={mainContent()}
         showOnGoingOrder={false}
+        onScrollOffsetChange={handleMenuScroll}
+        scrollRef={scrollViewRef}
       />
+
+      {showMenuTabs && hasMenuSections && !isModalVisible ? (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            top: insets.top + CATEGORY_TAB_OVERLAY_TOP,
+            left: 0,
+            right: 0,
+            zIndex: 40,
+          }}
+        >
+          <View
+            style={{
+              marginHorizontal: 16,
+              borderRadius: 9999,
+              backgroundColor: '#FFFFFF',
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 6,
+            }}
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 4 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {menuSections.map((section) => {
+                const isActive = activeMenuSection === section.key;
+
+                return (
+                  <TouchableOpacity
+                    key={section.key}
+                    activeOpacity={0.85}
+                    onPress={() => handleTabPress(section.key)}
+                    style={{
+                      marginHorizontal: 4,
+                      paddingVertical: 6,
+                      paddingHorizontal: 12,
+                      borderRadius: 9999,
+                    }}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontWeight: '600',
+                        color: isActive ? '#CA251B' : '#6B7280',
+                        fontSize: 14,
+                      }}
+                    >
+                      {section.label}
+                    </Text>
+                    <View
+                      style={{
+                        marginTop: 6,
+                        height: 3,
+                        borderRadius: 9999,
+                        backgroundColor: isActive ? '#CA251B' : 'transparent',
+                      }}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      ) : null}
 
       {hasCartItems && !isModalVisible && (
         <FixedOrderBar onSeeCart={handleSeeCart} style={{ bottom: 60 + insets.bottom }} />
