@@ -192,3 +192,17 @@ export interface CreateOrderResponse {
   items: OrderedItemSummary[];
   workflow?: OrderWorkflowStepDto[];
 }
+
+export interface PaginatedOrdersResponse {
+  items: OrderDto[];
+  page: number;
+  pageSize: number;
+  totalItems?: number;
+  totalPages?: number;
+  hasNext?: boolean;
+}
+
+export interface MyOrdersParams {
+  page?: number;
+  pageSize?: number;
+}
