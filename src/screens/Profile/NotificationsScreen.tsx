@@ -1,5 +1,7 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, MailOpen } from 'lucide-react-native';
-import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,81 +10,313 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import MainLayout from '~/layouts/MainLayout';
+import {
+  enableAllNotificationPreferences,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+} from '~/api/notifications';
+import type {
+  NotificationPreferenceResponse,
+  NotificationPreferenceUpdate,
+  NotificationType,
+} from '~/interfaces/Notifications';
+import { NOTIFICATION_TYPES } from '~/interfaces/Notifications';
+import {
+  loadNotificationPreferencesFromCache,
+  saveNotificationPreferencesToCache,
+} from '~/services/notificationPreferencesCache';
+
+type PreferenceState = Record<NotificationType, NotificationPreferenceResponse>;
+
+const NOTIFICATION_QUERY_KEY = ['notifications', 'preferences'] as const;
+
+const createEmptyPreferenceState = (): PreferenceState => {
+  return NOTIFICATION_TYPES.reduce((acc, type) => {
+    acc[type] = { type, enabled: false, updatedAt: null };
+    return acc;
+  }, {} as PreferenceState);
+};
+
+const clonePreferenceState = (state: PreferenceState): PreferenceState => {
+  return NOTIFICATION_TYPES.reduce((acc, type) => {
+    const current = state[type];
+    acc[type] = {
+      type,
+      enabled: current?.enabled ?? false,
+      updatedAt: current?.updatedAt ?? null,
+    };
+    return acc;
+  }, {} as PreferenceState);
+};
+
+const normalisePreferencesList = (
+  preferences: NotificationPreferenceResponse[],
+): PreferenceState => {
+  const base = createEmptyPreferenceState();
+
+  preferences.forEach((preference) => {
+    if (preference && base[preference.type]) {
+      base[preference.type] = {
+        type: preference.type,
+        enabled: Boolean(preference.enabled),
+        updatedAt: preference.updatedAt ?? null,
+      };
+    }
+  });
+
+  return base;
+};
 
 export default function NotificationsScreen() {
-  const [loading, setLoading] = useState(false);
-  const [orderStatus, setOrderStatus] = useState(false);
-  const [offersPush, setOffersPush] = useState(false);
-  const [offersEmail, setOffersEmail] = useState(false);
+  const queryClient = useQueryClient();
+  const [preferences, setPreferences] = useState<PreferenceState>(() => createEmptyPreferenceState());
+  const [cacheLoaded, setCacheLoaded] = useState(false);
+  const preferencesRef = useRef(preferences);
+  const hasFocusedRef = useRef(false);
 
-  const handleEnableAll = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setOrderStatus(true);
-      setOffersPush(true);
-      setOffersEmail(true);
-      setLoading(false);
-    }, 1200);
-  };
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
+  const syncPreferences = useCallback((list: NotificationPreferenceResponse[]) => {
+    const normalised = normalisePreferencesList(list);
+    setPreferences(normalised);
+    void saveNotificationPreferencesToCache(list);
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    (async () => {
+      const cached = await loadNotificationPreferencesFromCache();
+
+      if (!isActive) {
+        return;
+      }
+
+      if (cached) {
+        setPreferences(normalisePreferencesList(cached));
+        queryClient.setQueryData(NOTIFICATION_QUERY_KEY, cached);
+      }
+
+      setCacheLoaded(true);
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, [queryClient]);
+
+  const { refetch } = useQuery<NotificationPreferenceResponse[]>({
+    queryKey: NOTIFICATION_QUERY_KEY,
+    queryFn: getNotificationPreferences,
+    enabled: cacheLoaded,
+    onSuccess: syncPreferences,
+    staleTime: 0,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocusedRef.current) {
+        void refetch();
+      } else {
+        hasFocusedRef.current = true;
+      }
+
+      return () => {};
+    }, [refetch]),
+  );
+
+  const handleServerSuccess = useCallback(
+    (nextPreferences: NotificationPreferenceResponse[]) => {
+      syncPreferences(nextPreferences);
+      queryClient.setQueryData(NOTIFICATION_QUERY_KEY, nextPreferences);
+    },
+    [queryClient, syncPreferences],
+  );
+
+  const updateMutation = useMutation<
+    NotificationPreferenceResponse[],
+    unknown,
+    NotificationPreferenceUpdate[],
+    PreferenceState
+  >({
+    mutationFn: updateNotificationPreferences,
+    onMutate: async (updates) => {
+      const previous = clonePreferenceState(preferencesRef.current);
+      const optimisticTimestamp = new Date().toISOString();
+
+      setPreferences((current) => {
+        const next = clonePreferenceState(current);
+
+        updates.forEach(({ type, enabled }) => {
+          next[type] = {
+            ...next[type],
+            enabled,
+            updatedAt: optimisticTimestamp,
+          };
+        });
+
+        return next;
+      });
+
+      return previous;
+    },
+    onError: (_error, _variables, context) => {
+      if (context) {
+        setPreferences(context);
+      }
+
+      Alert.alert('Unable to update notifications', 'Please try again in a moment.');
+    },
+    onSuccess: handleServerSuccess,
+  });
+
+  const enableAllMutation = useMutation<
+    NotificationPreferenceResponse[],
+    unknown,
+    void,
+    PreferenceState
+  >({
+    mutationFn: enableAllNotificationPreferences,
+    onMutate: async () => {
+      const previous = clonePreferenceState(preferencesRef.current);
+      const optimisticTimestamp = new Date().toISOString();
+
+      setPreferences((current) => {
+        const next = clonePreferenceState(current);
+
+        NOTIFICATION_TYPES.forEach((type) => {
+          next[type] = {
+            ...next[type],
+            enabled: true,
+            updatedAt: optimisticTimestamp,
+          };
+        });
+
+        return next;
+      });
+
+      return previous;
+    },
+    onError: (_error, _variables, context) => {
+      if (context) {
+        setPreferences(context);
+      }
+
+      Alert.alert('Unable to enable all notifications', 'Please try again in a moment.');
+    },
+    onSuccess: handleServerSuccess,
+  });
+
+  const isMutating = updateMutation.isPending || enableAllMutation.isPending;
+  const orderStatusEnabled = preferences.ORDER_UPDATES?.enabled ?? false;
+  const offersPushEnabled = preferences.MARKETING_PUSH?.enabled ?? false;
+  const offersEmailEnabled = preferences.MARKETING_EMAIL?.enabled ?? false;
+  const allEnabled = NOTIFICATION_TYPES.every((type) => preferences[type]?.enabled);
+  const controlsDisabled = isMutating;
+
+  const handleToggleChange = useCallback(
+    (type: NotificationType, enabled: boolean) => {
+      if (controlsDisabled) {
+        return;
+      }
+
+      updateMutation.mutate([{ type, enabled }]);
+    },
+    [controlsDisabled, updateMutation],
+  );
+
+  const handleEnableAll = useCallback(() => {
+    if (controlsDisabled || allEnabled) {
+      return;
+    }
+
+    enableAllMutation.mutate();
+  }, [allEnabled, controlsDisabled, enableAllMutation]);
+
+  const showLoadingOverlay = isMutating;
 
   const customHeader = (
     <View>
-      <HeaderWithBackButton title="Notifications"  titleMarginLeft={s(70)}/>
+      <HeaderWithBackButton title="Notifications" titleMarginLeft={s(70)} />
     </View>
-  )
+  );
+
   const mainContent = (
     <ScrollView style={styles.container}>
-      {loading && (
+      {showLoadingOverlay && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator color="#CA251B" size="large" />
         </View>
       )}
 
       <View style={styles.headerBox}>
-        <Text  allowFontScaling={false} style={styles.headerTitle}>Stay in the Loop — Get Real-Time Updates!</Text>
-        <Text  allowFontScaling={false} style={styles.headerText}>
+        <Text allowFontScaling={false} style={styles.headerTitle}>
+          Stay in the Loop — Get Real-Time Updates!
+        </Text>
+        <Text allowFontScaling={false} style={styles.headerText}>
           Turn on notifications to never miss order updates, delivery alerts, or exclusive deals.
           You’re in control — pick what matters most.
         </Text>
 
-        <TouchableOpacity style={styles.enableButton} onPress={handleEnableAll}>
-          <Text  allowFontScaling={false} style={styles.enableButtonText}>Enable All & Customize Later</Text>
+        <TouchableOpacity
+          style={[
+            styles.enableButton,
+            (controlsDisabled || allEnabled) && styles.enableButtonDisabled,
+          ]}
+          onPress={handleEnableAll}
+          disabled={controlsDisabled || allEnabled}
+          activeOpacity={0.88}
+        >
+          <Text allowFontScaling={false} style={styles.enableButtonText}>
+            Enable All & Customize Later
+          </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
         <View style={styles.titleRow}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>Order Status</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>
+            Order Status
+          </Text>
           <View style={styles.recommendedContainer}>
-            <Text allowFontScaling={false} style={styles.recommendedText}>Recommended</Text>
+            <Text allowFontScaling={false} style={styles.recommendedText}>
+              Recommended
+            </Text>
           </View>
         </View>
 
-        <Text  allowFontScaling={false} style={styles.sectionDesc}>
+        <Text allowFontScaling={false} style={styles.sectionDesc}>
           Get real-time updates from your courier + support team. We recommend this!
         </Text>
 
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <Bell size={24} color="#CA251B" style={styles.icon} />
-            <Text allowFontScaling={false}  style={styles.switchLabel}>Push Notifications</Text>
+            <Text allowFontScaling={false} style={styles.switchLabel}>
+              Push Notifications
+            </Text>
           </View>
           <Switch
             trackColor={{ false: '#ccc', true: '#CA251B' }}
             thumbColor="#fff"
-            value={orderStatus}
-            onValueChange={setOrderStatus}
+            value={orderStatusEnabled}
+            onValueChange={(value) => handleToggleChange('ORDER_UPDATES', value)}
+            disabled={controlsDisabled}
           />
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text allowFontScaling={false} style={styles.sectionTitle}>Special offers just for you</Text>
+        <Text allowFontScaling={false} style={styles.sectionTitle}>
+          Special offers just for you
+        </Text>
         <Text allowFontScaling={false} style={styles.sectionDesc}>
           Unlock discounts, promos, and coupons tailored to your tastes.
         </Text>
@@ -90,26 +324,32 @@ export default function NotificationsScreen() {
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <Bell size={24} color="#CA251B" style={styles.icon} />
-            <Text allowFontScaling={false} style={styles.switchLabel}>Push Notifications</Text>
+            <Text allowFontScaling={false} style={styles.switchLabel}>
+              Push Notifications
+            </Text>
           </View>
           <Switch
             trackColor={{ false: '#ccc', true: '#CA251B' }}
             thumbColor="#fff"
-            value={offersPush}
-            onValueChange={setOffersPush}
+            value={offersPushEnabled}
+            onValueChange={(value) => handleToggleChange('MARKETING_PUSH', value)}
+            disabled={controlsDisabled}
           />
         </View>
 
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <MailOpen size={24} color="#CA251B" style={styles.icon} />
-            <Text allowFontScaling={false} style={styles.switchLabel}>Personalized Emails</Text>
+            <Text allowFontScaling={false} style={styles.switchLabel}>
+              Personalized Emails
+            </Text>
           </View>
           <Switch
             trackColor={{ false: '#ccc', true: '#CA251B' }}
             thumbColor="#fff"
-            value={offersEmail}
-            onValueChange={setOffersEmail}
+            value={offersEmailEnabled}
+            onValueChange={(value) => handleToggleChange('MARKETING_EMAIL', value)}
+            disabled={controlsDisabled}
           />
         </View>
       </View>
@@ -137,10 +377,10 @@ const styles = ScaledSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: '16@s',
-     borderTopColor: '#F9FAFB',
-        borderColor:'#F9FAFB',
-        borderTopWidth: 2,
-        borderBottomWidth: 0,
+    borderTopColor: '#F9FAFB',
+    borderColor: '#F9FAFB',
+    borderTopWidth: 2,
+    borderBottomWidth: 0,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -154,7 +394,7 @@ const styles = ScaledSheet.create({
     borderRadius: '12@ms',
     padding: '16@s',
     fontStyle: 'Roboto',
-    marginTop:'10@s',
+    marginTop: '10@s',
   },
   headerTitle: {
     fontSize: '16@ms',
@@ -174,6 +414,9 @@ const styles = ScaledSheet.create({
     marginTop: '14@vs',
     alignSelf: 'center',
   },
+  enableButtonDisabled: {
+    opacity: 0.6,
+  },
   enableButtonText: {
     color: '#FFFFFF',
     fontSize: '12@ms',
@@ -185,7 +428,6 @@ const styles = ScaledSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: '14@vs',
     fontStyle: 'Roboto',
-
   },
   sectionTitle: {
     fontSize: '15@ms',
@@ -194,11 +436,10 @@ const styles = ScaledSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'center', 
-    marginBottom: vs(6),  
-    gap: s(6),            
+    alignItems: 'center',
+    marginBottom: vs(6),
+    gap: s(6),
   },
-
   recommendedContainer: {
     backgroundColor: '#CA251B',
     borderRadius: 8,
@@ -208,14 +449,11 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     height: vs(20),
   },
-
   recommendedText: {
     color: '#FFF',
     fontSize: '11@ms',
     fontWeight: '600',
-
   },
-
   sectionDesc: {
     fontSize: '13@ms',
     color: '#555',
@@ -231,7 +469,6 @@ const styles = ScaledSheet.create({
     fontSize: '14@ms',
     color: '#17213A',
     fontWeight: '600',
-
   },
   labelRow: {
     flexDirection: 'row',
@@ -241,5 +478,4 @@ const styles = ScaledSheet.create({
     marginRight: s(6),
     marginTop: 1,
   },
-
 });

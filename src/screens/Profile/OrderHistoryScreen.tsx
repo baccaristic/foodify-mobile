@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import type { ListRenderItem } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft } from 'lucide-react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { Image } from 'expo-image';
 
@@ -13,6 +13,7 @@ import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 
 const accentColor = '#CA251B';
 const primaryColor = '#17213A';
+const PAGE_SIZE = 10;
 
 const emptyIllustration = require('../../../assets/emptyHistory.png');
 const orderPlaceholder = require('../../../assets/baguette.png');
@@ -56,15 +57,56 @@ const buildOrderSummary = (order: OrderDto) => {
 const OrderHistoryScreen = () => {
   const navigation = useNavigation();
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery<OrderDto[]>({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['client', 'my-orders'],
-    queryFn: getMyOrders,
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      getMyOrders({
+        page: typeof pageParam === 'number' ? pageParam : Number(pageParam) || 1,
+        pageSize: PAGE_SIZE,
+      }),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage) {
+        return undefined;
+      }
+
+      if (lastPage.hasNext === false) {
+        return undefined;
+      }
+
+      const nextPage = lastPage.page + 1;
+
+      if (lastPage.hasNext === true) {
+        return nextPage;
+      }
+
+      if (typeof lastPage.totalPages === 'number' && nextPage > lastPage.totalPages) {
+        return undefined;
+      }
+
+      if (lastPage.items.length < lastPage.pageSize) {
+        return undefined;
+      }
+
+      return nextPage;
+    },
   });
 
   const orders = useMemo(() => {
-    if (!data?.length) {
+    if (!data?.pages?.length) {
       return [] as OrderDto[];
     }
+
+    const collected = data.pages.flatMap((page) => page.items ?? []);
 
     const parseDate = (value?: string) => {
       if (!value) {
@@ -75,42 +117,88 @@ const OrderHistoryScreen = () => {
       return Number.isFinite(timestamp) ? timestamp : 0;
     };
 
-    return [...data].sort((a, b) => parseDate(b.createdAt) - parseDate(a.createdAt));
+    return collected.sort((a, b) => parseDate(b.createdAt) - parseDate(a.createdAt));
   }, [data]);
 
   const hasOrders = orders.length > 0;
+  const isRefreshing = isFetching && !isLoading && !isFetchingNextPage;
 
-  let content: React.ReactNode;
+  const handleRefresh = useCallback(() => {
+    return refetch();
+  }, [refetch]);
 
-  if (isLoading) {
-    content = (
-      <View style={styles.stateWrapper}>
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text allowFontScaling={false} style={styles.stateTitle}>
-          Fetching your delicious memories...
-        </Text>
+  const handleEndReached = useCallback(() => {
+    if (!hasNextPage || isFetchingNextPage) {
+      return;
+    }
+
+    void fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const renderOrderItem = useCallback<ListRenderItem<OrderDto>>(
+    ({ item }) => (
+      <View style={styles.orderCard}>
+        <Image source={orderPlaceholder} style={styles.orderImage} contentFit="cover" />
+        <View style={styles.orderContent}>
+          <Text allowFontScaling={false} style={styles.orderName} numberOfLines={1}>
+            {item.restaurantName}
+          </Text>
+          <Text allowFontScaling={false} style={styles.orderSummary} numberOfLines={2}>
+            {buildOrderSummary(item)}
+          </Text>
+          <View style={styles.orderFooter}>
+            <Text allowFontScaling={false} style={styles.orderTotal}>
+              {formatOrderTotal(item.total)}
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.orderActionButton}
+              onPress={() =>
+                navigation.navigate('OrderTracking' as never, { orderId: item.id } as never)
+              }
+            >
+              <Text allowFontScaling={false} style={styles.orderActionLabel}>
+                See Details
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    );
-  } else if (isError) {
-    content = (
-      <View style={styles.stateWrapper}>
-        <Text allowFontScaling={false} style={styles.stateTitle}>
-          We couldn’t load your orders.
-        </Text>
-        <Text allowFontScaling={false} style={styles.stateSubtitle}>
-          Check your connection and try again in a moment.
-        </Text>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.retryButton}
-          onPress={() => refetch()}
-        >
-          <Text allowFontScaling={false} style={styles.retryLabel}>Try again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  } else if (!hasOrders) {
-    content = (
+    ),
+    [navigation],
+  );
+
+  const renderSeparator = useCallback(() => <View style={styles.orderSeparator} />, []);
+
+  const renderEmptyState = useCallback(() => {
+    if (isLoading) {
+      return (
+        <View style={styles.stateWrapper}>
+          <ActivityIndicator size="large" color={accentColor} />
+          <Text allowFontScaling={false} style={styles.stateTitle}>
+            Fetching your delicious memories...
+          </Text>
+        </View>
+      );
+    }
+
+    if (isError) {
+      return (
+        <View style={styles.stateWrapper}>
+          <Text allowFontScaling={false} style={styles.stateTitle}>
+            We couldn’t load your orders.
+          </Text>
+          <Text allowFontScaling={false} style={styles.stateSubtitle}>
+            Check your connection and try again in a moment.
+          </Text>
+          <TouchableOpacity activeOpacity={0.85} style={styles.retryButton} onPress={() => refetch()}>
+            <Text allowFontScaling={false} style={styles.retryLabel}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
       <View style={styles.emptyBody}>
         <Image source={emptyIllustration} style={styles.emptyIllustration} contentFit="contain" />
         <Text allowFontScaling={false} style={styles.emptyTitle}>
@@ -130,39 +218,45 @@ const OrderHistoryScreen = () => {
         </TouchableOpacity>
       </View>
     );
-  } else {
-    content = (
-      <View style={styles.ordersWrapper}>
-        {orders.map((order) => (
-          <View key={order.id} style={styles.orderCard}>
-            <Image source={orderPlaceholder} style={styles.orderImage} contentFit="cover" />
-            <View style={styles.orderContent}>
-              <Text allowFontScaling={false} style={styles.orderName} numberOfLines={1}>
-                {order.restaurantName}
-              </Text>
-              <Text allowFontScaling={false} style={styles.orderSummary} numberOfLines={2}>
-                {buildOrderSummary(order)}
-              </Text>
-              <View style={styles.orderFooter}>
-                <Text allowFontScaling={false} style={styles.orderTotal}>
-                  {formatOrderTotal(order.total)}
-                </Text>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.orderActionButton}
-                  onPress={() => navigation.navigate('OrderTracking' as never)}
-                >
-                  <Text allowFontScaling={false} style={styles.orderActionLabel}>
-                    See Details
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        ))}
+  }, [isLoading, isError, navigation, refetch]);
+
+  const renderFooter = useCallback(() => {
+    if (!hasOrders) {
+      return null;
+    }
+
+    return (
+      <View style={styles.listFooter}>
+        {isFetchingNextPage ? (
+          <ActivityIndicator size="small" color={accentColor} />
+        ) : null}
+        <View style={styles.footerSpacer} />
       </View>
     );
-  }
+  }, [hasOrders, isFetchingNextPage]);
+
+  const virtualizedListProps = useMemo(
+    () => ({
+      data: orders,
+      keyExtractor: (item: OrderDto) => item.id.toString(),
+      renderItem: renderOrderItem,
+      ItemSeparatorComponent: renderSeparator,
+      ListEmptyComponent: renderEmptyState,
+      ListFooterComponent: renderFooter,
+      contentContainerStyle: styles.ordersListContent,
+      showsVerticalScrollIndicator: false,
+      onEndReached: handleEndReached,
+      onEndReachedThreshold: 0.35,
+    }),
+    [
+      orders,
+      renderOrderItem,
+      renderSeparator,
+      renderEmptyState,
+      renderFooter,
+      handleEndReached,
+    ],
+  );
 
   const customHeader = (
     <View>
@@ -193,10 +287,11 @@ const OrderHistoryScreen = () => {
       headerMinHeight={vs(40)}
       activeTab="Profile"
       customHeader={customHeader}
-      mainContent={content}
+      mainContent={<></>}
       floatingContent={continueOrderingButton}
-      onRefresh={refetch}
-      isRefreshing={isFetching}
+      onRefresh={handleRefresh}
+      isRefreshing={isRefreshing}
+      virtualizedListProps={virtualizedListProps}
     />
   );
 };
@@ -281,16 +376,18 @@ const styles = ScaledSheet.create({
     fontSize: '14@ms',
     fontWeight: '700',
   },
-  ordersWrapper: {
-    flex: 1,
+  ordersListContent: {
+    flexGrow: 1,
     paddingHorizontal: '16@s',
     paddingBottom: '140@vs',
     paddingTop: '8@vs',
-    gap: '16@vs',
     borderTopColor: '#F9FAFB',
     borderColor: '#F9FAFB',
     borderTopWidth: 2,
     borderBottomWidth: 0,
+  },
+  orderSeparator: {
+    height: '16@vs',
   },
   orderCard: {
     flexDirection: 'row',
@@ -346,6 +443,13 @@ const styles = ScaledSheet.create({
     color: '#FFFFFF',
     fontSize: '12@ms',
     fontWeight: '700',
+  },
+  listFooter: {
+    paddingTop: '12@vs',
+    alignItems: 'center',
+  },
+  footerSpacer: {
+    height: '120@vs',
   },
   continueContainer: {
     width: '100%',
