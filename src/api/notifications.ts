@@ -4,7 +4,7 @@ import type {
   NotificationPreferenceUpdate,
 } from '~/interfaces/Notifications';
 
-const PREFERENCES_ENDPOINT = '/api/notifications/preferences';
+const PREFERENCES_ENDPOINT = '/notifications/preferences';
 
 export async function getNotificationPreferences(): Promise<NotificationPreferenceResponse[]> {
   const response = await client.get<NotificationPreferenceResponse[]>(PREFERENCES_ENDPOINT);
