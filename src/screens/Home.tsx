@@ -53,12 +53,17 @@ export default function HomePage() {
         pageSize: PAGE_SIZE,
       }),
     getNextPageParam: (lastPage) => {
-      const fetchedItems = lastPage.page * lastPage.pageSize + lastPage.items.length;
-      if (fetchedItems >= lastPage.totalItems) {
+      const nextPage = lastPage.page + 1;
+      const hasValidTotal = typeof lastPage.totalItems === 'number' && lastPage.totalItems > 0;
+      const fetchedCount = (lastPage.page + 1) * lastPage.pageSize;
+      const reachedEndByTotal = hasValidTotal && fetchedCount >= lastPage.totalItems;
+      const reachedEndByLength = lastPage.items.length < lastPage.pageSize;
+
+      if (reachedEndByTotal || reachedEndByLength) {
         return undefined;
       }
 
-      return lastPage.page + 1;
+      return nextPage;
     },
     initialPageParam: INITIAL_PAGE,
   });

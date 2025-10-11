@@ -17,6 +17,8 @@ import {
   StyleSheet,
   Dimensions,
   RefreshControl,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from 'react-native';
 import type { FlatList as RNFlatList, FlatListProps, ScrollView } from 'react-native';
 import Animated, {
@@ -198,7 +200,7 @@ export default function MainLayout({
         pendingScrollOffset.value = offsetY;
       }
     },
-    [shouldNotifyScroll]
+    [pendingScrollOffset, scrollY, shouldNotifyScroll]
   );
 
   useEffect(() => {
@@ -448,6 +450,26 @@ export default function MainLayout({
 
   const isVirtualized = Boolean(virtualizedListProps);
 
+  const userVirtualizedOnScroll = virtualizedListProps?.onScroll;
+
+  const handleVirtualizedScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (needsScrollHandling) {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        scrollY.value = offsetY;
+
+        if (shouldNotifyScroll) {
+          pendingScrollOffset.value = offsetY;
+        }
+      }
+
+      if (userVirtualizedOnScroll) {
+        userVirtualizedOnScroll(event);
+      }
+    },
+    [needsScrollHandling, pendingScrollOffset, scrollY, shouldNotifyScroll, userVirtualizedOnScroll]
+  );
+
   const resolvedContentContainerStyle = useMemo(() => {
     const paddingStyle = {
       paddingTop: collapseEnabled ? vs(10) : vs(20),
@@ -473,7 +495,12 @@ export default function MainLayout({
 
   const renderScrollComponent = () => {
     if (isVirtualized) {
-      const { contentContainerStyle: _ignored, style: userStyle, ...restVirtualizedProps } = virtualizedListProps ?? {};
+      const {
+        contentContainerStyle: _ignored,
+        style: userStyle,
+        onScroll: _ignoredOnScroll,
+        ...restVirtualizedProps
+      } = virtualizedListProps ?? {};
 
       return (
         <Animated.FlatList
@@ -485,7 +512,7 @@ export default function MainLayout({
           }
           refreshControl={refreshControl}
           scrollEventThrottle={16}
-          onScroll={needsScrollHandling ? scrollHandler : restVirtualizedProps?.onScroll}
+          onScroll={needsScrollHandling ? handleVirtualizedScroll : userVirtualizedOnScroll}
         />
       );
     }
