@@ -99,6 +99,15 @@ export interface NearbyRestaurantsParams {
   lng: number;
   radiusKm?: number;
   category?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedRestaurantSummaryResponse {
+  items: RestaurantSummary[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
 }
 
 export type RestaurantSearchSort = "picked" | "popular" | "rating";

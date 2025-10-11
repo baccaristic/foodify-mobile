@@ -18,7 +18,7 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
-import type { ScrollView } from 'react-native';
+import type { FlatList as RNFlatList, FlatListProps, ScrollView } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -52,7 +52,7 @@ const defaultNavItems: NavItem[] = [
 const useOptionalNavigation = () => {
   try {
     return useNavigation<NavigationProp<Record<string, object | undefined>>>();
-  } catch (_error) {
+  } catch {
     return undefined;
   }
 };
@@ -60,7 +60,7 @@ const useOptionalNavigation = () => {
 const useOptionalRoute = () => {
   try {
     return useRoute();
-  } catch (_error) {
+  } catch {
     return undefined;
   }
 };
@@ -85,7 +85,8 @@ interface MainLayoutProps {
   isRefreshing?: boolean;
   showOnGoingOrder?: boolean;
   onScrollOffsetChange?: (offsetY: number) => void;
-  scrollRef?: MutableRefObject<ScrollView | null> | null;
+  scrollRef?: MutableRefObject<ScrollView | RNFlatList<any> | null> | null;
+  virtualizedListProps?: Animated.AnimatedProps<FlatListProps<any>> | null;
 }
 
 export default function MainLayout({
@@ -109,6 +110,7 @@ export default function MainLayout({
   showOnGoingOrder = true,
   onScrollOffsetChange,
   scrollRef,
+  virtualizedListProps = null,
 }: MainLayoutProps) {
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
@@ -436,7 +438,7 @@ export default function MainLayout({
       );
 
   const setScrollViewRef = useCallback(
-    (node: ScrollView | null) => {
+    (node: ScrollView | RNFlatList<any> | null) => {
       if (scrollRef) {
         scrollRef.current = node;
       }
@@ -444,22 +446,68 @@ export default function MainLayout({
     [scrollRef]
   );
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {headerNode}
+  const isVirtualized = Boolean(virtualizedListProps);
 
+  const resolvedContentContainerStyle = useMemo(() => {
+    const paddingStyle = {
+      paddingTop: collapseEnabled ? vs(10) : vs(20),
+      paddingBottom: showFooter ? resolvedFooterHeight : fallbackContentPadding,
+    };
+
+    if (!isVirtualized) {
+      return paddingStyle;
+    }
+
+    const userContentStyle = virtualizedListProps?.contentContainerStyle;
+
+    if (Array.isArray(userContentStyle)) {
+      return [paddingStyle, ...userContentStyle];
+    }
+
+    if (userContentStyle) {
+      return [paddingStyle, userContentStyle];
+    }
+
+    return paddingStyle;
+  }, [collapseEnabled, fallbackContentPadding, isVirtualized, resolvedFooterHeight, showFooter, virtualizedListProps]);
+
+  const renderScrollComponent = () => {
+    if (isVirtualized) {
+      const { contentContainerStyle: _ignored, style: userStyle, ...restVirtualizedProps } = virtualizedListProps ?? {};
+
+      return (
+        <Animated.FlatList
+          ref={setScrollViewRef}
+          {...restVirtualizedProps}
+          style={[styles.scrollView, userStyle]}
+          contentContainerStyle={
+            resolvedContentContainerStyle as FlatListProps<any>['contentContainerStyle']
+          }
+          refreshControl={refreshControl}
+          scrollEventThrottle={16}
+          onScroll={needsScrollHandling ? scrollHandler : restVirtualizedProps?.onScroll}
+        />
+      );
+    }
+
+    return (
       <Animated.ScrollView
         ref={setScrollViewRef}
         style={[styles.scrollView]}
-        contentContainerStyle={{
-          paddingTop: collapseEnabled ? vs(10) : vs(20),
-          paddingBottom: showFooter ? resolvedFooterHeight : fallbackContentPadding,
-        }}
+        contentContainerStyle={resolvedContentContainerStyle}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
         onScroll={needsScrollHandling ? scrollHandler : undefined}>
         <View style={styles.mainContent}>{mainContent}</View>
       </Animated.ScrollView>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {headerNode}
+
+      {renderScrollComponent()}
 
       {floatingContent ? (
         <View

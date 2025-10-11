@@ -848,7 +848,7 @@ const CheckoutOrder: React.FC = () => {
               </View>
             </View>
           </View>
-          {isViewMode && (
+          {isViewMode && viewOrder?.status === 'IN_DELIVERY' && (
             <View className="mt-4 rounded-3xl border border-[#F0F1F3] bg-white p-5">
               <Text
                 allowFontScaling={false}

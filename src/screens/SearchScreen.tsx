@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import { Search, SlidersHorizontal, Star } from "lucide-react-native";
@@ -41,7 +41,7 @@ import { BASE_API_URL } from "@env";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
-const PAGE = 1;
+const INITIAL_PAGE = 0;
 const PAGE_SIZE = 20;
 const { height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const MODAL_HEIGHT = SCREEN_HEIGHT;
@@ -301,7 +301,7 @@ export default function SearchScreen() {
   const { promotions, topChoice, freeDelivery } = quickFilters;
   const { sort, topEat, maxFee } = overlayFilters;
 
-  const queryParams = useMemo<RestaurantSearchParams>(() => {
+  const searchParamsBase = useMemo<RestaurantSearchParams>(() => {
     const trimmedQuery = debouncedSearchTerm.trim();
 
     return {
@@ -314,15 +314,35 @@ export default function SearchScreen() {
       sort,
       topEatOnly: topEat,
       maxDeliveryFee: maxFee,
-      page: PAGE,
       pageSize: PAGE_SIZE,
     };
   }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee, userLatitude, userLongitude]);
 
-  const { data, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ["restaurants-search", queryParams],
-    queryFn: () => searchRestaurants(queryParams),
-    keepPreviousData: true,
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isRefetching,
+  } = useInfiniteQuery({
+    queryKey: ["restaurants-search", searchParamsBase],
+    queryFn: ({ pageParam = INITIAL_PAGE }) =>
+      searchRestaurants({
+        ...searchParamsBase,
+        page: pageParam,
+      }),
+    getNextPageParam: (lastPage) => {
+      const fetchedItems = lastPage.page * lastPage.pageSize + lastPage.items.length;
+      if (fetchedItems >= lastPage.totalItems) {
+        return undefined;
+      }
+
+      return lastPage.page + 1;
+    },
+    initialPageParam: INITIAL_PAGE,
   });
 
   const menuItemFavoriteMutation = useMutation({
@@ -376,7 +396,7 @@ export default function SearchScreen() {
         setSelectedMenuItem(menuItemDetails);
         setSelectedRestaurant({ id: details.id, name: details.name });
         setIsMenuModalVisible(true);
-      } catch (error) {
+      } catch {
         Alert.alert("Something went wrong", "We couldn't load this promoted item. Please try again.");
       } finally {
         setIsFetchingMenuItem(false);
@@ -478,8 +498,11 @@ export default function SearchScreen() {
     setIsMenuModalVisible(false);
   }, []);
 
-  const restaurants = data?.items ?? [];
-  const totalItems = data?.totalItems ?? 0;
+  const restaurants = useMemo(
+    () => data?.pages.flatMap((page) => page.items) ?? [],
+    [data]
+  );
+  const totalItems = data?.pages?.[0]?.totalItems ?? 0;
 
   const showResultCount = useMemo(() => {
     const baseQueryActive = debouncedSearchTerm.trim().length > 0;
@@ -492,8 +515,97 @@ export default function SearchScreen() {
     return baseQueryActive || quickFiltersActive || overlayChanged;
   }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee]);
 
-  const showInlineSpinner = isFetching && !isLoading;
-  const isEmpty = !isLoading && !isFetching && !isError && restaurants.length === 0;
+  const showInlineSpinner = isRefetching && !isFetchingNextPage && restaurants.length > 0;
+  const isEmpty = !isLoading && !isError && !isRefetching && restaurants.length === 0;
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const renderResultItem = useCallback(
+    ({ item }: { item: RestaurantSearchItem }) => (
+      <RestaurantResult
+        restaurant={item}
+        onRestaurantPress={handleRestaurantPress}
+        onPromotedItemPress={handlePromotedItemPress}
+      />
+    ),
+    [handlePromotedItemPress, handleRestaurantPress]
+  );
+
+  const renderListHeader = useCallback(() => (
+    <View style={styles.mainWrapper}>
+      <View style={{ height: vs(10) }} />
+
+      {showResultCount && (
+        <Text style={styles.resultsCount}>
+          {isLoading
+            ? "Searching..."
+            : `${totalItems} Results${debouncedSearchTerm ? ` for “${debouncedSearchTerm}”` : ""}`}
+        </Text>
+      )}
+
+      {showInlineSpinner && (
+        <View style={styles.inlineSpinner}>
+          <ActivityIndicator size="small" color="#CA251B" />
+          <Text style={styles.inlineSpinnerText}>Updating results...</Text>
+        </View>
+      )}
+    </View>
+  ), [debouncedSearchTerm, isLoading, showInlineSpinner, showResultCount, totalItems]);
+
+  const renderListEmpty = useCallback(() => {
+    if (isLoading) {
+      return (
+        <View style={styles.stateContainer}>
+          <ActivityIndicator size="large" color="#CA251B" />
+          <Text style={styles.stateText}>Loading restaurants...</Text>
+        </View>
+      );
+    }
+
+    if (isError) {
+      return (
+        <View style={styles.stateContainer}>
+          <Text style={styles.stateText}>We couldn’t load restaurants. Please try again.</Text>
+          <TouchableOpacity style={styles.retryButton} activeOpacity={0.8} onPress={() => refetch()}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (isEmpty) {
+      return (
+        <View style={styles.stateContainer}>
+          <Text style={styles.stateText}>No restaurants match your filters yet.</Text>
+        </View>
+      );
+    }
+
+    return null;
+  }, [isEmpty, isError, isLoading, refetch]);
+
+  const renderListFooter = useCallback(() => {
+    if (!isFetchingNextPage) {
+      return null;
+    }
+
+    return (
+      <View style={styles.listFooter}>
+        <ActivityIndicator size="small" color="#CA251B" />
+        <Text style={styles.inlineSpinnerText}>Loading more restaurants...</Text>
+      </View>
+    );
+  }, [isFetchingNextPage]);
+
+  const listItemSeparator = useCallback(() => <View style={styles.itemSeparator} />, []);
+
+  const mainContent = <></>;
+
+  const isRefreshing = isRefetching && !isFetchingNextPage;
 
   const customHeader = (
     <Animated.View entering={FadeIn.duration(500)} style={styles.headerWrapper}>
@@ -546,54 +658,6 @@ export default function SearchScreen() {
     </Animated.View>
   );
 
-  const mainContent = (
-    <View style={styles.mainWrapper}>
-      <View style={{ height: vs(10) }} />
-
-      {showResultCount && (
-        <Text style={styles.resultsCount}>
-          {isLoading ? "Searching..." : `${totalItems} Results${debouncedSearchTerm ? ` for “${debouncedSearchTerm}”` : ""}`}
-        </Text>
-      )}
-
-      {showInlineSpinner && (
-        <View style={styles.inlineSpinner}>
-          <ActivityIndicator size="small" color="#CA251B" />
-          <Text style={styles.inlineSpinnerText}>Updating results...</Text>
-        </View>
-      )}
-
-      <View style={styles.cardList}>
-        {isLoading ? (
-          <View style={styles.stateContainer}>
-            <ActivityIndicator size="large" color="#CA251B" />
-            <Text style={styles.stateText}>Loading restaurants...</Text>
-          </View>
-        ) : isError ? (
-          <View style={styles.stateContainer}>
-            <Text style={styles.stateText}>We couldn’t load restaurants. Please try again.</Text>
-            <TouchableOpacity style={styles.retryButton} activeOpacity={0.8} onPress={() => refetch()}>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : isEmpty ? (
-          <View style={styles.stateContainer}>
-            <Text style={styles.stateText}>No restaurants match your filters yet.</Text>
-          </View>
-        ) : (
-          restaurants.map((restaurant) => (
-            <RestaurantResult
-              key={`restaurant-${restaurant.id}`}
-              restaurant={restaurant}
-              onRestaurantPress={handleRestaurantPress}
-              onPromotedItemPress={handlePromotedItemPress}
-            />
-          ))
-        )}
-      </View>
-    </View>
-  );
-
   return (
     <>
       <MainLayout
@@ -606,6 +670,23 @@ export default function SearchScreen() {
         customHeader={customHeader}
         enableHeaderCollapse={false}
         mainContent={mainContent}
+        isRefreshing={isRefreshing}
+        onRefresh={() => {
+          refetch();
+        }}
+        virtualizedListProps={{
+          data: restaurants,
+          renderItem: renderResultItem,
+          keyExtractor: (item) => `restaurant-${item.id}`,
+          ListHeaderComponent: renderListHeader,
+          ListEmptyComponent: renderListEmpty,
+          ListFooterComponent: renderListFooter,
+          ItemSeparatorComponent: listItemSeparator,
+          onEndReached: handleEndReached,
+          onEndReachedThreshold: 0.4,
+          showsVerticalScrollIndicator: false,
+          contentContainerStyle: styles.listContent,
+        }}
       />
       <FiltersOverlay
         visible={showFilters}
@@ -702,13 +783,16 @@ const styles = ScaledSheet.create({
     fontWeight: "500",
   },
   mainWrapper: {
-    flex: 1,
     backgroundColor: "transparent",
     borderTopLeftRadius: "24@ms",
     borderTopRightRadius: "24@ms",
     overflow: "hidden",
     paddingHorizontal: "16@s",
-    paddingBottom: "80@vs",
+    paddingBottom: "16@vs",
+  },
+  listContent: {
+    paddingHorizontal: '16@s',
+    paddingBottom: '80@vs',
   },
   resultsCount: {
     fontFamily: "Roboto",
@@ -731,7 +815,16 @@ const styles = ScaledSheet.create({
     fontSize: "13@ms",
     fontWeight: "500",
   },
-  cardList: { gap: "16@vs" },
+  listFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8@s',
+    paddingVertical: '16@vs',
+  },
+  itemSeparator: {
+    height: '16@vs',
+  },
   restaurantResult: { gap: "12@vs" },
   promotedMenuList: { gap: "12@vs", marginTop: "6@vs" },
   promotedMenuHeading: {
