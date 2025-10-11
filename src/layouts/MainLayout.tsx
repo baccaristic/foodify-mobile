@@ -455,6 +455,8 @@ export default function MainLayout({
 
   const userVirtualizedOnScroll = virtualizedListProps?.onScroll;
   const userVirtualizedOnEndReached = virtualizedListProps?.onEndReached;
+  const userVirtualizedOnMomentumScrollBegin = virtualizedListProps?.onMomentumScrollBegin;
+  const userVirtualizedOnScrollBeginDrag = virtualizedListProps?.onScrollBeginDrag;
   const endReachedThresholdValue =
     typeof virtualizedListProps?.onEndReachedThreshold === 'number'
       ? virtualizedListProps.onEndReachedThreshold
@@ -464,6 +466,16 @@ export default function MainLayout({
   useEffect(() => {
     endReachedCalledRef.current = false;
   }, [endReachedThresholdValue, userVirtualizedOnEndReached]);
+
+  const virtualizedDataDependency = virtualizedListProps?.data;
+  const virtualizedExtraDataDependency = virtualizedListProps?.extraData;
+  const virtualizedDataLength = Array.isArray(virtualizedDataDependency)
+    ? virtualizedDataDependency.length
+    : null;
+
+  useEffect(() => {
+    endReachedCalledRef.current = false;
+  }, [virtualizedDataLength, virtualizedDataDependency, virtualizedExtraDataDependency]);
 
   const maybeCallEndReached = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -527,6 +539,28 @@ export default function MainLayout({
     ]
   );
 
+  const handleMomentumScrollBegin = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      endReachedCalledRef.current = false;
+
+      if (userVirtualizedOnMomentumScrollBegin) {
+        userVirtualizedOnMomentumScrollBegin(event);
+      }
+    },
+    [userVirtualizedOnMomentumScrollBegin]
+  );
+
+  const handleScrollBeginDrag = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      endReachedCalledRef.current = false;
+
+      if (userVirtualizedOnScrollBeginDrag) {
+        userVirtualizedOnScrollBeginDrag(event);
+      }
+    },
+    [userVirtualizedOnScrollBeginDrag]
+  );
+
   const resolvedContentContainerStyle = useMemo(() => {
     const paddingStyle = {
       paddingTop: collapseEnabled ? vs(10) : vs(20),
@@ -573,6 +607,16 @@ export default function MainLayout({
           scrollEventThrottle={16}
           onScroll={
             shouldInterceptVirtualizedScroll ? handleVirtualizedScroll : userVirtualizedOnScroll
+          }
+          onMomentumScrollBegin={
+            shouldInterceptVirtualizedScroll
+              ? handleMomentumScrollBegin
+              : userVirtualizedOnMomentumScrollBegin
+          }
+          onScrollBeginDrag={
+            shouldInterceptVirtualizedScroll
+              ? handleScrollBeginDrag
+              : userVirtualizedOnScrollBeginDrag
           }
         />
       );
