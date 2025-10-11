@@ -38,6 +38,7 @@ import type { CartItemOptionSelection } from "~/context/CartContext";
 import { getMenuItemBasePrice } from "~/utils/menuPricing";
 import { updateMenuItemFavoriteState } from "~/utils/restaurantFavorites";
 import { BASE_API_URL } from "@env";
+import { resolveNextPageParam } from "~/utils/pagination";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
@@ -333,20 +334,13 @@ export default function SearchScreen() {
       searchRestaurants({
         ...searchParamsBase,
         page: pageParam,
+        pageSize: PAGE_SIZE,
       }),
-    getNextPageParam: (lastPage) => {
-      const nextPage = lastPage.page + 1;
-      const hasValidTotal = typeof lastPage.totalItems === "number" && lastPage.totalItems > 0;
-      const fetchedCount = (lastPage.page + 1) * lastPage.pageSize;
-      const reachedEndByTotal = hasValidTotal && fetchedCount >= lastPage.totalItems;
-      const reachedEndByLength = lastPage.items.length < lastPage.pageSize;
-
-      if (reachedEndByTotal || reachedEndByLength) {
-        return undefined;
-      }
-
-      return nextPage;
-    },
+    getNextPageParam: (lastPage, allPages) =>
+      resolveNextPageParam(lastPage, allPages, {
+        initialPage: INITIAL_PAGE,
+        pageSizeFallback: PAGE_SIZE,
+      }),
     initialPageParam: INITIAL_PAGE,
   });
 
