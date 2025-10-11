@@ -1,19 +1,28 @@
 import client from './client';
 import type {
   NearbyRestaurantsParams,
+  PaginatedRestaurantSummaryResponse,
   RestaurantDetailsResponse,
   RestaurantSearchParams,
   RestaurantSearchResponse,
-  RestaurantSummary,
 } from '~/interfaces/Restaurant';
 
-export const getNearbyRestaurants = async ({ lat, lng, radiusKm = 1, category }: NearbyRestaurantsParams): Promise<RestaurantSummary[]> => {
-  const { data } = await client.get<RestaurantSummary[]>('/client/nearby', {
+export const getNearbyRestaurants = async ({
+  lat,
+  lng,
+  radiusKm = 1,
+  category,
+  page,
+  pageSize,
+}: NearbyRestaurantsParams): Promise<PaginatedRestaurantSummaryResponse> => {
+  const { data } = await client.get<PaginatedRestaurantSummaryResponse>('/client/nearby', {
     params: {
       lat,
       lng,
       radiusKm,
       category,
+      page,
+      pageSize,
     },
   });
 
