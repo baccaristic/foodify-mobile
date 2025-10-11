@@ -19,6 +19,7 @@ import {
   RefreshControl,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  FlatList,
 } from 'react-native';
 import type { FlatList as RNFlatList, FlatListProps, ScrollView } from 'react-native';
 import Animated, {
@@ -50,6 +51,8 @@ const defaultNavItems: NavItem[] = [
   { icon: ShoppingBag, label: 'Orders', route: 'Cart' },
   { icon: User, label: 'Account', route: 'Profile' },
 ];
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
 const useOptionalNavigation = () => {
   try {
@@ -451,6 +454,51 @@ export default function MainLayout({
   const isVirtualized = Boolean(virtualizedListProps);
 
   const userVirtualizedOnScroll = virtualizedListProps?.onScroll;
+  const userVirtualizedOnEndReached = virtualizedListProps?.onEndReached;
+  const endReachedThresholdValue =
+    typeof virtualizedListProps?.onEndReachedThreshold === 'number'
+      ? virtualizedListProps.onEndReachedThreshold
+      : 0.5;
+  const endReachedCalledRef = useRef(false);
+
+  useEffect(() => {
+    endReachedCalledRef.current = false;
+  }, [endReachedThresholdValue, userVirtualizedOnEndReached]);
+
+  const maybeCallEndReached = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!userVirtualizedOnEndReached) {
+        return;
+      }
+
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      const visibleLength = layoutMeasurement.height;
+
+      if (visibleLength <= 0) {
+        return;
+      }
+
+      const contentLength = contentSize.height;
+      const offset = contentOffset.y;
+      const distanceFromEnd = contentLength - (offset + visibleLength);
+      const thresholdPx = endReachedThresholdValue * visibleLength;
+
+      if (distanceFromEnd <= thresholdPx) {
+        if (!endReachedCalledRef.current) {
+          endReachedCalledRef.current = true;
+          userVirtualizedOnEndReached({ distanceFromEnd: Math.max(distanceFromEnd, 0) });
+        }
+      } else if (endReachedCalledRef.current && distanceFromEnd > thresholdPx) {
+        endReachedCalledRef.current = false;
+      }
+    },
+    [endReachedThresholdValue, userVirtualizedOnEndReached]
+  );
+
+  const shouldInterceptVirtualizedScroll = useMemo(
+    () => needsScrollHandling || Boolean(userVirtualizedOnEndReached),
+    [needsScrollHandling, userVirtualizedOnEndReached]
+  );
 
   const handleVirtualizedScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -463,11 +511,20 @@ export default function MainLayout({
         }
       }
 
+      maybeCallEndReached(event);
+
       if (userVirtualizedOnScroll) {
         userVirtualizedOnScroll(event);
       }
     },
-    [needsScrollHandling, pendingScrollOffset, scrollY, shouldNotifyScroll, userVirtualizedOnScroll]
+    [
+      maybeCallEndReached,
+      needsScrollHandling,
+      pendingScrollOffset,
+      scrollY,
+      shouldNotifyScroll,
+      userVirtualizedOnScroll,
+    ]
   );
 
   const resolvedContentContainerStyle = useMemo(() => {
@@ -499,11 +556,13 @@ export default function MainLayout({
         contentContainerStyle: _ignored,
         style: userStyle,
         onScroll: _ignoredOnScroll,
+        onEndReached: _ignoredOnEndReached,
+        onEndReachedThreshold: _ignoredOnEndReachedThreshold,
         ...restVirtualizedProps
       } = virtualizedListProps ?? {};
 
       return (
-        <Animated.FlatList
+        <AnimatedFlatList
           ref={setScrollViewRef}
           {...restVirtualizedProps}
           style={[styles.scrollView, userStyle]}
@@ -512,7 +571,9 @@ export default function MainLayout({
           }
           refreshControl={refreshControl}
           scrollEventThrottle={16}
-          onScroll={needsScrollHandling ? handleVirtualizedScroll : userVirtualizedOnScroll}
+          onScroll={
+            shouldInterceptVirtualizedScroll ? handleVirtualizedScroll : userVirtualizedOnScroll
+          }
         />
       );
     }
