@@ -310,6 +310,7 @@ export default function HomePage() {
 
   const renderTopPickCard = useCallback(
     (restaurant: RestaurantSummary) => {
+      const ratingLabel = restaurant.rating ? restaurant.rating.toFixed(1) : 'New';
       const deliveryLabel =
         restaurant.deliveryFee > 0
           ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
@@ -325,43 +326,37 @@ export default function HomePage() {
             } as never)
           }
         >
-          <View style={styles.topPickMedia}>
-            <Image
-              source={
-                restaurant.imageUrl
-                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
-                  : require('../../assets/baguette.png')
-              }
-              style={styles.topPickImage}
-              contentFit="cover"
-            />
-            {restaurant.rating ? (
-              <View style={styles.topPickRatingPill}>
-                <Star size={s(11)} color="#111827" fill="#111827" />
-                <Text allowFontScaling={false} style={styles.topPickRatingText}>
-                  {restaurant.rating.toFixed(1)}
-                </Text>
-              </View>
-            ) : null}
-            {restaurant.hasPromotion && restaurant.promotionSummary ? (
-              <View style={styles.topPickPromotionStickerContainer}>
-                <LinearGradient
-                  colors={['#FACC15', '#F97316']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.topPickPromotionSticker}
-                >
-                  <Percent size={s(10)} color="#0F172A" />
-                  <Text
-                    allowFontScaling={false}
-                    style={styles.topPickPromotionText}
-                    numberOfLines={1}
-                  >
-                    {restaurant.promotionSummary}
-                  </Text>
-                </LinearGradient>
-              </View>
-            ) : null}
+          <Image
+            source={
+              restaurant.imageUrl
+                ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                : require('../../assets/baguette.png')
+            }
+            style={styles.topPickImage}
+            contentFit="cover"
+          />
+          <LinearGradient
+            colors={['rgba(15, 23, 42, 0)', 'rgba(15, 23, 42, 0.9)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.topPickOverlay}
+          />
+          <View style={styles.topPickBadgeRow}>
+            <View style={styles.topPickRatingChip}>
+              <Star size={s(12)} color="#111827" fill="#FACC15" />
+              <Text allowFontScaling={false} style={styles.topPickRatingText}>
+                {ratingLabel}
+              </Text>
+            </View>
+            <View
+              style={[styles.topPickFavorite, restaurant.favorite && styles.topPickFavoriteActive]}
+            >
+              <Heart
+                size={s(16)}
+                color={restaurant.favorite ? '#FFFFFF' : '#F8FAFC'}
+                fill={restaurant.favorite ? '#FFFFFF' : 'none'}
+              />
+            </View>
           </View>
           <View style={styles.topPickContent}>
             <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
@@ -377,7 +372,7 @@ export default function HomePage() {
               </Text>
             ) : null}
             <View style={styles.topPickMetaRow}>
-              <Bike size={s(12)} color="#0F172A" />
+              <Bike size={s(12)} color="#F8FAFC" />
               <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
                 {deliveryLabel}
               </Text>
@@ -386,7 +381,7 @@ export default function HomePage() {
         </TouchableOpacity>
       );
     },
-    [navigation]
+    [navigation],
   );
 
   const renderItem = useCallback(
@@ -707,7 +702,7 @@ const styles = ScaledSheet.create({
   },
   promotionStickerContainer: {
     position: 'absolute',
-    right: 0,
+    left: 0,
     top: '14@vs',
   },
   promotionStickerContainerCompact: {
@@ -716,20 +711,20 @@ const styles = ScaledSheet.create({
   promotionSticker: {
     paddingVertical: '6@vs',
     paddingHorizontal: '14@s',
-    borderTopLeftRadius: '16@ms',
-    borderBottomLeftRadius: '16@ms',
+    borderTopRightRadius: '16@ms',
+    borderBottomRightRadius: '16@ms',
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: 'rgba(15, 23, 42, 0.18)',
     shadowOpacity: 0.25,
-    shadowOffset: { width: -2, height: 4 },
+    shadowOffset: { width: 2, height: 4 },
     shadowRadius: '10@ms',
     elevation: 5,
   },
   promotionStickerCompact: {
     paddingHorizontal: '12@s',
-    borderTopLeftRadius: '14@ms',
-    borderBottomLeftRadius: '14@ms',
+    borderTopRightRadius: '14@ms',
+    borderBottomRightRadius: '14@ms',
   },
   promotionStickerText: {
     fontSize: '11@ms',
@@ -831,80 +826,81 @@ const styles = ScaledSheet.create({
   },
 
   topPickCard: {
-    width: '170@s',
-    borderRadius: '20@ms',
-    backgroundColor: '#FFFFFF',
+    width: '174@s',
+    height: '220@vs',
+    borderRadius: '22@ms',
+    backgroundColor: '#0F172A',
     overflow: 'hidden',
-    shadowColor: 'rgba(15, 23, 42, 0.12)',
-    shadowOpacity: 0.18,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: '16@ms',
-    elevation: 4,
-  },
-  topPickMedia: {
-    width: '100%',
-    aspectRatio: 16 / 12,
-    backgroundColor: '#F3F4F6',
+    shadowColor: 'rgba(15, 23, 42, 0.25)',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: '20@ms',
+    elevation: 6,
     position: 'relative',
   },
   topPickImage: {
-    width: '100%',
-    height: '100%',
-  },
-  topPickRatingPill: {
     position: 'absolute',
-    left: '12@s',
-    top: '12@vs',
-    borderRadius: '12@ms',
-    paddingHorizontal: '8@s',
-    paddingVertical: '4@vs',
-    backgroundColor: '#FFFFFF',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  topPickOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  topPickBadgeRow: {
+    position: 'absolute',
+    top: '14@vs',
+    left: '14@s',
+    right: '14@s',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topPickRatingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    paddingHorizontal: '10@s',
+    paddingVertical: '4@vs',
+    borderRadius: '16@ms',
   },
   topPickRatingText: {
     fontSize: '11@ms',
-    fontWeight: '600',
-    color: '#111827',
-    marginLeft: '4@s',
-  },
-  topPickPromotionStickerContainer: {
-    position: 'absolute',
-    right: 0,
-    top: '12@vs',
-  },
-  topPickPromotionSticker: {
-    borderTopLeftRadius: '14@ms',
-    borderBottomLeftRadius: '14@ms',
-    paddingHorizontal: '12@s',
-    paddingVertical: '5@vs',
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: 'rgba(15, 23, 42, 0.18)',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: -2, height: 4 },
-    shadowRadius: '8@ms',
-    elevation: 4,
-  },
-  topPickPromotionText: {
-    fontSize: '10@ms',
-    fontWeight: '600',
-    color: '#0F172A',
-    marginLeft: '4@s',
-  },
-  topPickContent: {
-    paddingHorizontal: '14@s',
-    paddingVertical: '12@vs',
-  },
-  topPickTitle: {
-    fontSize: '15@ms',
     fontWeight: '700',
     color: '#111827',
+    marginLeft: '4@s',
+  },
+  topPickFavorite: {
+    width: '32@s',
+    height: '32@s',
+    borderRadius: '18@ms',
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topPickFavoriteActive: {
+    backgroundColor: '#CA251B',
+  },
+  topPickContent: {
+    position: 'absolute',
+    left: '16@s',
+    right: '16@s',
+    bottom: '18@vs',
+  },
+  topPickTitle: {
+    fontSize: '16@ms',
+    fontWeight: '700',
+    color: '#F8FAFC',
   },
   topPickSubtitle: {
-    marginTop: '4@vs',
+    marginTop: '6@vs',
     fontSize: '12@ms',
-    color: '#64748B',
+    color: '#E2E8F0',
   },
   topPickMetaRow: {
     flexDirection: 'row',
@@ -913,8 +909,8 @@ const styles = ScaledSheet.create({
   },
   topPickMetaText: {
     fontSize: '12@ms',
-    color: '#111827',
-    fontWeight: '500',
+    color: '#F8FAFC',
+    fontWeight: '600',
     marginLeft: '6@s',
   },
   topPickCarouselItem: {

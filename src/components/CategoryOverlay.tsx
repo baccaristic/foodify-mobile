@@ -225,12 +225,12 @@ const styles = ScaledSheet.create({
     cardTitle: { fontSize: "16@ms", fontWeight: "700", color: "#17213A" },
     promotionStickerContainer: {
         position: "absolute",
-        right: "-8@s",
+        left: "-8@s",
         top: "16@vs",
     },
     promotionSticker: {
-        borderTopLeftRadius: "14@ms",
-        borderBottomLeftRadius: "14@ms",
+        borderTopRightRadius: "14@ms",
+        borderBottomRightRadius: "14@ms",
         paddingHorizontal: "12@s",
         paddingVertical: "6@vs",
         flexDirection: "row",
@@ -238,7 +238,7 @@ const styles = ScaledSheet.create({
         shadowColor: "rgba(15, 23, 42, 0.3)",
         shadowOpacity: 0.25,
         shadowRadius: "8@ms",
-        shadowOffset: { width: -2, height: 3 },
+        shadowOffset: { width: 2, height: 3 },
         elevation: 4,
     },
     promotionText: {
