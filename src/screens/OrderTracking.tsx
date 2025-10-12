@@ -316,8 +316,48 @@ const OrderTrackingScreen: React.FC = () => {
     [order?.status],
   );
   const formattedStatus = formatOrderStatusLabel(order?.status);
+  const isPendingStatus = normalizedStatus === 'PENDING';
+  const isAcceptedStatus = normalizedStatus === 'ACCEPTED';
   const isPreparingStatus = normalizedStatus === 'PREPARING';
+  const isReadyForPickupStatus = normalizedStatus === 'READY_FOR_PICK_UP';
   const isInDeliveryStatus = normalizedStatus === 'IN_DELIVERY';
+
+  const heroAnimationConfig = useMemo(() => {
+    if (isPendingStatus) {
+      return {
+        source: require('../../assets/animations/order_placed.json'),
+        message: 'Restaurant has received your order.',
+      } as const;
+    }
+
+    if (isAcceptedStatus) {
+      return {
+        source: require('../../assets/animations/order_placed.json'),
+        message: 'Restaurant accepted your order, finding a suitable driver…',
+      } as const;
+    }
+
+    if (isPreparingStatus) {
+      return {
+        source: require('../../assets/animations/prepare_food.json'),
+        message: 'Restaurant is preparing your order.',
+      } as const;
+    }
+
+    if (isReadyForPickupStatus) {
+      return {
+        source: require('../../assets/animations/order_ready.json'),
+        message: 'Your order is ready, the driver is picking it up.',
+      } as const;
+    }
+
+    return null;
+  }, [
+    isAcceptedStatus,
+    isPendingStatus,
+    isPreparingStatus,
+    isReadyForPickupStatus,
+  ]);
 
   const clearCelebrationTimeout = useCallback(() => {
     if (celebrationTimeoutRef.current) {
@@ -756,7 +796,7 @@ const OrderTrackingScreen: React.FC = () => {
 
   const renderHero = (collapsed: boolean) => {
     const shouldShowMap = isInDeliveryStatus && hasAssignedCourier && Boolean(mapRegion);
-    const showPreparingAnimation = !shouldShowMap && isPreparingStatus;
+    const showStatusAnimation = !shouldShowMap && heroAnimationConfig != null;
 
     return (
       <View style={collapsed ? styles.mapCollapsed : styles.mapExpanded}>
@@ -786,14 +826,15 @@ const OrderTrackingScreen: React.FC = () => {
                 </Marker>
               ) : null}
             </MapView>
-          ) : showPreparingAnimation ? (
+          ) : showStatusAnimation ? (
             <View style={styles.statusPlaceholder}>
               <LottieView
-                source={require('../../assets/animations/prepare_food.json')}
+                source={heroAnimationConfig!.source}
                 autoPlay
                 loop
-                style={styles.preparingAnimation}
+                style={styles.statusAnimation}
               />
+              <Text style={styles.statusMessage}>{heroAnimationConfig!.message}</Text>
             </View>
           ) : (
             <View style={styles.statusPlaceholder}>
@@ -1255,9 +1296,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 32,
   },
-  preparingAnimation: {
+  statusAnimation: {
     width: 260,
     height: 260,
+  },
+  statusMessage: {
+    marginTop: 20,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: textPrimary,
+    textAlign: 'center',
+    paddingHorizontal: 12,
   },
   statusPulse: {
     position: 'absolute',
