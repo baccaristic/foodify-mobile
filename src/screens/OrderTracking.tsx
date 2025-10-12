@@ -664,47 +664,173 @@ const OrderTrackingScreen: React.FC = () => {
     courierDetails && (courierDetails.id != null || courierDetails.name),
   );
 
-  const driverCoordinate = useMemo<LatLng | null>(() => {
-    const courierLocation = courierDetails?.location ?? deliverySummary?.driverLocation;
-    if (courierLocation?.lat != null && courierLocation?.lng != null) {
-      return {
-        latitude: Number(courierLocation.lat),
-        longitude: Number(courierLocation.lng),
-      } satisfies LatLng;
-    }
-
-    if (
-      deliverySummary?.location?.lat != null &&
-      deliverySummary.location.lng != null
-    ) {
-      return {
-        latitude: Number(deliverySummary.location.lat),
-        longitude: Number(deliverySummary.location.lng),
-      } satisfies LatLng;
-    }
-
-    if (order?.deliveryLocation?.lat != null && order.deliveryLocation.lng != null) {
-      return {
-        latitude: Number(order.deliveryLocation.lat),
-        longitude: Number(order.deliveryLocation.lng),
-      } satisfies LatLng;
-    }
-
-    return null;
-  }, [courierDetails, deliverySummary, order]);
-
-  const mapRegion = useMemo<Region | null>(() => {
-    if (!driverCoordinate) {
+  const resolveCoordinate = useCallback((value: any): LatLng | null => {
+    if (!value) {
       return null;
     }
 
+    const lat =
+      value?.lat ?? value?.latitude ?? value?.latitud ?? value?.coords?.lat ?? value?.coords?.latitude;
+    const lng =
+      value?.lng ??
+      value?.lon ??
+      value?.longitude ??
+      value?.coords?.lng ??
+      value?.coords?.lon ??
+      value?.coords?.longitude;
+
+    if (lat != null && lng != null) {
+      const parsedLat = Number(lat);
+      const parsedLng = Number(lng);
+
+      if (Number.isFinite(parsedLat) && Number.isFinite(parsedLng)) {
+        return {
+          latitude: parsedLat,
+          longitude: parsedLng,
+        } satisfies LatLng;
+      }
+    }
+
+    return null;
+  }, []);
+
+  const driverCoordinate = useMemo<LatLng | null>(() => {
+    const potentialLocations = [
+      courierDetails?.location,
+      deliverySummary?.driverLocation,
+    ];
+
+    for (const location of potentialLocations) {
+      const coordinate = resolveCoordinate(location);
+      if (coordinate) {
+        return coordinate;
+      }
+    }
+
+    return null;
+  }, [courierDetails, deliverySummary, resolveCoordinate]);
+
+  const clientCoordinate = useMemo<LatLng | null>(() => {
+    const potentialLocations = [
+      deliverySummary?.destination,
+      deliverySummary?.dropoff,
+      deliverySummary?.location,
+      order?.deliveryLocation,
+      (order as Record<string, any> | null)?.shippingAddress,
+    ];
+
+    for (const location of potentialLocations) {
+      const coordinate = resolveCoordinate(location);
+      if (coordinate) {
+        return coordinate;
+      }
+    }
+
+    return null;
+  }, [deliverySummary, order, resolveCoordinate]);
+
+  const mapRegion = useMemo<Region | null>(() => {
+    const points = [driverCoordinate, clientCoordinate].filter(
+      (point): point is LatLng => point != null,
+    );
+
+    if (points.length === 0) {
+      return null;
+    }
+
+    if (points.length === 1) {
+      return {
+        latitude: points[0]!.latitude,
+        longitude: points[0]!.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      } satisfies Region;
+    }
+
+    const lats = points.map((point) => point.latitude);
+    const lngs = points.map((point) => point.longitude);
+
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    const latitudeDelta = Math.max((maxLat - minLat) * 1.4, 0.02);
+    const longitudeDelta = Math.max((maxLng - minLng) * 1.4, 0.02);
+
     return {
-      latitude: driverCoordinate.latitude,
-      longitude: driverCoordinate.longitude,
-      latitudeDelta: 0.025,
-      longitudeDelta: 0.025,
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta,
+      longitudeDelta,
     } satisfies Region;
-  }, [driverCoordinate]);
+  }, [clientCoordinate, driverCoordinate]);
+
+  const [interactiveRegion, setInteractiveRegion] = useState<Region | null>(null);
+  const mapManuallyAdjustedRef = useRef(false);
+  const mapHasInitializedRef = useRef(false);
+  const pendingRegionUpdateRef = useRef<Region | null>(null);
+
+  useEffect(() => {
+    if (!mapRegion) {
+      if (interactiveRegion) {
+        setInteractiveRegion(null);
+      }
+      mapManuallyAdjustedRef.current = false;
+      mapHasInitializedRef.current = false;
+      pendingRegionUpdateRef.current = null;
+      return;
+    }
+
+    if (!interactiveRegion) {
+      pendingRegionUpdateRef.current = mapRegion;
+      setInteractiveRegion(mapRegion);
+      return;
+    }
+
+    if (mapManuallyAdjustedRef.current) {
+      return;
+    }
+
+    const hasRegionChanged =
+      Math.abs(interactiveRegion.latitude - mapRegion.latitude) > 0.0001 ||
+      Math.abs(interactiveRegion.longitude - mapRegion.longitude) > 0.0001 ||
+      Math.abs(interactiveRegion.latitudeDelta - mapRegion.latitudeDelta) > 0.0001 ||
+      Math.abs(interactiveRegion.longitudeDelta - mapRegion.longitudeDelta) > 0.0001;
+
+    if (hasRegionChanged) {
+      pendingRegionUpdateRef.current = mapRegion;
+      setInteractiveRegion(mapRegion);
+    }
+  }, [interactiveRegion, mapRegion]);
+
+  const handleMapRegionChangeComplete = useCallback((region: Region) => {
+    setInteractiveRegion(region);
+
+    const pendingRegion = pendingRegionUpdateRef.current;
+    const isProgrammaticUpdate =
+      pendingRegion != null &&
+      Math.abs(region.latitude - pendingRegion.latitude) <= 0.0001 &&
+      Math.abs(region.longitude - pendingRegion.longitude) <= 0.0001 &&
+      Math.abs(region.latitudeDelta - pendingRegion.latitudeDelta) <= 0.0001 &&
+      Math.abs(region.longitudeDelta - pendingRegion.longitudeDelta) <= 0.0001;
+
+    if (!mapHasInitializedRef.current) {
+      mapHasInitializedRef.current = true;
+    }
+
+    pendingRegionUpdateRef.current = null;
+
+    if (isProgrammaticUpdate) {
+      return;
+    }
+
+    mapManuallyAdjustedRef.current = true;
+  }, []);
+
+  const handleMapPanDrag = useCallback(() => {
+    mapManuallyAdjustedRef.current = true;
+  }, []);
 
   const handleGoBack = () => {
     if (navigation.canGoBack()) {
@@ -810,11 +936,14 @@ const OrderTrackingScreen: React.FC = () => {
           {shouldShowMap ? (
             <MapView
               style={StyleSheet.absoluteFill}
-              region={mapRegion!}
-              scrollEnabled={false}
+              initialRegion={mapRegion!}
+              region={interactiveRegion ?? mapRegion!}
+              onRegionChangeComplete={handleMapRegionChangeComplete}
+              onPanDrag={handleMapPanDrag}
+              scrollEnabled
+              zoomEnabled
               rotateEnabled={false}
               pitchEnabled={false}
-              zoomEnabled={false}
               showsPointsOfInterest={false}
               showsCompass={false}
             >
@@ -822,6 +951,13 @@ const OrderTrackingScreen: React.FC = () => {
                 <Marker coordinate={driverCoordinate}>
                   <View style={styles.driverMarker}>
                     <Bike size={16} color="white" />
+                  </View>
+                </Marker>
+              ) : null}
+              {clientCoordinate ? (
+                <Marker coordinate={clientCoordinate}>
+                  <View style={styles.clientMarker}>
+                    <MapPin size={18} color="white" />
                   </View>
                 </Marker>
               ) : null}
@@ -1359,6 +1495,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: accentColor,
+    borderWidth: 3,
+    borderColor: 'white',
+  },
+  clientMarker: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E3A8A',
     borderWidth: 3,
     borderColor: 'white',
   },
