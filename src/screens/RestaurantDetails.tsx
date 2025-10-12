@@ -1,7 +1,6 @@
 import { ArrowLeft, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -33,6 +32,7 @@ import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 import { vs } from 'react-native-size-matters';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
+import Skeleton, { SkeletonCircle, SkeletonText } from '~/components/Skeleton';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -660,8 +660,40 @@ export default function RestaurantDetails() {
 
     if (isLoading) {
       return (
-        <View className="flex-1 items-center justify-center py-20">
-          <ActivityIndicator size="large" color="#CA251B" />
+        <View className="px-4 py-6">
+          <View className="overflow-hidden rounded-3xl">
+            <Skeleton height={220} />
+          </View>
+
+          <View className="mt-6 gap-3">
+            <SkeletonText width="60%" />
+            <SkeletonText width="80%" />
+            <SkeletonText width="50%" />
+          </View>
+
+          <View className="mt-6 flex-row items-center justify-between rounded-3xl bg-white p-4 shadow-sm">
+            <View className="flex-1 gap-2">
+              <SkeletonText width="50%" />
+              <SkeletonText width="70%" />
+            </View>
+            <SkeletonCircle width={44} />
+          </View>
+
+          <View className="mt-8 gap-4">
+            <SkeletonText width="40%" />
+            <View className="flex-row flex-wrap justify-between gap-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <View key={index} className="w-[48%] overflow-hidden rounded-3xl bg-white p-3 shadow-sm">
+                  <Skeleton height={110} />
+                  <View className="mt-3 gap-2">
+                    <SkeletonText width="70%" />
+                    <SkeletonText width="50%" />
+                    <SkeletonText width="40%" />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       );
     }
