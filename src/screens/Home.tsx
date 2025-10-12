@@ -12,6 +12,8 @@ import { getNearbyRestaurants } from "~/api/restaurants";
 import type { PaginatedRestaurantSummaryResponse, RestaurantSummary } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
+import Skeleton, { SkeletonCircle, SkeletonText } from "~/components/Skeleton";
+import { LinearGradient } from "expo-linear-gradient";
 
 const formatDeliveryFee = (fee: number) =>
   fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
@@ -110,9 +112,16 @@ export default function HomePage() {
     () => (
       <View style={styles.mainWrapper}>
         <Text allowFontScaling={false} style={styles.sectionTitle}>{sectionTitle}</Text>
+        {!isLoading ? (
+          <Text allowFontScaling={false} style={styles.sectionSubtitle}>
+            Discover curated picks based on what’s trending around you right now.
+          </Text>
+        ) : (
+          <SkeletonText width="80%" />
+        )}
       </View>
     ),
-    [sectionTitle]
+    [isLoading, sectionTitle]
   );
 
   const renderListEmpty = useCallback(() => {
@@ -120,7 +129,18 @@ export default function HomePage() {
       return (
         <View style={styles.mainWrapper}>
           <View style={styles.loadingWrapper}>
-            <ActivityIndicator size="large" color="#CA251B" />
+            <View style={styles.loadingGrid}>
+              {Array.from({ length: 6 }).map((_, index) => (
+                <View key={index} style={styles.skeletonCard}>
+                  <Skeleton height={120} />
+                  <View style={styles.skeletonCardBody}>
+                    <SkeletonText width="70%" />
+                    <SkeletonText width="50%" />
+                    <SkeletonText width="40%" />
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
       );
@@ -173,7 +193,12 @@ export default function HomePage() {
 
   const customHeader = (
     <Animated.View entering={FadeIn.duration(500)}>
-      <View style={styles.headerWrapper}>
+      <LinearGradient
+        colors={["#111827", "#1f2937", "#111827"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
         <Header
           title="San Francisco Bay Area"
           onBack={() => console.log("not working now !")}
@@ -189,31 +214,38 @@ export default function HomePage() {
           showsHorizontalScrollIndicator={false}
           style={{ marginTop: vs(10) }}
         >
-          {[
-            { icon: Percent, label: "Discount" },
-            { icon: Star, label: "Top Restaurants" },
-            { icon: Utensils, label: "Dishes" },
-            { icon: Pizza, label: "Pizza" },
-            { icon: Hamburger, label: "Burger" },
-          ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={styles.categoryEqualWidth} onPress={() => handleCategoryPress(item.label)}
-            >
-              <View style={styles.categoryIconWrapper}>
-                <item.icon size={s(32)} color="#CA251B" />
+          {!isLoading
+            ? [
+              { icon: Percent, label: "Discount" },
+              { icon: Star, label: "Top Restaurants" },
+              { icon: Utensils, label: "Dishes" },
+              { icon: Pizza, label: "Pizza" },
+              { icon: Hamburger, label: "Burger" },
+            ].map((item, idx) => (
+              <TouchableOpacity key={idx} style={styles.categoryEqualWidth} onPress={() => handleCategoryPress(item.label)}
+              >
+                <View style={styles.categoryIconWrapper}>
+                  <item.icon size={s(32)} color="#CA251B" />
+                </View>
+                <View style={styles.categoryTextContainer}>
+                  <Text
+                    allowFontScaling={false}
+                    style={styles.categoryLabelFixed}
+                    numberOfLines={2}
+                  >
+                    {item.label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+            : Array.from({ length: 5 }).map((_, idx) => (
+              <View key={idx} style={styles.categoryEqualWidth}>
+                <SkeletonCircle width={52} />
+                <SkeletonText width="80%" />
               </View>
-              <View style={styles.categoryTextContainer}>
-                <Text
-                  allowFontScaling={false}
-                  style={styles.categoryLabelFixed}
-                  numberOfLines={2}
-                >
-                  {item.label}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+            ))}
         </ScrollView>
-      </View>
+      </LinearGradient>
     </Animated.View>
   );
 
@@ -273,7 +305,18 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const styles = ScaledSheet.create({
 
   mainWrapper: { paddingHorizontal: "16@s" },
-  sectionTitle: { fontSize: "18@ms", fontWeight: "700", marginTop: "16@vs", marginBottom: "12@vs" },
+  sectionTitle: {
+    fontSize: "20@ms",
+    fontWeight: "700",
+    marginTop: "16@vs",
+    marginBottom: "4@vs",
+    color: '#0f172a',
+  },
+  sectionSubtitle: {
+    fontSize: '12@ms',
+    color: '#64748b',
+    marginBottom: '12@vs',
+  },
   listContent: {
     paddingHorizontal: '16@s',
     paddingBottom: '32@vs',
@@ -287,9 +330,27 @@ const styles = ScaledSheet.create({
     height: '12@vs',
   },
   loadingWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: '32@vs',
+  },
+  loadingGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: '14@s',
+    justifyContent: 'space-between',
+  },
+  skeletonCard: {
+    width: '47%',
+    borderRadius: '16@ms',
+    backgroundColor: '#ffffff',
+    padding: '12@s',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: '12@ms',
+    elevation: 2,
+  },
+  skeletonCardBody: {
+    marginTop: '12@vs',
+    gap: '6@vs',
   },
   errorWrapper: {
     alignItems: 'center',
@@ -331,28 +392,27 @@ const styles = ScaledSheet.create({
   },
 
   card: {
-    backgroundColor: "white",
-    borderRadius: "12@ms",
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: "6@ms",
-    elevation: 3,
+    backgroundColor: '#ffffff',
+    borderRadius: '16@ms',
+    overflow: 'hidden',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: '16@ms',
+    elevation: 4,
   },
   cardImage: { width: "100%", height: "140@vs" },
   cardBody: { padding: "10@s" },
-  cardTitle: { fontSize: "16@ms", fontWeight: "700" },
+  cardTitle: { fontSize: "16@ms", fontWeight: "700", color: '#0f172a' },
   ratingRow: { flexDirection: "row", alignItems: "center", marginTop: "4@vs" },
-  ratingText: { fontSize: "12@ms", marginLeft: "4@s" },
-  deliveryTime: { color: "red", fontSize: "12@ms", marginTop: "4@vs" },
-  deliveryFee: { color: "#4B5563", fontSize: "11@ms", marginTop: "2@vs" },
+  ratingText: { fontSize: "12@ms", marginLeft: "4@s", color: '#475569' },
+  deliveryTime: { color: "#2563eb", fontSize: "12@ms", marginTop: "4@vs" },
+  deliveryFee: { color: "#64748b", fontSize: "11@ms", marginTop: "2@vs" },
 
-  headerWrapper: {
-    padding: "6@s",
-    paddingTop:
-      SCREEN_HEIGHT < 700
-        ? vs(0)
-        : vs(6),
+  headerGradient: {
+    padding: '6@s',
+    paddingTop: SCREEN_HEIGHT < 700 ? vs(0) : vs(6),
+    borderRadius: '20@ms',
+    marginHorizontal: '10@s',
   },
   headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   headerTitle: { color: "white", fontSize: "16@ms", fontWeight: "400", marginLeft: "20@ms" },
@@ -360,10 +420,13 @@ const styles = ScaledSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
-    borderRadius: "12@ms",
+    borderRadius: "14@ms",
     paddingHorizontal: "12@s",
     paddingVertical: "8@vs",
     marginTop: "6@vs",
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: '8@ms',
   },
   searchPlaceholder: { color: "gray", flex: 1, fontSize: "13@ms" },
 
@@ -375,14 +438,14 @@ const styles = ScaledSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: "12@s",
-    backgroundColor: "white",
+    backgroundColor: "#f8fafc",
     flex: 1,
   },
   collapsedSearch: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E5E5E5",
+    backgroundColor: "#e2e8f0",
     borderRadius: "50@ms",
     paddingHorizontal: "12@s",
     paddingVertical: "6@vs",
@@ -391,7 +454,7 @@ const styles = ScaledSheet.create({
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E5E5E5",
+    backgroundColor: "#e2e8f0",
     borderRadius: "50@ms",
     paddingHorizontal: "10@s",
     paddingVertical: "6@vs",
