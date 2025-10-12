@@ -193,16 +193,20 @@ export default function HomePage() {
 
   const renderRestaurantCard = useCallback(
     (restaurant: RestaurantSummary, variant: 'default' | 'compact' = 'default') => {
-      const cardStyles = [styles.card, variant === 'compact' && styles.cardCompact];
-      const imageWrapperStyles = [
-        styles.cardImageWrapper,
-        variant === 'compact' && styles.cardImageWrapperCompact,
+      const isCompact = variant === 'compact';
+      const cardStyles = [styles.card, isCompact && styles.cardCompact];
+      const mediaStyles = [styles.cardMedia, isCompact && styles.cardMediaCompact];
+      const contentStyles = [styles.cardContent, isCompact && styles.cardContentCompact];
+      const titleStyles = [styles.cardTitle, isCompact && styles.cardTitleCompact];
+      const subtitleStyles = [styles.cardSubtitle, isCompact && styles.cardSubtitleCompact];
+      const metaTextStyles = [styles.cardMetaText, isCompact && styles.cardMetaTextCompact];
+      const closingTextStyles = [
+        styles.cardClosingText,
+        isCompact && styles.cardClosingTextCompact,
       ];
-      const titleStyles = [styles.cardTitle, variant === 'compact' && styles.cardTitleCompact];
-      const subtitleStyles = [styles.cardSubtitle, variant === 'compact' && styles.cardSubtitleCompact];
-      const metaTextStyles = [styles.cardMetaText, variant === 'compact' && styles.cardMetaTextCompact];
-      const metaTagTextStyles = [styles.cardMetaTagText, variant === 'compact' && styles.cardMetaTagTextCompact];
+      const ratingPillStyles = [styles.ratingPill, isCompact && styles.ratingPillCompact];
 
+      const ratingLabel = restaurant.rating ? restaurant.rating.toFixed(1) : 'New';
       const deliveryLabel =
         restaurant.deliveryFee > 0
           ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
@@ -214,9 +218,9 @@ export default function HomePage() {
           onPress={() =>
             navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
           }
-          activeOpacity={0.9}
+          activeOpacity={0.88}
         >
-          <View style={imageWrapperStyles}>
+          <View style={mediaStyles}>
             <Image
               source={
                 restaurant.imageUrl
@@ -226,36 +230,25 @@ export default function HomePage() {
               style={styles.cardImage}
               contentFit="cover"
             />
-            <LinearGradient
-              colors={["rgba(15, 23, 42, 0)", "rgba(15, 23, 42, 0.35)", "rgba(15, 23, 42, 0.85)"]}
-              locations={[0, 0.55, 1]}
-              style={styles.cardOverlay}
-            />
             {restaurant.hasPromotion && restaurant.promotionSummary ? (
               <View
                 style={[
                   styles.promotionStickerContainer,
-                  variant === 'compact' && styles.promotionStickerContainerCompact,
+                  isCompact && styles.promotionStickerContainerCompact,
                 ]}
               >
                 <LinearGradient
-                  colors={["#FACC15", "#F97316"]}
+                  colors={['#FACC15', '#F97316']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 0, y: 1 }}
-                  style={[
-                    styles.promotionSticker,
-                    variant === 'compact' && styles.promotionStickerCompact,
-                  ]}
+                  style={[styles.promotionSticker, isCompact && styles.promotionStickerCompact]}
                 >
-                  <Percent
-                    size={variant === 'compact' ? s(11) : s(13)}
-                    color="#0F172A"
-                  />
+                  <Percent size={isCompact ? s(10) : s(12)} color="#0F172A" />
                   <Text
                     allowFontScaling={false}
                     style={[
                       styles.promotionStickerText,
-                      variant === 'compact' && styles.promotionStickerTextCompact,
+                      isCompact && styles.promotionStickerTextCompact,
                     ]}
                     numberOfLines={1}
                   >
@@ -264,59 +257,50 @@ export default function HomePage() {
                 </LinearGradient>
               </View>
             ) : null}
-            <View style={styles.cardBadgeRow}>
-              <View style={styles.ratingChip}>
-                <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-                <Text allowFontScaling={false} style={styles.ratingText}>
-                  {restaurant.rating ? `${restaurant.rating.toFixed(1)}` : 'New'}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.favoriteChip,
-                  restaurant.favorite && styles.favoriteChipActive,
-                ]}
-              >
-                <Heart
-                  size={s(16)}
-                  color={restaurant.favorite ? '#FFFFFF' : '#CA251B'}
-                  fill={restaurant.favorite ? '#FFFFFF' : 'none'}
-                />
-              </View>
+            <View
+              style={[
+                styles.favoriteButton,
+                restaurant.favorite && styles.favoriteButtonActive,
+              ]}
+            >
+              <Heart
+                size={isCompact ? s(16) : s(18)}
+                color={restaurant.favorite ? '#FFFFFF' : '#CA251B'}
+                fill={restaurant.favorite ? '#FFFFFF' : 'none'}
+              />
             </View>
-            <View style={styles.cardInfoOverlay}>
+          </View>
+          <View style={contentStyles}>
+            <View style={styles.cardTitleRow}>
               <Text allowFontScaling={false} style={titleStyles} numberOfLines={1}>
                 {restaurant.name}
               </Text>
-              {(restaurant.description || restaurant.address) && (
-                <Text allowFontScaling={false} style={subtitleStyles} numberOfLines={1}>
-                  {restaurant.description || restaurant.address}
+              <View style={ratingPillStyles}>
+                <Star size={isCompact ? s(12) : s(14)} color="#F97316" fill="#F97316" />
+                <Text allowFontScaling={false} style={styles.ratingPillText}>
+                  {ratingLabel}
                 </Text>
-              )}
-              <View style={styles.cardMetaRow}>
-                <View style={styles.cardMetaItem}>
-                  <Utensils size={s(14)} color="#F8FAFC" />
-                  <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
-                    {restaurant.type || 'Restaurant'}
-                  </Text>
-                </View>
-                <View style={styles.cardMetaDivider} />
-                <View style={styles.cardMetaItem}>
-                  <Bike size={s(14)} color="#F8FAFC" />
-                  <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
-                    {deliveryLabel}
-                  </Text>
-                </View>
               </View>
-              {restaurant.closingHours ? (
-                <View style={styles.cardMetaTag}>
-                  <Clock3 size={s(12)} color="#F8FAFC" />
-                  <Text allowFontScaling={false} style={metaTagTextStyles} numberOfLines={1}>
-                    Closes {restaurant.closingHours}
-                  </Text>
-                </View>
-              ) : null}
             </View>
+            {(restaurant.description || restaurant.type || restaurant.address) ? (
+              <Text allowFontScaling={false} style={subtitleStyles} numberOfLines={1}>
+                {restaurant.description || restaurant.type || restaurant.address}
+              </Text>
+            ) : null}
+            <View style={styles.cardMetaRow}>
+              <Bike size={isCompact ? s(12) : s(14)} color="#0F172A" />
+              <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
+                {deliveryLabel}
+              </Text>
+            </View>
+            {restaurant.closingHours ? (
+              <View style={[styles.cardMetaRow, styles.cardMetaRowSecondary]}>
+                <Clock3 size={isCompact ? s(12) : s(14)} color="#0F172A" />
+                <Text allowFontScaling={false} style={closingTextStyles} numberOfLines={1}>
+                  Closes {restaurant.closingHours}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </TouchableOpacity>
       );
@@ -334,14 +318,14 @@ export default function HomePage() {
       return (
         <TouchableOpacity
           style={styles.topPickCard}
-          activeOpacity={0.9}
+          activeOpacity={0.88}
           onPress={() =>
             navigation.navigate('RestaurantDetails' as never, {
               restaurantId: restaurant.id,
             } as never)
           }
         >
-          <View style={styles.topPickImageWrapper}>
+          <View style={styles.topPickMedia}>
             <Image
               source={
                 restaurant.imageUrl
@@ -352,8 +336,8 @@ export default function HomePage() {
               contentFit="cover"
             />
             {restaurant.rating ? (
-              <View style={styles.topPickRatingChip}>
-                <Star size={s(12)} color="#111827" fill="#111827" />
+              <View style={styles.topPickRatingPill}>
+                <Star size={s(11)} color="#111827" fill="#111827" />
                 <Text allowFontScaling={false} style={styles.topPickRatingText}>
                   {restaurant.rating.toFixed(1)}
                 </Text>
@@ -362,7 +346,7 @@ export default function HomePage() {
             {restaurant.hasPromotion && restaurant.promotionSummary ? (
               <View style={styles.topPickPromotionStickerContainer}>
                 <LinearGradient
-                  colors={["#FACC15", "#F97316"]}
+                  colors={['#FACC15', '#F97316']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 0, y: 1 }}
                   style={styles.topPickPromotionSticker}
@@ -379,14 +363,25 @@ export default function HomePage() {
               </View>
             ) : null}
           </View>
-          <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
-            {restaurant.name}
-          </Text>
-          <View style={styles.topPickMetaRow}>
-            <Bike size={s(12)} color="#64748B" />
-            <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
-              {deliveryLabel}
+          <View style={styles.topPickContent}>
+            <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
+              {restaurant.name}
             </Text>
+            {(restaurant.type || restaurant.description) ? (
+              <Text
+                allowFontScaling={false}
+                style={styles.topPickSubtitle}
+                numberOfLines={1}
+              >
+                {restaurant.type || restaurant.description}
+              </Text>
+            ) : null}
+            <View style={styles.topPickMetaRow}>
+              <Bike size={s(12)} color="#0F172A" />
+              <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
+                {deliveryLabel}
+              </Text>
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -684,11 +679,12 @@ const styles = ScaledSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: '20@ms',
-    shadowColor: 'rgba(15, 23, 42, 0.2)',
-    shadowOpacity: 0.4,
-    shadowRadius: '16@ms',
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    overflow: 'hidden',
+    shadowColor: 'rgba(15, 23, 42, 0.12)',
+    shadowOpacity: 0.18,
+    shadowRadius: '18@ms',
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
   },
   cardCompact: {
     width: '220@s',
@@ -696,259 +692,229 @@ const styles = ScaledSheet.create({
   cardContainer: {
     marginBottom: '16@vs',
   },
-  cardImageWrapper: {
+  cardMedia: {
     width: '100%',
     aspectRatio: 16 / 11,
-    borderRadius: '20@ms',
-    overflow: 'hidden',
     backgroundColor: '#F3F4F6',
     position: 'relative',
   },
-  cardImageWrapperCompact: {
-    aspectRatio: 16 / 12,
+  cardMediaCompact: {
+    aspectRatio: 1.25,
   },
   cardImage: {
     width: '100%',
     height: '100%',
   },
-  cardOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: 0,
-  },
-  cardBadgeRow: {
-    position: 'absolute',
-    left: '12@s',
-    right: '12@s',
-    top: '12@vs',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  ratingChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: '12@s',
-    paddingVertical: '6@vs',
-    borderRadius: '16@ms',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-  },
-  ratingText: {
-    fontSize: '12@ms',
-    marginLeft: '6@s',
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  favoriteChip: {
-    width: '32@s',
-    height: '32@s',
-    borderRadius: '18@ms',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  },
-  favoriteChipActive: {
-    backgroundColor: '#CA251B',
-  },
-  cardInfoOverlay: {
-    position: 'absolute',
-    left: '16@s',
-    right: '16@s',
-    bottom: '16@vs',
-  },
-  cardTitle: {
-    fontSize: '18@ms',
-    fontWeight: '700',
-    color: '#F8FAFC',
-    textShadowColor: 'rgba(15, 23, 42, 0.3)',
-    textShadowRadius: 6,
-    textShadowOffset: { width: 0, height: 2 },
-  },
-  cardTitleCompact: {
-    fontSize: '16@ms',
-  },
-  cardSubtitle: {
-    fontSize: '12@ms',
-    color: 'rgba(248, 250, 252, 0.85)',
-    marginTop: '4@vs',
-  },
-  cardSubtitleCompact: {
-    fontSize: '11@ms',
-  },
-  cardMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: '10@vs',
-  },
   promotionStickerContainer: {
     position: 'absolute',
-    right: '-10@s',
-    top: '28@vs',
+    right: 0,
+    top: '14@vs',
   },
   promotionStickerContainerCompact: {
-    top: '20@vs',
-    right: '-8@s',
+    top: '10@vs',
   },
   promotionSticker: {
-    paddingVertical: '8@vs',
-    paddingHorizontal: '14@s',
-    borderTopLeftRadius: '18@ms',
-    borderBottomLeftRadius: '18@ms',
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: 'rgba(15, 23, 42, 0.35)',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: -2, height: 4 },
-    shadowRadius: '12@ms',
-    elevation: 6,
-  },
-  promotionStickerCompact: {
     paddingVertical: '6@vs',
-    paddingHorizontal: '12@s',
+    paddingHorizontal: '14@s',
     borderTopLeftRadius: '16@ms',
     borderBottomLeftRadius: '16@ms',
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: 'rgba(15, 23, 42, 0.18)',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: -2, height: 4 },
+    shadowRadius: '10@ms',
+    elevation: 5,
+  },
+  promotionStickerCompact: {
+    paddingHorizontal: '12@s',
+    borderTopLeftRadius: '14@ms',
+    borderBottomLeftRadius: '14@ms',
   },
   promotionStickerText: {
-    fontSize: '12@ms',
+    fontSize: '11@ms',
     fontWeight: '700',
     color: '#0F172A',
-    letterSpacing: 0.2,
     marginLeft: '6@s',
   },
   promotionStickerTextCompact: {
     fontSize: '10@ms',
     marginLeft: '4@s',
   },
-  cardMetaItem: {
+  favoriteButton: {
+    position: 'absolute',
+    top: '12@vs',
+    right: '12@s',
+    width: '34@s',
+    height: '34@s',
+    borderRadius: '18@ms',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  },
+  favoriteButtonActive: {
+    backgroundColor: '#CA251B',
+  },
+  cardContent: {
+    paddingHorizontal: '16@s',
+    paddingVertical: '14@vs',
+  },
+  cardContentCompact: {
+    paddingHorizontal: '14@s',
+    paddingVertical: '12@vs',
+  },
+  cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexShrink: 1,
+    justifyContent: 'space-between',
   },
-  cardMetaDivider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: 'rgba(248, 250, 252, 0.3)',
-    marginHorizontal: '12@s',
+  cardTitle: {
+    fontSize: '18@ms',
+    fontWeight: '700',
+    color: '#111827',
+    flex: 1,
+    marginRight: '12@s',
   },
-  cardMetaText: {
-    fontSize: '12@ms',
-    color: '#F8FAFC',
-    marginLeft: '6@s',
+  cardTitleCompact: {
+    fontSize: '16@ms',
   },
-  cardMetaTextCompact: {
-    fontSize: '11@ms',
-  },
-  cardMetaTag: {
-    marginTop: '8@vs',
-    alignSelf: 'flex-start',
-    paddingHorizontal: '12@s',
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: '8@s',
     paddingVertical: '4@vs',
     borderRadius: '14@ms',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: '#F1F5F9',
+  },
+  ratingPillCompact: {
+    paddingHorizontal: '6@s',
+    paddingVertical: '3@vs',
+  },
+  ratingPillText: {
+    fontSize: '12@ms',
+    fontWeight: '600',
+    color: '#111827',
+    marginLeft: '4@s',
+  },
+  cardSubtitle: {
+    marginTop: '6@vs',
+    fontSize: '13@ms',
+    color: '#64748B',
+  },
+  cardSubtitleCompact: {
+    fontSize: '12@ms',
+  },
+  cardMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: '12@vs',
   },
-  cardMetaTagText: {
-    fontSize: '11@ms',
-    color: '#F8FAFC',
-    marginLeft: '6@s',
+  cardMetaRowSecondary: {
+    marginTop: '6@vs',
+  },
+  cardMetaText: {
+    marginLeft: '8@s',
+    fontSize: '13@ms',
     fontWeight: '500',
+    color: '#111827',
   },
-  cardMetaTagTextCompact: {
-    fontSize: '10@ms',
+  cardMetaTextCompact: {
+    fontSize: '12@ms',
+  },
+  cardClosingText: {
+    marginLeft: '8@s',
+    fontSize: '12@ms',
+    color: '#64748B',
+  },
+  cardClosingTextCompact: {
+    fontSize: '11@ms',
   },
 
   topPickCard: {
-    width: '112@s',
-    borderRadius: '28@ms',
+    width: '170@s',
+    borderRadius: '20@ms',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: '12@s',
-    paddingVertical: '14@vs',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: 'rgba(15, 23, 42, 0.1)',
-    shadowOpacity: 0.35,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: '12@ms',
+    overflow: 'hidden',
+    shadowColor: 'rgba(15, 23, 42, 0.12)',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: '16@ms',
     elevation: 4,
   },
-  topPickImageWrapper: {
+  topPickMedia: {
     width: '100%',
-    aspectRatio: 1,
-    borderRadius: '20@ms',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
+    aspectRatio: 16 / 12,
     backgroundColor: '#F3F4F6',
-    marginBottom: '12@vs',
-    alignSelf: 'stretch',
+    position: 'relative',
   },
   topPickImage: {
     width: '100%',
     height: '100%',
   },
-  topPickRatingChip: {
+  topPickRatingPill: {
     position: 'absolute',
-    top: '6@vs',
-    right: '6@s',
+    left: '12@s',
+    top: '12@vs',
     borderRadius: '12@ms',
     paddingHorizontal: '8@s',
     paddingVertical: '4@vs',
-    backgroundColor: '#FACC15',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
   },
   topPickRatingText: {
-    fontSize: '10@ms',
+    fontSize: '11@ms',
     fontWeight: '600',
     color: '#111827',
     marginLeft: '4@s',
   },
   topPickPromotionStickerContainer: {
     position: 'absolute',
-    right: '-8@s',
+    right: 0,
     top: '12@vs',
   },
   topPickPromotionSticker: {
     borderTopLeftRadius: '14@ms',
     borderBottomLeftRadius: '14@ms',
     paddingHorizontal: '12@s',
-    paddingVertical: '6@vs',
+    paddingVertical: '5@vs',
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: 'rgba(15, 23, 42, 0.3)',
+    shadowColor: 'rgba(15, 23, 42, 0.18)',
     shadowOpacity: 0.25,
+    shadowOffset: { width: -2, height: 4 },
     shadowRadius: '8@ms',
-    shadowOffset: { width: -2, height: 3 },
     elevation: 4,
   },
   topPickPromotionText: {
-    fontSize: '9@ms',
+    fontSize: '10@ms',
     fontWeight: '600',
     color: '#0F172A',
     marginLeft: '4@s',
   },
+  topPickContent: {
+    paddingHorizontal: '14@s',
+    paddingVertical: '12@vs',
+  },
   topPickTitle: {
-    fontSize: '13@ms',
+    fontSize: '15@ms',
     fontWeight: '700',
     color: '#111827',
-    textAlign: 'center',
+  },
+  topPickSubtitle: {
+    marginTop: '4@vs',
+    fontSize: '12@ms',
+    color: '#64748B',
   },
   topPickMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: '6@vs',
-    paddingHorizontal: '10@s',
-    paddingVertical: '4@vs',
-    borderRadius: '12@ms',
-    backgroundColor: '#F8FAFC',
+    marginTop: '12@vs',
   },
   topPickMetaText: {
-    fontSize: '11@ms',
-    color: '#64748B',
+    fontSize: '12@ms',
+    color: '#111827',
+    fontWeight: '500',
     marginLeft: '6@s',
   },
   topPickCarouselItem: {
