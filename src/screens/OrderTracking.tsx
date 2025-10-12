@@ -37,7 +37,7 @@ import type {
   OrderNotificationDto,
   OrderStatusHistoryDto,
 } from '~/interfaces/Order';
-import { vs } from 'react-native-size-matters';
+import { ms, vs } from 'react-native-size-matters';
 import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { formatOrderStatusLabel, mergeOrderLikeData } from '~/utils/order';
@@ -1430,20 +1430,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: ms(20),
   },
   statusAnimation: {
-    width: 260,
-    height: 260,
+    width: ms(260),
+    height: ms(260),
   },
   statusMessage: {
-    marginTop: 20,
-    fontSize: 16,
-    lineHeight: 22,
+    marginTop: ms(10),
+    fontSize: 10,
+    lineHeight: ms(12),
     fontWeight: '600',
     color: textPrimary,
     textAlign: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: ms(12),
   },
   statusPulse: {
     position: 'absolute',
@@ -1538,7 +1538,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(216,58,46,0.1)',
   },
   stepsStatusText: {
-    fontSize: 12,
+    fontSize: ms(7),
     fontWeight: '700',
     color: accentColor,
   },
