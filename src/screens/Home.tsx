@@ -291,9 +291,61 @@ export default function HomePage() {
     [navigation]
   );
 
+  const renderTopPickCard = useCallback(
+    (restaurant: RestaurantSummary) => {
+      const deliveryLabel =
+        restaurant.deliveryFee > 0
+          ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
+          : 'Free delivery';
+
+      return (
+        <TouchableOpacity
+          style={styles.topPickCard}
+          activeOpacity={0.9}
+          onPress={() =>
+            navigation.navigate('RestaurantDetails' as never, {
+              restaurantId: restaurant.id,
+            } as never)
+          }
+        >
+          <View style={styles.topPickImageWrapper}>
+            <Image
+              source={
+                restaurant.imageUrl
+                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                  : require('../../assets/baguette.png')
+              }
+              style={styles.topPickImage}
+              contentFit="cover"
+            />
+            {restaurant.rating ? (
+              <View style={styles.topPickRatingChip}>
+                <Star size={s(12)} color="#111827" fill="#111827" />
+                <Text allowFontScaling={false} style={styles.topPickRatingText}>
+                  {restaurant.rating.toFixed(1)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
+            {restaurant.name}
+          </Text>
+          <View style={styles.topPickMetaRow}>
+            <Bike size={s(12)} color="#64748B" />
+            <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
+              {deliveryLabel}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [navigation]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: NearbyListItem }) => {
       if (item.type === 'section') {
+        const isTopPicks = item.key === 'topPicks';
         return (
           <View style={styles.mainWrapper}>
             <View style={styles.sectionHeader}>
@@ -306,11 +358,26 @@ export default function HomePage() {
                 contentContainerStyle={styles.carouselList}
               >
                 {item.restaurants.map((restaurant) => (
-                  <View key={restaurant.id} style={styles.carouselCardContainer}>
-                    {renderRestaurantCard(restaurant, 'compact')}
+                  <View
+                    key={restaurant.id}
+                    style={
+                      isTopPicks ? styles.topPickCarouselItem : styles.carouselCardContainer
+                    }
+                  >
+                    {isTopPicks
+                      ? renderTopPickCard(restaurant)
+                      : renderRestaurantCard(restaurant, 'compact')}
                   </View>
                 ))}
               </ScrollView>
+            ) : isTopPicks ? (
+              <View style={styles.topPickGrid}>
+                {item.restaurants.map((restaurant) => (
+                  <View key={restaurant.id} style={styles.topPickGridItem}>
+                    {renderTopPickCard(restaurant)}
+                  </View>
+                ))}
+              </View>
             ) : (
               <View>
                 {item.restaurants.map((restaurant) => (
@@ -340,7 +407,7 @@ export default function HomePage() {
         </View>
       );
     },
-    [renderRestaurantCard]
+    [renderRestaurantCard, renderTopPickCard]
   );
 
   const renderListEmpty = useCallback(() => {
@@ -699,6 +766,87 @@ const styles = ScaledSheet.create({
   },
   cardMetaTagTextCompact: {
     fontSize: '10@ms',
+  },
+
+  topPickCard: {
+    width: '112@s',
+    borderRadius: '28@ms',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: '12@s',
+    paddingVertical: '14@vs',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: 'rgba(15, 23, 42, 0.1)',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: '12@ms',
+    elevation: 4,
+  },
+  topPickImageWrapper: {
+    width: '72@s',
+    height: '72@s',
+    borderRadius: '20@ms',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    marginBottom: '12@vs',
+  },
+  topPickImage: {
+    width: '100%',
+    height: '100%',
+  },
+  topPickRatingChip: {
+    position: 'absolute',
+    top: '6@vs',
+    right: '6@s',
+    borderRadius: '12@ms',
+    paddingHorizontal: '8@s',
+    paddingVertical: '4@vs',
+    backgroundColor: '#FACC15',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  topPickRatingText: {
+    fontSize: '10@ms',
+    fontWeight: '600',
+    color: '#111827',
+    marginLeft: '4@s',
+  },
+  topPickTitle: {
+    fontSize: '13@ms',
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  topPickMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: '6@vs',
+    paddingHorizontal: '10@s',
+    paddingVertical: '4@vs',
+    borderRadius: '12@ms',
+    backgroundColor: '#F8FAFC',
+  },
+  topPickMetaText: {
+    fontSize: '11@ms',
+    color: '#64748B',
+    marginLeft: '6@s',
+  },
+  topPickCarouselItem: {
+    marginRight: '16@s',
+  },
+  topPickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: '-6@s',
+  },
+  topPickGridItem: {
+    paddingHorizontal: '6@s',
+    marginBottom: '16@vs',
+    alignItems: 'center',
+    width: '50%',
   },
 
   headerWrapper: {
