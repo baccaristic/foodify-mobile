@@ -28,13 +28,8 @@ import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { createOrder } from '~/api/orders';
-import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
-import {
-  convertCreateOrderResponseToTrackingOrder,
-  isCreateOrderResponsePayload,
-  mergeOrderLikeData,
-  type OrderLike,
-} from '~/utils/order';
+import type { MonetaryAmount, OrderNotificationDto } from '~/interfaces/Order';
+import { convertCreateOrderResponseToTrackingOrder } from '~/utils/order';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -55,6 +50,18 @@ const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
   }
 
   return 0;
+};
+
+const pickFirstAmount = (
+  ...values: (MonetaryAmount | number | string | null | undefined)[]
+): MonetaryAmount | number | string | null | undefined => {
+  for (const value of values) {
+    if (value != null) {
+      return value;
+    }
+  }
+
+  return undefined;
 };
 
 const formatPaymentMethodName = (method?: string | null) => {
@@ -196,7 +203,7 @@ type CheckoutRouteParams = {
   discountAmount?: number;
   couponValid?: boolean;
   viewMode?: boolean;
-  order?: OrderLike | CreateOrderResponse | null;
+  order?: Partial<OrderNotificationDto> | null;
 };
 
 type CheckoutRoute = RouteProp<{ CheckoutOrder: CheckoutRouteParams }, 'CheckoutOrder'>;
@@ -221,21 +228,16 @@ const CheckoutOrder: React.FC = () => {
 
   const rawOrderParam = route.params?.order ?? null;
   const isViewMode = Boolean(route.params?.viewMode && rawOrderParam);
-  const viewOrder = useMemo<OrderLike | null>(() => {
-    if (!isViewMode || !rawOrderParam) {
+  const viewOrder = useMemo<Partial<OrderNotificationDto> | null>(() => {
+    if (!isViewMode) {
       return null;
     }
 
-    if (isCreateOrderResponsePayload(rawOrderParam)) {
-      const converted = convertCreateOrderResponseToTrackingOrder(rawOrderParam);
-      if (converted) {
-        return (
-          mergeOrderLikeData<OrderLike>(converted as OrderLike, rawOrderParam as OrderLike) ?? converted
-        );
-      }
+    if (!rawOrderParam || typeof rawOrderParam !== 'object') {
+      return null;
     }
 
-    return rawOrderParam as OrderLike;
+    return rawOrderParam as Partial<OrderNotificationDto>;
   }, [isViewMode, rawOrderParam]);
 
   useEffect(() => {
@@ -330,6 +332,7 @@ const CheckoutOrder: React.FC = () => {
     }));
   }, [isViewMode, viewOrder, items]);
 
+  const viewOrderRecord = viewOrder as Record<string, any> | null;
   const displayItemCount = useMemo(
     () => displayItems.reduce((sum, item) => sum + item.quantity, 0),
     [displayItems],
@@ -337,18 +340,38 @@ const CheckoutOrder: React.FC = () => {
   const hasDisplayItems = displayItems.length > 0;
   const displayRestaurantName = isViewMode ? viewOrder?.restaurant?.name ?? 'Restaurant' : restaurantName;
   const displaySubtotal =
-    isViewMode && viewOrder
-      ? parseMonetaryAmount((viewOrder as { payment?: { subtotal?: MonetaryAmount } } | null)?.payment?.subtotal)
+    isViewMode && viewOrderRecord
+      ? parseMonetaryAmount(
+          pickFirstAmount(
+            viewOrderRecord?.payment?.subtotal,
+            viewOrderRecord?.totals?.subtotal,
+            viewOrderRecord?.subtotal,
+          ),
+        )
       : baseSubtotal;
   const displayExtrasTotal =
-    isViewMode && viewOrder
-      ? parseMonetaryAmount((viewOrder as { payment?: { extrasTotal?: MonetaryAmount } } | null)?.payment?.extrasTotal)
+    isViewMode && viewOrderRecord
+      ? parseMonetaryAmount(
+          pickFirstAmount(
+            viewOrderRecord?.payment?.extrasTotal,
+            viewOrderRecord?.totals?.extrasTotal,
+            viewOrderRecord?.extrasTotal,
+          ),
+        )
       : extrasTotal;
   const displayTotal =
-    isViewMode && viewOrder
-      ? parseMonetaryAmount((viewOrder as { payment?: { total?: MonetaryAmount } } | null)?.payment?.total)
+    isViewMode && viewOrderRecord
+      ? parseMonetaryAmount(
+          pickFirstAmount(
+            viewOrderRecord?.payment?.total,
+            viewOrderRecord?.totals?.total,
+            viewOrderRecord?.total,
+          ),
+        )
       : total;
-  const displayFees = isViewMode ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0) : deliveryFee + serviceFee;
+  const displayFees = isViewMode
+    ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0)
+    : deliveryFee + serviceFee;
   const viewModeSavedAddress =
     (viewOrder as { savedAddress?: { label?: string | null } } | null)?.savedAddress ??
     (viewOrder as { delivery?: { savedAddress?: { label?: string | null } | null } } | null)?.delivery?.savedAddress ??
@@ -578,7 +601,7 @@ const CheckoutOrder: React.FC = () => {
       setAppliedCoupon(null);
       setComment('');
       setAllergies('');
-      navigation.navigate('OrderTracking', { order: normalizedOrder ?? (response as unknown as OrderLike) });
+      navigation.navigate('OrderTracking', { order: normalizedOrder ?? null });
     } catch (error) {
       console.error('Failed to create order:', error);
       const message = (() => {

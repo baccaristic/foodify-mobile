@@ -22,6 +22,7 @@ export type OngoingOrderData = Partial<OrderNotificationDto> & {
 
 interface OngoingOrderContextValue {
   order: OngoingOrderData | null;
+  onGoingOrder: OngoingOrderData | null;
   updateOrder: (patch: Partial<OngoingOrderData> | null | undefined) => void;
   clearOrder: () => void;
   isLoading: boolean;
@@ -159,6 +160,7 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo<OngoingOrderContextValue>(
     () => ({
       order,
+      onGoingOrder: order,
       updateOrder,
       clearOrder,
       isLoading: requiresAuth ? queryResult.isLoading : false,

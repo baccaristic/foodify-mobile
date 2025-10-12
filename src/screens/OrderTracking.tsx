@@ -31,17 +31,14 @@ import {
 } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 
-import type { CreateOrderResponse, MonetaryAmount, OrderStatusHistoryDto } from '~/interfaces/Order';
+import type {
+  MonetaryAmount,
+  OrderNotificationDto,
+  OrderStatusHistoryDto,
+} from '~/interfaces/Order';
 import { ms, vs } from 'react-native-size-matters';
-import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
-import useOngoingOrder from '~/hooks/useOngoingOrder';
-import {
-  convertCreateOrderResponseToTrackingOrder,
-  formatOrderStatusLabel,
-  isCreateOrderResponsePayload,
-  mergeOrderLikeData,
-  type OrderLike,
-} from '~/utils/order';
+import useOngoingOrder, { type OngoingOrderData } from '~/hooks/useOngoingOrder';
+import { formatOrderStatusLabel } from '~/utils/order';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -56,7 +53,7 @@ const borderColor = '#F0F1F5';
 type OrderTrackingRoute = RouteProp<
   {
     OrderTracking: {
-      order?: OrderLike | CreateOrderResponse | null;
+      order?: Partial<OrderNotificationDto> | null;
       orderId?: number | string | null;
     };
   },
@@ -111,13 +108,35 @@ const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
   return 0;
 };
 
-const buildWorkflowSteps = (order: OrderLike | null | undefined): WorkflowStep[] => {
+type WorkflowLikeStep = {
+  step?: string | null;
+  label?: string | null;
+  description?: string | null;
+  status?: string | null;
+  completed?: boolean | null;
+  [key: string]: unknown;
+};
+
+const extractWorkflowSteps = (order: OngoingOrderData | null | undefined): WorkflowLikeStep[] => {
+  if (!order) {
+    return [];
+  }
+
+  const rawWorkflow = (order as Record<string, unknown> | null)?.workflow;
+  if (!Array.isArray(rawWorkflow)) {
+    return [];
+  }
+
+  return rawWorkflow as WorkflowLikeStep[];
+};
+
+const buildWorkflowSteps = (order: OngoingOrderData | null | undefined): WorkflowStep[] => {
   if (!order) {
     return [];
   }
 
   const normalizedStatus = order?.status ? String(order.status).toUpperCase() : null;
-  const workflowSteps = order.workflow ?? [];
+  const workflowSteps = extractWorkflowSteps(order);
 
   if (workflowSteps.length) {
     return workflowSteps.map((step, index) => {
@@ -146,10 +165,7 @@ const buildWorkflowSteps = (order: OrderLike | null | undefined): WorkflowStep[]
     });
   }
 
-  const historySteps = (order.statusHistory ?? []) as (
-    | OrderStatusHistoryDto
-    | OrderStatusHistoryEntry
-  )[];
+  const historySteps = (order.statusHistory ?? []) as OrderStatusHistoryDto[];
 
   if (historySteps.length) {
     return historySteps.map((entry, index) => {
@@ -196,56 +212,37 @@ const OrderTrackingScreen: React.FC = () => {
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
   const [showDeliveryCelebration, setShowDeliveryCelebration] = useState(false);
-  const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
-  const { order: ongoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
+  const { onGoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
 
-  const initialOrderParam = route.params?.order ?? null;
+  const routeOrderParam = (route.params?.order ?? null) as
+    | (Partial<OrderNotificationDto> & OngoingOrderData)
+    | null;
   const routeOrderIdParam = route.params?.orderId ?? null;
 
-  const normalizedInitialOrder = useMemo<OrderLike | null>(() => {
-    if (!initialOrderParam) {
+  const routeOrder = useMemo<OngoingOrderData | null>(() => {
+    if (!routeOrderParam || typeof routeOrderParam !== 'object') {
       return null;
     }
 
-    if (isCreateOrderResponsePayload(initialOrderParam)) {
-      return convertCreateOrderResponseToTrackingOrder(initialOrderParam);
-    }
-
-    return mergeOrderLikeData<OrderLike>(null, initialOrderParam as OrderLike);
-  }, [initialOrderParam]);
-
-  const [orderData, setOrderData] = useState<OrderLike | null>(normalizedInitialOrder);
+    return routeOrderParam as OngoingOrderData;
+  }, [routeOrderParam]);
 
   useEffect(() => {
-    if (!normalizedInitialOrder) {
+    if (routeOrder) {
+      updateOngoingOrder(routeOrder);
       return;
     }
 
-    setOrderData((current) => {
-      const merged = mergeOrderLikeData<OrderLike>(current, normalizedInitialOrder);
-      if (!merged) {
-        return current;
-      }
+    if (routeOrderIdParam != null) {
+      updateOngoingOrder({ orderId: routeOrderIdParam } as Partial<OngoingOrderData>);
+    }
+  }, [routeOrder, routeOrderIdParam, updateOngoingOrder]);
 
-      const resolvedId =
-        merged.orderId ??
-        normalizedInitialOrder.orderId ??
-        routeOrderIdParam ??
-        (current?.orderId ?? null);
-
-      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
-    });
-
-    updateOngoingOrder(normalizedInitialOrder);
-  }, [normalizedInitialOrder, routeOrderIdParam, updateOngoingOrder]);
-
-  const targetOrderId = useMemo(() => {
+  const resolvedOrderId = useMemo(() => {
     const candidates = [
-      orderData?.orderId,
+      onGoingOrder?.orderId,
+      routeOrder?.orderId,
       routeOrderIdParam,
-      normalizedInitialOrder?.orderId,
-      ongoingOrder?.orderId,
-      latestOrderUpdate?.orderId,
     ];
 
     for (const candidate of candidates) {
@@ -255,112 +252,24 @@ const OrderTrackingScreen: React.FC = () => {
     }
 
     return null;
-  }, [
-    latestOrderUpdate?.orderId,
-    normalizedInitialOrder?.orderId,
-    ongoingOrder?.orderId,
-    orderData?.orderId,
-    routeOrderIdParam,
-  ]);
+  }, [onGoingOrder?.orderId, routeOrder?.orderId, routeOrderIdParam]);
 
-  const keyedOrderUpdate = useMemo(() => {
-    if (!targetOrderId) {
+  const order = useMemo<OngoingOrderData | null>(() => {
+    const candidate = onGoingOrder ?? routeOrder ?? null;
+    if (!candidate) {
+      if (resolvedOrderId != null) {
+        return { orderId: resolvedOrderId } as OngoingOrderData;
+      }
+
       return null;
     }
 
-    const key = String(targetOrderId);
-    return orderUpdates[key] ?? null;
-  }, [orderUpdates, targetOrderId]);
-
-  useEffect(() => {
-    if (!keyedOrderUpdate) {
-      return;
+    if (resolvedOrderId != null && candidate.orderId == null) {
+      return { ...candidate, orderId: resolvedOrderId } as OngoingOrderData;
     }
 
-    setOrderData((current) => {
-      const merged = mergeOrderLikeData<OrderLike>(current, keyedOrderUpdate as OrderLike);
-      if (!merged) {
-        return current;
-      }
-
-      const resolvedId =
-        merged.orderId ??
-        keyedOrderUpdate.orderId ??
-        targetOrderId ??
-        current?.orderId ??
-        null;
-
-      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
-    });
-  }, [keyedOrderUpdate, targetOrderId]);
-
-  useEffect(() => {
-    if (!ongoingOrder) {
-      return;
-    }
-
-    const candidateId = ongoingOrder.orderId ?? null;
-    if (targetOrderId != null && candidateId != null && String(candidateId) !== String(targetOrderId)) {
-      return;
-    }
-
-    setOrderData((current) => {
-      const merged = mergeOrderLikeData<OrderLike>(current, ongoingOrder as OrderLike);
-      if (!merged) {
-        return current;
-      }
-
-      const resolvedId =
-        merged.orderId ??
-        candidateId ??
-        targetOrderId ??
-        routeOrderIdParam ??
-        normalizedInitialOrder?.orderId ??
-        current?.orderId ??
-        null;
-
-      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
-    });
-  }, [normalizedInitialOrder?.orderId, ongoingOrder, routeOrderIdParam, targetOrderId]);
-
-  useEffect(() => {
-    if (!latestOrderUpdate) {
-      return;
-    }
-
-    const candidateId = latestOrderUpdate.orderId ?? null;
-    if (targetOrderId != null && candidateId != null && String(candidateId) !== String(targetOrderId)) {
-      return;
-    }
-
-    setOrderData((current) => {
-      const merged = mergeOrderLikeData<OrderLike>(current, latestOrderUpdate as OrderLike);
-      if (!merged) {
-        return current;
-      }
-
-      const resolvedId =
-        merged.orderId ??
-        candidateId ??
-        targetOrderId ??
-        current?.orderId ??
-        null;
-
-      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
-    });
-  }, [latestOrderUpdate, targetOrderId]);
-
-  const order = useMemo<OrderLike | null>(() => {
-    if (orderData) {
-      return orderData;
-    }
-
-    if (targetOrderId != null) {
-      return { orderId: targetOrderId } as OrderLike;
-    }
-
-    return null;
-  }, [orderData, targetOrderId]);
+    return candidate;
+  }, [onGoingOrder, resolvedOrderId, routeOrder]);
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
   const normalizedStatus = useMemo(
@@ -668,8 +577,8 @@ const OrderTrackingScreen: React.FC = () => {
       setStatusChangeInfo({
         title: statusLabel,
         description:
-          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.reason ??
-          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.action ??
+          (latestStatusEntry as OrderStatusHistoryDto | null)?.reason ??
+          (latestStatusEntry as OrderStatusHistoryDto | null)?.action ??
           'Your order moved to the next step.',
       });
 
@@ -691,16 +600,23 @@ const OrderTrackingScreen: React.FC = () => {
   }, [normalizedStatus, order?.statusHistory, steps]);
 
   const orderItemsToRender = useMemo(() => {
-    const itemSummaries = (order as { itemSummaries?: unknown[] } | null)?.itemSummaries;
-    if (Array.isArray(itemSummaries)) {
+    const extendedOrder = order as (OngoingOrderData & { itemSummaries?: unknown[] }) | null;
+    const itemSummaries = Array.isArray(extendedOrder?.itemSummaries)
+      ? (extendedOrder?.itemSummaries ?? null)
+      : null;
+
+    if (itemSummaries) {
       return itemSummaries;
     }
 
     return Array.isArray(order?.items) ? order.items : [];
   }, [order]);
 
-  const orderTotal = formatCurrency(order?.payment?.total);
-  const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
+  const rawOrder = order as Record<string, any> | null;
+  const orderTotal = formatCurrency(
+    rawOrder?.payment?.total ?? rawOrder?.total ?? rawOrder?.paymentTotal ?? null,
+  );
+  const deliverySummary = (rawOrder?.delivery ?? null) as Record<string, any> | null;
   const courierDetails = deliverySummary?.courier ?? deliverySummary?.driver ?? null;
   const parsedCourierRating = Number(courierDetails?.rating ?? NaN);
   const courierRating = Number.isFinite(parsedCourierRating)
@@ -712,7 +628,7 @@ const OrderTrackingScreen: React.FC = () => {
     : null;
   const courierName = courierDetails?.name ?? 'Courier assigned soon';
   const courierAvatarUri = courierDetails?.avatarUrl ?? undefined;
-  const restaurantAvatarUri = (order as any)?.restaurant?.imageUrl ?? undefined;
+  const restaurantAvatarUri = rawOrder?.restaurant?.imageUrl ?? undefined;
   const orderIdentifier = order?.orderId ? `Order #${order.orderId}` : 'Order details';
   const restaurantName = order?.restaurant?.name ?? 'Restaurant pending';
   const courierRatingText = courierRating ? `${courierRating} / 5` : '—';
@@ -724,6 +640,8 @@ const OrderTrackingScreen: React.FC = () => {
   const hasAssignedCourier = Boolean(
     courierDetails && (courierDetails.id != null || courierDetails.name),
   );
+
+  const shippingAddress = rawOrder?.shippingAddress;
 
   const resolveCoordinate = useCallback((value: any): LatLng | null => {
     if (!value) {
@@ -777,7 +695,7 @@ const OrderTrackingScreen: React.FC = () => {
       deliverySummary?.dropoff,
       deliverySummary?.location,
       order?.deliveryLocation,
-      (order as Record<string, any> | null)?.shippingAddress,
+      shippingAddress,
     ];
 
     for (const location of potentialLocations) {
@@ -788,7 +706,7 @@ const OrderTrackingScreen: React.FC = () => {
     }
 
     return null;
-  }, [deliverySummary, order, resolveCoordinate]);
+  }, [deliverySummary, order, resolveCoordinate, shippingAddress]);
 
   const mapRegion = useMemo<Region | null>(() => {
     const points = [driverCoordinate, clientCoordinate].filter(
