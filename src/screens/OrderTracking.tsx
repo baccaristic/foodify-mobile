@@ -317,6 +317,7 @@ const OrderTrackingScreen: React.FC = () => {
   );
   const formattedStatus = formatOrderStatusLabel(order?.status);
   const isPreparingStatus = normalizedStatus === 'PREPARING';
+  const isInDeliveryStatus = normalizedStatus === 'IN_DELIVERY';
 
   const clearCelebrationTimeout = useCallback(() => {
     if (celebrationTimeoutRef.current) {
@@ -754,8 +755,8 @@ const OrderTrackingScreen: React.FC = () => {
   });
 
   const renderHero = (collapsed: boolean) => {
-    const showMap = hasAssignedCourier && mapRegion;
-    const showPreparingAnimation = !showMap && isPreparingStatus;
+    const shouldShowMap = isInDeliveryStatus && hasAssignedCourier && Boolean(mapRegion);
+    const showPreparingAnimation = !shouldShowMap && isPreparingStatus;
 
     return (
       <View style={collapsed ? styles.mapCollapsed : styles.mapExpanded}>
@@ -766,7 +767,7 @@ const OrderTrackingScreen: React.FC = () => {
           ]}
           pointerEvents={collapsed ? 'none' : 'auto'}
         >
-          {showMap ? (
+          {shouldShowMap ? (
             <MapView
               style={StyleSheet.absoluteFill}
               region={mapRegion!}
