@@ -402,8 +402,10 @@ export default function HomePage() {
       }
 
       return (
-        <View style={styles.cardContainer}>
-          {renderRestaurantCard(item.restaurant)}
+        <View style={styles.mainWrapper}>
+          <View style={styles.cardContainer}>
+            {renderRestaurantCard(item.restaurant)}
+          </View>
         </View>
       );
     },
@@ -570,7 +572,6 @@ const styles = ScaledSheet.create({
     marginBottom: '12@vs',
   },
   listContent: {
-    paddingHorizontal: '16@s',
     paddingBottom: '32@vs',
   },
   carouselList: {
@@ -784,14 +785,15 @@ const styles = ScaledSheet.create({
     elevation: 4,
   },
   topPickImageWrapper: {
-    width: '72@s',
-    height: '72@s',
+    width: '100%',
+    aspectRatio: 1,
     borderRadius: '20@ms',
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F3F4F6',
     marginBottom: '12@vs',
+    alignSelf: 'stretch',
   },
   topPickImage: {
     width: '100%',
