@@ -310,7 +310,6 @@ export default function HomePage() {
 
   const renderTopPickCard = useCallback(
     (restaurant: RestaurantSummary) => {
-      const ratingLabel = restaurant.rating ? restaurant.rating.toFixed(1) : 'New';
       const deliveryLabel =
         restaurant.deliveryFee > 0
           ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
@@ -319,65 +318,35 @@ export default function HomePage() {
       return (
         <TouchableOpacity
           style={styles.topPickCard}
-          activeOpacity={0.88}
+          activeOpacity={0.85}
           onPress={() =>
             navigation.navigate('RestaurantDetails' as never, {
               restaurantId: restaurant.id,
             } as never)
           }
         >
-          <Image
-            source={
-              restaurant.imageUrl
-                ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
-                : require('../../assets/baguette.png')
-            }
-            style={styles.topPickImage}
-            contentFit="cover"
-          />
-          <LinearGradient
-            colors={['rgba(15, 23, 42, 0)', 'rgba(15, 23, 42, 0.9)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.topPickOverlay}
-          />
-          <View style={styles.topPickBadgeRow}>
-            <View style={styles.topPickRatingChip}>
-              <Star size={s(12)} color="#111827" fill="#FACC15" />
-              <Text allowFontScaling={false} style={styles.topPickRatingText}>
-                {ratingLabel}
-              </Text>
-            </View>
-            <View
-              style={[styles.topPickFavorite, restaurant.favorite && styles.topPickFavoriteActive]}
-            >
-              <Heart
-                size={s(16)}
-                color={restaurant.favorite ? '#FFFFFF' : '#F8FAFC'}
-                fill={restaurant.favorite ? '#FFFFFF' : 'none'}
-              />
-            </View>
+          <View style={styles.topPickMedia}>
+            <Image
+              source={
+                restaurant.imageUrl
+                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                  : require('../../assets/baguette.png')
+              }
+              style={styles.topPickImage}
+              contentFit="cover"
+            />
           </View>
-          <View style={styles.topPickContent}>
-            <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
-              {restaurant.name}
+          <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
+            {restaurant.name}
+          </Text>
+          {(restaurant.type || restaurant.description) ? (
+            <Text allowFontScaling={false} style={styles.topPickSubtitle} numberOfLines={1}>
+              {restaurant.type || restaurant.description}
             </Text>
-            {(restaurant.type || restaurant.description) ? (
-              <Text
-                allowFontScaling={false}
-                style={styles.topPickSubtitle}
-                numberOfLines={1}
-              >
-                {restaurant.type || restaurant.description}
-              </Text>
-            ) : null}
-            <View style={styles.topPickMetaRow}>
-              <Bike size={s(12)} color="#F8FAFC" />
-              <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
-                {deliveryLabel}
-              </Text>
-            </View>
-          </View>
+          ) : null}
+          <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
+            {deliveryLabel}
+          </Text>
         </TouchableOpacity>
       );
     },
@@ -826,92 +795,48 @@ const styles = ScaledSheet.create({
   },
 
   topPickCard: {
-    width: '174@s',
-    height: '220@vs',
-    borderRadius: '22@ms',
-    backgroundColor: '#0F172A',
-    overflow: 'hidden',
-    shadowColor: 'rgba(15, 23, 42, 0.25)',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: '20@ms',
-    elevation: 6,
-    position: 'relative',
-  },
-  topPickImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  topPickOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  topPickBadgeRow: {
-    position: 'absolute',
-    top: '14@vs',
-    left: '14@s',
-    right: '14@s',
-    flexDirection: 'row',
+    width: '112@s',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  topPickRatingChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    paddingHorizontal: '10@s',
-    paddingVertical: '4@vs',
-    borderRadius: '16@ms',
-  },
-  topPickRatingText: {
-    fontSize: '11@ms',
-    fontWeight: '700',
-    color: '#111827',
-    marginLeft: '4@s',
-  },
-  topPickFavorite: {
-    width: '32@s',
-    height: '32@s',
-    borderRadius: '18@ms',
-    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+  topPickMedia: {
+    width: '90@s',
+    height: '90@s',
+    borderRadius: '56@ms',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: '10@vs',
+    shadowColor: 'rgba(15, 23, 42, 0.08)',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: '12@ms',
+    elevation: 3,
   },
-  topPickFavoriteActive: {
-    backgroundColor: '#CA251B',
-  },
-  topPickContent: {
-    position: 'absolute',
-    left: '16@s',
-    right: '16@s',
-    bottom: '18@vs',
+  topPickImage: {
+    width: '100%',
+    height: '100%',
   },
   topPickTitle: {
-    fontSize: '16@ms',
+    fontSize: '14@ms',
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#111827',
+    textAlign: 'center',
   },
   topPickSubtitle: {
-    marginTop: '6@vs',
+    marginTop: '4@vs',
     fontSize: '12@ms',
-    color: '#E2E8F0',
-  },
-  topPickMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: '12@vs',
+    color: '#64748B',
+    textAlign: 'center',
   },
   topPickMetaText: {
+    marginTop: '6@vs',
     fontSize: '12@ms',
-    color: '#F8FAFC',
+    color: '#111827',
     fontWeight: '600',
-    marginLeft: '6@s',
+    textAlign: 'center',
   },
   topPickCarouselItem: {
     marginRight: '16@s',
@@ -919,13 +844,13 @@ const styles = ScaledSheet.create({
   topPickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: '-6@s',
+    marginHorizontal: '-10@s',
   },
   topPickGridItem: {
-    paddingHorizontal: '6@s',
-    marginBottom: '16@vs',
+    paddingHorizontal: '10@s',
+    marginBottom: '20@vs',
     alignItems: 'center',
-    width: '50%',
+    width: '33%',
   },
 
   headerWrapper: {
