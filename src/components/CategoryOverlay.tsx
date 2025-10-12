@@ -8,13 +8,14 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
-import { X, Star } from "lucide-react-native";
+import { X, Star, Percent } from "lucide-react-native";
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { getNearbyRestaurants } from "~/api/restaurants";
-import type { PaginatedRestaurantSummaryResponse } from "~/interfaces/Restaurant";
+import type { NearbyRestaurantsResponse, RestaurantSummary } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface CategoryOverlayProps {
     visible: boolean;
@@ -39,7 +40,7 @@ export default function CategoryOverlay({
         isLoading,
         isError,
         refetch,
-    } = useQuery<PaginatedRestaurantSummaryResponse>({
+    } = useQuery<NearbyRestaurantsResponse>({
         queryKey: ["category-restaurants", category, userLatitude, userLongitude],
         queryFn: () =>
             getNearbyRestaurants({
@@ -51,7 +52,20 @@ export default function CategoryOverlay({
         enabled: visible && Boolean(category),
     });
 
-    const restaurants = data?.items ?? [];
+    const restaurants = React.useMemo<RestaurantSummary[]>(() => {
+        if (!data) {
+            return [];
+        }
+
+        const sections: RestaurantSummary[][] = [
+            data.topPicks?.restaurants ?? [],
+            data.orderAgain?.restaurants ?? [],
+            data.promotions?.restaurants ?? [],
+            data.others?.restaurants ?? [],
+        ];
+
+        return sections.flat();
+    }, [data]);
 
     let content: React.ReactNode;
 
@@ -102,9 +116,24 @@ export default function CategoryOverlay({
                                     ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
                                     : require("../../assets/baguette.png")
                             }
-                            style={styles.cardImage} 
+                            style={styles.cardImage}
                             contentFit="cover"
                         />
+                        {restaurant.hasPromotion && restaurant.promotionSummary ? (
+                            <View style={styles.promotionStickerContainer}>
+                                <LinearGradient
+                                    colors={["#FACC15", "#F97316"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 0, y: 1 }}
+                                    style={styles.promotionSticker}
+                                >
+                                    <Percent size={s(11)} color="#0F172A" />
+                                    <Text style={styles.promotionText} numberOfLines={1}>
+                                        {restaurant.promotionSummary}
+                                    </Text>
+                                </LinearGradient>
+                            </View>
+                        ) : null}
                         <View style={styles.cardBody}>
                             <Text style={styles.cardTitle}>{restaurant.name}</Text>
                             <View style={styles.cardRow}>
@@ -189,10 +218,35 @@ const styles = ScaledSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: "6@ms",
         elevation: 3,
+        position: "relative",
     },
     cardImage: { width: "100%", height: "140@vs" },
     cardBody: { padding: "10@s" },
     cardTitle: { fontSize: "16@ms", fontWeight: "700", color: "#17213A" },
+    promotionStickerContainer: {
+        position: "absolute",
+        left: "-8@s",
+        top: "16@vs",
+    },
+    promotionSticker: {
+        borderTopRightRadius: "14@ms",
+        borderBottomRightRadius: "14@ms",
+        paddingHorizontal: "12@s",
+        paddingVertical: "6@vs",
+        flexDirection: "row",
+        alignItems: "center",
+        shadowColor: "rgba(15, 23, 42, 0.3)",
+        shadowOpacity: 0.25,
+        shadowRadius: "8@ms",
+        shadowOffset: { width: 2, height: 3 },
+        elevation: 4,
+    },
+    promotionText: {
+        marginLeft: "4@s",
+        fontSize: "11@ms",
+        fontWeight: "600",
+        color: "#111827",
+    },
     cardRow: {
         flexDirection: "row",
         justifyContent: "space-between",

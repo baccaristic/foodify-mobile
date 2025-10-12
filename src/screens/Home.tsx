@@ -1,20 +1,63 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from "react-native";
-import { Percent, Star, Pizza, Hamburger, ChevronDown, Search, Utensils } from "lucide-react-native";
+import {
+  Percent,
+  Star,
+  Pizza,
+  Hamburger,
+  ChevronDown,
+  Search,
+  Utensils,
+  Heart,
+  Bike,
+  Clock3,
+} from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
+import { LinearGradient } from "expo-linear-gradient";
 import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
-import type { PaginatedRestaurantSummaryResponse, RestaurantSummary } from "~/interfaces/Restaurant";
+import type {
+  NearbyRestaurantsResponse,
+  RestaurantCategorySection,
+  RestaurantSummary,
+} from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 
-const formatDeliveryFee = (fee: number) =>
-  fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
+type SectionLayout = 'carousel' | 'flatList';
+
+const SECTION_LABELS: Record<string, string> = {
+  topPicks: 'Top picks for you',
+  orderAgain: 'Order again',
+  promotions: 'Promotions',
+  others: 'Other restaurants',
+};
+
+const toSectionLabel = (key: string) => {
+  if (SECTION_LABELS[key]) {
+    return SECTION_LABELS[key];
+  }
+
+  const spaced = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase();
+
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+
+const resolveLayout = (displayType?: string | null): SectionLayout => {
+  if (typeof displayType === 'string' && displayType.toLowerCase() === 'carousel') {
+    return 'carousel';
+  }
+
+  return 'flatList';
+};
 
 const INITIAL_PAGE = 0;
 const PAGE_SIZE = 20;
@@ -42,7 +85,7 @@ export default function HomePage() {
     hasNextPage,
     isFetchingNextPage,
     isRefetching,
-  } = useInfiniteQuery<PaginatedRestaurantSummaryResponse>({
+  } = useInfiniteQuery<NearbyRestaurantsResponse>({
     queryKey: ['nearby-restaurants', userLatitude, userLongitude, radiusKm],
     queryFn: ({ pageParam = INITIAL_PAGE }) =>
       getNearbyRestaurants({
@@ -53,22 +96,94 @@ export default function HomePage() {
         pageSize: PAGE_SIZE,
       }),
     getNextPageParam: (lastPage) => {
-      const fetchedItems = lastPage.page * lastPage.pageSize + lastPage.items.length;
-      if (fetchedItems >= lastPage.totalItems) {
+      const { page, pageSize, totalElements } = lastPage.others;
+      const fetchedItems = (page + 1) * pageSize;
+
+      if (fetchedItems >= totalElements) {
         return undefined;
       }
 
-      return lastPage.page + 1;
+      return page + 1;
     },
     initialPageParam: INITIAL_PAGE,
   });
 
-  const restaurants = useMemo(
-    () => data?.pages.flatMap((page) => page.items) ?? [],
+  type NearbyListItem =
+    | {
+        type: 'section';
+        key: string;
+        title: string;
+        layout: SectionLayout;
+        restaurants: RestaurantSummary[];
+      }
+    | { type: 'othersHeader'; key: string; title: string }
+    | { type: 'restaurant'; key: string; restaurant: RestaurantSummary };
+
+  const topSections = useMemo(() => {
+    const firstPage = data?.pages[0];
+    if (!firstPage) {
+      return [] as NearbyListItem[];
+    }
+
+    const sections: { key: string; section?: RestaurantCategorySection }[] = [
+      { key: 'topPicks', section: firstPage.topPicks },
+      { key: 'orderAgain', section: firstPage.orderAgain },
+      { key: 'promotions', section: firstPage.promotions },
+    ];
+
+    return sections
+      .filter((entry): entry is { key: string; section: RestaurantCategorySection } =>
+        Boolean(entry.section && entry.section.restaurants.length > 0)
+      )
+      .map((entry) => ({
+        type: 'section' as const,
+        key: entry.key,
+        title: toSectionLabel(entry.key),
+        layout: resolveLayout(entry.section.displayType),
+        restaurants: entry.section.restaurants,
+      }));
+  }, [data]);
+
+  const otherRestaurants = useMemo(
+    () => data?.pages.flatMap((page) => page.others.restaurants) ?? [],
     [data]
   );
 
-  const sectionTitle = isLoading ? 'Loading nearby restaurants...' : 'Nearby Restaurants';
+  const othersLayout = useMemo(
+    () => resolveLayout(data?.pages[0]?.others.displayType),
+    [data]
+  );
+
+  const listData = useMemo(() => {
+    const items: NearbyListItem[] = [...topSections];
+
+    if (otherRestaurants.length > 0) {
+      if (othersLayout === 'carousel') {
+        items.push({
+          type: 'section',
+          key: 'others-carousel',
+          title: toSectionLabel('others'),
+          layout: 'carousel',
+          restaurants: otherRestaurants,
+        });
+      } else {
+        items.push({
+          type: 'othersHeader',
+          key: 'others-header',
+          title: toSectionLabel('others'),
+        });
+        otherRestaurants.forEach((restaurant, index) => {
+          items.push({
+            type: 'restaurant',
+            key: `restaurant-${restaurant.id}-${index}`,
+            restaurant,
+          });
+        });
+      }
+    }
+
+    return items;
+  }, [otherRestaurants, othersLayout, topSections]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -76,43 +191,237 @@ export default function HomePage() {
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const renderRestaurant = useCallback(
-    ({ item }: { item: RestaurantSummary }) => (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() =>
-          navigation.navigate('RestaurantDetails' as never, { restaurantId: item.id } as never)
-        }
-        activeOpacity={0.85}
-      >
-        <Image
-          source={item.imageUrl ? { uri: `${BASE_API_URL}/auth/image/${item.imageUrl}` } : require('../../assets/baguette.png')}
-          style={styles.cardImage}
-          contentFit="cover"
-        />
-        <View style={styles.cardBody}>
-          <Text allowFontScaling={false} style={styles.cardTitle}>{item.name}</Text>
-          <View style={styles.ratingRow}>
-            <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-            <Text allowFontScaling={false} style={styles.ratingText}>
-              {item.rating ? `${item.rating}/5` : 'New'}
-            </Text>
+  const renderRestaurantCard = useCallback(
+    (restaurant: RestaurantSummary, variant: 'default' | 'compact' = 'default') => {
+      const isCompact = variant === 'compact';
+      const cardStyles = [styles.card, isCompact && styles.cardCompact];
+      const mediaStyles = [styles.cardMedia, isCompact && styles.cardMediaCompact];
+      const contentStyles = [styles.cardContent, isCompact && styles.cardContentCompact];
+      const titleStyles = [styles.cardTitle, isCompact && styles.cardTitleCompact];
+      const subtitleStyles = [styles.cardSubtitle, isCompact && styles.cardSubtitleCompact];
+      const metaTextStyles = [styles.cardMetaText, isCompact && styles.cardMetaTextCompact];
+      const closingTextStyles = [
+        styles.cardClosingText,
+        isCompact && styles.cardClosingTextCompact,
+      ];
+      const ratingPillStyles = [styles.ratingPill, isCompact && styles.ratingPillCompact];
+
+      const ratingLabel = restaurant.rating ? restaurant.rating.toFixed(1) : 'New';
+      const deliveryLabel =
+        restaurant.deliveryFee > 0
+          ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
+          : 'Free delivery';
+
+      return (
+        <TouchableOpacity
+          style={cardStyles}
+          onPress={() =>
+            navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
+          }
+          activeOpacity={0.88}
+        >
+          <View style={mediaStyles}>
+            <Image
+              source={
+                restaurant.imageUrl
+                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                  : require('../../assets/baguette.png')
+              }
+              style={styles.cardImage}
+              contentFit="cover"
+            />
+            {restaurant.hasPromotion && restaurant.promotionSummary ? (
+              <View
+                style={[
+                  styles.promotionStickerContainer,
+                  isCompact && styles.promotionStickerContainerCompact,
+                ]}
+              >
+                <LinearGradient
+                  colors={['#CA251B', '#CA251B']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={[styles.promotionSticker, isCompact && styles.promotionStickerCompact]}
+                >
+                  <Percent size={isCompact ? s(10) : s(12)} color="#FFFFFF" />
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.promotionStickerText,
+                      isCompact && styles.promotionStickerTextCompact,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {restaurant.promotionSummary}
+                  </Text>
+                </LinearGradient>
+              </View>
+            ) : null}
+            <View
+              style={[
+                styles.favoriteButton,
+                restaurant.favorite && styles.favoriteButtonActive,
+              ]}
+            >
+              <Heart
+                size={isCompact ? s(16) : s(18)}
+                color={restaurant.favorite ? '#FFFFFF' : '#CA251B'}
+                fill={restaurant.favorite ? '#FFFFFF' : 'none'}
+              />
+            </View>
           </View>
-          <Text allowFontScaling={false} style={styles.deliveryTime}>{item.type || 'Restaurant'}</Text>
-          <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee)}</Text>
-        </View>
-      </TouchableOpacity>
-    ),
+          <View style={contentStyles}>
+            <View style={styles.cardTitleRow}>
+              <Text allowFontScaling={false} style={titleStyles} numberOfLines={1}>
+                {restaurant.name}
+              </Text>
+              <View style={ratingPillStyles}>
+                <Star size={isCompact ? s(12) : s(14)} color="#F97316" fill="#F97316" />
+                <Text allowFontScaling={false} style={styles.ratingPillText}>
+                  {ratingLabel}
+                </Text>
+              </View>
+            </View>
+            {(restaurant.description || restaurant.type || restaurant.address) ? (
+              <Text allowFontScaling={false} style={subtitleStyles} numberOfLines={1}>
+                {restaurant.description || restaurant.type || restaurant.address}
+              </Text>
+            ) : null}
+            <View style={styles.cardMetaRow}>
+              <Bike size={isCompact ? s(12) : s(14)} color="#CA251B" />
+              <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
+                {deliveryLabel}
+              </Text>
+            </View>
+            {restaurant.closingHours ? (
+              <View style={[styles.cardMetaRow, styles.cardMetaRowSecondary]}>
+                <Clock3 size={isCompact ? s(12) : s(14)} color="#0F172A" />
+                <Text allowFontScaling={false} style={closingTextStyles} numberOfLines={1}>
+                  Closes {restaurant.closingHours}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      );
+    },
     [navigation]
   );
 
-  const renderListHeader = useCallback(
-    () => (
-      <View style={styles.mainWrapper}>
-        <Text allowFontScaling={false} style={styles.sectionTitle}>{sectionTitle}</Text>
-      </View>
-    ),
-    [sectionTitle]
+  const renderTopPickCard = useCallback(
+    (restaurant: RestaurantSummary) => {
+      const deliveryLabel =
+        restaurant.deliveryFee > 0
+          ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
+          : 'Free delivery';
+
+      return (
+        <TouchableOpacity
+          style={styles.topPickCard}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate('RestaurantDetails' as never, {
+              restaurantId: restaurant.id,
+            } as never)
+          }
+        >
+          <View style={styles.topPickMedia}>
+            <Image
+              source={
+                restaurant.imageUrl
+                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                  : require('../../assets/baguette.png')
+              }
+              style={styles.topPickImage}
+              contentFit="cover"
+            />
+          </View>
+          <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
+            {restaurant.name}
+          </Text>
+          {(restaurant.type || restaurant.description) ? (
+            <Text allowFontScaling={false} style={styles.topPickSubtitle} numberOfLines={1}>
+              {restaurant.type || restaurant.description}
+            </Text>
+          ) : null}
+          <Bike size={ s(14)} color="#CA251B" />
+          <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
+            {deliveryLabel}
+          </Text>
+        </TouchableOpacity>
+      );
+    },
+    [navigation],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: NearbyListItem }) => {
+      if (item.type === 'section') {
+        const isTopPicks = item.key === 'topPicks';
+        return (
+          <View style={styles.mainWrapper}>
+            <View style={styles.sectionHeader}>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+            </View>
+            {item.layout === 'carousel' ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carouselList}
+              >
+                {item.restaurants.map((restaurant) => (
+                  <View
+                    key={restaurant.id}
+                    style={
+                      isTopPicks ? styles.topPickCarouselItem : styles.carouselCardContainer
+                    }
+                  >
+                    {isTopPicks
+                      ? renderTopPickCard(restaurant)
+                      : renderRestaurantCard(restaurant, 'compact')}
+                  </View>
+                ))}
+              </ScrollView>
+            ) : isTopPicks ? (
+              <View style={styles.topPickGrid}>
+                {item.restaurants.map((restaurant) => (
+                  <View key={restaurant.id} style={styles.topPickGridItem}>
+                    {renderTopPickCard(restaurant)}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View>
+                {item.restaurants.map((restaurant) => (
+                  <View key={restaurant.id} style={styles.cardContainer}>
+                    {renderRestaurantCard(restaurant)}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      }
+
+      if (item.type === 'othersHeader') {
+        return (
+          <View style={styles.mainWrapper}>
+            <View style={styles.sectionHeader}>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+            </View>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.mainWrapper}>
+          <View style={styles.cardContainer}>
+            {renderRestaurantCard(item.restaurant)}
+          </View>
+        </View>
+      );
+    },
+    [renderRestaurantCard, renderTopPickCard]
   );
 
   const renderListEmpty = useCallback(() => {
@@ -166,8 +475,6 @@ export default function HomePage() {
       </View>
     );
   }, [isFetchingNextPage]);
-
-  const itemSeparator = useCallback(() => <View style={styles.itemSeparator} />, []);
 
   const mainContent = <></>;
 
@@ -246,12 +553,10 @@ export default function HomePage() {
         isRefreshing={isRefetching}
         mainContent={mainContent}
         virtualizedListProps={{
-          data: restaurants,
-          renderItem: renderRestaurant,
-          keyExtractor: (item) => item.id.toString(),
-          ListHeaderComponent: renderListHeader,
+          data: listData,
+          renderItem,
+          keyExtractor: (item) => item.key,
           ListEmptyComponent: renderListEmpty,
-          ItemSeparatorComponent: itemSeparator,
           ListFooterComponent: renderListFooter,
           onEndReached: handleEndReached,
           onEndReachedThreshold: 0.4,
@@ -273,18 +578,24 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const styles = ScaledSheet.create({
 
   mainWrapper: { paddingHorizontal: "16@s" },
-  sectionTitle: { fontSize: "18@ms", fontWeight: "700", marginTop: "16@vs", marginBottom: "12@vs" },
+  sectionTitle: { fontSize: "18@ms", fontWeight: "700" },
+  sectionHeader: {
+    marginTop: '16@vs',
+    marginBottom: '12@vs',
+  },
   listContent: {
-    paddingHorizontal: '16@s',
     paddingBottom: '32@vs',
+  },
+  carouselList: {
+    paddingHorizontal: '4@s',
+  },
+  carouselCardContainer: {
+    marginRight: '12@s',
   },
   footerLoader: {
     paddingVertical: '16@vs',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  itemSeparator: {
-    height: '12@vs',
   },
   loadingWrapper: {
     alignItems: 'center',
@@ -331,21 +642,217 @@ const styles = ScaledSheet.create({
   },
 
   card: {
-    backgroundColor: "white",
-    borderRadius: "12@ms",
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: "6@ms",
+    backgroundColor: '#FFFFFF',
+    borderRadius: '20@ms',
+    overflow: 'hidden',
+    shadowColor: 'rgba(15, 23, 42, 0.12)',
+    shadowOpacity: 0.18,
+    shadowRadius: '18@ms',
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
+  },
+  cardCompact: {
+    width: '220@s',
+  },
+  cardContainer: {
+    marginBottom: '16@vs',
+  },
+  cardMedia: {
+    width: '100%',
+    aspectRatio: 16 / 11,
+    backgroundColor: '#F3F4F6',
+    position: 'relative',
+  },
+  cardMediaCompact: {
+    aspectRatio: 1.25,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  promotionStickerContainer: {
+    position: 'absolute',
+    left: 0,
+    top: '14@vs',
+  },
+  promotionStickerContainerCompact: {
+    top: '10@vs',
+  },
+  promotionSticker: {
+    paddingVertical: '6@vs',
+    paddingHorizontal: '14@s',
+    borderTopRightRadius: '16@ms',
+    borderBottomRightRadius: '16@ms',
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: 'rgba(15, 23, 42, 0.18)',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 2, height: 4 },
+    shadowRadius: '10@ms',
+    elevation: 5,
+  },
+  promotionStickerCompact: {
+    paddingHorizontal: '12@s',
+    borderTopRightRadius: '14@ms',
+    borderBottomRightRadius: '14@ms',
+  },
+  promotionStickerText: {
+    fontSize: '7@ms',
+    fontWeight: '500',
+    color: '#ffffff',
+    marginLeft: '6@s',
+  },
+  promotionStickerTextCompact: {
+    fontSize: '10@ms',
+    marginLeft: '4@s',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: '12@vs',
+    right: '12@s',
+    width: '34@s',
+    height: '34@s',
+    borderRadius: '18@ms',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  },
+  favoriteButtonActive: {
+    backgroundColor: '#CA251B',
+  },
+  cardContent: {
+    paddingHorizontal: '16@s',
+    paddingVertical: '14@vs',
+  },
+  cardContentCompact: {
+    paddingHorizontal: '14@s',
+    paddingVertical: '12@vs',
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    fontSize: '18@ms',
+    fontWeight: '700',
+    color: '#111827',
+    flex: 1,
+    marginRight: '12@s',
+  },
+  cardTitleCompact: {
+    fontSize: '16@ms',
+  },
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: '8@s',
+    paddingVertical: '4@vs',
+    borderRadius: '14@ms',
+    backgroundColor: '#F1F5F9',
+  },
+  ratingPillCompact: {
+    paddingHorizontal: '6@s',
+    paddingVertical: '3@vs',
+  },
+  ratingPillText: {
+    fontSize: '12@ms',
+    fontWeight: '600',
+    color: '#111827',
+    marginLeft: '4@s',
+  },
+  cardSubtitle: {
+    marginTop: '6@vs',
+    fontSize: '13@ms',
+    color: '#64748B',
+  },
+  cardSubtitleCompact: {
+    fontSize: '12@ms',
+  },
+  cardMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: '12@vs',
+  },
+  cardMetaRowSecondary: {
+    marginTop: '6@vs',
+  },
+  cardMetaText: {
+    marginLeft: '8@s',
+    fontSize: '13@ms',
+    fontWeight: '500',
+    color: '#CA251B',
+  },
+  cardMetaTextCompact: {
+    fontSize: '12@ms',
+  },
+  cardClosingText: {
+    marginLeft: '8@s',
+    fontSize: '12@ms',
+    color: '#64748B',
+  },
+  cardClosingTextCompact: {
+    fontSize: '11@ms',
+  },
+
+  topPickCard: {
+    width: '112@s',
+    alignItems: 'center',
+  },
+  topPickMedia: {
+    width: '90@s',
+    height: '90@s',
+    borderRadius: '56@ms',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: '10@vs',
+    shadowColor: 'rgba(15, 23, 42, 0.08)',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: '12@ms',
     elevation: 3,
   },
-  cardImage: { width: "100%", height: "140@vs" },
-  cardBody: { padding: "10@s" },
-  cardTitle: { fontSize: "16@ms", fontWeight: "700" },
-  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: "4@vs" },
-  ratingText: { fontSize: "12@ms", marginLeft: "4@s" },
-  deliveryTime: { color: "red", fontSize: "12@ms", marginTop: "4@vs" },
-  deliveryFee: { color: "#4B5563", fontSize: "11@ms", marginTop: "2@vs" },
+  topPickImage: {
+    width: '100%',
+    height: '100%',
+  },
+  topPickTitle: {
+    fontSize: '12@ms',
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  topPickSubtitle: {
+    marginTop: '4@vs',
+    fontSize: '12@ms',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  topPickMetaText: {
+    marginTop: '6@vs',
+    fontSize: '12@ms',
+    color: '#CA251B',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  topPickCarouselItem: {
+    marginRight: '16@s',
+  },
+  topPickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: '-10@s',
+  },
+  topPickGridItem: {
+    paddingHorizontal: '10@s',
+    marginBottom: '20@vs',
+    alignItems: 'center',
+    width: '33%',
+  },
 
   headerWrapper: {
     padding: "6@s",

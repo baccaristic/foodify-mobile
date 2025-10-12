@@ -92,6 +92,8 @@ export interface RestaurantSummary {
   imageUrl: string;
   menu: RestaurantMenuItemDetails[];
   favorite?: boolean;
+  hasPromotion?: boolean;
+  promotionSummary?: string | null;
 }
 
 export interface NearbyRestaurantsParams {
@@ -103,11 +105,22 @@ export interface NearbyRestaurantsParams {
   pageSize?: number;
 }
 
-export interface PaginatedRestaurantSummaryResponse {
-  items: RestaurantSummary[];
+export interface RestaurantCategorySection {
+  displayType: string;
+  restaurants: RestaurantSummary[];
+}
+
+export interface PaginatedRestaurantCategorySection extends RestaurantCategorySection {
   page: number;
   pageSize: number;
-  totalItems: number;
+  totalElements: number;
+}
+
+export interface NearbyRestaurantsResponse {
+  topPicks?: RestaurantCategorySection;
+  orderAgain?: RestaurantCategorySection;
+  promotions?: RestaurantCategorySection;
+  others: PaginatedRestaurantCategorySection;
 }
 
 export type RestaurantSearchSort = "picked" | "popular" | "rating";
