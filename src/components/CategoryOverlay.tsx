@@ -13,7 +13,7 @@ import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { getNearbyRestaurants } from "~/api/restaurants";
-import type { PaginatedRestaurantSummaryResponse } from "~/interfaces/Restaurant";
+import type { NearbyRestaurantsResponse, RestaurantSummary } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 
 interface CategoryOverlayProps {
@@ -39,7 +39,7 @@ export default function CategoryOverlay({
         isLoading,
         isError,
         refetch,
-    } = useQuery<PaginatedRestaurantSummaryResponse>({
+    } = useQuery<NearbyRestaurantsResponse>({
         queryKey: ["category-restaurants", category, userLatitude, userLongitude],
         queryFn: () =>
             getNearbyRestaurants({
@@ -51,7 +51,20 @@ export default function CategoryOverlay({
         enabled: visible && Boolean(category),
     });
 
-    const restaurants = data?.items ?? [];
+    const restaurants = React.useMemo<RestaurantSummary[]>(() => {
+        if (!data) {
+            return [];
+        }
+
+        const sections: RestaurantSummary[][] = [
+            data.topPicks?.restaurants ?? [],
+            data.orderAgain?.restaurants ?? [],
+            data.promotions?.restaurants ?? [],
+            data.others?.restaurants ?? [],
+        ];
+
+        return sections.flat();
+    }, [data]);
 
     let content: React.ReactNode;
 

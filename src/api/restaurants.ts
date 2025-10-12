@@ -1,7 +1,7 @@
 import client from './client';
 import type {
   NearbyRestaurantsParams,
-  PaginatedRestaurantSummaryResponse,
+  NearbyRestaurantsResponse,
   RestaurantDetailsResponse,
   RestaurantSearchParams,
   RestaurantSearchResponse,
@@ -14,8 +14,8 @@ export const getNearbyRestaurants = async ({
   category,
   page,
   pageSize,
-}: NearbyRestaurantsParams): Promise<PaginatedRestaurantSummaryResponse> => {
-  const { data } = await client.get<PaginatedRestaurantSummaryResponse>('/client/nearby', {
+}: NearbyRestaurantsParams): Promise<NearbyRestaurantsResponse> => {
+  const { data } = await client.get<NearbyRestaurantsResponse>('/client/nearby', {
     params: {
       lat,
       lng,

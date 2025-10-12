@@ -9,7 +9,11 @@ import { Image } from "expo-image";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
-import type { PaginatedRestaurantSummaryResponse, RestaurantSummary } from "~/interfaces/Restaurant";
+import type {
+  NearbyRestaurantsResponse,
+  RestaurantCategorySection,
+  RestaurantSummary,
+} from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 
@@ -42,7 +46,7 @@ export default function HomePage() {
     hasNextPage,
     isFetchingNextPage,
     isRefetching,
-  } = useInfiniteQuery<PaginatedRestaurantSummaryResponse>({
+  } = useInfiniteQuery<NearbyRestaurantsResponse>({
     queryKey: ['nearby-restaurants', userLatitude, userLongitude, radiusKm],
     queryFn: ({ pageParam = INITIAL_PAGE }) =>
       getNearbyRestaurants({
@@ -53,22 +57,65 @@ export default function HomePage() {
         pageSize: PAGE_SIZE,
       }),
     getNextPageParam: (lastPage) => {
-      const fetchedItems = lastPage.page * lastPage.pageSize + lastPage.items.length;
-      if (fetchedItems >= lastPage.totalItems) {
+      const { page, pageSize, totalElements } = lastPage.others;
+      const fetchedItems = (page + 1) * pageSize;
+
+      if (fetchedItems >= totalElements) {
         return undefined;
       }
 
-      return lastPage.page + 1;
+      return page + 1;
     },
     initialPageParam: INITIAL_PAGE,
   });
 
-  const restaurants = useMemo(
-    () => data?.pages.flatMap((page) => page.items) ?? [],
+  type NearbyListItem =
+    | { type: 'section'; key: string; title: string; restaurants: RestaurantSummary[] }
+    | { type: 'othersHeader'; key: string; title: string }
+    | { type: 'restaurant'; key: string; restaurant: RestaurantSummary };
+
+  const topSections = useMemo(() => {
+    const firstPage = data?.pages[0];
+    if (!firstPage) {
+      return [] as NearbyListItem[];
+    }
+
+    const sections: { key: string; section?: RestaurantCategorySection }[] = [
+      { key: 'topPicks', section: firstPage.topPicks },
+      { key: 'orderAgain', section: firstPage.orderAgain },
+      { key: 'promotions', section: firstPage.promotions },
+    ];
+
+    return sections
+      .filter((entry): entry is { key: string; section: RestaurantCategorySection } =>
+        Boolean(entry.section && entry.section.restaurants.length > 0)
+      )
+      .map((entry) => ({
+        type: 'section' as const,
+        key: entry.key,
+        title: entry.section.displayType,
+        restaurants: entry.section.restaurants,
+      }));
+  }, [data]);
+
+  const otherRestaurants = useMemo(
+    () => data?.pages.flatMap((page) => page.others.restaurants) ?? [],
     [data]
   );
 
-  const sectionTitle = isLoading ? 'Loading nearby restaurants...' : 'Nearby Restaurants';
+  const listData = useMemo(() => {
+    const items: NearbyListItem[] = [...topSections];
+
+    if (otherRestaurants.length > 0) {
+      const othersTitle = data?.pages[0]?.others.displayType ?? 'Other restaurants';
+      items.push({ type: 'othersHeader', key: 'others-header', title: othersTitle });
+      otherRestaurants.forEach((restaurant) => {
+        items.push({ type: 'restaurant', key: `restaurant-${restaurant.id}`, restaurant });
+      });
+    }
+
+    return items;
+  }, [data, otherRestaurants, topSections]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -76,43 +123,73 @@ export default function HomePage() {
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const renderRestaurant = useCallback(
-    ({ item }: { item: RestaurantSummary }) => (
+  const renderRestaurantCard = useCallback(
+    (restaurant: RestaurantSummary) => (
       <TouchableOpacity
+        key={restaurant.id}
         style={styles.card}
         onPress={() =>
-          navigation.navigate('RestaurantDetails' as never, { restaurantId: item.id } as never)
+          navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
         }
         activeOpacity={0.85}
       >
         <Image
-          source={item.imageUrl ? { uri: `${BASE_API_URL}/auth/image/${item.imageUrl}` } : require('../../assets/baguette.png')}
+          source={
+            restaurant.imageUrl
+              ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+              : require('../../assets/baguette.png')
+          }
           style={styles.cardImage}
           contentFit="cover"
         />
         <View style={styles.cardBody}>
-          <Text allowFontScaling={false} style={styles.cardTitle}>{item.name}</Text>
+          <Text allowFontScaling={false} style={styles.cardTitle}>{restaurant.name}</Text>
           <View style={styles.ratingRow}>
             <Star size={s(14)} color="#FACC15" fill="#FACC15" />
             <Text allowFontScaling={false} style={styles.ratingText}>
-              {item.rating ? `${item.rating}/5` : 'New'}
+              {restaurant.rating ? `${restaurant.rating}/5` : 'New'}
             </Text>
           </View>
-          <Text allowFontScaling={false} style={styles.deliveryTime}>{item.type || 'Restaurant'}</Text>
-          <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee)}</Text>
+          <Text allowFontScaling={false} style={styles.deliveryTime}>{restaurant.type || 'Restaurant'}</Text>
+          <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(restaurant.deliveryFee)}</Text>
         </View>
       </TouchableOpacity>
     ),
     [navigation]
   );
 
-  const renderListHeader = useCallback(
-    () => (
-      <View style={styles.mainWrapper}>
-        <Text allowFontScaling={false} style={styles.sectionTitle}>{sectionTitle}</Text>
-      </View>
-    ),
-    [sectionTitle]
+  const renderItem = useCallback(
+    ({ item }: { item: NearbyListItem }) => {
+      if (item.type === 'section') {
+        return (
+          <View style={styles.mainWrapper}>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+            <View>
+              {item.restaurants.map((restaurant) => (
+                <View key={restaurant.id} style={styles.cardContainer}>
+                  {renderRestaurantCard(restaurant)}
+                </View>
+              ))}
+            </View>
+          </View>
+        );
+      }
+
+      if (item.type === 'othersHeader') {
+        return (
+          <View style={styles.mainWrapper}>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.cardContainer}>
+          {renderRestaurantCard(item.restaurant)}
+        </View>
+      );
+    },
+    [renderRestaurantCard]
   );
 
   const renderListEmpty = useCallback(() => {
@@ -166,8 +243,6 @@ export default function HomePage() {
       </View>
     );
   }, [isFetchingNextPage]);
-
-  const itemSeparator = useCallback(() => <View style={styles.itemSeparator} />, []);
 
   const mainContent = <></>;
 
@@ -246,12 +321,10 @@ export default function HomePage() {
         isRefreshing={isRefetching}
         mainContent={mainContent}
         virtualizedListProps={{
-          data: restaurants,
-          renderItem: renderRestaurant,
-          keyExtractor: (item) => item.id.toString(),
-          ListHeaderComponent: renderListHeader,
+          data: listData,
+          renderItem,
+          keyExtractor: (item) => item.key,
           ListEmptyComponent: renderListEmpty,
-          ItemSeparatorComponent: itemSeparator,
           ListFooterComponent: renderListFooter,
           onEndReached: handleEndReached,
           onEndReachedThreshold: 0.4,
@@ -282,9 +355,6 @@ const styles = ScaledSheet.create({
     paddingVertical: '16@vs',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  itemSeparator: {
-    height: '12@vs',
   },
   loadingWrapper: {
     alignItems: 'center',
@@ -338,6 +408,9 @@ const styles = ScaledSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: "6@ms",
     elevation: 3,
+  },
+  cardContainer: {
+    marginBottom: '12@vs',
   },
   cardImage: { width: "100%", height: "140@vs" },
   cardBody: { padding: "10@s" },
