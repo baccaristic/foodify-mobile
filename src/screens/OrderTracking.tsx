@@ -29,6 +29,7 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
+import LottieView from 'lottie-react-native';
 
 import type {
   CreateOrderResponse,
@@ -310,7 +311,12 @@ const OrderTrackingScreen: React.FC = () => {
   ]);
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
+  const normalizedStatus = useMemo(
+    () => (order?.status ? String(order.status).toUpperCase() : null),
+    [order?.status],
+  );
   const formattedStatus = formatOrderStatusLabel(order?.status);
+  const isPreparingStatus = normalizedStatus === 'PREPARING';
 
   const clearCelebrationTimeout = useCallback(() => {
     if (celebrationTimeoutRef.current) {
@@ -554,7 +560,6 @@ const OrderTrackingScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    const normalizedStatus = order?.status ? String(order.status).toUpperCase() : null;
     const previousStatus = previousStatusRef.current;
 
     if (normalizedStatus === 'DELIVERED' && previousStatus !== 'DELIVERED') {
@@ -590,7 +595,7 @@ const OrderTrackingScreen: React.FC = () => {
     if (normalizedStatus) {
       previousStatusRef.current = normalizedStatus;
     }
-  }, [order?.status, order?.statusHistory, steps]);
+  }, [normalizedStatus, order?.statusHistory, steps]);
 
   const orderTotal = formatCurrency(order?.payment?.total);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
@@ -750,6 +755,7 @@ const OrderTrackingScreen: React.FC = () => {
 
   const renderHero = (collapsed: boolean) => {
     const showMap = hasAssignedCourier && mapRegion;
+    const showPreparingAnimation = !showMap && isPreparingStatus;
 
     return (
       <View style={collapsed ? styles.mapCollapsed : styles.mapExpanded}>
@@ -779,6 +785,15 @@ const OrderTrackingScreen: React.FC = () => {
                 </Marker>
               ) : null}
             </MapView>
+          ) : showPreparingAnimation ? (
+            <View style={styles.statusPlaceholder}>
+              <LottieView
+                source={require('../../assets/animations/prepare_food.json')}
+                autoPlay
+                loop
+                style={styles.preparingAnimation}
+              />
+            </View>
           ) : (
             <View style={styles.statusPlaceholder}>
               <Animated.View
@@ -1238,6 +1253,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
+  },
+  preparingAnimation: {
+    width: 260,
+    height: 260,
   },
   statusPulse: {
     position: 'absolute',
