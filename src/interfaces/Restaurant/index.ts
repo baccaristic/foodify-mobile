@@ -92,6 +92,8 @@ export interface RestaurantSummary {
   imageUrl: string;
   menu: RestaurantMenuItemDetails[];
   favorite?: boolean;
+  hasPromotion?: boolean;
+  promotionSummary?: string | null;
 }
 
 export interface NearbyRestaurantsParams {

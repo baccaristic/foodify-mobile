@@ -260,6 +260,18 @@ export default function HomePage() {
                   {restaurant.description || restaurant.address}
                 </Text>
               )}
+              {restaurant.hasPromotion && restaurant.promotionSummary ? (
+                <View style={styles.promotionChip}>
+                  <Percent size={s(12)} color="#0F172A" />
+                  <Text
+                    allowFontScaling={false}
+                    style={styles.promotionText}
+                    numberOfLines={1}
+                  >
+                    {restaurant.promotionSummary}
+                  </Text>
+                </View>
+              ) : null}
               <View style={styles.cardMetaRow}>
                 <View style={styles.cardMetaItem}>
                   <Utensils size={s(14)} color="#F8FAFC" />
@@ -323,6 +335,18 @@ export default function HomePage() {
                 <Star size={s(12)} color="#111827" fill="#111827" />
                 <Text allowFontScaling={false} style={styles.topPickRatingText}>
                   {restaurant.rating.toFixed(1)}
+                </Text>
+              </View>
+            ) : null}
+            {restaurant.hasPromotion && restaurant.promotionSummary ? (
+              <View style={styles.topPickPromotionChip}>
+                <Percent size={s(10)} color="#0F172A" />
+                <Text
+                  allowFontScaling={false}
+                  style={styles.topPickPromotionText}
+                  numberOfLines={1}
+                >
+                  {restaurant.promotionSummary}
                 </Text>
               </View>
             ) : null}
@@ -730,6 +754,22 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     marginTop: '10@vs',
   },
+  promotionChip: {
+    marginTop: '10@vs',
+    alignSelf: 'flex-start',
+    paddingHorizontal: '12@s',
+    paddingVertical: '5@vs',
+    borderRadius: '14@ms',
+    backgroundColor: 'rgba(248, 250, 252, 0.92)',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  promotionText: {
+    fontSize: '11@ms',
+    fontWeight: '600',
+    color: '#0F172A',
+    marginLeft: '6@s',
+  },
   cardMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -814,6 +854,23 @@ const styles = ScaledSheet.create({
     fontSize: '10@ms',
     fontWeight: '600',
     color: '#111827',
+    marginLeft: '4@s',
+  },
+  topPickPromotionChip: {
+    position: 'absolute',
+    left: '6@s',
+    bottom: '6@vs',
+    borderRadius: '12@ms',
+    paddingHorizontal: '10@s',
+    paddingVertical: '4@vs',
+    backgroundColor: '#FACC15',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  topPickPromotionText: {
+    fontSize: '9@ms',
+    fontWeight: '600',
+    color: '#0F172A',
     marginLeft: '4@s',
   },
   topPickTitle: {

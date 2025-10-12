@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
-import { X, Star } from "lucide-react-native";
+import { X, Star, Percent } from "lucide-react-native";
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -120,6 +120,14 @@ export default function CategoryOverlay({
                         />
                         <View style={styles.cardBody}>
                             <Text style={styles.cardTitle}>{restaurant.name}</Text>
+                            {restaurant.hasPromotion && restaurant.promotionSummary ? (
+                                <View style={styles.promotionBadge}>
+                                    <Percent size={s(12)} color="#111827" />
+                                    <Text style={styles.promotionText} numberOfLines={1}>
+                                        {restaurant.promotionSummary}
+                                    </Text>
+                                </View>
+                            ) : null}
                             <View style={styles.cardRow}>
                                 <Text style={styles.deliveryTime}>{restaurant.type}</Text>
                                 <View style={styles.ratingRow}>
@@ -206,6 +214,22 @@ const styles = ScaledSheet.create({
     cardImage: { width: "100%", height: "140@vs" },
     cardBody: { padding: "10@s" },
     cardTitle: { fontSize: "16@ms", fontWeight: "700", color: "#17213A" },
+    promotionBadge: {
+        marginTop: "6@vs",
+        alignSelf: "flex-start",
+        paddingHorizontal: "10@s",
+        paddingVertical: "4@vs",
+        borderRadius: "10@ms",
+        backgroundColor: "#FACC15",
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    promotionText: {
+        marginLeft: "6@s",
+        fontSize: "11@ms",
+        fontWeight: "600",
+        color: "#111827",
+    },
     cardRow: {
         flexDirection: "row",
         justifyContent: "space-between",
