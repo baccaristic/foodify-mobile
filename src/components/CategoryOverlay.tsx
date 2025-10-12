@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getNearbyRestaurants } from "~/api/restaurants";
 import type { NearbyRestaurantsResponse, RestaurantSummary } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface CategoryOverlayProps {
     visible: boolean;
@@ -115,19 +116,26 @@ export default function CategoryOverlay({
                                     ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
                                     : require("../../assets/baguette.png")
                             }
-                            style={styles.cardImage} 
+                            style={styles.cardImage}
                             contentFit="cover"
                         />
-                        <View style={styles.cardBody}>
-                            <Text style={styles.cardTitle}>{restaurant.name}</Text>
-                            {restaurant.hasPromotion && restaurant.promotionSummary ? (
-                                <View style={styles.promotionBadge}>
-                                    <Percent size={s(12)} color="#111827" />
+                        {restaurant.hasPromotion && restaurant.promotionSummary ? (
+                            <View style={styles.promotionStickerContainer}>
+                                <LinearGradient
+                                    colors={["#FACC15", "#F97316"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 0, y: 1 }}
+                                    style={styles.promotionSticker}
+                                >
+                                    <Percent size={s(11)} color="#0F172A" />
                                     <Text style={styles.promotionText} numberOfLines={1}>
                                         {restaurant.promotionSummary}
                                     </Text>
-                                </View>
-                            ) : null}
+                                </LinearGradient>
+                            </View>
+                        ) : null}
+                        <View style={styles.cardBody}>
+                            <Text style={styles.cardTitle}>{restaurant.name}</Text>
                             <View style={styles.cardRow}>
                                 <Text style={styles.deliveryTime}>{restaurant.type}</Text>
                                 <View style={styles.ratingRow}>
@@ -210,22 +218,31 @@ const styles = ScaledSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: "6@ms",
         elevation: 3,
+        position: "relative",
     },
     cardImage: { width: "100%", height: "140@vs" },
     cardBody: { padding: "10@s" },
     cardTitle: { fontSize: "16@ms", fontWeight: "700", color: "#17213A" },
-    promotionBadge: {
-        marginTop: "6@vs",
-        alignSelf: "flex-start",
-        paddingHorizontal: "10@s",
-        paddingVertical: "4@vs",
-        borderRadius: "10@ms",
-        backgroundColor: "#FACC15",
+    promotionStickerContainer: {
+        position: "absolute",
+        right: "-8@s",
+        top: "16@vs",
+    },
+    promotionSticker: {
+        borderTopLeftRadius: "14@ms",
+        borderBottomLeftRadius: "14@ms",
+        paddingHorizontal: "12@s",
+        paddingVertical: "6@vs",
         flexDirection: "row",
         alignItems: "center",
+        shadowColor: "rgba(15, 23, 42, 0.3)",
+        shadowOpacity: 0.25,
+        shadowRadius: "8@ms",
+        shadowOffset: { width: -2, height: 3 },
+        elevation: 4,
     },
     promotionText: {
-        marginLeft: "6@s",
+        marginLeft: "4@s",
         fontSize: "11@ms",
         fontWeight: "600",
         color: "#111827",

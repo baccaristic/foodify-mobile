@@ -231,6 +231,39 @@ export default function HomePage() {
               locations={[0, 0.55, 1]}
               style={styles.cardOverlay}
             />
+            {restaurant.hasPromotion && restaurant.promotionSummary ? (
+              <View
+                style={[
+                  styles.promotionStickerContainer,
+                  variant === 'compact' && styles.promotionStickerContainerCompact,
+                ]}
+              >
+                <LinearGradient
+                  colors={["#FACC15", "#F97316"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={[
+                    styles.promotionSticker,
+                    variant === 'compact' && styles.promotionStickerCompact,
+                  ]}
+                >
+                  <Percent
+                    size={variant === 'compact' ? s(11) : s(13)}
+                    color="#0F172A"
+                  />
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.promotionStickerText,
+                      variant === 'compact' && styles.promotionStickerTextCompact,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {restaurant.promotionSummary}
+                  </Text>
+                </LinearGradient>
+              </View>
+            ) : null}
             <View style={styles.cardBadgeRow}>
               <View style={styles.ratingChip}>
                 <Star size={s(14)} color="#FACC15" fill="#FACC15" />
@@ -260,18 +293,6 @@ export default function HomePage() {
                   {restaurant.description || restaurant.address}
                 </Text>
               )}
-              {restaurant.hasPromotion && restaurant.promotionSummary ? (
-                <View style={styles.promotionChip}>
-                  <Percent size={s(12)} color="#0F172A" />
-                  <Text
-                    allowFontScaling={false}
-                    style={styles.promotionText}
-                    numberOfLines={1}
-                  >
-                    {restaurant.promotionSummary}
-                  </Text>
-                </View>
-              ) : null}
               <View style={styles.cardMetaRow}>
                 <View style={styles.cardMetaItem}>
                   <Utensils size={s(14)} color="#F8FAFC" />
@@ -339,15 +360,22 @@ export default function HomePage() {
               </View>
             ) : null}
             {restaurant.hasPromotion && restaurant.promotionSummary ? (
-              <View style={styles.topPickPromotionChip}>
-                <Percent size={s(10)} color="#0F172A" />
-                <Text
-                  allowFontScaling={false}
-                  style={styles.topPickPromotionText}
-                  numberOfLines={1}
+              <View style={styles.topPickPromotionStickerContainer}>
+                <LinearGradient
+                  colors={["#FACC15", "#F97316"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.topPickPromotionSticker}
                 >
-                  {restaurant.promotionSummary}
-                </Text>
+                  <Percent size={s(10)} color="#0F172A" />
+                  <Text
+                    allowFontScaling={false}
+                    style={styles.topPickPromotionText}
+                    numberOfLines={1}
+                  >
+                    {restaurant.promotionSummary}
+                  </Text>
+                </LinearGradient>
               </View>
             ) : null}
           </View>
@@ -754,21 +782,44 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     marginTop: '10@vs',
   },
-  promotionChip: {
-    marginTop: '10@vs',
-    alignSelf: 'flex-start',
-    paddingHorizontal: '12@s',
-    paddingVertical: '5@vs',
-    borderRadius: '14@ms',
-    backgroundColor: 'rgba(248, 250, 252, 0.92)',
+  promotionStickerContainer: {
+    position: 'absolute',
+    right: '-10@s',
+    top: '28@vs',
+  },
+  promotionStickerContainerCompact: {
+    top: '20@vs',
+    right: '-8@s',
+  },
+  promotionSticker: {
+    paddingVertical: '8@vs',
+    paddingHorizontal: '14@s',
+    borderTopLeftRadius: '18@ms',
+    borderBottomLeftRadius: '18@ms',
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: 'rgba(15, 23, 42, 0.35)',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: -2, height: 4 },
+    shadowRadius: '12@ms',
+    elevation: 6,
   },
-  promotionText: {
-    fontSize: '11@ms',
-    fontWeight: '600',
+  promotionStickerCompact: {
+    paddingVertical: '6@vs',
+    paddingHorizontal: '12@s',
+    borderTopLeftRadius: '16@ms',
+    borderBottomLeftRadius: '16@ms',
+  },
+  promotionStickerText: {
+    fontSize: '12@ms',
+    fontWeight: '700',
     color: '#0F172A',
+    letterSpacing: 0.2,
     marginLeft: '6@s',
+  },
+  promotionStickerTextCompact: {
+    fontSize: '10@ms',
+    marginLeft: '4@s',
   },
   cardMetaItem: {
     flexDirection: 'row',
@@ -856,16 +907,23 @@ const styles = ScaledSheet.create({
     color: '#111827',
     marginLeft: '4@s',
   },
-  topPickPromotionChip: {
+  topPickPromotionStickerContainer: {
     position: 'absolute',
-    left: '6@s',
-    bottom: '6@vs',
-    borderRadius: '12@ms',
-    paddingHorizontal: '10@s',
-    paddingVertical: '4@vs',
-    backgroundColor: '#FACC15',
+    right: '-8@s',
+    top: '12@vs',
+  },
+  topPickPromotionSticker: {
+    borderTopLeftRadius: '14@ms',
+    borderBottomLeftRadius: '14@ms',
+    paddingHorizontal: '12@s',
+    paddingVertical: '6@vs',
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: 'rgba(15, 23, 42, 0.3)',
+    shadowOpacity: 0.25,
+    shadowRadius: '8@ms',
+    shadowOffset: { width: -2, height: 3 },
+    elevation: 4,
   },
   topPickPromotionText: {
     fontSize: '9@ms',
