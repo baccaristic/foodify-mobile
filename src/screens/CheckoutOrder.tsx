@@ -26,8 +26,15 @@ import { isAxiosError } from 'axios';
 import { useCart } from '~/context/CartContext';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
+import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { createOrder } from '~/api/orders';
 import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
+import {
+  convertCreateOrderResponseToTrackingOrder,
+  isCreateOrderResponsePayload,
+  mergeOrderLikeData,
+  type OrderLike,
+} from '~/utils/order';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -189,7 +196,7 @@ type CheckoutRouteParams = {
   discountAmount?: number;
   couponValid?: boolean;
   viewMode?: boolean;
-  order?: CreateOrderResponse | null;
+  order?: OrderLike | CreateOrderResponse | null;
 };
 
 type CheckoutRoute = RouteProp<{ CheckoutOrder: CheckoutRouteParams }, 'CheckoutOrder'>;
@@ -200,6 +207,7 @@ const CheckoutOrder: React.FC = () => {
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
+  const { updateOrder: updateOngoingOrder } = useOngoingOrder();
   const [itemsExpanded, setItemsExpanded] = useState(true);
   const [allergiesExpanded, setAllergiesExpanded] = useState(false);
   const [commentExpanded, setCommentExpanded] = useState(false);
@@ -213,7 +221,22 @@ const CheckoutOrder: React.FC = () => {
 
   const rawOrderParam = route.params?.order ?? null;
   const isViewMode = Boolean(route.params?.viewMode && rawOrderParam);
-  const viewOrder = isViewMode ? rawOrderParam : null;
+  const viewOrder = useMemo<OrderLike | null>(() => {
+    if (!isViewMode || !rawOrderParam) {
+      return null;
+    }
+
+    if (isCreateOrderResponsePayload(rawOrderParam)) {
+      const converted = convertCreateOrderResponseToTrackingOrder(rawOrderParam);
+      if (converted) {
+        return (
+          mergeOrderLikeData<OrderLike>(converted as OrderLike, rawOrderParam as OrderLike) ?? converted
+        );
+      }
+    }
+
+    return rawOrderParam as OrderLike;
+  }, [isViewMode, rawOrderParam]);
 
   useEffect(() => {
     if (isViewMode) {
@@ -248,13 +271,53 @@ const CheckoutOrder: React.FC = () => {
 
   const displayItems = useMemo<DisplayItem[]>(() => {
     if (isViewMode && viewOrder) {
-      return viewOrder.items.map((item, index) => ({
-        key: `order-${item.menuItemId}-${index}`,
-        name: item.name,
-        quantity: item.quantity,
-        extrasLabel: item.extras?.map((extra) => extra.name).join(', ') || undefined,
-        total: parseMonetaryAmount(item.lineTotal),
-      }));
+      const rawItemsCandidate = (viewOrder as { itemSummaries?: unknown[] } | null)?.itemSummaries;
+      const rawItems = Array.isArray(rawItemsCandidate)
+        ? rawItemsCandidate
+        : Array.isArray(viewOrder.items)
+        ? viewOrder.items
+        : [];
+
+      return rawItems.map((item, index) => {
+        const record = item as Record<string, unknown> | null;
+        const quantityCandidate = Number(record?.quantity ?? 1);
+        const quantity = Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1;
+        const extrasRaw = Array.isArray(record?.extras) ? record?.extras : [];
+        const extrasNames = extrasRaw
+          .map((extra) => {
+            if (typeof extra === 'string') {
+              return extra;
+            }
+            if (extra && typeof extra === 'object' && 'name' in extra && typeof extra.name === 'string') {
+              return extra.name;
+            }
+            return null;
+          })
+          .filter((value): value is string => Boolean(value && value.trim().length));
+
+        const name =
+          (typeof record?.name === 'string' && record.name.trim().length
+            ? record.name
+            : typeof record?.menuItemName === 'string' && record.menuItemName.trim().length
+            ? record.menuItemName
+            : 'Menu item');
+
+        const parsedLineTotal = parseMonetaryAmount(record?.lineTotal as MonetaryAmount | undefined);
+        const parsedUnitPrice = parseMonetaryAmount(record?.unitPrice as MonetaryAmount | undefined);
+        const parsedExtrasPrice = parseMonetaryAmount(record?.extrasPrice as MonetaryAmount | undefined);
+        const computedTotal = parsedUnitPrice * quantity + parsedExtrasPrice;
+        const total = parsedLineTotal > 0 ? parsedLineTotal : computedTotal;
+
+        const menuItemIdCandidate = record?.menuItemId;
+
+        return {
+          key: `order-${typeof menuItemIdCandidate === 'number' ? menuItemIdCandidate : index}-${index}`,
+          name,
+          quantity,
+          extrasLabel: extrasNames.length ? extrasNames.join(', ') : undefined,
+          total,
+        } satisfies DisplayItem;
+      });
     }
 
     return items.map((item) => ({
@@ -273,16 +336,33 @@ const CheckoutOrder: React.FC = () => {
   );
   const hasDisplayItems = displayItems.length > 0;
   const displayRestaurantName = isViewMode ? viewOrder?.restaurant?.name ?? 'Restaurant' : restaurantName;
-  const displaySubtotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.subtotal) : baseSubtotal;
-  const displayExtrasTotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.extrasTotal) : extrasTotal;
-  const displayTotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.total) : total;
+  const displaySubtotal =
+    isViewMode && viewOrder
+      ? parseMonetaryAmount((viewOrder as { payment?: { subtotal?: MonetaryAmount } } | null)?.payment?.subtotal)
+      : baseSubtotal;
+  const displayExtrasTotal =
+    isViewMode && viewOrder
+      ? parseMonetaryAmount((viewOrder as { payment?: { extrasTotal?: MonetaryAmount } } | null)?.payment?.extrasTotal)
+      : extrasTotal;
+  const displayTotal =
+    isViewMode && viewOrder
+      ? parseMonetaryAmount((viewOrder as { payment?: { total?: MonetaryAmount } } | null)?.payment?.total)
+      : total;
   const displayFees = isViewMode ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0) : deliveryFee + serviceFee;
+  const viewModeSavedAddress =
+    (viewOrder as { savedAddress?: { label?: string | null } } | null)?.savedAddress ??
+    (viewOrder as { delivery?: { savedAddress?: { label?: string | null } | null } } | null)?.delivery?.savedAddress ??
+    null;
+  const viewModeDeliveryAddress =
+    viewOrder?.deliveryAddress ??
+    (viewOrder as { delivery?: { address?: string } } | null)?.delivery?.address ??
+    '';
   const deliveryAddressValue = isViewMode
-    ? viewOrder?.delivery?.address ?? ''
+    ? viewModeDeliveryAddress
     : selectedAddress?.formattedAddress ?? '';
   const deliveryAddressTitle = isViewMode
-    ? viewOrder?.delivery?.savedAddress?.label?.trim()?.length
-      ? String(viewOrder.delivery.savedAddress?.label)
+    ? viewModeSavedAddress?.label?.trim()?.length
+      ? String(viewModeSavedAddress.label)
       : 'Delivery address'
     : selectedAddress?.label?.trim()?.length
       ? selectedAddress.label
@@ -314,7 +394,10 @@ const CheckoutOrder: React.FC = () => {
 
   const paymentMethodLabel = useMemo(() => {
     if (isViewMode && viewOrder) {
-      return formatPaymentMethodName(viewOrder.payment?.method);
+      const paymentMethodSource =
+        (viewOrder as { paymentMethod?: string | null } | null)?.paymentMethod ??
+        (viewOrder as { payment?: { method?: string | null } } | null)?.payment?.method;
+      return formatPaymentMethodName(paymentMethodSource);
     }
 
     if (!selectedPaymentMethod) {
@@ -327,7 +410,10 @@ const CheckoutOrder: React.FC = () => {
 
   const SelectedPaymentIcon = useMemo(() => {
     if (isViewMode && viewOrder) {
-      return resolvePaymentIcon(viewOrder.payment?.method);
+      const paymentMethodSource =
+        (viewOrder as { paymentMethod?: string | null } | null)?.paymentMethod ??
+        (viewOrder as { payment?: { method?: string | null } } | null)?.payment?.method;
+      return resolvePaymentIcon(paymentMethodSource);
     }
 
     if (!selectedPaymentMethod) {
@@ -338,17 +424,24 @@ const CheckoutOrder: React.FC = () => {
   }, [isViewMode, viewOrder, selectedPaymentMethod]);
 
   const deliveryRegion = useMemo(() => {
-    if (isViewMode && viewOrder?.delivery?.location) {
-      const latCandidate = Number(viewOrder.delivery.location.lat);
-      const lngCandidate = Number(viewOrder.delivery.location.lng);
+    if (isViewMode) {
+      const locationSource =
+        viewOrder?.deliveryLocation ??
+        (viewOrder as { delivery?: { location?: { lat?: number; lng?: number } | null } } | null)?.delivery?.location ??
+        null;
 
-      if (Number.isFinite(latCandidate) && Number.isFinite(lngCandidate)) {
-        return {
-          latitude: latCandidate,
-          longitude: lngCandidate,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
+      if (locationSource) {
+        const latCandidate = Number((locationSource as { lat?: number }).lat);
+        const lngCandidate = Number((locationSource as { lng?: number }).lng);
+
+        if (Number.isFinite(latCandidate) && Number.isFinite(lngCandidate)) {
+          return {
+            latitude: latCandidate,
+            longitude: lngCandidate,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          };
+        }
       }
     }
 
@@ -373,7 +466,10 @@ const CheckoutOrder: React.FC = () => {
 
   const addressDetails = useMemo(() => {
     if (isViewMode) {
-      const formatted = viewOrder?.delivery?.savedAddress?.formattedAddress;
+      const formatted =
+        (viewModeSavedAddress?.formattedAddress && viewModeSavedAddress.formattedAddress.trim().length
+          ? viewModeSavedAddress.formattedAddress
+          : null) ?? undefined;
       if (formatted && formatted.trim().length) {
         const normalizedDetail = formatted.trim();
         const normalizedValue = deliveryAddressValue.trim();
@@ -394,7 +490,7 @@ const CheckoutOrder: React.FC = () => {
     );
 
     return detail ?? null;
-  }, [isViewMode, viewOrder, selectedAddress, deliveryAddressValue]);
+  }, [isViewMode, viewModeSavedAddress, selectedAddress, deliveryAddressValue]);
 
   const handlePaymentSelection = useCallback((method: PaymentMethod) => {
     setSelectedPaymentMethod(method);
@@ -474,11 +570,15 @@ const CheckoutOrder: React.FC = () => {
       };
 
       const response = await createOrder(payload);
+      const normalizedOrder = convertCreateOrderResponseToTrackingOrder(response);
+      if (normalizedOrder) {
+        updateOngoingOrder(normalizedOrder);
+      }
       clearCart();
       setAppliedCoupon(null);
       setComment('');
       setAllergies('');
-      navigation.navigate('OrderTracking', { order: response });
+      navigation.navigate('OrderTracking', { order: normalizedOrder ?? (response as unknown as OrderLike) });
     } catch (error) {
       console.error('Failed to create order:', error);
       const message = (() => {
@@ -513,6 +613,7 @@ const CheckoutOrder: React.FC = () => {
     combinedInstructions,
     clearCart,
     navigation,
+    updateOngoingOrder,
   ]);
 
   const canSubmit =

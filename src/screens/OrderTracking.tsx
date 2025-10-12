@@ -31,16 +31,17 @@ import {
 } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 
-import type {
-  CreateOrderResponse,
-  MonetaryAmount,
-  OrderNotificationDto,
-  OrderStatusHistoryDto,
-} from '~/interfaces/Order';
+import type { CreateOrderResponse, MonetaryAmount, OrderStatusHistoryDto } from '~/interfaces/Order';
 import { ms, vs } from 'react-native-size-matters';
 import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
-import { formatOrderStatusLabel, mergeOrderLikeData } from '~/utils/order';
+import {
+  convertCreateOrderResponseToTrackingOrder,
+  formatOrderStatusLabel,
+  isCreateOrderResponsePayload,
+  mergeOrderLikeData,
+  type OrderLike,
+} from '~/utils/order';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -53,7 +54,12 @@ const textSecondary = '#6B7280';
 const borderColor = '#F0F1F5';
 
 type OrderTrackingRoute = RouteProp<
-  { OrderTracking: { order?: CreateOrderResponse | null; orderId?: number | string | null } },
+  {
+    OrderTracking: {
+      order?: OrderLike | CreateOrderResponse | null;
+      orderId?: number | string | null;
+    };
+  },
   'OrderTracking'
 >;
 
@@ -66,12 +72,6 @@ type WorkflowStep = {
   statusText: string;
   etaLabel: string;
   state: 'completed' | 'active' | 'pending';
-};
-
-type OrderTrackingData = Partial<CreateOrderResponse> &
-  Partial<OrderNotificationDto> & {
-  orderId?: number | string | null;
-  statusHistory?: (OrderStatusHistoryDto | OrderStatusHistoryEntry)[];
 };
 
 type StatusChangeInfo = {
@@ -111,7 +111,7 @@ const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
   return 0;
 };
 
-const buildWorkflowSteps = (order: OrderTrackingData | null | undefined): WorkflowStep[] => {
+const buildWorkflowSteps = (order: OrderLike | null | undefined): WorkflowStep[] => {
   if (!order) {
     return [];
   }
@@ -146,7 +146,10 @@ const buildWorkflowSteps = (order: OrderTrackingData | null | undefined): Workfl
     });
   }
 
-  const historySteps = order.statusHistory ?? [];
+  const historySteps = (order.statusHistory ?? []) as (
+    | OrderStatusHistoryDto
+    | OrderStatusHistoryEntry
+  )[];
 
   if (historySteps.length) {
     return historySteps.map((entry, index) => {
@@ -196,119 +199,168 @@ const OrderTrackingScreen: React.FC = () => {
   const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
   const { order: ongoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
 
-  const initialOrder = route.params?.order ?? null;
+  const initialOrderParam = route.params?.order ?? null;
   const routeOrderIdParam = route.params?.orderId ?? null;
-  const initialOrderId = initialOrder?.orderId ?? null;
-  const ongoingOrderId = ongoingOrder?.orderId ?? null;
+
+  const normalizedInitialOrder = useMemo<OrderLike | null>(() => {
+    if (!initialOrderParam) {
+      return null;
+    }
+
+    if (isCreateOrderResponsePayload(initialOrderParam)) {
+      return convertCreateOrderResponseToTrackingOrder(initialOrderParam);
+    }
+
+    return mergeOrderLikeData<OrderLike>(null, initialOrderParam as OrderLike);
+  }, [initialOrderParam]);
+
+  const [orderData, setOrderData] = useState<OrderLike | null>(normalizedInitialOrder);
 
   useEffect(() => {
-    if (initialOrder) {
-      updateOngoingOrder(initialOrder as Partial<OrderTrackingData>);
-    }
-  }, [initialOrder, updateOngoingOrder]);
-
-  const relevantOrderIds = useMemo(() => {
-    const ids: string[] = [];
-    const addId = (value: number | string | null | undefined) => {
-      if (value != null) {
-        const key = String(value);
-        if (!ids.includes(key)) {
-          ids.push(key);
-        }
-      }
-    };
-
-    addId(routeOrderIdParam);
-    addId(initialOrderId);
-    addId(ongoingOrderId);
-
-    return ids;
-  }, [initialOrderId, ongoingOrderId, routeOrderIdParam]);
-
-  const websocketOrderData = useMemo<OrderTrackingData | null>(() => {
-    for (const id of relevantOrderIds) {
-      const update = orderUpdates[id];
-      if (update) {
-        return update;
-      }
+    if (!normalizedInitialOrder) {
+      return;
     }
 
-    if (latestOrderUpdate) {
-      if (!latestOrderUpdate.orderId || relevantOrderIds.length === 0) {
-        return latestOrderUpdate;
+    setOrderData((current) => {
+      const merged = mergeOrderLikeData<OrderLike>(current, normalizedInitialOrder);
+      if (!merged) {
+        return current;
       }
 
-      const latestId = String(latestOrderUpdate.orderId);
-      if (relevantOrderIds.includes(latestId)) {
-        return latestOrderUpdate;
-      }
+      const resolvedId =
+        merged.orderId ??
+        normalizedInitialOrder.orderId ??
+        routeOrderIdParam ??
+        (current?.orderId ?? null);
 
-      const keyedUpdate = orderUpdates[latestId];
-      if (keyedUpdate) {
-        return keyedUpdate;
+      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
+    });
+
+    updateOngoingOrder(normalizedInitialOrder);
+  }, [normalizedInitialOrder, routeOrderIdParam, updateOngoingOrder]);
+
+  const targetOrderId = useMemo(() => {
+    const candidates = [
+      orderData?.orderId,
+      routeOrderIdParam,
+      normalizedInitialOrder?.orderId,
+      ongoingOrder?.orderId,
+      latestOrderUpdate?.orderId,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate != null) {
+        return candidate;
       }
     }
 
     return null;
-  }, [latestOrderUpdate, orderUpdates, relevantOrderIds]);
+  }, [
+    latestOrderUpdate?.orderId,
+    normalizedInitialOrder?.orderId,
+    ongoingOrder?.orderId,
+    orderData?.orderId,
+    routeOrderIdParam,
+  ]);
 
-  const contextOrder = useMemo<OrderTrackingData | null>(() => {
-    if (!ongoingOrder) {
+  const keyedOrderUpdate = useMemo(() => {
+    if (!targetOrderId) {
       return null;
     }
 
-    const contextId = ongoingOrder.orderId ?? null;
-    const targetId = routeOrderIdParam ?? initialOrderId ?? null;
+    const key = String(targetOrderId);
+    return orderUpdates[key] ?? null;
+  }, [orderUpdates, targetOrderId]);
 
-    if (targetId == null || contextId == null) {
-      return ongoingOrder as OrderTrackingData;
+  useEffect(() => {
+    if (!keyedOrderUpdate) {
+      return;
     }
 
-    return String(contextId) === String(targetId)
-      ? (ongoingOrder as OrderTrackingData)
-      : null;
-  }, [initialOrderId, ongoingOrder, routeOrderIdParam]);
+    setOrderData((current) => {
+      const merged = mergeOrderLikeData<OrderLike>(current, keyedOrderUpdate as OrderLike);
+      if (!merged) {
+        return current;
+      }
 
-  const baseOrder = useMemo(() => {
-    return mergeOrderLikeData<OrderTrackingData>(
-      initialOrder as OrderTrackingData | null,
-      contextOrder as Partial<OrderTrackingData> | null,
-    );
-  }, [contextOrder, initialOrder]);
-
-  const order = useMemo<OrderTrackingData | null>(() => {
-    const merged = mergeOrderLikeData<OrderTrackingData>(
-      baseOrder as OrderTrackingData | null,
-      websocketOrderData as Partial<OrderTrackingData> | null,
-    );
-
-    if (merged) {
-      const fallbackId =
+      const resolvedId =
         merged.orderId ??
-        (websocketOrderData?.orderId ?? null) ??
-        (contextOrder?.orderId ?? null) ??
-        routeOrderIdParam ??
-        initialOrderId ??
+        keyedOrderUpdate.orderId ??
+        targetOrderId ??
+        current?.orderId ??
         null;
 
-      return fallbackId != null ? ({ ...merged, orderId: fallbackId } as OrderTrackingData) : merged;
+      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
+    });
+  }, [keyedOrderUpdate, targetOrderId]);
+
+  useEffect(() => {
+    if (!ongoingOrder) {
+      return;
     }
 
-    const fallbackId =
-      (websocketOrderData?.orderId ?? null) ??
-      (contextOrder?.orderId ?? null) ??
-      routeOrderIdParam ??
-      initialOrderId ??
-      null;
+    const candidateId = ongoingOrder.orderId ?? null;
+    if (targetOrderId != null && candidateId != null && String(candidateId) !== String(targetOrderId)) {
+      return;
+    }
 
-    return fallbackId != null ? ({ orderId: fallbackId } as OrderTrackingData) : null;
-  }, [
-    baseOrder,
-    contextOrder,
-    initialOrderId,
-    routeOrderIdParam,
-    websocketOrderData,
-  ]);
+    setOrderData((current) => {
+      const merged = mergeOrderLikeData<OrderLike>(current, ongoingOrder as OrderLike);
+      if (!merged) {
+        return current;
+      }
+
+      const resolvedId =
+        merged.orderId ??
+        candidateId ??
+        targetOrderId ??
+        routeOrderIdParam ??
+        normalizedInitialOrder?.orderId ??
+        current?.orderId ??
+        null;
+
+      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
+    });
+  }, [normalizedInitialOrder?.orderId, ongoingOrder, routeOrderIdParam, targetOrderId]);
+
+  useEffect(() => {
+    if (!latestOrderUpdate) {
+      return;
+    }
+
+    const candidateId = latestOrderUpdate.orderId ?? null;
+    if (targetOrderId != null && candidateId != null && String(candidateId) !== String(targetOrderId)) {
+      return;
+    }
+
+    setOrderData((current) => {
+      const merged = mergeOrderLikeData<OrderLike>(current, latestOrderUpdate as OrderLike);
+      if (!merged) {
+        return current;
+      }
+
+      const resolvedId =
+        merged.orderId ??
+        candidateId ??
+        targetOrderId ??
+        current?.orderId ??
+        null;
+
+      return resolvedId != null ? ({ ...merged, orderId: resolvedId } as OrderLike) : merged;
+    });
+  }, [latestOrderUpdate, targetOrderId]);
+
+  const order = useMemo<OrderLike | null>(() => {
+    if (orderData) {
+      return orderData;
+    }
+
+    if (targetOrderId != null) {
+      return { orderId: targetOrderId } as OrderLike;
+    }
+
+    return null;
+  }, [orderData, targetOrderId]);
 
   const steps = useMemo(() => buildWorkflowSteps(order), [order]);
   const normalizedStatus = useMemo(
@@ -638,6 +690,15 @@ const OrderTrackingScreen: React.FC = () => {
     }
   }, [normalizedStatus, order?.statusHistory, steps]);
 
+  const orderItemsToRender = useMemo(() => {
+    const itemSummaries = (order as { itemSummaries?: unknown[] } | null)?.itemSummaries;
+    if (Array.isArray(itemSummaries)) {
+      return itemSummaries;
+    }
+
+    return Array.isArray(order?.items) ? order.items : [];
+  }, [order]);
+
   const orderTotal = formatCurrency(order?.payment?.total);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
   const courierDetails = deliverySummary?.courier ?? deliverySummary?.driver ?? null;
@@ -657,7 +718,7 @@ const OrderTrackingScreen: React.FC = () => {
   const courierRatingText = courierRating ? `${courierRating} / 5` : '—';
   const courierDeliveriesText = courierDeliveries != null ? ` (${courierDeliveries})` : '';
   const canViewDetails = Boolean(order);
-  const hasItems = (order?.items?.length ?? 0) > 0;
+  const hasItems = orderItemsToRender.length > 0;
   const orderTotalDisplay = orderTotal ?? '—';
 
   const hasAssignedCourier = Boolean(
@@ -847,7 +908,7 @@ const OrderTrackingScreen: React.FC = () => {
 
     navigation.navigate('CheckoutOrder', {
       viewMode: true,
-      order: order as CreateOrderResponse,
+      order,
     });
   };
 
@@ -1218,28 +1279,48 @@ const OrderTrackingScreen: React.FC = () => {
 
           <View style={styles.summaryItems}>
             {hasItems ? (
-              order?.items?.map((item, index) => {
-                const isLast = index === (order?.items?.length ?? 0) - 1;
-                const extrasLabel = Array.isArray(item?.extras)
-                  ? item.extras
-                      .map((extra) => extra?.name)
-                      .filter((name): name is string => Boolean(name && name.trim().length))
-                      .join(', ')
-                  : undefined;
-                const quantity = item?.quantity ?? 1;
+              orderItemsToRender.map((item, index) => {
+                const isLast = index === orderItemsToRender.length - 1;
+                const record = item as Record<string, unknown> | null;
+                const extrasRaw = Array.isArray(record?.extras) ? record?.extras : [];
+                const extrasLabel = (() => {
+                  const names = extrasRaw
+                    .map((extra) => {
+                      if (typeof extra === 'string') {
+                        return extra;
+                      }
+                      if (
+                        extra &&
+                        typeof extra === 'object' &&
+                        'name' in extra &&
+                        typeof (extra as { name?: unknown }).name === 'string'
+                      ) {
+                        return String((extra as { name?: string }).name);
+                      }
+                      return null;
+                    })
+                    .filter((value): value is string => Boolean(value && value.trim().length));
+
+                  return names.length ? names.join(', ') : undefined;
+                })();
+                const quantityCandidate = Number(record?.quantity ?? 1);
+                const quantity = Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1;
                 const displayName =
-                  item?.name ??
-                  (item as { menuItemName?: string } | null | undefined)?.menuItemName ??
-                  'Menu item';
+                  (typeof record?.name === 'string' && record.name.trim().length
+                    ? record.name
+                    : typeof (record as { menuItemName?: string })?.menuItemName === 'string' &&
+                      (record as { menuItemName?: string }).menuItemName?.trim()?.length
+                    ? String((record as { menuItemName?: string }).menuItemName)
+                    : 'Menu item');
                 const totalDisplay = (() => {
-                  const formattedTotal = formatCurrency(item?.lineTotal);
+                  const formattedTotal = formatCurrency(record?.lineTotal as MonetaryAmount | undefined);
                   if (formattedTotal) {
                     return formattedTotal;
                   }
 
                   const computedTotal =
-                    parseCurrencyValue(item?.unitPrice) * quantity +
-                    parseCurrencyValue(item?.extrasPrice);
+                    parseCurrencyValue(record?.unitPrice as MonetaryAmount | undefined) * quantity +
+                    parseCurrencyValue(record?.extrasPrice as MonetaryAmount | undefined);
 
                   if (!Number.isFinite(computedTotal) || computedTotal <= 0) {
                     return undefined;
@@ -1250,7 +1331,7 @@ const OrderTrackingScreen: React.FC = () => {
 
                 return (
                   <View
-                    key={`${item?.menuItemId ?? index}-${index}`}
+                    key={`${record?.menuItemId ?? index}-${index}`}
                     style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
                   >
                     <View style={styles.summaryItemInfo}>
