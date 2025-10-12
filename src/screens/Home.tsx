@@ -17,6 +17,36 @@ import type {
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 
+type SectionLayout = 'carousel' | 'flatList';
+
+const SECTION_LABELS: Record<string, string> = {
+  topPicks: 'Top picks for you',
+  orderAgain: 'Order again',
+  promotions: 'Promotions',
+  others: 'Other restaurants',
+};
+
+const toSectionLabel = (key: string) => {
+  if (SECTION_LABELS[key]) {
+    return SECTION_LABELS[key];
+  }
+
+  const spaced = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase();
+
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+
+const resolveLayout = (displayType?: string | null): SectionLayout => {
+  if (typeof displayType === 'string' && displayType.toLowerCase() === 'carousel') {
+    return 'carousel';
+  }
+
+  return 'flatList';
+};
+
 const formatDeliveryFee = (fee: number) =>
   fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
 
@@ -70,7 +100,13 @@ export default function HomePage() {
   });
 
   type NearbyListItem =
-    | { type: 'section'; key: string; title: string; restaurants: RestaurantSummary[] }
+    | {
+        type: 'section';
+        key: string;
+        title: string;
+        layout: SectionLayout;
+        restaurants: RestaurantSummary[];
+      }
     | { type: 'othersHeader'; key: string; title: string }
     | { type: 'restaurant'; key: string; restaurant: RestaurantSummary };
 
@@ -93,7 +129,8 @@ export default function HomePage() {
       .map((entry) => ({
         type: 'section' as const,
         key: entry.key,
-        title: entry.section.displayType,
+        title: toSectionLabel(entry.key),
+        layout: resolveLayout(entry.section.displayType),
         restaurants: entry.section.restaurants,
       }));
   }, [data]);
@@ -103,19 +140,41 @@ export default function HomePage() {
     [data]
   );
 
+  const othersLayout = useMemo(
+    () => resolveLayout(data?.pages[0]?.others.displayType),
+    [data]
+  );
+
   const listData = useMemo(() => {
     const items: NearbyListItem[] = [...topSections];
 
     if (otherRestaurants.length > 0) {
-      const othersTitle = data?.pages[0]?.others.displayType ?? 'Other restaurants';
-      items.push({ type: 'othersHeader', key: 'others-header', title: othersTitle });
-      otherRestaurants.forEach((restaurant) => {
-        items.push({ type: 'restaurant', key: `restaurant-${restaurant.id}`, restaurant });
-      });
+      if (othersLayout === 'carousel') {
+        items.push({
+          type: 'section',
+          key: 'others-carousel',
+          title: toSectionLabel('others'),
+          layout: 'carousel',
+          restaurants: otherRestaurants,
+        });
+      } else {
+        items.push({
+          type: 'othersHeader',
+          key: 'others-header',
+          title: toSectionLabel('others'),
+        });
+        otherRestaurants.forEach((restaurant, index) => {
+          items.push({
+            type: 'restaurant',
+            key: `restaurant-${restaurant.id}-${index}`,
+            restaurant,
+          });
+        });
+      }
     }
 
     return items;
-  }, [data, otherRestaurants, topSections]);
+  }, [otherRestaurants, othersLayout, topSections]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -124,37 +183,41 @@ export default function HomePage() {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const renderRestaurantCard = useCallback(
-    (restaurant: RestaurantSummary) => (
-      <TouchableOpacity
-        key={restaurant.id}
-        style={styles.card}
-        onPress={() =>
-          navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
-        }
-        activeOpacity={0.85}
-      >
-        <Image
-          source={
-            restaurant.imageUrl
-              ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
-              : require('../../assets/baguette.png')
+    (restaurant: RestaurantSummary, variant: 'default' | 'compact' = 'default') => {
+      const cardStyles = [styles.card, variant === 'compact' && styles.cardCompact];
+      const imageStyles = [styles.cardImage, variant === 'compact' && styles.cardImageCompact];
+
+      return (
+        <TouchableOpacity
+          style={cardStyles}
+          onPress={() =>
+            navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
           }
-          style={styles.cardImage}
-          contentFit="cover"
-        />
-        <View style={styles.cardBody}>
-          <Text allowFontScaling={false} style={styles.cardTitle}>{restaurant.name}</Text>
-          <View style={styles.ratingRow}>
-            <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-            <Text allowFontScaling={false} style={styles.ratingText}>
-              {restaurant.rating ? `${restaurant.rating}/5` : 'New'}
-            </Text>
+          activeOpacity={0.85}
+        >
+          <Image
+            source={
+              restaurant.imageUrl
+                ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                : require('../../assets/baguette.png')
+            }
+            style={imageStyles}
+            contentFit="cover"
+          />
+          <View style={styles.cardBody}>
+            <Text allowFontScaling={false} style={styles.cardTitle}>{restaurant.name}</Text>
+            <View style={styles.ratingRow}>
+              <Star size={s(14)} color="#FACC15" fill="#FACC15" />
+              <Text allowFontScaling={false} style={styles.ratingText}>
+                {restaurant.rating ? `${restaurant.rating}/5` : 'New'}
+              </Text>
+            </View>
+            <Text allowFontScaling={false} style={styles.deliveryTime}>{restaurant.type || 'Restaurant'}</Text>
+            <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(restaurant.deliveryFee)}</Text>
           </View>
-          <Text allowFontScaling={false} style={styles.deliveryTime}>{restaurant.type || 'Restaurant'}</Text>
-          <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(restaurant.deliveryFee)}</Text>
-        </View>
-      </TouchableOpacity>
-    ),
+        </TouchableOpacity>
+      );
+    },
     [navigation]
   );
 
@@ -163,14 +226,30 @@ export default function HomePage() {
       if (item.type === 'section') {
         return (
           <View style={styles.mainWrapper}>
-            <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
-            <View>
-              {item.restaurants.map((restaurant) => (
-                <View key={restaurant.id} style={styles.cardContainer}>
-                  {renderRestaurantCard(restaurant)}
-                </View>
-              ))}
+            <View style={styles.sectionHeader}>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
             </View>
+            {item.layout === 'carousel' ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carouselList}
+              >
+                {item.restaurants.map((restaurant) => (
+                  <View key={restaurant.id} style={styles.carouselCardContainer}>
+                    {renderRestaurantCard(restaurant, 'compact')}
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View>
+                {item.restaurants.map((restaurant) => (
+                  <View key={restaurant.id} style={styles.cardContainer}>
+                    {renderRestaurantCard(restaurant)}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         );
       }
@@ -178,7 +257,9 @@ export default function HomePage() {
       if (item.type === 'othersHeader') {
         return (
           <View style={styles.mainWrapper}>
-            <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+            <View style={styles.sectionHeader}>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+            </View>
           </View>
         );
       }
@@ -346,10 +427,20 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const styles = ScaledSheet.create({
 
   mainWrapper: { paddingHorizontal: "16@s" },
-  sectionTitle: { fontSize: "18@ms", fontWeight: "700", marginTop: "16@vs", marginBottom: "12@vs" },
+  sectionTitle: { fontSize: "18@ms", fontWeight: "700" },
+  sectionHeader: {
+    marginTop: '16@vs',
+    marginBottom: '12@vs',
+  },
   listContent: {
     paddingHorizontal: '16@s',
     paddingBottom: '32@vs',
+  },
+  carouselList: {
+    paddingHorizontal: '4@s',
+  },
+  carouselCardContainer: {
+    marginRight: '12@s',
   },
   footerLoader: {
     paddingVertical: '16@vs',
@@ -409,10 +500,16 @@ const styles = ScaledSheet.create({
     shadowRadius: "6@ms",
     elevation: 3,
   },
+  cardCompact: {
+    width: '220@s',
+  },
   cardContainer: {
     marginBottom: '12@vs',
   },
   cardImage: { width: "100%", height: "140@vs" },
+  cardImageCompact: {
+    height: '120@vs',
+  },
   cardBody: { padding: "10@s" },
   cardTitle: { fontSize: "16@ms", fontWeight: "700" },
   ratingRow: { flexDirection: "row", alignItems: "center", marginTop: "4@vs" },
