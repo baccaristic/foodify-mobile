@@ -1,12 +1,24 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from "react-native";
-import { Percent, Star, Pizza, Hamburger, ChevronDown, Search, Utensils } from "lucide-react-native";
+import {
+  Percent,
+  Star,
+  Pizza,
+  Hamburger,
+  ChevronDown,
+  Search,
+  Utensils,
+  Heart,
+  Bike,
+  Clock3,
+} from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
+import { LinearGradient } from "expo-linear-gradient";
 import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
 import type {
@@ -46,9 +58,6 @@ const resolveLayout = (displayType?: string | null): SectionLayout => {
 
   return 'flatList';
 };
-
-const formatDeliveryFee = (fee: number) =>
-  fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
 
 const INITIAL_PAGE = 0;
 const PAGE_SIZE = 20;
@@ -185,7 +194,19 @@ export default function HomePage() {
   const renderRestaurantCard = useCallback(
     (restaurant: RestaurantSummary, variant: 'default' | 'compact' = 'default') => {
       const cardStyles = [styles.card, variant === 'compact' && styles.cardCompact];
-      const imageStyles = [styles.cardImage, variant === 'compact' && styles.cardImageCompact];
+      const imageWrapperStyles = [
+        styles.cardImageWrapper,
+        variant === 'compact' && styles.cardImageWrapperCompact,
+      ];
+      const titleStyles = [styles.cardTitle, variant === 'compact' && styles.cardTitleCompact];
+      const subtitleStyles = [styles.cardSubtitle, variant === 'compact' && styles.cardSubtitleCompact];
+      const metaTextStyles = [styles.cardMetaText, variant === 'compact' && styles.cardMetaTextCompact];
+      const metaTagTextStyles = [styles.cardMetaTagText, variant === 'compact' && styles.cardMetaTagTextCompact];
+
+      const deliveryLabel =
+        restaurant.deliveryFee > 0
+          ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
+          : 'Free delivery';
 
       return (
         <TouchableOpacity
@@ -193,27 +214,76 @@ export default function HomePage() {
           onPress={() =>
             navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
           }
-          activeOpacity={0.85}
+          activeOpacity={0.9}
         >
-          <Image
-            source={
-              restaurant.imageUrl
-                ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
-                : require('../../assets/baguette.png')
-            }
-            style={imageStyles}
-            contentFit="cover"
-          />
-          <View style={styles.cardBody}>
-            <Text allowFontScaling={false} style={styles.cardTitle}>{restaurant.name}</Text>
-            <View style={styles.ratingRow}>
-              <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-              <Text allowFontScaling={false} style={styles.ratingText}>
-                {restaurant.rating ? `${restaurant.rating}/5` : 'New'}
-              </Text>
+          <View style={imageWrapperStyles}>
+            <Image
+              source={
+                restaurant.imageUrl
+                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                  : require('../../assets/baguette.png')
+              }
+              style={styles.cardImage}
+              contentFit="cover"
+            />
+            <LinearGradient
+              colors={["rgba(15, 23, 42, 0)", "rgba(15, 23, 42, 0.35)", "rgba(15, 23, 42, 0.85)"]}
+              locations={[0, 0.55, 1]}
+              style={styles.cardOverlay}
+            />
+            <View style={styles.cardBadgeRow}>
+              <View style={styles.ratingChip}>
+                <Star size={s(14)} color="#FACC15" fill="#FACC15" />
+                <Text allowFontScaling={false} style={styles.ratingText}>
+                  {restaurant.rating ? `${restaurant.rating.toFixed(1)}` : 'New'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.favoriteChip,
+                  restaurant.favorite && styles.favoriteChipActive,
+                ]}
+              >
+                <Heart
+                  size={s(16)}
+                  color={restaurant.favorite ? '#FFFFFF' : '#CA251B'}
+                  fill={restaurant.favorite ? '#FFFFFF' : 'none'}
+                />
+              </View>
             </View>
-            <Text allowFontScaling={false} style={styles.deliveryTime}>{restaurant.type || 'Restaurant'}</Text>
-            <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(restaurant.deliveryFee)}</Text>
+            <View style={styles.cardInfoOverlay}>
+              <Text allowFontScaling={false} style={titleStyles} numberOfLines={1}>
+                {restaurant.name}
+              </Text>
+              {(restaurant.description || restaurant.address) && (
+                <Text allowFontScaling={false} style={subtitleStyles} numberOfLines={1}>
+                  {restaurant.description || restaurant.address}
+                </Text>
+              )}
+              <View style={styles.cardMetaRow}>
+                <View style={styles.cardMetaItem}>
+                  <Utensils size={s(14)} color="#F8FAFC" />
+                  <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
+                    {restaurant.type || 'Restaurant'}
+                  </Text>
+                </View>
+                <View style={styles.cardMetaDivider} />
+                <View style={styles.cardMetaItem}>
+                  <Bike size={s(14)} color="#F8FAFC" />
+                  <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
+                    {deliveryLabel}
+                  </Text>
+                </View>
+              </View>
+              {restaurant.closingHours ? (
+                <View style={styles.cardMetaTag}>
+                  <Clock3 size={s(12)} color="#F8FAFC" />
+                  <Text allowFontScaling={false} style={metaTagTextStyles} numberOfLines={1}>
+                    Closes {restaurant.closingHours}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -492,30 +562,144 @@ const styles = ScaledSheet.create({
   },
 
   card: {
-    backgroundColor: "white",
-    borderRadius: "12@ms",
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: "6@ms",
-    elevation: 3,
+    backgroundColor: '#FFFFFF',
+    borderRadius: '20@ms',
+    shadowColor: 'rgba(15, 23, 42, 0.2)',
+    shadowOpacity: 0.4,
+    shadowRadius: '16@ms',
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
   cardCompact: {
     width: '220@s',
   },
   cardContainer: {
-    marginBottom: '12@vs',
+    marginBottom: '16@vs',
   },
-  cardImage: { width: "100%", height: "140@vs" },
-  cardImageCompact: {
-    height: '120@vs',
+  cardImageWrapper: {
+    width: '100%',
+    aspectRatio: 16 / 11,
+    borderRadius: '20@ms',
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+    position: 'relative',
   },
-  cardBody: { padding: "10@s" },
-  cardTitle: { fontSize: "16@ms", fontWeight: "700" },
-  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: "4@vs" },
-  ratingText: { fontSize: "12@ms", marginLeft: "4@s" },
-  deliveryTime: { color: "red", fontSize: "12@ms", marginTop: "4@vs" },
-  deliveryFee: { color: "#4B5563", fontSize: "11@ms", marginTop: "2@vs" },
+  cardImageWrapperCompact: {
+    aspectRatio: 16 / 12,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+  },
+  cardBadgeRow: {
+    position: 'absolute',
+    left: '12@s',
+    right: '12@s',
+    top: '12@vs',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ratingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: '12@s',
+    paddingVertical: '6@vs',
+    borderRadius: '16@ms',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  },
+  ratingText: {
+    fontSize: '12@ms',
+    marginLeft: '6@s',
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  favoriteChip: {
+    width: '32@s',
+    height: '32@s',
+    borderRadius: '18@ms',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  favoriteChipActive: {
+    backgroundColor: '#CA251B',
+  },
+  cardInfoOverlay: {
+    position: 'absolute',
+    left: '16@s',
+    right: '16@s',
+    bottom: '16@vs',
+  },
+  cardTitle: {
+    fontSize: '18@ms',
+    fontWeight: '700',
+    color: '#F8FAFC',
+    textShadowColor: 'rgba(15, 23, 42, 0.3)',
+    textShadowRadius: 6,
+    textShadowOffset: { width: 0, height: 2 },
+  },
+  cardTitleCompact: {
+    fontSize: '16@ms',
+  },
+  cardSubtitle: {
+    fontSize: '12@ms',
+    color: 'rgba(248, 250, 252, 0.85)',
+    marginTop: '4@vs',
+  },
+  cardSubtitleCompact: {
+    fontSize: '11@ms',
+  },
+  cardMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: '10@vs',
+  },
+  cardMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+  },
+  cardMetaDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: 'rgba(248, 250, 252, 0.3)',
+    marginHorizontal: '12@s',
+  },
+  cardMetaText: {
+    fontSize: '12@ms',
+    color: '#F8FAFC',
+    marginLeft: '6@s',
+  },
+  cardMetaTextCompact: {
+    fontSize: '11@ms',
+  },
+  cardMetaTag: {
+    marginTop: '8@vs',
+    alignSelf: 'flex-start',
+    paddingHorizontal: '12@s',
+    paddingVertical: '4@vs',
+    borderRadius: '14@ms',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardMetaTagText: {
+    fontSize: '11@ms',
+    color: '#F8FAFC',
+    marginLeft: '6@s',
+    fontWeight: '500',
+  },
+  cardMetaTagTextCompact: {
+    fontSize: '10@ms',
+  },
 
   headerWrapper: {
     padding: "6@s",
