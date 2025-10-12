@@ -238,12 +238,12 @@ export default function HomePage() {
                 ]}
               >
                 <LinearGradient
-                  colors={['#FACC15', '#F97316']}
+                  colors={['#CA251B', '#CA251B']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 0, y: 1 }}
                   style={[styles.promotionSticker, isCompact && styles.promotionStickerCompact]}
                 >
-                  <Percent size={isCompact ? s(10) : s(12)} color="#0F172A" />
+                  <Percent size={isCompact ? s(10) : s(12)} color="#FFFFFF" />
                   <Text
                     allowFontScaling={false}
                     style={[
@@ -288,7 +288,7 @@ export default function HomePage() {
               </Text>
             ) : null}
             <View style={styles.cardMetaRow}>
-              <Bike size={isCompact ? s(12) : s(14)} color="#0F172A" />
+              <Bike size={isCompact ? s(12) : s(14)} color="#CA251B" />
               <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
                 {deliveryLabel}
               </Text>
@@ -344,6 +344,7 @@ export default function HomePage() {
               {restaurant.type || restaurant.description}
             </Text>
           ) : null}
+          <Bike size={ s(14)} color="#CA251B" />
           <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
             {deliveryLabel}
           </Text>
@@ -696,9 +697,9 @@ const styles = ScaledSheet.create({
     borderBottomRightRadius: '14@ms',
   },
   promotionStickerText: {
-    fontSize: '11@ms',
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: '7@ms',
+    fontWeight: '500',
+    color: '#ffffff',
     marginLeft: '6@s',
   },
   promotionStickerTextCompact: {
@@ -780,7 +781,7 @@ const styles = ScaledSheet.create({
     marginLeft: '8@s',
     fontSize: '13@ms',
     fontWeight: '500',
-    color: '#111827',
+    color: '#CA251B',
   },
   cardMetaTextCompact: {
     fontSize: '12@ms',
@@ -820,7 +821,7 @@ const styles = ScaledSheet.create({
     height: '100%',
   },
   topPickTitle: {
-    fontSize: '14@ms',
+    fontSize: '12@ms',
     fontWeight: '700',
     color: '#111827',
     textAlign: 'center',
@@ -834,7 +835,7 @@ const styles = ScaledSheet.create({
   topPickMetaText: {
     marginTop: '6@vs',
     fontSize: '12@ms',
-    color: '#111827',
+    color: '#CA251B',
     fontWeight: '600',
     textAlign: 'center',
   },
