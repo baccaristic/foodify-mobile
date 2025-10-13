@@ -76,36 +76,65 @@ type StatusChangeInfo = {
   description?: string | null;
 };
 
+const sanitizeMonetaryInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed.length) {
+    return '';
+  }
+
+  const cleaned = trimmed.replace(/[^0-9.,-]/g, '');
+  if (!cleaned.length) {
+    return '';
+  }
+
+  const normalized = cleaned.replace(/,/g, '.');
+  const direct = Number(normalized);
+  if (Number.isFinite(direct)) {
+    return normalized;
+  }
+
+  if (!normalized.includes('.')) {
+    return normalized;
+  }
+
+  const segments = normalized.split('.');
+  const last = segments.pop();
+  if (last == null) {
+    return normalized;
+  }
+
+  return `${segments.join('')}.${last}`;
+};
+
+const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : Number.NaN;
+  }
+
+  if (typeof value === 'string') {
+    const sanitized = sanitizeMonetaryInput(value);
+    if (!sanitized.length) {
+      return Number.NaN;
+    }
+
+    const parsed = Number(sanitized);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+
+  return Number.NaN;
+};
+
 const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   if (value == null) {
     return undefined;
   }
 
-  if (typeof value === 'number') {
-    return `${value.toFixed(3)} dt`;
+  const parsed = typeof value === 'number' ? value : parseCurrencyValue(value);
+  if (!Number.isFinite(parsed)) {
+    return undefined;
   }
 
-  const parsed = Number(String(value).replace(',', '.'));
-  if (Number.isFinite(parsed)) {
-    return `${parsed.toFixed(3)} dt`;
-  }
-
-  return undefined;
-};
-
-const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value.replace(',', '.'));
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return 0;
+  return `${parsed.toFixed(3)} dt`;
 };
 
 type WorkflowLikeStep = {
@@ -599,23 +628,186 @@ const OrderTrackingScreen: React.FC = () => {
     }
   }, [normalizedStatus, order?.statusHistory, steps]);
 
-  const orderItemsToRender = useMemo(() => {
-    const extendedOrder = order as (OngoingOrderData & { itemSummaries?: unknown[] }) | null;
-    const itemSummaries = Array.isArray(extendedOrder?.itemSummaries)
-      ? (extendedOrder?.itemSummaries ?? null)
-      : null;
-
-    if (itemSummaries) {
-      return itemSummaries;
+  const getNestedValue = (input: unknown, path: (string | number)[]) => {
+    if (!input || typeof input !== 'object') {
+      return undefined;
     }
 
-    return Array.isArray(order?.items) ? order.items : [];
-  }, [order]);
+    let current: any = input;
+    for (const segment of path) {
+      if (!current || typeof current !== 'object') {
+        return undefined;
+      }
+
+      current = current[segment as keyof typeof current];
+    }
+
+    return current;
+  };
+
+  const { items: orderSummaryItems, computedTotal: computedItemsTotal } = useMemo(
+    () => {
+      const extendedOrder = order as (OngoingOrderData & { itemSummaries?: unknown[] }) | null;
+      const itemSummaries = Array.isArray(extendedOrder?.itemSummaries)
+        ? extendedOrder?.itemSummaries
+        : null;
+      const sourceItems = (itemSummaries && itemSummaries.length
+        ? itemSummaries
+        : Array.isArray(order?.items)
+        ? order.items
+        : []) as unknown[];
+
+      const summaryItems: {
+        key: string;
+        quantity: number;
+        name: string;
+        extrasLabel?: string;
+        priceDisplay?: string;
+      }[] = [];
+      let runningTotal = 0;
+
+      sourceItems.forEach((item, index) => {
+        const record = item as Record<string, unknown> | null;
+        if (!record) {
+          return;
+        }
+
+        const extrasRaw = Array.isArray(record?.extras) ? record.extras : [];
+        const extrasNames = extrasRaw
+          .map((extra) => {
+            if (typeof extra === 'string') {
+              return extra;
+            }
+            if (
+              extra &&
+              typeof extra === 'object' &&
+              'name' in (extra as Record<string, unknown>) &&
+              typeof (extra as { name?: unknown }).name === 'string'
+            ) {
+              return String((extra as { name?: string }).name);
+            }
+            return null;
+          })
+          .filter((value): value is string => Boolean(value && value.trim().length));
+
+        const quantityCandidate = Number(record?.quantity ?? 1);
+        const quantity =
+          Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1;
+
+        const nameCandidates: (string | null | undefined)[] = [
+          typeof record?.name === 'string' ? record.name : null,
+          typeof (record as { menuItemName?: string }).menuItemName === 'string'
+            ? (record as { menuItemName?: string }).menuItemName
+            : null,
+          typeof (record as { title?: string }).title === 'string'
+            ? (record as { title?: string }).title
+            : null,
+        ];
+        const displayName =
+          nameCandidates.find((candidate) => candidate && candidate.trim().length) || 'Menu item';
+
+        const totalCandidates: (MonetaryAmount | null | undefined)[] = [
+          record?.total as MonetaryAmount | undefined,
+          record?.lineTotal as MonetaryAmount | undefined,
+          record?.totalPrice as MonetaryAmount | undefined,
+          record?.amount as MonetaryAmount | undefined,
+          record?.price as MonetaryAmount | undefined,
+        ];
+
+        let totalValue: number | null = null;
+        for (const candidate of totalCandidates) {
+          const parsedCandidate = parseCurrencyValue(candidate);
+          if (Number.isFinite(parsedCandidate)) {
+            totalValue = parsedCandidate;
+            break;
+          }
+        }
+
+        if (totalValue == null) {
+          const unitPriceValue = parseCurrencyValue(record?.unitPrice as MonetaryAmount | undefined);
+          const extrasPriceValue = parseCurrencyValue(
+            record?.extrasPrice as MonetaryAmount | undefined,
+          );
+          const computed =
+            (Number.isFinite(unitPriceValue) ? unitPriceValue : 0) * quantity +
+            (Number.isFinite(extrasPriceValue) ? extrasPriceValue : 0);
+
+          if (Number.isFinite(computed) && computed > 0) {
+            totalValue = Number(computed.toFixed(3));
+          }
+        }
+
+        if (totalValue != null && Number.isFinite(totalValue)) {
+          runningTotal += totalValue;
+        }
+
+        const priceDisplay =
+          totalValue != null && Number.isFinite(totalValue) ? formatCurrency(totalValue) : undefined;
+
+        summaryItems.push({
+          key: `${record?.menuItemId ?? record?.id ?? index}-${index}`,
+          quantity,
+          name: displayName,
+          extrasLabel: extrasNames.length ? extrasNames.join(', ') : undefined,
+          priceDisplay,
+        });
+      });
+
+      return {
+        items: summaryItems,
+        computedTotal: runningTotal,
+      };
+    },
+    [order],
+  );
 
   const rawOrder = order as Record<string, any> | null;
-  const orderTotal = formatCurrency(
-    rawOrder?.payment?.total ?? rawOrder?.total ?? rawOrder?.paymentTotal ?? null,
-  );
+
+  const resolvedOrderTotalValue = useMemo(() => {
+    if (!rawOrder) {
+      return Number.isFinite(computedItemsTotal) && computedItemsTotal > 0
+        ? computedItemsTotal
+        : null;
+    }
+
+    const candidatePaths: (string | number)[][] = [
+      ['payment', 'total'],
+      ['payment', 'grandTotal'],
+      ['payment', 'amount'],
+      ['payment', 'totalAmount'],
+      ['totals', 'total'],
+      ['totals', 'grandTotal'],
+      ['totals', 'amount'],
+      ['totals', 'totalAmount'],
+      ['summary', 'total'],
+      ['total'],
+      ['orderTotal'],
+      ['grandTotal'],
+      ['paymentTotal'],
+      ['amount'],
+    ];
+
+    for (const path of candidatePaths) {
+      const candidate = getNestedValue(rawOrder, path);
+      if (candidate == null) {
+        continue;
+      }
+
+      const parsedCandidate = parseCurrencyValue(candidate as MonetaryAmount | undefined);
+      if (Number.isFinite(parsedCandidate) && parsedCandidate >= 0) {
+        return parsedCandidate;
+      }
+    }
+
+    if (Number.isFinite(computedItemsTotal) && computedItemsTotal > 0) {
+      return computedItemsTotal;
+    }
+
+    return null;
+  }, [computedItemsTotal, rawOrder]);
+
+  const orderTotal =
+    resolvedOrderTotalValue != null ? formatCurrency(resolvedOrderTotalValue) : undefined;
   const deliverySummary = (rawOrder?.delivery ?? null) as Record<string, any> | null;
   const courierDetails = deliverySummary?.courier ?? deliverySummary?.driver ?? null;
   const parsedCourierRating = Number(courierDetails?.rating ?? NaN);
@@ -634,7 +826,7 @@ const OrderTrackingScreen: React.FC = () => {
   const courierRatingText = courierRating ? `${courierRating} / 5` : '—';
   const courierDeliveriesText = courierDeliveries != null ? ` (${courierDeliveries})` : '';
   const canViewDetails = Boolean(order);
-  const hasItems = orderItemsToRender.length > 0;
+  const hasItems = orderSummaryItems.length > 0;
   const orderTotalDisplay = orderTotal ?? '—';
 
   const hasAssignedCourier = Boolean(
@@ -1197,75 +1389,28 @@ const OrderTrackingScreen: React.FC = () => {
 
           <View style={styles.summaryItems}>
             {hasItems ? (
-              orderItemsToRender.map((item, index) => {
-                const isLast = index === orderItemsToRender.length - 1;
-                const record = item as Record<string, unknown> | null;
-                const extrasRaw = Array.isArray(record?.extras) ? record?.extras : [];
-                const extrasLabel = (() => {
-                  const names = extrasRaw
-                    .map((extra) => {
-                      if (typeof extra === 'string') {
-                        return extra;
-                      }
-                      if (
-                        extra &&
-                        typeof extra === 'object' &&
-                        'name' in extra &&
-                        typeof (extra as { name?: unknown }).name === 'string'
-                      ) {
-                        return String((extra as { name?: string }).name);
-                      }
-                      return null;
-                    })
-                    .filter((value): value is string => Boolean(value && value.trim().length));
-
-                  return names.length ? names.join(', ') : undefined;
-                })();
-                const quantityCandidate = Number(record?.quantity ?? 1);
-                const quantity = Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1;
-                const displayName =
-                  (typeof record?.name === 'string' && record.name.trim().length
-                    ? record.name
-                    : typeof (record as { menuItemName?: string })?.menuItemName === 'string' &&
-                      (record as { menuItemName?: string }).menuItemName?.trim()?.length
-                    ? String((record as { menuItemName?: string }).menuItemName)
-                    : 'Menu item');
-                const totalDisplay = (() => {
-                  const formattedTotal = formatCurrency(record?.lineTotal as MonetaryAmount | undefined);
-                  if (formattedTotal) {
-                    return formattedTotal;
-                  }
-
-                  const computedTotal =
-                    parseCurrencyValue(record?.unitPrice as MonetaryAmount | undefined) * quantity +
-                    parseCurrencyValue(record?.extrasPrice as MonetaryAmount | undefined);
-
-                  if (!Number.isFinite(computedTotal) || computedTotal <= 0) {
-                    return undefined;
-                  }
-
-                  return formatCurrency(computedTotal);
-                })();
+              orderSummaryItems.map((item, index) => {
+                const isLast = index === orderSummaryItems.length - 1;
 
                 return (
                   <View
-                    key={`${record?.menuItemId ?? index}-${index}`}
+                    key={item.key}
                     style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
                   >
                     <View style={styles.summaryItemInfo}>
                       <View style={styles.summaryItemPrimaryRow}>
-                        <Text style={styles.summaryItemQuantity}>{quantity}x</Text>
+                        <Text style={styles.summaryItemQuantity}>{item.quantity}x</Text>
                         <Text style={styles.summaryItemName} numberOfLines={1}>
-                          {displayName}
+                          {item.name}
                         </Text>
                       </View>
-                      {extrasLabel ? (
+                      {item.extrasLabel ? (
                         <Text style={styles.summaryItemExtras} numberOfLines={1}>
-                          {extrasLabel}
+                          {item.extrasLabel}
                         </Text>
                       ) : null}
                     </View>
-                    <Text style={styles.summaryItemPrice}>{totalDisplay ?? '—'}</Text>
+                    <Text style={styles.summaryItemPrice}>{item.priceDisplay ?? '—'}</Text>
                   </View>
                 );
               })

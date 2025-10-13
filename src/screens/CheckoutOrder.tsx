@@ -37,31 +37,52 @@ const borderColor = '#E8E9EC';
 
 const formatCurrency = (value: number) => `${value.toFixed(3)} dt`;
 
+const sanitizeMonetaryInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed.length) {
+    return '';
+  }
+
+  const cleaned = trimmed.replace(/[^0-9.,-]/g, '');
+  if (!cleaned.length) {
+    return '';
+  }
+
+  const normalized = cleaned.replace(/,/g, '.');
+  const direct = Number(normalized);
+  if (Number.isFinite(direct)) {
+    return normalized;
+  }
+
+  if (!normalized.includes('.')) {
+    return normalized;
+  }
+
+  const segments = normalized.split('.');
+  const last = segments.pop();
+  if (last == null) {
+    return normalized;
+  }
+
+  return `${segments.join('')}.${last}`;
+};
+
 const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : Number.NaN;
   }
 
   if (typeof value === 'string') {
-    const parsed = Number(value.replace(',', '.'));
-    if (Number.isFinite(parsed)) {
-      return parsed;
+    const sanitized = sanitizeMonetaryInput(value);
+    if (!sanitized.length) {
+      return Number.NaN;
     }
+
+    const parsed = Number(sanitized);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
   }
 
-  return 0;
-};
-
-const pickFirstAmount = (
-  ...values: (MonetaryAmount | number | string | null | undefined)[]
-): MonetaryAmount | number | string | null | undefined => {
-  for (const value of values) {
-    if (value != null) {
-      return value;
-    }
-  }
-
-  return undefined;
+  return Number.NaN;
 };
 
 const formatPaymentMethodName = (method?: string | null) => {
@@ -271,55 +292,127 @@ const CheckoutOrder: React.FC = () => {
     [subtotal, deliveryFee, serviceFee, discountValue],
   );
 
-  const displayItems = useMemo<DisplayItem[]>(() => {
-    if (isViewMode && viewOrder) {
-      const rawItemsCandidate = (viewOrder as { itemSummaries?: unknown[] } | null)?.itemSummaries;
-      const rawItems = Array.isArray(rawItemsCandidate)
-        ? rawItemsCandidate
-        : Array.isArray(viewOrder.items)
-        ? viewOrder.items
-        : [];
+  const viewModeItemData = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return null;
+    }
 
-      return rawItems.map((item, index) => {
-        const record = item as Record<string, unknown> | null;
-        const quantityCandidate = Number(record?.quantity ?? 1);
-        const quantity = Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1;
-        const extrasRaw = Array.isArray(record?.extras) ? record?.extras : [];
-        const extrasNames = extrasRaw
-          .map((extra) => {
-            if (typeof extra === 'string') {
-              return extra;
-            }
-            if (extra && typeof extra === 'object' && 'name' in extra && typeof extra.name === 'string') {
-              return extra.name;
-            }
-            return null;
-          })
-          .filter((value): value is string => Boolean(value && value.trim().length));
+    const extendedOrder = viewOrder as { itemSummaries?: unknown[] } | null;
+    const rawItems = (Array.isArray(extendedOrder?.itemSummaries) && extendedOrder.itemSummaries.length
+      ? extendedOrder.itemSummaries
+      : Array.isArray(viewOrder.items)
+      ? viewOrder.items
+      : []) as unknown[];
 
-        const name =
-          (typeof record?.name === 'string' && record.name.trim().length
-            ? record.name
-            : typeof record?.menuItemName === 'string' && record.menuItemName.trim().length
-            ? record.menuItemName
-            : 'Menu item');
+    const normalizedItems: DisplayItem[] = [];
+    let subtotalAccumulator = 0;
+    let extrasAccumulator = 0;
+    let totalAccumulator = 0;
 
-        const parsedLineTotal = parseMonetaryAmount(record?.lineTotal as MonetaryAmount | undefined);
-        const parsedUnitPrice = parseMonetaryAmount(record?.unitPrice as MonetaryAmount | undefined);
-        const parsedExtrasPrice = parseMonetaryAmount(record?.extrasPrice as MonetaryAmount | undefined);
-        const computedTotal = parsedUnitPrice * quantity + parsedExtrasPrice;
-        const total = parsedLineTotal > 0 ? parsedLineTotal : computedTotal;
+    rawItems.forEach((item, index) => {
+      const record = item as Record<string, unknown> | null;
+      if (!record) {
+        return;
+      }
 
-        const menuItemIdCandidate = record?.menuItemId;
+      const quantityCandidate = Number(record?.quantity ?? 1);
+      const quantity = Number.isFinite(quantityCandidate) && quantityCandidate > 0 ? quantityCandidate : 1;
 
-        return {
-          key: `order-${typeof menuItemIdCandidate === 'number' ? menuItemIdCandidate : index}-${index}`,
-          name,
-          quantity,
-          extrasLabel: extrasNames.length ? extrasNames.join(', ') : undefined,
-          total,
-        } satisfies DisplayItem;
+      const extrasRaw = Array.isArray(record?.extras) ? record.extras : [];
+      const extrasNames = extrasRaw
+        .map((extra) => {
+          if (typeof extra === 'string') {
+            return extra;
+          }
+          if (
+            extra &&
+            typeof extra === 'object' &&
+            'name' in (extra as Record<string, unknown>) &&
+            typeof (extra as { name?: unknown }).name === 'string'
+          ) {
+            return String((extra as { name?: string }).name);
+          }
+          return null;
+        })
+        .filter((value): value is string => Boolean(value && value.trim().length));
+
+      const nameCandidates: (string | null | undefined)[] = [
+        typeof record?.name === 'string' ? record.name : null,
+        typeof (record as { menuItemName?: string }).menuItemName === 'string'
+          ? (record as { menuItemName?: string }).menuItemName
+          : null,
+        typeof (record as { title?: string }).title === 'string'
+          ? (record as { title?: string }).title
+          : null,
+      ];
+      const name =
+        nameCandidates.find((candidate) => candidate && candidate.trim().length) ?? 'Menu item';
+
+      const parsedUnitPrice = parseMonetaryAmount(record?.unitPrice as MonetaryAmount | undefined);
+      const parsedExtrasPrice = parseMonetaryAmount(record?.extrasPrice as MonetaryAmount | undefined);
+      const totalCandidates: (MonetaryAmount | null | undefined)[] = [
+        record?.total as MonetaryAmount | undefined,
+        record?.lineTotal as MonetaryAmount | undefined,
+        record?.totalPrice as MonetaryAmount | undefined,
+        record?.amount as MonetaryAmount | undefined,
+        record?.price as MonetaryAmount | undefined,
+      ];
+
+      let totalValue: number | null = null;
+      for (const candidate of totalCandidates) {
+        const parsedCandidate = parseMonetaryAmount(candidate);
+        if (Number.isFinite(parsedCandidate)) {
+          totalValue = parsedCandidate;
+          break;
+        }
+      }
+
+      const subtotalContribution =
+        Number.isFinite(parsedUnitPrice) && parsedUnitPrice > 0 ? parsedUnitPrice * quantity : 0;
+      const extrasContribution =
+        Number.isFinite(parsedExtrasPrice) && parsedExtrasPrice > 0 ? parsedExtrasPrice : 0;
+      const computedTotal =
+        totalValue != null && Number.isFinite(totalValue)
+          ? totalValue
+          : Number.isFinite(subtotalContribution + extrasContribution) &&
+            subtotalContribution + extrasContribution > 0
+          ? Number((subtotalContribution + extrasContribution).toFixed(3))
+          : 0;
+
+      if (Number.isFinite(subtotalContribution) && subtotalContribution > 0) {
+        subtotalAccumulator += subtotalContribution;
+      }
+      if (Number.isFinite(extrasContribution) && extrasContribution > 0) {
+        extrasAccumulator += extrasContribution;
+      }
+      if (Number.isFinite(computedTotal) && computedTotal > 0) {
+        totalAccumulator += computedTotal;
+      }
+
+      const menuItemIdCandidate = record?.menuItemId;
+
+      normalizedItems.push({
+        key: `order-${typeof menuItemIdCandidate === 'number' ? menuItemIdCandidate : index}-${index}`,
+        name,
+        quantity,
+        extrasLabel: extrasNames.length ? extrasNames.join(', ') : undefined,
+        total: Number.isFinite(computedTotal) ? computedTotal : 0,
       });
+    });
+
+    return {
+      items: normalizedItems,
+      totals: {
+        subtotal: subtotalAccumulator,
+        extrasTotal: extrasAccumulator,
+        total: totalAccumulator,
+      },
+    };
+  }, [isViewMode, viewOrder]);
+
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    if (isViewMode && viewModeItemData) {
+      return viewModeItemData.items;
     }
 
     return items.map((item) => ({
@@ -330,48 +423,122 @@ const CheckoutOrder: React.FC = () => {
         item.extras.flatMap((group) => group.extras.map((extra) => extra.name)).join(', ') || undefined,
       total: item.totalPrice,
     }));
-  }, [isViewMode, viewOrder, items]);
+  }, [isViewMode, items, viewModeItemData]);
 
-  const viewOrderRecord = viewOrder as Record<string, any> | null;
+  const viewModeTotals = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return null;
+    }
+
+    const record = viewOrder as Record<string, unknown>;
+
+    const pickOptionalAmount = (paths: (string | number)[][]): number | null => {
+      for (const path of paths) {
+        let current: any = record;
+        for (const segment of path) {
+          if (!current || typeof current !== 'object') {
+            current = null;
+            break;
+          }
+          current = current[segment as keyof typeof current];
+        }
+
+        if (current == null) {
+          continue;
+        }
+
+        const parsed = parseMonetaryAmount(current as MonetaryAmount | undefined);
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+
+      return null;
+    };
+
+    const fallbackSubtotal = viewModeItemData?.totals.subtotal ?? 0;
+    const fallbackExtras = viewModeItemData?.totals.extrasTotal ?? 0;
+    const fallbackTotal =
+      viewModeItemData?.totals.total ??
+      Math.max((viewModeItemData?.totals.subtotal ?? 0) + (viewModeItemData?.totals.extrasTotal ?? 0), 0);
+
+    const subtotal =
+      pickOptionalAmount([
+        ['payment', 'subtotal'],
+        ['payment', 'subTotal'],
+        ['payment', 'itemsTotal'],
+        ['totals', 'subtotal'],
+        ['totals', 'items'],
+        ['totals', 'itemsTotal'],
+        ['subtotal'],
+        ['itemsTotal'],
+      ]) ?? fallbackSubtotal;
+
+    const extras =
+      pickOptionalAmount([
+        ['payment', 'extrasTotal'],
+        ['payment', 'extras'],
+        ['totals', 'extrasTotal'],
+        ['totals', 'extras'],
+        ['extrasTotal'],
+        ['extras'],
+      ]) ?? fallbackExtras;
+
+    const totalValue =
+      pickOptionalAmount([
+        ['payment', 'total'],
+        ['payment', 'grandTotal'],
+        ['payment', 'amount'],
+        ['payment', 'totalAmount'],
+        ['totals', 'total'],
+        ['totals', 'grandTotal'],
+        ['totals', 'amount'],
+        ['totals', 'totalAmount'],
+        ['total'],
+        ['orderTotal'],
+        ['grandTotal'],
+        ['paymentTotal'],
+        ['amount'],
+      ]) ?? fallbackTotal;
+
+    const feeCandidates: (string | number)[][] = [
+      ['payment', 'fees'],
+      ['payment', 'deliveryFee'],
+      ['payment', 'serviceFee'],
+      ['payment', 'delivery'],
+      ['payment', 'service'],
+      ['totals', 'fees'],
+      ['totals', 'feesTotal'],
+      ['fees'],
+      ['deliveryFee'],
+      ['serviceFee'],
+    ];
+
+    const explicitFees = feeCandidates
+      .map((path) => pickOptionalAmount([path]))
+      .filter((value): value is number => value != null && Number.isFinite(value) && value > 0);
+
+    const fees = explicitFees.length
+      ? explicitFees.reduce((sum, value) => sum + value, 0)
+      : Math.max(totalValue - subtotal - extras, 0);
+
+    return {
+      subtotal,
+      extrasTotal: extras,
+      total: totalValue,
+      fees,
+    };
+  }, [isViewMode, viewOrder, viewModeItemData]);
   const displayItemCount = useMemo(
     () => displayItems.reduce((sum, item) => sum + item.quantity, 0),
     [displayItems],
   );
   const hasDisplayItems = displayItems.length > 0;
   const displayRestaurantName = isViewMode ? viewOrder?.restaurant?.name ?? 'Restaurant' : restaurantName;
-  const displaySubtotal =
-    isViewMode && viewOrderRecord
-      ? parseMonetaryAmount(
-          pickFirstAmount(
-            viewOrderRecord?.payment?.subtotal,
-            viewOrderRecord?.totals?.subtotal,
-            viewOrderRecord?.subtotal,
-          ),
-        )
-      : baseSubtotal;
-  const displayExtrasTotal =
-    isViewMode && viewOrderRecord
-      ? parseMonetaryAmount(
-          pickFirstAmount(
-            viewOrderRecord?.payment?.extrasTotal,
-            viewOrderRecord?.totals?.extrasTotal,
-            viewOrderRecord?.extrasTotal,
-          ),
-        )
-      : extrasTotal;
-  const displayTotal =
-    isViewMode && viewOrderRecord
-      ? parseMonetaryAmount(
-          pickFirstAmount(
-            viewOrderRecord?.payment?.total,
-            viewOrderRecord?.totals?.total,
-            viewOrderRecord?.total,
-          ),
-        )
-      : total;
-  const displayFees = isViewMode
-    ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0)
-    : deliveryFee + serviceFee;
+  const displaySubtotal = isViewMode && viewModeTotals ? viewModeTotals.subtotal : baseSubtotal;
+  const displayExtrasTotal = isViewMode && viewModeTotals ? viewModeTotals.extrasTotal : extrasTotal;
+  const displayTotal = isViewMode && viewModeTotals ? viewModeTotals.total : total;
+  const displayFees = isViewMode && viewModeTotals ? viewModeTotals.fees : deliveryFee + serviceFee;
   const viewModeSavedAddress =
     (viewOrder as { savedAddress?: { label?: string | null } } | null)?.savedAddress ??
     (viewOrder as { delivery?: { savedAddress?: { label?: string | null } | null } } | null)?.delivery?.savedAddress ??
