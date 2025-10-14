@@ -37,6 +37,7 @@ import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 import { WebSocketProvider } from '~/context/WebSocketContext';
 import { OngoingOrderProvider } from '~/context/OngoingOrderContext';
+import DeliveredCelebrationOverlay from '~/components/DeliveredCelebrationOverlay';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
@@ -153,11 +154,12 @@ const RootNavigator = () => {
     : 'Guest';
 
   return (
-    <Stack.Navigator
-      key={navigationKey}
-      initialRouteName={initialRouteName}
-      screenOptions={{ headerShown: false, animation: 'fade' }}
-    >
+    <>
+      <Stack.Navigator
+        key={navigationKey}
+        initialRouteName={initialRouteName}
+        screenOptions={{ headerShown: false, animation: 'fade' }}
+      >
       {user ? (
         <>
           <Stack.Screen name="Guest" component={AuthScreen} />
@@ -219,7 +221,9 @@ const RootNavigator = () => {
           </Stack.Group>
         </>
       )}
-    </Stack.Navigator>
+      </Stack.Navigator>
+      <DeliveredCelebrationOverlay />
+    </>
   );
 };
 

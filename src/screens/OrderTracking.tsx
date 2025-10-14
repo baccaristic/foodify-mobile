@@ -7,7 +7,6 @@ import {
   Animated,
   Image,
   Easing,
-  Dimensions,
   Vibration,
   Pressable,
   Modal,
@@ -90,14 +89,11 @@ const OrderTrackingScreen: React.FC = () => {
   const statusPulse = useRef(new Animated.Value(0)).current;
   const statusAnnouncementOpacity = useRef(new Animated.Value(0)).current;
   const highlightPulse = useRef(new Animated.Value(0)).current;
-  const deliveryCelebrationOpacity = useRef(new Animated.Value(0)).current;
-  const deliverySheetTranslateY = useRef(new Animated.Value(1)).current;
   const previousStatusRef = useRef<string | null>(null);
   const helpSheetAnimation = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
-  const [showDeliveryCelebration, setShowDeliveryCelebration] = useState(false);
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
   const { order: ongoingOrder } = useOngoingOrder();
 
@@ -106,7 +102,6 @@ const OrderTrackingScreen: React.FC = () => {
     [ongoingOrder],
   );
   const supportPhoneNumber = '+1 (800) 555-0199';
-  const screenHeight = useMemo(() => Dimensions.get('window').height, []);
   const helpSheetTranslateY = useMemo(
     () =>
       helpSheetAnimation.interpolate({
@@ -125,10 +120,6 @@ const OrderTrackingScreen: React.FC = () => {
   );
   const helpSheetPadding = useMemo(
     () => ({ paddingBottom: insets.bottom + 24 }),
-    [insets.bottom],
-  );
-  const deliverySheetPadding = useMemo(
-    () => ({ paddingBottom: insets.bottom + 32 }),
     [insets.bottom],
   );
   const statusHistory = useMemo<OrderStatusHistoryDto[]>(
@@ -249,47 +240,11 @@ const OrderTrackingScreen: React.FC = () => {
     }, 260);
   }, [handleCloseSupport, navigation, order?.orderId]);
 
-  const dismissDeliveryCelebration = useCallback(() => {
-    if (!showDeliveryCelebration) {
-      return;
-    }
-
-    Animated.parallel([
-      Animated.timing(deliveryCelebrationOpacity, {
-        toValue: 0,
-        duration: 220,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(deliverySheetTranslateY, {
-        toValue: 1,
-        duration: 260,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) {
-        setShowDeliveryCelebration(false);
-        navigation.navigate('Home' as never);
-      }
-    });
-  }, [
-    deliveryCelebrationOpacity,
-    deliverySheetTranslateY,
-    navigation,
-    showDeliveryCelebration,
-  ]);
-
   useEffect(() => {
     previousStatusRef.current = null;
     setStatusChangeInfo(null);
     setHighlightedStepKey(null);
-    setShowDeliveryCelebration(false);
-    deliveryCelebrationOpacity.setValue(0);
-    deliverySheetTranslateY.setValue(1);
   }, [
-    deliveryCelebrationOpacity,
-    deliverySheetTranslateY,
     order?.orderId,
   ]);
 
@@ -365,60 +320,6 @@ const OrderTrackingScreen: React.FC = () => {
     };
   }, [highlightPulse, highlightedStepKey]);
 
-  useEffect(() => {
-    if (!showDeliveryCelebration) {
-      return;
-    }
-
-    deliveryCelebrationOpacity.setValue(0);
-    deliverySheetTranslateY.setValue(1);
-
-    const overlayAnimation = Animated.parallel([
-      Animated.timing(deliveryCelebrationOpacity, {
-        toValue: 1,
-        duration: 260,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.spring(deliverySheetTranslateY, {
-        toValue: 0,
-        damping: 16,
-        mass: 0.9,
-        stiffness: 180,
-        useNativeDriver: true,
-      }),
-    ]);
-
-    overlayAnimation.start();
-
-    return () => {
-      overlayAnimation.stop();
-    };
-  }, [
-    deliveryCelebrationOpacity,
-    deliverySheetTranslateY,
-    showDeliveryCelebration,
-  ]);
-
-  const deliveryBackdropOpacity = useMemo(
-    () =>
-      deliveryCelebrationOpacity.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 0.45],
-      }),
-    [deliveryCelebrationOpacity],
-  );
-
-  const deliverySheetOffset = useMemo(
-    () =>
-      deliverySheetTranslateY.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, screenHeight],
-        extrapolate: 'clamp',
-      }),
-    [deliverySheetTranslateY, screenHeight],
-  );
-
   const highlightBackground = useMemo(
     () =>
       highlightPulse.interpolate({
@@ -457,10 +358,6 @@ const OrderTrackingScreen: React.FC = () => {
 
   useEffect(() => {
     const previousStatus = previousStatusRef.current;
-
-    if (normalizedStatus === 'DELIVERED' && previousStatus !== 'DELIVERED') {
-      setShowDeliveryCelebration(true);
-    }
 
     if (normalizedStatus && previousStatus && normalizedStatus !== previousStatus) {
       const statusLabel = formatOrderStatusLabel(normalizedStatus) ?? 'Status updated';
@@ -1068,42 +965,6 @@ const OrderTrackingScreen: React.FC = () => {
       )}
     </View>
   );
-
-  if (showDeliveryCelebration) {
-    return (
-      <View style={styles.deliveryCelebrationContainer}>
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.deliveryCelebrationDim, { opacity: deliveryBackdropOpacity }]}
-        />
-        <Animated.View
-          style={[
-            styles.deliveryCelebrationScreen,
-            deliverySheetPadding,
-            { transform: [{ translateY: deliverySheetOffset }] },
-          ]}
-        >
-          <LottieView
-            source={require('../../assets/animation/delivered.json')}
-            autoPlay
-            loop={false}
-            style={styles.deliveryCelebrationAnimation}
-          />
-          <Text style={styles.deliveryCelebrationHeading}>Enjoy your food</Text>
-          <Text style={styles.deliveryCelebrationMessage}>
-            Your delivery has arrived. Bon appétit!
-          </Text>
-          <TouchableOpacity
-            style={styles.deliveryCelebrationButton}
-            onPress={dismissDeliveryCelebration}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.deliveryCelebrationButtonText}>Close</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.screen}>
@@ -1858,57 +1719,6 @@ const styles = StyleSheet.create({
   },
   courierActionButtonSpacing: {
     marginLeft: 8,
-  },
-  deliveryCelebrationContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'flex-end',
-  },
-  deliveryCelebrationDim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0F172A',
-  },
-  deliveryCelebrationScreen: {
-    width: '100%',
-    backgroundColor: softSurface,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    alignItems: 'center',
-  },
-  deliveryCelebrationAnimation: {
-    width: 200,
-    height: 200,
-  },
-  deliveryCelebrationHeading: {
-    marginTop: 16,
-    fontSize: 24,
-    fontWeight: '800',
-    color: textPrimary,
-    textAlign: 'center',
-  },
-  deliveryCelebrationMessage: {
-    marginTop: 8,
-    fontSize: 16,
-    lineHeight: 22,
-    color: textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 12,
-  },
-  deliveryCelebrationButton: {
-    marginTop: 24,
-    width: '100%',
-    borderRadius: 999,
-    backgroundColor: accentColor,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deliveryCelebrationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
   },
   helpModalContainer: {
     flex: 1,
