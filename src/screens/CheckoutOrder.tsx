@@ -27,7 +27,8 @@ import { useCart } from '~/context/CartContext';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import { createOrder } from '~/api/orders';
-import type { CreateOrderResponse, MonetaryAmount } from '~/interfaces/Order';
+import type { MonetaryAmount } from '~/interfaces/Order';
+import type { OrderTrackingData } from './OrderTracking';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -35,20 +36,23 @@ const borderColor = '#E8E9EC';
 
 const formatCurrency = (value: number) => `${value.toFixed(3)} dt`;
 
-const parseMonetaryAmount = (value: MonetaryAmount | null | undefined) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+const extractNumericAmount = (value: MonetaryAmount | null | undefined): number | null => {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
   }
 
   if (typeof value === 'string') {
     const parsed = Number(value.replace(',', '.'));
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
-  return 0;
+  return null;
 };
+
 
 const formatPaymentMethodName = (method?: string | null) => {
   if (!method) {
@@ -189,7 +193,7 @@ type CheckoutRouteParams = {
   discountAmount?: number;
   couponValid?: boolean;
   viewMode?: boolean;
-  order?: CreateOrderResponse | null;
+  order?: OrderTrackingData | null;
 };
 
 type CheckoutRoute = RouteProp<{ CheckoutOrder: CheckoutRouteParams }, 'CheckoutOrder'>;
@@ -214,6 +218,10 @@ const CheckoutOrder: React.FC = () => {
   const rawOrderParam = route.params?.order ?? null;
   const isViewMode = Boolean(route.params?.viewMode && rawOrderParam);
   const viewOrder = isViewMode ? rawOrderParam : null;
+  const viewOrderItems = useMemo<unknown[]>(
+    () => (isViewMode && viewOrder && Array.isArray(viewOrder.items) ? viewOrder.items : []),
+    [isViewMode, viewOrder],
+  );
 
   useEffect(() => {
     if (isViewMode) {
@@ -226,6 +234,40 @@ const CheckoutOrder: React.FC = () => {
       navigation.setParams({ couponCode: undefined, discountAmount: undefined, couponValid: undefined });
     }
   }, [route.params, navigation, isViewMode]);
+
+  const viewModeTotals = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return null;
+    }
+
+    return viewOrderItems.reduce(
+      (acc, rawItem) => {
+        const quantityValue = Number((rawItem as { quantity?: number })?.quantity);
+        const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
+
+        const unit = extractNumericAmount((rawItem as { unitPrice?: MonetaryAmount })?.unitPrice);
+        const extrasPrice = extractNumericAmount((rawItem as { extrasPrice?: MonetaryAmount })?.extrasPrice);
+        const lineTotal = extractNumericAmount((rawItem as { lineTotal?: MonetaryAmount })?.lineTotal);
+        const total = extractNumericAmount((rawItem as { total?: MonetaryAmount })?.total);
+        const totalPrice = extractNumericAmount((rawItem as { totalPrice?: MonetaryAmount })?.totalPrice);
+
+        const fallbackTotal = (unit ?? 0) * quantity + (extrasPrice ?? 0);
+        const resolvedTotal = lineTotal ?? total ?? totalPrice ?? fallbackTotal;
+        const resolvedSubtotal =
+          unit != null
+            ? unit * quantity
+            : Math.max(resolvedTotal - (extrasPrice ?? 0), 0);
+        const resolvedExtras = extrasPrice ?? Math.max(resolvedTotal - resolvedSubtotal, 0);
+
+        return {
+          subtotal: acc.subtotal + resolvedSubtotal,
+          extras: acc.extras + resolvedExtras,
+          total: acc.total + resolvedTotal,
+        };
+      },
+      { subtotal: 0, extras: 0, total: 0 },
+    );
+  }, [isViewMode, viewOrder, viewOrderItems]);
 
   const hasItems = items.length > 0;
   const restaurantName = restaurant?.name ?? 'Restaurant';
@@ -248,13 +290,82 @@ const CheckoutOrder: React.FC = () => {
 
   const displayItems = useMemo<DisplayItem[]>(() => {
     if (isViewMode && viewOrder) {
-      return viewOrder.items.map((item, index) => ({
-        key: `order-${item.menuItemId}-${index}`,
-        name: item.name,
-        quantity: item.quantity,
-        extrasLabel: item.extras?.map((extra) => extra.name).join(', ') || undefined,
-        total: parseMonetaryAmount(item.lineTotal),
-      }));
+      return viewOrderItems.map((item, index) => {
+        const rawItem = item as {
+          menuItemId?: number | string;
+          menuItemName?: string;
+          name?: string;
+          quantity?: number;
+          extras?: unknown;
+          lineTotal?: MonetaryAmount;
+          total?: MonetaryAmount;
+          totalPrice?: MonetaryAmount;
+          unitPrice?: MonetaryAmount;
+          extrasPrice?: MonetaryAmount;
+        };
+
+        const quantityValue = Number(rawItem.quantity);
+        const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
+        const name =
+          (typeof rawItem.name === 'string' && rawItem.name.trim().length
+            ? rawItem.name
+            : null) ??
+          (typeof rawItem.menuItemName === 'string' && rawItem.menuItemName.trim().length
+            ? rawItem.menuItemName
+            : 'Item');
+
+        const extrasSource = rawItem.extras;
+        const extrasLabel = (() => {
+          if (!extrasSource) {
+            return undefined;
+          }
+
+          if (typeof extrasSource === 'string') {
+            return extrasSource;
+          }
+
+          if (Array.isArray(extrasSource)) {
+            const values = extrasSource
+              .map((extra) => {
+                if (!extra) {
+                  return null;
+                }
+                if (typeof extra === 'string') {
+                  return extra;
+                }
+                if (typeof extra === 'object') {
+                  if ('name' in extra && typeof extra.name === 'string') {
+                    return extra.name;
+                  }
+                  if ('label' in extra && typeof extra.label === 'string') {
+                    return extra.label;
+                  }
+                }
+                return null;
+              })
+              .filter((value): value is string => Boolean(value && value.trim().length));
+
+            return values.length ? values.join(', ') : undefined;
+          }
+
+          return undefined;
+        })();
+
+        const lineTotal = extractNumericAmount(rawItem.lineTotal);
+        const total = extractNumericAmount(rawItem.total);
+        const totalPrice = extractNumericAmount(rawItem.totalPrice);
+        const unitPrice = extractNumericAmount(rawItem.unitPrice);
+        const extrasPrice = extractNumericAmount(rawItem.extrasPrice);
+        const resolvedTotal = lineTotal ?? total ?? totalPrice ?? (unitPrice ?? 0) * quantity + (extrasPrice ?? 0);
+
+        return {
+          key: `order-${String(rawItem.menuItemId ?? name)}-${index}`,
+          name,
+          quantity,
+          extrasLabel,
+          total: resolvedTotal,
+        } satisfies DisplayItem;
+      });
     }
 
     return items.map((item) => ({
@@ -265,29 +376,139 @@ const CheckoutOrder: React.FC = () => {
         item.extras.flatMap((group) => group.extras.map((extra) => extra.name)).join(', ') || undefined,
       total: item.totalPrice,
     }));
-  }, [isViewMode, viewOrder, items]);
+  }, [isViewMode, viewOrder, viewOrderItems, items]);
 
   const displayItemCount = useMemo(
     () => displayItems.reduce((sum, item) => sum + item.quantity, 0),
     [displayItems],
   );
   const hasDisplayItems = displayItems.length > 0;
-  const displayRestaurantName = isViewMode ? viewOrder?.restaurant?.name ?? 'Restaurant' : restaurantName;
-  const displaySubtotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.subtotal) : baseSubtotal;
-  const displayExtrasTotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.extrasTotal) : extrasTotal;
-  const displayTotal = isViewMode && viewOrder ? parseMonetaryAmount(viewOrder.payment?.total) : total;
-  const displayFees = isViewMode ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0) : deliveryFee + serviceFee;
-  const deliveryAddressValue = isViewMode
-    ? viewOrder?.delivery?.address ?? ''
-    : selectedAddress?.formattedAddress ?? '';
-  const deliveryAddressTitle = isViewMode
-    ? viewOrder?.delivery?.savedAddress?.label?.trim()?.length
-      ? String(viewOrder.delivery.savedAddress?.label)
-      : 'Delivery address'
-    : selectedAddress?.label?.trim()?.length
-      ? selectedAddress.label
-      : 'Saved address';
-  const hasDeliveryAddress = isViewMode ? Boolean(deliveryAddressValue) : Boolean(selectedAddress);
+  const displayRestaurantName = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return restaurantName;
+    }
+
+    const candidates = [
+      viewOrder.restaurant?.name,
+      (viewOrder.restaurant as { restaurantName?: string } | undefined)?.restaurantName,
+      (viewOrder as { restaurantName?: string } | null)?.restaurantName,
+    ];
+
+    const resolved = candidates.find(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return resolved ?? 'Restaurant';
+  }, [isViewMode, viewOrder, restaurantName]);
+
+  const displaySubtotal = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return baseSubtotal;
+    }
+
+    const paymentSubtotal = extractNumericAmount(viewOrder.payment?.subtotal);
+    if (paymentSubtotal != null) {
+      return paymentSubtotal;
+    }
+
+    return viewModeTotals?.subtotal ?? 0;
+  }, [isViewMode, viewOrder, baseSubtotal, viewModeTotals]);
+
+  const displayExtrasTotal = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return extrasTotal;
+    }
+
+    const paymentExtras = extractNumericAmount(viewOrder.payment?.extrasTotal);
+    if (paymentExtras != null) {
+      return paymentExtras;
+    }
+
+    return viewModeTotals?.extras ?? 0;
+  }, [isViewMode, viewOrder, extrasTotal, viewModeTotals]);
+
+  const displayTotal = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return total;
+    }
+
+    const paymentTotal = extractNumericAmount(viewOrder.payment?.total);
+    if (paymentTotal != null) {
+      return paymentTotal;
+    }
+
+    const paymentGrandTotal = extractNumericAmount(
+      (viewOrder.payment as { grandTotal?: MonetaryAmount } | undefined)?.grandTotal,
+    );
+    if (paymentGrandTotal != null) {
+      return paymentGrandTotal;
+    }
+
+    const orderTotal = extractNumericAmount((viewOrder as { total?: MonetaryAmount })?.total);
+    if (orderTotal != null) {
+      return orderTotal;
+    }
+
+    return viewModeTotals?.total ?? 0;
+  }, [isViewMode, viewOrder, total, viewModeTotals]);
+
+  const displayFees = useMemo(
+    () =>
+      isViewMode
+        ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0)
+        : deliveryFee + serviceFee,
+    [
+      isViewMode,
+      displayTotal,
+      displaySubtotal,
+      displayExtrasTotal,
+      deliveryFee,
+      serviceFee,
+    ],
+  );
+
+  const deliveryAddressValue = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return selectedAddress?.formattedAddress ?? '';
+    }
+
+    const candidates = [
+      viewOrder.delivery?.address,
+      (viewOrder.delivery?.savedAddress as { formattedAddress?: string } | undefined)?.formattedAddress,
+      (viewOrder as { deliveryAddress?: string | null })?.deliveryAddress ?? null,
+      (viewOrder.savedAddress as { formattedAddress?: string } | undefined)?.formattedAddress,
+    ];
+
+    const resolved = candidates.find(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return resolved ?? '';
+  }, [isViewMode, viewOrder, selectedAddress]);
+
+  const deliveryAddressTitle = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      if (selectedAddress?.label?.trim()?.length) {
+        return selectedAddress.label;
+      }
+      return 'Saved address';
+    }
+
+    const candidates = [
+      viewOrder.delivery?.savedAddress?.label,
+      (viewOrder.savedAddress as { label?: string } | undefined)?.label,
+    ];
+
+    const resolved = candidates.find(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    );
+
+    return resolved ?? 'Delivery address';
+  }, [isViewMode, viewOrder, selectedAddress]);
+
+  const hasDeliveryAddress = isViewMode
+    ? Boolean(deliveryAddressValue && deliveryAddressValue.trim().length)
+    : Boolean(selectedAddress);
   const emptyAddressMessage = isViewMode
     ? 'Delivery details unavailable for this order.'
     : 'Add a delivery address to preview it here.';
@@ -314,7 +535,8 @@ const CheckoutOrder: React.FC = () => {
 
   const paymentMethodLabel = useMemo(() => {
     if (isViewMode && viewOrder) {
-      return formatPaymentMethodName(viewOrder.payment?.method);
+      const method = viewOrder.payment?.method ?? viewOrder.paymentMethod;
+      return formatPaymentMethodName(method);
     }
 
     if (!selectedPaymentMethod) {
@@ -327,7 +549,8 @@ const CheckoutOrder: React.FC = () => {
 
   const SelectedPaymentIcon = useMemo(() => {
     if (isViewMode && viewOrder) {
-      return resolvePaymentIcon(viewOrder.payment?.method);
+      const method = viewOrder.payment?.method ?? viewOrder.paymentMethod;
+      return resolvePaymentIcon(method);
     }
 
     if (!selectedPaymentMethod) {
@@ -338,17 +561,29 @@ const CheckoutOrder: React.FC = () => {
   }, [isViewMode, viewOrder, selectedPaymentMethod]);
 
   const deliveryRegion = useMemo(() => {
-    if (isViewMode && viewOrder?.delivery?.location) {
-      const latCandidate = Number(viewOrder.delivery.location.lat);
-      const lngCandidate = Number(viewOrder.delivery.location.lng);
+    if (isViewMode && viewOrder) {
+      const candidateLocations = [
+        viewOrder.delivery?.location,
+        (viewOrder as { deliveryLocation?: { lat?: number | string; lng?: number | string } } | null)
+          ?.deliveryLocation,
+      ];
 
-      if (Number.isFinite(latCandidate) && Number.isFinite(lngCandidate)) {
-        return {
-          latitude: latCandidate,
-          longitude: lngCandidate,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
+      for (const location of candidateLocations) {
+        if (!location) {
+          continue;
+        }
+
+        const latCandidate = Number((location as { lat?: number | string }).lat);
+        const lngCandidate = Number((location as { lng?: number | string }).lng);
+
+        if (Number.isFinite(latCandidate) && Number.isFinite(lngCandidate)) {
+          return {
+            latitude: latCandidate,
+            longitude: lngCandidate,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          };
+        }
       }
     }
 
@@ -373,12 +608,18 @@ const CheckoutOrder: React.FC = () => {
 
   const addressDetails = useMemo(() => {
     if (isViewMode) {
-      const formatted = viewOrder?.delivery?.savedAddress?.formattedAddress;
-      if (formatted && formatted.trim().length) {
-        const normalizedDetail = formatted.trim();
-        const normalizedValue = deliveryAddressValue.trim();
-        if (!normalizedValue || normalizedValue !== normalizedDetail) {
-          return formatted;
+      const candidates = [
+        viewOrder?.delivery?.savedAddress?.formattedAddress,
+        (viewOrder?.savedAddress as { formattedAddress?: string } | undefined)?.formattedAddress,
+      ];
+
+      const normalizedValue = deliveryAddressValue.trim();
+      for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim().length) {
+          const normalizedDetail = candidate.trim();
+          if (!normalizedValue || normalizedValue !== normalizedDetail) {
+            return candidate;
+          }
         }
       }
       return null;

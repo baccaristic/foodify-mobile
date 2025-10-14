@@ -22,25 +22,14 @@ import {
   Phone,
   Star,
 } from 'lucide-react-native';
-import {
-  NavigationProp,
-  ParamListBase,
-  RouteProp,
-  useNavigation,
-  useRoute,
-} from '@react-navigation/native';
+import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 
-import type {
-  CreateOrderResponse,
-  MonetaryAmount,
-  OrderNotificationDto,
-  OrderStatusHistoryDto,
-} from '~/interfaces/Order';
+import type { CreateOrderResponse, MonetaryAmount, OrderStatusHistoryDto } from '~/interfaces/Order';
 import { ms, vs } from 'react-native-size-matters';
-import { OrderStatusHistoryEntry, useWebSocketContext } from '~/context/WebSocketContext';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
-import { formatOrderStatusLabel, mergeOrderLikeData } from '~/utils/order';
+import type { OngoingOrderData } from '~/context/OngoingOrderContext';
+import { formatOrderStatusLabel } from '~/utils/order';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -52,26 +41,10 @@ const textPrimary = '#0F172A';
 const textSecondary = '#6B7280';
 const borderColor = '#F0F1F5';
 
-type OrderTrackingRoute = RouteProp<
-  { OrderTracking: { order?: CreateOrderResponse | null; orderId?: number | string | null } },
-  'OrderTracking'
->;
-
 type LatLng = { latitude: number; longitude: number };
 
-type WorkflowStep = {
-  key: string;
-  title: string;
-  description: string;
-  statusText: string;
-  etaLabel: string;
-  state: 'completed' | 'active' | 'pending';
-};
-
-type OrderTrackingData = Partial<CreateOrderResponse> &
-  Partial<OrderNotificationDto> & {
-  orderId?: number | string | null;
-  statusHistory?: (OrderStatusHistoryDto | OrderStatusHistoryEntry)[];
+export type OrderTrackingData = (OngoingOrderData & Partial<CreateOrderResponse>) & {
+  statusHistory?: OrderStatusHistoryDto[] | null;
 };
 
 type StatusChangeInfo = {
@@ -111,73 +84,8 @@ const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
   return 0;
 };
 
-const buildWorkflowSteps = (order: OrderTrackingData | null | undefined): WorkflowStep[] => {
-  if (!order) {
-    return [];
-  }
-
-  const normalizedStatus = order?.status ? String(order.status).toUpperCase() : null;
-  const workflowSteps = order.workflow ?? [];
-
-  if (workflowSteps.length) {
-    return workflowSteps.map((step, index) => {
-      const status = String(step?.status ?? '').toUpperCase();
-      let state: WorkflowStep['state'] = 'pending';
-
-      if (status === 'COMPLETED' || step?.completed) {
-        state = 'completed';
-      } else if (
-        status === 'IN_PROGRESS' ||
-        status === 'ACTIVE' ||
-        (normalizedStatus && (status === normalizedStatus || step?.step?.toUpperCase() === normalizedStatus))
-      ) {
-        state = 'active';
-      }
-
-      return {
-        key: step?.step ?? `STEP_${index}`,
-        title: step?.label ?? `Step ${index + 1}`,
-        description: step?.description ?? 'We will notify you once this updates.',
-        statusText:
-          state === 'completed' ? 'Completed' : state === 'active' ? 'In progress' : 'Pending',
-        etaLabel: '—',
-        state,
-      } satisfies WorkflowStep;
-    });
-  }
-
-  const historySteps = order.statusHistory ?? [];
-
-  if (historySteps.length) {
-    return historySteps.map((entry, index) => {
-      const status = String(entry?.newStatus ?? '').toUpperCase();
-      let state: WorkflowStep['state'] = 'completed';
-
-      if (index === historySteps.length - 1 && normalizedStatus && normalizedStatus !== 'DELIVERED') {
-        state = 'active';
-      }
-
-      if (normalizedStatus && status === normalizedStatus) {
-        state = 'active';
-      }
-
-      return {
-        key: entry?.action ?? `HISTORY_${index}`,
-        title: entry?.newStatus ?? entry?.action ?? `Update ${index + 1}`,
-        description: entry?.reason ?? 'Your order status has changed.',
-        statusText: status || 'Updated',
-        etaLabel: '—',
-        state,
-      } satisfies WorkflowStep;
-    });
-  }
-
-  return [];
-};
-
 const OrderTrackingScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
-  const route = useRoute<OrderTrackingRoute>();
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const statusPulse = useRef(new Animated.Value(0)).current;
@@ -193,134 +101,41 @@ const OrderTrackingScreen: React.FC = () => {
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
   const [showDeliveryCelebration, setShowDeliveryCelebration] = useState(false);
-  const { latestOrderUpdate, orderUpdates } = useWebSocketContext();
-  const { order: ongoingOrder, updateOrder: updateOngoingOrder } = useOngoingOrder();
+  const { order: ongoingOrder } = useOngoingOrder();
 
-  const initialOrder = route.params?.order ?? null;
-  const routeOrderIdParam = route.params?.orderId ?? null;
-  const initialOrderId = initialOrder?.orderId ?? null;
-  const ongoingOrderId = ongoingOrder?.orderId ?? null;
-
-  useEffect(() => {
-    if (initialOrder) {
-      updateOngoingOrder(initialOrder as Partial<OrderTrackingData>);
-    }
-  }, [initialOrder, updateOngoingOrder]);
-
-  const relevantOrderIds = useMemo(() => {
-    const ids: string[] = [];
-    const addId = (value: number | string | null | undefined) => {
-      if (value != null) {
-        const key = String(value);
-        if (!ids.includes(key)) {
-          ids.push(key);
-        }
-      }
-    };
-
-    addId(routeOrderIdParam);
-    addId(initialOrderId);
-    addId(ongoingOrderId);
-
-    return ids;
-  }, [initialOrderId, ongoingOrderId, routeOrderIdParam]);
-
-  const websocketOrderData = useMemo<OrderTrackingData | null>(() => {
-    for (const id of relevantOrderIds) {
-      const update = orderUpdates[id];
-      if (update) {
-        return update;
-      }
-    }
-
-    if (latestOrderUpdate) {
-      if (!latestOrderUpdate.orderId || relevantOrderIds.length === 0) {
-        return latestOrderUpdate;
-      }
-
-      const latestId = String(latestOrderUpdate.orderId);
-      if (relevantOrderIds.includes(latestId)) {
-        return latestOrderUpdate;
-      }
-
-      const keyedUpdate = orderUpdates[latestId];
-      if (keyedUpdate) {
-        return keyedUpdate;
-      }
-    }
-
-    return null;
-  }, [latestOrderUpdate, orderUpdates, relevantOrderIds]);
-
-  const contextOrder = useMemo<OrderTrackingData | null>(() => {
-    if (!ongoingOrder) {
-      return null;
-    }
-
-    const contextId = ongoingOrder.orderId ?? null;
-    const targetId = routeOrderIdParam ?? initialOrderId ?? null;
-
-    if (targetId == null || contextId == null) {
-      return ongoingOrder as OrderTrackingData;
-    }
-
-    return String(contextId) === String(targetId)
-      ? (ongoingOrder as OrderTrackingData)
-      : null;
-  }, [initialOrderId, ongoingOrder, routeOrderIdParam]);
-
-  const baseOrder = useMemo(() => {
-    return mergeOrderLikeData<OrderTrackingData>(
-      initialOrder as OrderTrackingData | null,
-      contextOrder as Partial<OrderTrackingData> | null,
-    );
-  }, [contextOrder, initialOrder]);
-
-  const order = useMemo<OrderTrackingData | null>(() => {
-    const merged = mergeOrderLikeData<OrderTrackingData>(
-      baseOrder as OrderTrackingData | null,
-      websocketOrderData as Partial<OrderTrackingData> | null,
-    );
-
-    if (merged) {
-      const fallbackId =
-        merged.orderId ??
-        (websocketOrderData?.orderId ?? null) ??
-        (contextOrder?.orderId ?? null) ??
-        routeOrderIdParam ??
-        initialOrderId ??
-        null;
-
-      return fallbackId != null ? ({ ...merged, orderId: fallbackId } as OrderTrackingData) : merged;
-    }
-
-    const fallbackId =
-      (websocketOrderData?.orderId ?? null) ??
-      (contextOrder?.orderId ?? null) ??
-      routeOrderIdParam ??
-      initialOrderId ??
-      null;
-
-    return fallbackId != null ? ({ orderId: fallbackId } as OrderTrackingData) : null;
-  }, [
-    baseOrder,
-    contextOrder,
-    initialOrderId,
-    routeOrderIdParam,
-    websocketOrderData,
-  ]);
-
-  const steps = useMemo(() => buildWorkflowSteps(order), [order]);
-  const normalizedStatus = useMemo(
-    () => (order?.status ? String(order.status).toUpperCase() : null),
-    [order?.status],
+  const order = useMemo<OrderTrackingData | null>(
+    () => (ongoingOrder ? (ongoingOrder as OrderTrackingData) : null),
+    [ongoingOrder],
   );
+  const statusHistory = useMemo<OrderStatusHistoryDto[]>(
+    () => (Array.isArray(order?.statusHistory) ? order?.statusHistory ?? [] : []),
+    [order?.statusHistory],
+  );
+  const normalizedStatus = useMemo(() => {
+    const historyStatus = statusHistory.length
+      ? statusHistory[statusHistory.length - 1]?.newStatus
+      : null;
+    const baseStatus = historyStatus ?? order?.status ?? null;
+
+    return baseStatus ? String(baseStatus).toUpperCase() : null;
+  }, [order?.status, statusHistory]);
   const formattedStatus = formatOrderStatusLabel(order?.status);
   const isPendingStatus = normalizedStatus === 'PENDING';
   const isAcceptedStatus = normalizedStatus === 'ACCEPTED';
   const isPreparingStatus = normalizedStatus === 'PREPARING';
   const isReadyForPickupStatus = normalizedStatus === 'READY_FOR_PICK_UP';
   const isInDeliveryStatus = normalizedStatus === 'IN_DELIVERY';
+
+  const getHistoryEntryKey = useCallback(
+    (entry: OrderStatusHistoryDto | null | undefined, index: number) => {
+      if (!entry) {
+        return normalizedStatus ?? `history-${index}`;
+      }
+
+      return `${entry.changedAt ?? entry.newStatus ?? `history-${index}`}`;
+    },
+    [normalizedStatus],
+  );
 
   const heroAnimationConfig = useMemo(() => {
     if (isPendingStatus) {
@@ -609,26 +424,23 @@ const OrderTrackingScreen: React.FC = () => {
 
     if (normalizedStatus && previousStatus && normalizedStatus !== previousStatus) {
       const statusLabel = formatOrderStatusLabel(normalizedStatus) ?? 'Status updated';
-      const statusHistory = Array.isArray(order?.statusHistory) ? order?.statusHistory ?? [] : [];
       const latestStatusEntry =
-        statusHistory.length > 0 ? statusHistory[statusHistory.length - 1] : null;
+        statusHistory.length > 0 ? statusHistory[statusHistory.length - 1] ?? null : null;
 
       setStatusChangeInfo({
         title: statusLabel,
         description:
-          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.reason ??
-          (latestStatusEntry as OrderStatusHistoryDto | OrderStatusHistoryEntry | null)?.action ??
+          latestStatusEntry?.reason ??
+          latestStatusEntry?.action ??
           'Your order moved to the next step.',
       });
 
-      const activeStep = steps.find((step) => step.state === 'active') ?? null;
-      const fallbackStep =
-        activeStep ??
-        [...steps].reverse().find((step) => step.state === 'completed') ??
-        null;
-      setHighlightedStepKey((current) =>
-        current === (fallbackStep?.key ?? null) ? current : fallbackStep?.key ?? null,
+      const highlightKey = getHistoryEntryKey(
+        latestStatusEntry ?? null,
+        Math.max(statusHistory.length - 1, 0),
       );
+
+      setHighlightedStepKey((current) => (current === highlightKey ? current : highlightKey));
 
       Vibration.vibrate(40);
     }
@@ -636,7 +448,7 @@ const OrderTrackingScreen: React.FC = () => {
     if (normalizedStatus) {
       previousStatusRef.current = normalizedStatus;
     }
-  }, [normalizedStatus, order?.statusHistory, steps]);
+  }, [getHistoryEntryKey, normalizedStatus, statusHistory]);
 
   const orderTotal = formatCurrency(order?.payment?.total);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
@@ -1055,27 +867,40 @@ const OrderTrackingScreen: React.FC = () => {
           ) : null}
         </Animated.View>
       ) : null}
-      {steps.length === 0 ? (
+      {statusHistory.length === 0 ? (
         <Text style={styles.stepsEmptyText}>
           Tracking updates will appear once we receive status changes from the restaurant.
         </Text>
       ) : (
-        steps.map((step, index) => {
-          const isLast = index === steps.length - 1;
-          const isCompleted = step.state === 'completed';
-          const isActive = step.state === 'active';
+        statusHistory.map((entry, index) => {
+          const isLast = index === statusHistory.length - 1;
+          const entryStatus = entry?.newStatus ? String(entry.newStatus).toUpperCase() : null;
+          const isDelivered = normalizedStatus === 'DELIVERED';
+          const isActive = isLast && !isDelivered;
+          const isCompleted = index < statusHistory.length - 1 || (isLast && isDelivered);
           const isPending = !isCompleted && !isActive;
-          const previousStep = index > 0 ? steps[index - 1] : null;
-          const isHighlighted = highlightedStepKey != null && highlightedStepKey === step.key;
-
-          const topConnectorActive =
-            index > 0 &&
-            (previousStep?.state === 'completed' || previousStep?.state === 'active');
+          const topConnectorActive = index > 0 && (isCompleted || isActive || isDelivered);
           const bottomConnectorActive = !isLast && isCompleted;
+          const highlightKey = getHistoryEntryKey(entry, index);
+          const isHighlighted = highlightedStepKey === highlightKey;
+          const title =
+            formatOrderStatusLabel(entryStatus) ??
+            entry?.newStatus ??
+            entry?.action ??
+            `Update ${index + 1}`;
+          const description =
+            entry?.reason ?? entry?.action ?? 'Your order moved to the next step.';
+          const changedAt = entry?.changedAt ? new Date(entry.changedAt) : null;
+          const timeLabel = changedAt
+            ? changedAt.toLocaleTimeString(undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : '—';
 
           return (
             <Animated.View
-              key={`${step.key}-${index}`}
+              key={`${highlightKey}-${index}`}
               style={[
                 styles.stepRow,
                 !isLast && styles.stepRowDivider,
@@ -1132,7 +957,7 @@ const OrderTrackingScreen: React.FC = () => {
                     isPending && styles.stepTitlePending,
                   ]}
                 >
-                  {step.title}
+                  {title}
                 </Text>
                 <Text
                   style={[
@@ -1140,7 +965,7 @@ const OrderTrackingScreen: React.FC = () => {
                     isPending && styles.stepDescriptionPending,
                   ]}
                 >
-                  {step.description}
+                  {description}
                 </Text>
               </View>
               <View style={styles.stepMeta}>
@@ -1156,7 +981,7 @@ const OrderTrackingScreen: React.FC = () => {
                       isPending && styles.stepEtaTextPending,
                     ]}
                   >
-                    {step.etaLabel}
+                    {timeLabel}
                   </Text>
                 </View>
               </View>
