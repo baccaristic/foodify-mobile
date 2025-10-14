@@ -69,19 +69,23 @@ const formatCurrency = (value: MonetaryAmount | null | undefined) => {
   return undefined;
 };
 
-const parseCurrencyValue = (value: MonetaryAmount | null | undefined) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+const extractNumericAmount = (
+  value: MonetaryAmount | null | undefined,
+): number | null => {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
   }
 
   if (typeof value === 'string') {
     const parsed = Number(value.replace(',', '.'));
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
-  return 0;
+  return null;
 };
 
 const OrderTrackingScreen: React.FC = () => {
@@ -1087,20 +1091,62 @@ const OrderTrackingScreen: React.FC = () => {
                   (item as { menuItemName?: string } | null | undefined)?.menuItemName ??
                   'Menu item';
                 const totalDisplay = (() => {
-                  const formattedTotal = formatCurrency(item?.lineTotal);
-                  if (formattedTotal) {
-                    return formattedTotal;
+                  const lineTotal = extractNumericAmount(item?.lineTotal);
+                  const unitPrice = extractNumericAmount(item?.unitPrice);
+                  const extrasPrice = extractNumericAmount(item?.extrasPrice);
+                  const unitBasePrice = extractNumericAmount(item?.unitBasePrice);
+                  const unitExtrasPrice = extractNumericAmount(item?.unitExtrasPrice);
+                  const lineSubtotal = extractNumericAmount(item?.lineSubtotal);
+                  const promotionDiscount = extractNumericAmount(item?.promotionDiscount);
+                  const lineItemsTotal = extractNumericAmount(item?.lineItemsTotal);
+                  const extrasTotal = extractNumericAmount(item?.extrasTotal);
+                  const legacyTotal = extractNumericAmount((item as { total?: MonetaryAmount })?.total);
+                  const legacyTotalPrice = extractNumericAmount(
+                    (item as { totalPrice?: MonetaryAmount })?.totalPrice,
+                  );
+
+                  const resolvedLineSubtotal =
+                    lineSubtotal ??
+                    (unitBasePrice != null ? unitBasePrice * quantity : null) ??
+                    (unitPrice != null ? unitPrice * quantity : null) ??
+                    0;
+
+                  const resolvedDiscount = (() => {
+                    if (promotionDiscount != null) {
+                      return Math.max(promotionDiscount, 0);
+                    }
+                    if (lineSubtotal != null && lineItemsTotal != null) {
+                      return Math.max(lineSubtotal - lineItemsTotal, 0);
+                    }
+                    return 0;
+                  })();
+
+                  const resolvedItemsTotal =
+                    lineItemsTotal ?? Math.max(resolvedLineSubtotal - resolvedDiscount, 0);
+
+                  const resolvedExtras =
+                    extrasTotal ??
+                    (unitExtrasPrice != null ? unitExtrasPrice * quantity : null) ??
+                    extrasPrice ??
+                    0;
+
+                  const resolvedLineTotal =
+                    lineTotal ??
+                    legacyTotal ??
+                    legacyTotalPrice ??
+                    Math.max(resolvedItemsTotal + resolvedExtras, 0);
+
+                  const formattedLineTotal = formatCurrency(resolvedLineTotal);
+                  if (formattedLineTotal) {
+                    return formattedLineTotal;
                   }
 
-                  const computedTotal =
-                    parseCurrencyValue(item?.unitPrice) * quantity +
-                    parseCurrencyValue(item?.extrasPrice);
-
-                  if (!Number.isFinite(computedTotal) || computedTotal <= 0) {
-                    return undefined;
+                  const fallbackTotal = Math.max(resolvedItemsTotal + resolvedExtras, 0);
+                  if (fallbackTotal > 0) {
+                    return formatCurrency(fallbackTotal);
                   }
 
-                  return formatCurrency(computedTotal);
+                  return undefined;
                 })();
 
                 return (

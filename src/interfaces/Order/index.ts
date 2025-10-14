@@ -23,8 +23,13 @@ export interface OrderedItemSummary {
   menuItemId: number;
   name: string;
   quantity: number;
+  unitBasePrice?: MonetaryAmount;
   unitPrice: MonetaryAmount;
-  extrasPrice: MonetaryAmount;
+  unitExtrasPrice?: MonetaryAmount;
+  lineSubtotal?: MonetaryAmount;
+  promotionDiscount?: MonetaryAmount;
+  lineItemsTotal?: MonetaryAmount;
+  extrasTotal?: MonetaryAmount;
   lineTotal: MonetaryAmount;
   extras?: OrderExtraSummary[];
   specialInstructions?: string | null;
@@ -133,8 +138,17 @@ export interface OrderWorkflowStepDto {
 export interface OrderItemDto {
   menuItemId: number;
   menuItemName: string;
+  name?: string;
   quantity: number;
-  extras?: string[] | null;
+  unitBasePrice?: MonetaryAmount;
+  unitPrice?: MonetaryAmount;
+  unitExtrasPrice?: MonetaryAmount;
+  lineSubtotal?: MonetaryAmount;
+  promotionDiscount?: MonetaryAmount;
+  lineItemsTotal?: MonetaryAmount;
+  extrasTotal?: MonetaryAmount;
+  lineTotal?: MonetaryAmount;
+  extras?: OrderExtraSummary[] | null;
   specialInstructions?: string | null;
 }
 

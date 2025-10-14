@@ -235,7 +235,15 @@ const CheckoutOrder: React.FC = () => {
     }
   }, [route.params, navigation, isViewMode]);
 
-  const viewModeTotals = useMemo(() => {
+  type ViewModeAggregates = {
+    lineSubtotal: number;
+    itemsTotal: number;
+    extrasTotal: number;
+    lineTotal: number;
+    promotionDiscount: number;
+  };
+
+  const viewModeTotals = useMemo<ViewModeAggregates | null>(() => {
     if (!isViewMode || !viewOrder) {
       return null;
     }
@@ -245,27 +253,74 @@ const CheckoutOrder: React.FC = () => {
         const quantityValue = Number((rawItem as { quantity?: number })?.quantity);
         const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
 
-        const unit = extractNumericAmount((rawItem as { unitPrice?: MonetaryAmount })?.unitPrice);
-        const extrasPrice = extractNumericAmount((rawItem as { extrasPrice?: MonetaryAmount })?.extrasPrice);
+        const unitBasePrice = extractNumericAmount(
+          (rawItem as { unitBasePrice?: MonetaryAmount })?.unitBasePrice,
+        );
+        const unitPrice = extractNumericAmount((rawItem as { unitPrice?: MonetaryAmount })?.unitPrice);
+        const unitExtrasPrice = extractNumericAmount(
+          (rawItem as { unitExtrasPrice?: MonetaryAmount })?.unitExtrasPrice,
+        );
+        const lineSubtotal = extractNumericAmount(
+          (rawItem as { lineSubtotal?: MonetaryAmount })?.lineSubtotal,
+        );
+        const promotionDiscount = extractNumericAmount(
+          (rawItem as { promotionDiscount?: MonetaryAmount })?.promotionDiscount,
+        );
+        const lineItemsTotal = extractNumericAmount(
+          (rawItem as { lineItemsTotal?: MonetaryAmount })?.lineItemsTotal,
+        );
+        const extrasTotal = extractNumericAmount((rawItem as { extrasTotal?: MonetaryAmount })?.extrasTotal);
         const lineTotal = extractNumericAmount((rawItem as { lineTotal?: MonetaryAmount })?.lineTotal);
         const total = extractNumericAmount((rawItem as { total?: MonetaryAmount })?.total);
         const totalPrice = extractNumericAmount((rawItem as { totalPrice?: MonetaryAmount })?.totalPrice);
+        const extrasPrice = extractNumericAmount((rawItem as { extrasPrice?: MonetaryAmount })?.extrasPrice);
 
-        const fallbackTotal = (unit ?? 0) * quantity + (extrasPrice ?? 0);
-        const resolvedTotal = lineTotal ?? total ?? totalPrice ?? fallbackTotal;
-        const resolvedSubtotal =
-          unit != null
-            ? unit * quantity
-            : Math.max(resolvedTotal - (extrasPrice ?? 0), 0);
-        const resolvedExtras = extrasPrice ?? Math.max(resolvedTotal - resolvedSubtotal, 0);
+        const resolvedLineSubtotal =
+          lineSubtotal ??
+          (unitBasePrice != null ? unitBasePrice * quantity : null) ??
+          (unitPrice != null ? unitPrice * quantity : null) ??
+          0;
+
+        const inferredDiscount = (() => {
+          if (promotionDiscount != null) {
+            return Math.max(promotionDiscount, 0);
+          }
+          if (lineSubtotal != null && lineItemsTotal != null) {
+            return Math.max(lineSubtotal - lineItemsTotal, 0);
+          }
+          return 0;
+        })();
+
+        const resolvedItemsTotal =
+          lineItemsTotal ?? Math.max(resolvedLineSubtotal - inferredDiscount, 0);
+
+        const resolvedExtras =
+          extrasTotal ??
+          (unitExtrasPrice != null ? unitExtrasPrice * quantity : null) ??
+          extrasPrice ??
+          0;
+
+        const resolvedLineTotal =
+          lineTotal ??
+          total ??
+          totalPrice ??
+          Math.max(resolvedItemsTotal + resolvedExtras, 0);
 
         return {
-          subtotal: acc.subtotal + resolvedSubtotal,
-          extras: acc.extras + resolvedExtras,
-          total: acc.total + resolvedTotal,
-        };
+          lineSubtotal: acc.lineSubtotal + resolvedLineSubtotal,
+          itemsTotal: acc.itemsTotal + resolvedItemsTotal,
+          extrasTotal: acc.extrasTotal + resolvedExtras,
+          lineTotal: acc.lineTotal + resolvedLineTotal,
+          promotionDiscount: acc.promotionDiscount + inferredDiscount,
+        } satisfies ViewModeAggregates;
       },
-      { subtotal: 0, extras: 0, total: 0 },
+      {
+        lineSubtotal: 0,
+        itemsTotal: 0,
+        extrasTotal: 0,
+        lineTotal: 0,
+        promotionDiscount: 0,
+      },
     );
   }, [isViewMode, viewOrder, viewOrderItems]);
 
@@ -326,6 +381,12 @@ const CheckoutOrder: React.FC = () => {
           totalPrice?: MonetaryAmount;
           unitPrice?: MonetaryAmount;
           extrasPrice?: MonetaryAmount;
+          unitBasePrice?: MonetaryAmount;
+          unitExtrasPrice?: MonetaryAmount;
+          lineSubtotal?: MonetaryAmount;
+          promotionDiscount?: MonetaryAmount;
+          lineItemsTotal?: MonetaryAmount;
+          extrasTotal?: MonetaryAmount;
         };
 
         const quantityValue = Number(rawItem.quantity);
@@ -380,7 +441,43 @@ const CheckoutOrder: React.FC = () => {
         const totalPrice = extractNumericAmount(rawItem.totalPrice);
         const unitPrice = extractNumericAmount(rawItem.unitPrice);
         const extrasPrice = extractNumericAmount(rawItem.extrasPrice);
-        const resolvedTotal = lineTotal ?? total ?? totalPrice ?? (unitPrice ?? 0) * quantity + (extrasPrice ?? 0);
+        const unitBasePrice = extractNumericAmount(rawItem.unitBasePrice);
+        const unitExtrasPrice = extractNumericAmount(rawItem.unitExtrasPrice);
+        const lineSubtotal = extractNumericAmount(rawItem.lineSubtotal);
+        const promotionDiscount = extractNumericAmount(rawItem.promotionDiscount);
+        const lineItemsTotal = extractNumericAmount(rawItem.lineItemsTotal);
+        const extrasTotal = extractNumericAmount(rawItem.extrasTotal);
+
+        const resolvedLineSubtotal =
+          lineSubtotal ??
+          (unitBasePrice != null ? unitBasePrice * quantity : null) ??
+          (unitPrice != null ? unitPrice * quantity : null) ??
+          0;
+
+        const resolvedDiscount = (() => {
+          if (promotionDiscount != null) {
+            return Math.max(promotionDiscount, 0);
+          }
+          if (lineSubtotal != null && lineItemsTotal != null) {
+            return Math.max(lineSubtotal - lineItemsTotal, 0);
+          }
+          return 0;
+        })();
+
+        const resolvedItemsTotal =
+          lineItemsTotal ?? Math.max(resolvedLineSubtotal - resolvedDiscount, 0);
+
+        const resolvedExtras =
+          extrasTotal ??
+          (unitExtrasPrice != null ? unitExtrasPrice * quantity : null) ??
+          extrasPrice ??
+          0;
+
+        const resolvedTotal =
+          lineTotal ??
+          total ??
+          totalPrice ??
+          Math.max(resolvedItemsTotal + resolvedExtras, 0);
 
         return {
           key: `order-${String(rawItem.menuItemId ?? name)}-${index}`,
@@ -446,7 +543,7 @@ const CheckoutOrder: React.FC = () => {
       return Math.max(paymentBreakdown.itemsTotal - paymentBreakdown.extrasTotal, 0);
     }
 
-    return viewModeTotals?.subtotal ?? 0;
+    return viewModeTotals?.lineSubtotal ?? 0;
   }, [
     isViewMode,
     viewOrder,
@@ -472,7 +569,7 @@ const CheckoutOrder: React.FC = () => {
       return Math.max(paymentBreakdown.subtotal - paymentBreakdown.itemsSubtotal, 0);
     }
 
-    return viewModeTotals?.extras ?? 0;
+    return viewModeTotals?.extrasTotal ?? 0;
   }, [
     isViewMode,
     viewOrder,
@@ -507,7 +604,7 @@ const CheckoutOrder: React.FC = () => {
       return orderTotal;
     }
 
-    return viewModeTotals?.total ?? 0;
+    return viewModeTotals?.lineTotal ?? 0;
   }, [isViewMode, viewOrder, total, viewModeTotals, paymentBreakdown]);
 
   const displayPromotionDiscount = useMemo(() => {
@@ -527,8 +624,18 @@ const CheckoutOrder: React.FC = () => {
       return Math.max(paymentBreakdown.itemsTotal - paymentBreakdown.subtotal, 0);
     }
 
+    if (viewModeTotals) {
+      if (viewModeTotals.promotionDiscount > 0) {
+        return Math.max(viewModeTotals.promotionDiscount, 0);
+      }
+
+      if (viewModeTotals.itemsTotal < viewModeTotals.lineSubtotal) {
+        return Math.max(viewModeTotals.lineSubtotal - viewModeTotals.itemsTotal, 0);
+      }
+    }
+
     return 0;
-  }, [isViewMode, viewOrder, paymentBreakdown]);
+  }, [isViewMode, viewOrder, paymentBreakdown, viewModeTotals]);
 
   const displayFees = useMemo(() => {
     if (!isViewMode || !viewOrder) {
