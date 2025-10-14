@@ -9,6 +9,9 @@ import {
   Easing,
   Vibration,
   Pressable,
+  Modal,
+  Alert,
+  Linking,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -101,15 +104,38 @@ const OrderTrackingScreen: React.FC = () => {
   const deliveryTextOpacity = useRef(new Animated.Value(0)).current;
   const previousStatusRef = useRef<string | null>(null);
   const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const helpSheetAnimation = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
   const [showDeliveryCelebration, setShowDeliveryCelebration] = useState(false);
+  const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
   const { order: ongoingOrder } = useOngoingOrder();
 
   const order = useMemo<OrderTrackingData | null>(
     () => (ongoingOrder ? (ongoingOrder as OrderTrackingData) : null),
     [ongoingOrder],
+  );
+  const supportPhoneNumber = '+1 (800) 555-0199';
+  const helpSheetTranslateY = useMemo(
+    () =>
+      helpSheetAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [360, 0],
+      }),
+    [helpSheetAnimation],
+  );
+  const helpBackdropOpacity = useMemo(
+    () =>
+      helpSheetAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 0.45],
+      }),
+    [helpSheetAnimation],
+  );
+  const helpSheetPadding = useMemo(
+    () => ({ paddingBottom: insets.bottom + 24 }),
+    [insets.bottom],
   );
   const statusHistory = useMemo<OrderStatusHistoryDto[]>(
     () => (Array.isArray(order?.statusHistory) ? order?.statusHistory ?? [] : []),
@@ -184,6 +210,50 @@ const OrderTrackingScreen: React.FC = () => {
       celebrationTimeoutRef.current = null;
     }
   }, []);
+
+  const handleCloseSupport = useCallback(() => {
+    Animated.timing(helpSheetAnimation, {
+      toValue: 0,
+      duration: 220,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setIsHelpModalVisible(false);
+      }
+    });
+  }, [helpSheetAnimation]);
+
+  const handleOpenSupport = useCallback(() => {
+    setIsHelpModalVisible(true);
+    setTimeout(() => {
+      helpSheetAnimation.stopAnimation();
+      helpSheetAnimation.setValue(0);
+      Animated.timing(helpSheetAnimation, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }, 0);
+  }, [helpSheetAnimation]);
+
+  const handleCallSupport = useCallback(() => {
+    const sanitizedNumber = supportPhoneNumber.replace(/[^0-9+]/g, '');
+    const telUrl = `tel:${sanitizedNumber}`;
+
+    Linking.openURL(telUrl).catch(() => {
+      Alert.alert('Unable to place call', `Please dial ${supportPhoneNumber} manually.`);
+    });
+    handleCloseSupport();
+  }, [handleCloseSupport, supportPhoneNumber]);
+
+  const handleRequestLiveChat = useCallback(() => {
+    handleCloseSupport();
+    setTimeout(() => {
+      Alert.alert('Live chat', 'Connecting you to a live support agent…');
+    }, 250);
+  }, [handleCloseSupport]);
 
   const dismissDeliveryCelebration = useCallback(() => {
     if (!showDeliveryCelebration) {
@@ -851,6 +921,13 @@ const OrderTrackingScreen: React.FC = () => {
           >
             <ArrowLeft size={20} color="white" />
           </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleOpenSupport}
+            activeOpacity={0.85}
+            style={styles.helpButton}
+          >
+            <MessageCircle size={20} color="white" />
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -1285,6 +1362,57 @@ const OrderTrackingScreen: React.FC = () => {
           </Animated.View>
         </Animated.View>
       ) : null}
+
+      {isHelpModalVisible ? (
+        <Modal
+          transparent
+          visible={isHelpModalVisible}
+          onRequestClose={handleCloseSupport}
+          animationType="none"
+        >
+          <View style={styles.helpModalContainer}>
+            <Pressable style={styles.helpBackdropPressable} onPress={handleCloseSupport}>
+              <Animated.View
+                style={[styles.helpBackdrop, { opacity: helpBackdropOpacity }]}
+              />
+            </Pressable>
+            <Animated.View
+              style={[
+                styles.helpSheet,
+                helpSheetPadding,
+                { transform: [{ translateY: helpSheetTranslateY }] },
+              ]}
+            >
+              <View style={styles.helpHandle} />
+              <Text style={styles.helpTitle}>Need help with your order?</Text>
+              <Text style={styles.helpDescription}>
+                Our support team is available 24/7 to assist you.
+              </Text>
+              <TouchableOpacity
+                style={styles.helpOption}
+                activeOpacity={0.85}
+                onPress={handleCallSupport}
+              >
+                <View style={styles.helpOptionIcon}>
+                  <Phone size={20} color="white" />
+                </View>
+                <View style={styles.helpOptionContent}>
+                  <Text style={styles.helpOptionTitle}>Call customer support</Text>
+                  <Text style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.helpChatButton}
+                activeOpacity={0.9}
+                onPress={handleRequestLiveChat}
+              >
+                <MessageCircle size={18} color="white" />
+                <Text style={styles.helpChatButtonText}>Request instant live chat</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </Modal>
+      ) : null}
     </View>
   );
 };
@@ -1386,6 +1514,14 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helpButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: 'rgba(15,23,42,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1836,5 +1972,88 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+  helpModalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  helpBackdropPressable: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  helpBackdrop: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  helpSheet: {
+    backgroundColor: softSurface,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+  },
+  helpHandle: {
+    width: 48,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#E2E8F0',
+    alignSelf: 'center',
+    marginBottom: 18,
+  },
+  helpTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: textPrimary,
+    marginBottom: 8,
+  },
+  helpDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: textSecondary,
+    marginBottom: 24,
+  },
+  helpOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 18,
+  },
+  helpOptionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: accentColor,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  helpOptionContent: {
+    flex: 1,
+  },
+  helpOptionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: textPrimary,
+    marginBottom: 4,
+  },
+  helpOptionSubtitle: {
+    fontSize: 14,
+    color: textSecondary,
+  },
+  helpChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: accentColor,
+    borderRadius: 20,
+    paddingVertical: 16,
+  },
+  helpChatButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 10,
   },
 });
