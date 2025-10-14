@@ -43,7 +43,7 @@ const borderColor = '#F0F1F5';
 
 type LatLng = { latitude: number; longitude: number };
 
-type OrderTrackingData = (OngoingOrderData & Partial<CreateOrderResponse>) & {
+export type OrderTrackingData = (OngoingOrderData & Partial<CreateOrderResponse>) & {
   statusHistory?: OrderStatusHistoryDto[] | null;
 };
 
