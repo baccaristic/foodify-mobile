@@ -251,9 +251,16 @@ const OrderTrackingScreen: React.FC = () => {
   const handleRequestLiveChat = useCallback(() => {
     handleCloseSupport();
     setTimeout(() => {
-      Alert.alert('Live chat', 'Connecting you to a live support agent…');
-    }, 250);
-  }, [handleCloseSupport]);
+      navigation.navigate(
+        'LiveChat' as never,
+        {
+          orderId: order?.orderId ?? null,
+          topic: 'Order support',
+          from: 'OrderTracking',
+        } as never,
+      );
+    }, 260);
+  }, [handleCloseSupport, navigation, order?.orderId]);
 
   const dismissDeliveryCelebration = useCallback(() => {
     if (!showDeliveryCelebration) {
