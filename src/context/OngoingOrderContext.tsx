@@ -29,6 +29,8 @@ interface OngoingOrderContextValue {
   hasFetched: boolean;
   refetch: UseQueryResult<OngoingOrderData | null>['refetch'];
   error: UseQueryResult<OngoingOrderData | null>['error'];
+  deliveredCelebration: OngoingOrderData | null;
+  dismissDeliveredCelebration: () => void;
 }
 
 const OngoingOrderContext = createContext<OngoingOrderContextValue | undefined>(undefined);
@@ -77,6 +79,8 @@ const sanitizeOrder = (order: OngoingOrderData | null | undefined) => {
 export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
   const { requiresAuth } = useAuth();
   const [order, setOrder] = useState<OngoingOrderData | null>(null);
+  const [deliveredCelebration, setDeliveredCelebration] =
+    useState<OngoingOrderData | null>(null);
 
   const queryResult = useQuery<OngoingOrderData | null>({
     queryKey: ['orders', 'ongoing'],
@@ -93,6 +97,7 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!requiresAuth) {
       setOrder(null);
+      setDeliveredCelebration(null);
     }
   }, [requiresAuth]);
 
@@ -104,6 +109,7 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
 
       if (!patch) {
         setOrder(null);
+        setDeliveredCelebration(null);
         return;
       }
 
@@ -125,9 +131,35 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
         );
 
         const resolvedId = merged?.orderId ?? patchId ?? currentId ?? null;
-        const sanitized = sanitizeOrder(
-          merged ? ({ ...merged, orderId: resolvedId } as OngoingOrderData) : null,
-        );
+        const mergedOrder = (merged ?? patch ?? null) as OngoingOrderData | null;
+        const nextOrder =
+          mergedOrder != null
+            ? ({
+                ...mergedOrder,
+                ...(resolvedId != null ? { orderId: resolvedId } : {}),
+              } as OngoingOrderData)
+            : null;
+
+        const nextStatus = resolveLatestStatus(nextOrder);
+
+        if (nextStatus === 'DELIVERED' && nextOrder) {
+          setDeliveredCelebration((previous) => {
+            if (!previous) {
+              return nextOrder;
+            }
+
+            const previousId = previous.orderId != null ? String(previous.orderId) : null;
+            const nextNormalizedId = nextOrder.orderId != null ? String(nextOrder.orderId) : null;
+
+            if (previousId && nextNormalizedId && previousId === nextNormalizedId) {
+              return previous;
+            }
+
+            return nextOrder;
+          });
+        }
+
+        const sanitized = sanitizeOrder(nextOrder);
 
         return sanitized ?? null;
       });
@@ -135,8 +167,13 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
     [requiresAuth],
   );
 
+  const dismissDeliveredCelebration = useCallback(() => {
+    setDeliveredCelebration(null);
+  }, []);
+
   const clearOrder = useCallback(() => {
     setOrder(null);
+    setDeliveredCelebration(null);
   }, []);
 
   useEffect(() => {
@@ -166,9 +203,13 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
       hasFetched: requiresAuth ? queryResult.isFetched : false,
       refetch: queryResult.refetch,
       error: queryResult.error,
+      deliveredCelebration,
+      dismissDeliveredCelebration,
     }),
     [
       clearOrder,
+      deliveredCelebration,
+      dismissDeliveredCelebration,
       order,
       queryResult.error,
       queryResult.isFetched,
