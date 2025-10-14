@@ -113,6 +113,11 @@ export interface PaymentSummaryResponse {
   subtotal: MonetaryAmount;
   extrasTotal: MonetaryAmount;
   total: MonetaryAmount;
+  itemsSubtotal?: MonetaryAmount;
+  promotionDiscount?: MonetaryAmount;
+  itemsTotal?: MonetaryAmount;
+  deliveryFee?: MonetaryAmount;
+  [key: string]: unknown;
 }
 
 export interface OrderWorkflowStepDto {
@@ -147,6 +152,7 @@ export interface OrderNotificationDto {
   orderId: number;
   deliveryAddress?: string | null;
   paymentMethod?: string | null;
+  payment?: PaymentSummaryResponse | null;
   date?: string | null;
   items: OrderItemDto[];
   savedAddress?: SavedAddressSummaryDto | null;

@@ -269,6 +269,30 @@ const CheckoutOrder: React.FC = () => {
     );
   }, [isViewMode, viewOrder, viewOrderItems]);
 
+  const paymentDetails = useMemo(
+    () => (isViewMode && viewOrder ? viewOrder.payment ?? null : null),
+    [isViewMode, viewOrder],
+  );
+
+  const paymentBreakdown = useMemo(() => {
+    if (!paymentDetails) {
+      return null;
+    }
+
+    return {
+      subtotal: extractNumericAmount(paymentDetails.subtotal),
+      extrasTotal: extractNumericAmount(paymentDetails.extrasTotal),
+      total: extractNumericAmount(paymentDetails.total),
+      itemsSubtotal: extractNumericAmount(paymentDetails.itemsSubtotal),
+      promotionDiscount: extractNumericAmount(paymentDetails.promotionDiscount),
+      itemsTotal: extractNumericAmount(paymentDetails.itemsTotal),
+      deliveryFee: extractNumericAmount(paymentDetails.deliveryFee),
+      grandTotal: extractNumericAmount(
+        (paymentDetails as { grandTotal?: MonetaryAmount | null })?.grandTotal,
+      ),
+    };
+  }, [paymentDetails]);
+
   const hasItems = items.length > 0;
   const restaurantName = restaurant?.name ?? 'Restaurant';
 
@@ -406,42 +430,76 @@ const CheckoutOrder: React.FC = () => {
       return baseSubtotal;
     }
 
-    const paymentSubtotal = extractNumericAmount(viewOrder.payment?.subtotal);
-    if (paymentSubtotal != null) {
-      return paymentSubtotal;
+    if (paymentBreakdown?.itemsSubtotal != null) {
+      return paymentBreakdown.itemsSubtotal;
+    }
+
+    if (paymentBreakdown?.subtotal != null && paymentBreakdown?.extrasTotal != null) {
+      return Math.max(paymentBreakdown.subtotal - paymentBreakdown.extrasTotal, 0);
+    }
+
+    if (paymentBreakdown?.subtotal != null) {
+      return paymentBreakdown.subtotal;
+    }
+
+    if (paymentBreakdown?.itemsTotal != null && paymentBreakdown?.extrasTotal != null) {
+      return Math.max(paymentBreakdown.itemsTotal - paymentBreakdown.extrasTotal, 0);
     }
 
     return viewModeTotals?.subtotal ?? 0;
-  }, [isViewMode, viewOrder, baseSubtotal, viewModeTotals]);
+  }, [
+    isViewMode,
+    viewOrder,
+    baseSubtotal,
+    viewModeTotals,
+    paymentBreakdown,
+  ]);
 
   const displayExtrasTotal = useMemo(() => {
     if (!isViewMode || !viewOrder) {
       return extrasTotal;
     }
 
-    const paymentExtras = extractNumericAmount(viewOrder.payment?.extrasTotal);
-    if (paymentExtras != null) {
-      return paymentExtras;
+    if (paymentBreakdown?.extrasTotal != null) {
+      return paymentBreakdown.extrasTotal;
+    }
+
+    if (paymentBreakdown?.itemsTotal != null && paymentBreakdown?.itemsSubtotal != null) {
+      return Math.max(paymentBreakdown.itemsTotal - paymentBreakdown.itemsSubtotal, 0);
+    }
+
+    if (paymentBreakdown?.subtotal != null && paymentBreakdown?.itemsSubtotal != null) {
+      return Math.max(paymentBreakdown.subtotal - paymentBreakdown.itemsSubtotal, 0);
     }
 
     return viewModeTotals?.extras ?? 0;
-  }, [isViewMode, viewOrder, extrasTotal, viewModeTotals]);
+  }, [
+    isViewMode,
+    viewOrder,
+    extrasTotal,
+    viewModeTotals,
+    paymentBreakdown,
+  ]);
 
   const displayTotal = useMemo(() => {
     if (!isViewMode || !viewOrder) {
       return total;
     }
 
-    const paymentTotal = extractNumericAmount(viewOrder.payment?.total);
-    if (paymentTotal != null) {
-      return paymentTotal;
+    if (paymentBreakdown?.total != null) {
+      return paymentBreakdown.total;
     }
 
-    const paymentGrandTotal = extractNumericAmount(
-      (viewOrder.payment as { grandTotal?: MonetaryAmount } | undefined)?.grandTotal,
-    );
-    if (paymentGrandTotal != null) {
-      return paymentGrandTotal;
+    if (paymentBreakdown?.subtotal != null && paymentBreakdown?.deliveryFee != null) {
+      return Math.max(paymentBreakdown.subtotal + paymentBreakdown.deliveryFee, 0);
+    }
+
+    if (paymentBreakdown?.grandTotal != null) {
+      return paymentBreakdown.grandTotal;
+    }
+
+    if (paymentBreakdown?.itemsTotal != null) {
+      return paymentBreakdown.itemsTotal;
     }
 
     const orderTotal = extractNumericAmount((viewOrder as { total?: MonetaryAmount })?.total);
@@ -450,22 +508,70 @@ const CheckoutOrder: React.FC = () => {
     }
 
     return viewModeTotals?.total ?? 0;
-  }, [isViewMode, viewOrder, total, viewModeTotals]);
+  }, [isViewMode, viewOrder, total, viewModeTotals, paymentBreakdown]);
 
-  const displayFees = useMemo(
-    () =>
-      isViewMode
-        ? Math.max(displayTotal - displaySubtotal - displayExtrasTotal, 0)
-        : deliveryFee + serviceFee,
-    [
-      isViewMode,
-      displayTotal,
-      displaySubtotal,
-      displayExtrasTotal,
-      deliveryFee,
-      serviceFee,
-    ],
-  );
+  const displayPromotionDiscount = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return 0;
+    }
+
+    if (paymentBreakdown?.promotionDiscount != null) {
+      return Math.max(paymentBreakdown.promotionDiscount, 0);
+    }
+
+    if (
+      paymentBreakdown?.itemsTotal != null &&
+      paymentBreakdown?.subtotal != null &&
+      paymentBreakdown.itemsTotal > paymentBreakdown.subtotal
+    ) {
+      return Math.max(paymentBreakdown.itemsTotal - paymentBreakdown.subtotal, 0);
+    }
+
+    return 0;
+  }, [isViewMode, viewOrder, paymentBreakdown]);
+
+  const displayFees = useMemo(() => {
+    if (!isViewMode || !viewOrder) {
+      return deliveryFee + serviceFee;
+    }
+
+    if (paymentBreakdown?.deliveryFee != null) {
+      return paymentBreakdown.deliveryFee;
+    }
+
+    if (paymentBreakdown?.total != null && paymentBreakdown?.subtotal != null) {
+      const diff =
+        paymentBreakdown.total - paymentBreakdown.subtotal + displayPromotionDiscount;
+      if (Number.isFinite(diff)) {
+        return Math.max(diff, 0);
+      }
+    }
+
+    const computed =
+      displayTotal - (displaySubtotal + displayExtrasTotal) + displayPromotionDiscount;
+
+    if (Number.isFinite(computed)) {
+      return Math.max(computed, 0);
+    }
+
+    const fallback = displayTotal - (displaySubtotal + displayExtrasTotal);
+
+    if (Number.isFinite(fallback)) {
+      return Math.max(fallback, 0);
+    }
+
+    return 0;
+  }, [
+    isViewMode,
+    viewOrder,
+    paymentBreakdown,
+    deliveryFee,
+    serviceFee,
+    displayTotal,
+    displaySubtotal,
+    displayExtrasTotal,
+    displayPromotionDiscount,
+  ]);
 
   const deliveryAddressValue = useMemo(() => {
     if (!isViewMode || !viewOrder) {
@@ -535,7 +641,7 @@ const CheckoutOrder: React.FC = () => {
 
   const paymentMethodLabel = useMemo(() => {
     if (isViewMode && viewOrder) {
-      const method = viewOrder.payment?.method ?? viewOrder.paymentMethod;
+      const method = paymentDetails?.method ?? viewOrder.paymentMethod;
       return formatPaymentMethodName(method);
     }
 
@@ -545,11 +651,11 @@ const CheckoutOrder: React.FC = () => {
 
     const option = PAYMENT_OPTIONS.find((candidate) => candidate.id === selectedPaymentMethod);
     return option?.label ?? 'Select payment method';
-  }, [isViewMode, viewOrder, selectedPaymentMethod]);
+  }, [isViewMode, viewOrder, selectedPaymentMethod, paymentDetails]);
 
   const SelectedPaymentIcon = useMemo(() => {
     if (isViewMode && viewOrder) {
-      const method = viewOrder.payment?.method ?? viewOrder.paymentMethod;
+      const method = paymentDetails?.method ?? viewOrder.paymentMethod;
       return resolvePaymentIcon(method);
     }
 
@@ -558,7 +664,7 @@ const CheckoutOrder: React.FC = () => {
     }
     const option = PAYMENT_OPTIONS.find((candidate) => candidate.id === selectedPaymentMethod);
     return option?.Icon ?? CreditCard;
-  }, [isViewMode, viewOrder, selectedPaymentMethod]);
+  }, [isViewMode, viewOrder, selectedPaymentMethod, paymentDetails]);
 
   const deliveryRegion = useMemo(() => {
     if (isViewMode && viewOrder) {
@@ -1075,6 +1181,16 @@ const CheckoutOrder: React.FC = () => {
                 </Text>
                 <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
                   −{formatCurrency(discountValue)}
+                </Text>
+              </View>
+            ) : null}
+            {isViewMode && displayPromotionDiscount > 0 ? (
+              <View className="mt-3 flex-row items-center justify-between">
+                <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                  Promotion
+                </Text>
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
+                  −{formatCurrency(displayPromotionDiscount)}
                 </Text>
               </View>
             ) : null}

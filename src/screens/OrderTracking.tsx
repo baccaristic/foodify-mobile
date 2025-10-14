@@ -450,7 +450,37 @@ const OrderTrackingScreen: React.FC = () => {
     }
   }, [getHistoryEntryKey, normalizedStatus, statusHistory]);
 
-  const orderTotal = formatCurrency(order?.payment?.total);
+  const orderTotal = useMemo(() => {
+    if (!order) {
+      return undefined;
+    }
+
+    const paymentRecord = (order.payment ?? null) as
+      | (Record<string, MonetaryAmount | null | undefined> & {
+          total?: MonetaryAmount | null;
+          itemsTotal?: MonetaryAmount | null;
+          subtotal?: MonetaryAmount | null;
+        })
+      | null;
+
+    const fallbackOrder = order as { total?: MonetaryAmount | null } | null;
+
+    const candidates: (MonetaryAmount | null | undefined)[] = [
+      paymentRecord?.total,
+      paymentRecord?.itemsTotal,
+      paymentRecord?.subtotal,
+      fallbackOrder?.total,
+    ];
+
+    for (const candidate of candidates) {
+      const formatted = formatCurrency(candidate);
+      if (formatted) {
+        return formatted;
+      }
+    }
+
+    return undefined;
+  }, [order]);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
   const courierDetails = deliverySummary?.courier ?? deliverySummary?.driver ?? null;
   const parsedCourierRating = Number(courierDetails?.rating ?? NaN);
