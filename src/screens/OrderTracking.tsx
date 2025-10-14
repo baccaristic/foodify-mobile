@@ -24,6 +24,7 @@ import { ms, vs } from 'react-native-size-matters';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import type { OngoingOrderData } from '~/context/OngoingOrderContext';
 import { formatOrderStatusLabel } from '~/utils/order';
+import { BASE_API_URL } from '@env';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -998,7 +999,7 @@ const OrderTrackingScreen: React.FC = () => {
             <View style={styles.summaryHeaderLeft}>
               {restaurantAvatarUri ? (
                 <Image
-                  source={{ uri: restaurantAvatarUri }}
+                  source={{ uri: `${BASE_API_URL}/auth/image/${restaurantAvatarUri}` }}
                   style={styles.summaryRestaurantImage}
                 />
               ) : (

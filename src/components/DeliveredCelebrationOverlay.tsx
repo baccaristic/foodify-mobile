@@ -162,9 +162,9 @@ const DeliveredCelebrationOverlay = () => {
           style={[styles.sheet, sheetPadding, { transform: [{ translateY: sheetOffset }] }]}
         >
           <LottieView
-            source={require('../../assets/animation/delivered.json')}
+            source={require('../../assets/animations/delivered.json')}
             autoPlay
-            loop={false}
+            loop={true}
             style={styles.animation}
           />
           <Text style={styles.heading}>Enjoy your food</Text>
