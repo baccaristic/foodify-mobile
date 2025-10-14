@@ -7,6 +7,7 @@ import {
   Animated,
   Image,
   Easing,
+  Dimensions,
   Vibration,
   Pressable,
   Modal,
@@ -15,16 +16,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  ArrowLeft,
-  Bike,
-  Check,
-  Clock,
-  MapPin,
-  MessageCircle,
-  Phone,
-  Star,
-} from 'lucide-react-native';
+import { ArrowLeft, Bike, Check, Clock, MapPin, MessageCircle, Phone, Star } from 'lucide-react-native';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 
@@ -99,11 +91,8 @@ const OrderTrackingScreen: React.FC = () => {
   const statusAnnouncementOpacity = useRef(new Animated.Value(0)).current;
   const highlightPulse = useRef(new Animated.Value(0)).current;
   const deliveryCelebrationOpacity = useRef(new Animated.Value(0)).current;
-  const deliveryCardScale = useRef(new Animated.Value(0.92)).current;
-  const deliveryCheckScale = useRef(new Animated.Value(0.6)).current;
-  const deliveryTextOpacity = useRef(new Animated.Value(0)).current;
+  const deliverySheetTranslateY = useRef(new Animated.Value(1)).current;
   const previousStatusRef = useRef<string | null>(null);
-  const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const helpSheetAnimation = useRef(new Animated.Value(0)).current;
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
@@ -117,6 +106,7 @@ const OrderTrackingScreen: React.FC = () => {
     [ongoingOrder],
   );
   const supportPhoneNumber = '+1 (800) 555-0199';
+  const screenHeight = useMemo(() => Dimensions.get('window').height, []);
   const helpSheetTranslateY = useMemo(
     () =>
       helpSheetAnimation.interpolate({
@@ -135,6 +125,10 @@ const OrderTrackingScreen: React.FC = () => {
   );
   const helpSheetPadding = useMemo(
     () => ({ paddingBottom: insets.bottom + 24 }),
+    [insets.bottom],
+  );
+  const deliverySheetPadding = useMemo(
+    () => ({ paddingBottom: insets.bottom + 32 }),
     [insets.bottom],
   );
   const statusHistory = useMemo<OrderStatusHistoryDto[]>(
@@ -204,13 +198,6 @@ const OrderTrackingScreen: React.FC = () => {
     isReadyForPickupStatus,
   ]);
 
-  const clearCelebrationTimeout = useCallback(() => {
-    if (celebrationTimeoutRef.current) {
-      clearTimeout(celebrationTimeoutRef.current);
-      celebrationTimeoutRef.current = null;
-    }
-  }, []);
-
   const handleCloseSupport = useCallback(() => {
     Animated.timing(helpSheetAnimation, {
       toValue: 0,
@@ -267,31 +254,31 @@ const OrderTrackingScreen: React.FC = () => {
       return;
     }
 
-    clearCelebrationTimeout();
-
-    Animated.timing(deliveryCelebrationOpacity, {
-      toValue: 0,
-      duration: 220,
-      easing: Easing.inOut(Easing.ease),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
+    Animated.parallel([
+      Animated.timing(deliveryCelebrationOpacity, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(deliverySheetTranslateY, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
       if (finished) {
         setShowDeliveryCelebration(false);
         navigation.navigate('Home' as never);
       }
     });
   }, [
-    clearCelebrationTimeout,
     deliveryCelebrationOpacity,
+    deliverySheetTranslateY,
     navigation,
     showDeliveryCelebration,
   ]);
-
-  useEffect(() => {
-    return () => {
-      clearCelebrationTimeout();
-    };
-  }, [clearCelebrationTimeout]);
 
   useEffect(() => {
     previousStatusRef.current = null;
@@ -299,16 +286,10 @@ const OrderTrackingScreen: React.FC = () => {
     setHighlightedStepKey(null);
     setShowDeliveryCelebration(false);
     deliveryCelebrationOpacity.setValue(0);
-    deliveryCardScale.setValue(0.92);
-    deliveryCheckScale.setValue(0.6);
-    deliveryTextOpacity.setValue(0);
-    clearCelebrationTimeout();
+    deliverySheetTranslateY.setValue(1);
   }, [
-    clearCelebrationTimeout,
-    deliveryCardScale,
     deliveryCelebrationOpacity,
-    deliveryCheckScale,
-    deliveryTextOpacity,
+    deliverySheetTranslateY,
     order?.orderId,
   ]);
 
@@ -390,75 +371,53 @@ const OrderTrackingScreen: React.FC = () => {
     }
 
     deliveryCelebrationOpacity.setValue(0);
-    deliveryCardScale.setValue(0.92);
-    deliveryCheckScale.setValue(0.6);
-    deliveryTextOpacity.setValue(0);
+    deliverySheetTranslateY.setValue(1);
 
-    const overlayAnimation = Animated.parallel(
-      [
-        Animated.timing(deliveryCelebrationOpacity, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.spring(deliveryCardScale, {
-          toValue: 1,
-          damping: 7,
-          mass: 0.9,
-          stiffness: 160,
-          useNativeDriver: true,
-        }),
-        Animated.sequence([
-          Animated.delay(160),
-          Animated.spring(deliveryCheckScale, {
-            toValue: 1.12,
-            damping: 6,
-            mass: 0.8,
-            stiffness: 200,
-            useNativeDriver: true,
-          }),
-          Animated.spring(deliveryCheckScale, {
-            toValue: 1,
-            damping: 7,
-            mass: 0.8,
-            stiffness: 220,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.delay(300),
-          Animated.timing(deliveryTextOpacity, {
-            toValue: 1,
-            duration: 320,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      ],
-      { stopTogether: false },
-    );
+    const overlayAnimation = Animated.parallel([
+      Animated.timing(deliveryCelebrationOpacity, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.spring(deliverySheetTranslateY, {
+        toValue: 0,
+        damping: 16,
+        mass: 0.9,
+        stiffness: 180,
+        useNativeDriver: true,
+      }),
+    ]);
 
     overlayAnimation.start();
 
-    clearCelebrationTimeout();
-    celebrationTimeoutRef.current = setTimeout(() => {
-      dismissDeliveryCelebration();
-    }, 4200);
-
     return () => {
       overlayAnimation.stop();
-      clearCelebrationTimeout();
     };
   }, [
-    clearCelebrationTimeout,
-    deliveryCardScale,
     deliveryCelebrationOpacity,
-    deliveryCheckScale,
-    deliveryTextOpacity,
-    dismissDeliveryCelebration,
+    deliverySheetTranslateY,
     showDeliveryCelebration,
   ]);
+
+  const deliveryBackdropOpacity = useMemo(
+    () =>
+      deliveryCelebrationOpacity.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 0.45],
+      }),
+    [deliveryCelebrationOpacity],
+  );
+
+  const deliverySheetOffset = useMemo(
+    () =>
+      deliverySheetTranslateY.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, screenHeight],
+        extrapolate: 'clamp',
+      }),
+    [deliverySheetTranslateY, screenHeight],
+  );
 
   const highlightBackground = useMemo(
     () =>
@@ -1110,6 +1069,42 @@ const OrderTrackingScreen: React.FC = () => {
     </View>
   );
 
+  if (showDeliveryCelebration) {
+    return (
+      <View style={styles.deliveryCelebrationContainer}>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.deliveryCelebrationDim, { opacity: deliveryBackdropOpacity }]}
+        />
+        <Animated.View
+          style={[
+            styles.deliveryCelebrationScreen,
+            deliverySheetPadding,
+            { transform: [{ translateY: deliverySheetOffset }] },
+          ]}
+        >
+          <LottieView
+            source={require('../../assets/animation/delivered.json')}
+            autoPlay
+            loop={false}
+            style={styles.deliveryCelebrationAnimation}
+          />
+          <Text style={styles.deliveryCelebrationHeading}>Enjoy your food</Text>
+          <Text style={styles.deliveryCelebrationMessage}>
+            Your delivery has arrived. Bon appétit!
+          </Text>
+          <TouchableOpacity
+            style={styles.deliveryCelebrationButton}
+            onPress={dismissDeliveryCelebration}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.deliveryCelebrationButtonText}>Close</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <Animated.View
@@ -1316,59 +1311,6 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         </View>
       </View>
-
-      {showDeliveryCelebration ? (
-        <Animated.View
-          pointerEvents="auto"
-          style={[
-            styles.deliveryCelebrationOverlay,
-            { opacity: deliveryCelebrationOpacity },
-          ]}
-        >
-          <Pressable
-            style={styles.deliveryCelebrationBackdrop}
-            onPress={dismissDeliveryCelebration}
-          />
-          <Animated.View
-            style={[
-              styles.deliveryCelebrationCard,
-              { transform: [{ scale: deliveryCardScale }] },
-            ]}
-          >
-            <Animated.View
-              style={[
-                styles.deliveryCelebrationIcon,
-                { transform: [{ scale: deliveryCheckScale }] },
-              ]}
-            >
-              <Check size={32} color="#FFFFFF" strokeWidth={3} />
-            </Animated.View>
-            <Animated.Text
-              style={[
-                styles.deliveryCelebrationTitle,
-                { opacity: deliveryTextOpacity },
-              ]}
-            >
-              Enjoy your order
-            </Animated.Text>
-            <Animated.Text
-              style={[
-                styles.deliveryCelebrationSubtitle,
-                { opacity: deliveryTextOpacity },
-              ]}
-            >
-              It’s been delivered. Bon appétit!
-            </Animated.Text>
-            <TouchableOpacity
-              style={styles.deliveryCelebrationDismissButton}
-              onPress={dismissDeliveryCelebration}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.deliveryCelebrationDismissText}>Close</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      ) : null}
 
       {isHelpModalVisible ? (
         <Modal
@@ -1917,67 +1859,55 @@ const styles = StyleSheet.create({
   courierActionButtonSpacing: {
     marginLeft: 8,
   },
-  deliveryCelebrationOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
+  deliveryCelebrationContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'flex-end',
   },
-  deliveryCelebrationBackdrop: {
+  deliveryCelebrationDim: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0F172A',
   },
-  deliveryCelebrationCard: {
+  deliveryCelebrationScreen: {
     width: '100%',
-    maxWidth: 320,
     backgroundColor: softSurface,
-    borderRadius: 28,
-    paddingHorizontal: 28,
-    paddingVertical: 32,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 32,
+    paddingTop: 40,
     alignItems: 'center',
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
   },
-  deliveryCelebrationIcon: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: accentColor,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    shadowColor: accentColor,
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+  deliveryCelebrationAnimation: {
+    width: 200,
+    height: 200,
   },
-  deliveryCelebrationTitle: {
-    fontSize: 22,
+  deliveryCelebrationHeading: {
+    marginTop: 16,
+    fontSize: 24,
     fontWeight: '800',
     color: textPrimary,
     textAlign: 'center',
   },
-  deliveryCelebrationSubtitle: {
-    marginTop: 12,
-    fontSize: 15,
+  deliveryCelebrationMessage: {
+    marginTop: 8,
+    fontSize: 16,
     lineHeight: 22,
     color: textSecondary,
     textAlign: 'center',
+    paddingHorizontal: 12,
   },
-  deliveryCelebrationDismissButton: {
+  deliveryCelebrationButton: {
     marginTop: 24,
-    paddingHorizontal: 28,
-    paddingVertical: 10,
+    width: '100%',
     borderRadius: 999,
     backgroundColor: accentColor,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  deliveryCelebrationDismissText: {
+  deliveryCelebrationButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
   },
   helpModalContainer: {
