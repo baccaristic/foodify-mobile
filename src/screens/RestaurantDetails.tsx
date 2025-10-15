@@ -30,7 +30,7 @@ import type {
 import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
 import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
-import { vs } from 'react-native-size-matters';
+import { moderateScale, vs } from 'react-native-size-matters';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
 
@@ -913,7 +913,7 @@ export default function RestaurantDetails() {
       ) : null}
 
       {hasCartItems && !isModalVisible && (
-        <FixedOrderBar onSeeCart={handleSeeCart} style={{ bottom: 60 + insets.bottom }} />
+        <FixedOrderBar onSeeCart={handleSeeCart} style={{ bottom:moderateScale(72) + insets.bottom }} />
       )}
 
       {isModalVisible && selectedMenuItem && (
