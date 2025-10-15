@@ -134,7 +134,7 @@ export default function FiltersOverlay({
                   { color: sortOption === "fee_asc" ? "#CA251B" : "#17213A" },
                 ]}
               >
-                Delievery Fee
+                Delivery Fee
               </Text>
             </TouchableOpacity>
 
