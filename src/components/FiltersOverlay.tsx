@@ -6,10 +6,9 @@ import {
   ScrollView,
   Switch,
   Modal,
-  Image,
 } from "react-native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
-import { X, Award, Heart, Flame, Star } from "lucide-react-native";
+import { X, Award, Heart, Flame, Star, Bike } from "lucide-react-native";
 
 interface FiltersOverlayProps {
   visible: boolean;
@@ -31,7 +30,7 @@ export default function FiltersOverlay({
   initialFilters,
 }: FiltersOverlayProps) {
   const feeSteps = [1, 1.5, 2, 2.5];
-  const [maxFee, setMaxFee] = useState(initialFilters?.maxFee ?? 1.5);
+  const [maxFee, setMaxFee] = useState(initialFilters?.maxFee ?? 2.5);
   const [sortOption, setSortOption] = useState(initialFilters?.sort ?? "picked");
   const [topEat, setTopEat] = useState(initialFilters?.topEat ?? false);
 
@@ -42,19 +41,27 @@ export default function FiltersOverlay({
 
     setSortOption(initialFilters?.sort ?? "picked");
     setTopEat(initialFilters?.topEat ?? false);
-    setMaxFee(initialFilters?.maxFee ?? 1.5);
+    setMaxFee(initialFilters?.maxFee ?? 2.5);
   }, [visible, initialFilters]);
 
   const clearAll = () => {
     setSortOption("picked");
     setTopEat(false);
-    setMaxFee(1.5);
+    setMaxFee(2.5);
     onClearAll?.();
   };
 
   const applyFilters = () => {
     onApply?.({ sort: sortOption, topEat, maxFee });
     onClose();
+  };
+
+  const getNextFeeStep = () => {
+    const currentIndex = feeSteps.indexOf(maxFee);
+    if (currentIndex <= 0) {
+      return feeSteps[feeSteps.length - 1];
+    }
+    return feeSteps[currentIndex - 1];
   };
 
   return (
@@ -112,6 +119,27 @@ export default function FiltersOverlay({
 
             <TouchableOpacity
               style={styles.optionRow}
+              onPress={() => {
+                setSortOption("fee_asc");
+                setMaxFee(getNextFeeStep())
+              }}
+            >
+              <Bike
+                color={sortOption === "fee_asc" ? "#CA251B" : "#17213A"}
+                size={s(20)}
+              />
+              <Text
+                style={[
+                  styles.optionText,
+                  { color: sortOption === "fee_asc" ? "#CA251B" : "#17213A" },
+                ]}
+              >
+                Delievery Fee
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionRow}
               onPress={() => setSortOption("rating")}
             >
               <Star
@@ -141,62 +169,6 @@ export default function FiltersOverlay({
                 value={topEat}
                 onValueChange={setTopEat}
               />
-            </View>
-
-            <View style={styles.divider} />
-
-            <Text style={[styles.sectionTitle, { marginBottom: vs(48) }]}>
-              Max Delivery Fee
-            </Text>
-
-            <View style={styles.sliderWrapper}>
-              <View style={styles.sliderTrack}>
-                <View style={styles.sliderLine} />
-                <View
-                  style={[
-                    styles.filledTrack,
-                    { width: `${((maxFee - 1) / 1.5) * 100}%` },
-                  ]}
-                />
-
-                {feeSteps.map((fee) => (
-                  <TouchableOpacity
-                    key={fee}
-                    activeOpacity={0.8}
-                    onPress={() => setMaxFee(fee)}
-                    style={[
-                      styles.dotTouchable,
-                      { left: `${((fee - 1) / 1.5) * 100}%` },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.dot,
-                        {
-                          backgroundColor:
-                            maxFee === fee ? "#CA251B" : "#CA251B55",
-                        },
-                      ]}
-                    />
-                  </TouchableOpacity>
-                ))}
-
-                <Image
-                  source={require("../../assets/pin.png")}
-                  style={[
-                    styles.thumbImage,
-                    { left: `${((maxFee - 1) / 1.5) * 100}%` },
-                  ]}
-                />
-              </View>
-
-              <View style={styles.feeLabels}>
-                {feeSteps.map((fee) => (
-                  <Text key={fee} style={styles.feeLabel}>
-                    {fee}DT
-                  </Text>
-                ))}
-              </View>
             </View>
 
             <View style={styles.divider} />
@@ -269,71 +241,13 @@ const styles = ScaledSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sliderWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sliderTrack: {
-    width: "90%",
-    height: vs(40),
-    alignSelf: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  sliderLine: {
-    position: "absolute",
-    height: 2,
-    width: "100%",
-    backgroundColor: "#D1D5DB",
-    top: "50%",
-  },
-  filledTrack: {
-    position: "absolute",
-    height: 2,
-    backgroundColor: "#CA251B",
-    top: "50%",
-  },
-  dotTouchable: {
-    position: "absolute",
-    top: "14%",
-    width: "32@s",
-    height: "32@s",
-    alignItems: "center",
-    justifyContent: "center",
-    transform: [{ translateX: -16 }],
-  },
-  dot: {
-    width: "10@s",
-    height: "10@s",
-    borderRadius: "5@s",
-  },
-  thumbImage: {
-    position: "absolute",
-    top: "-30@vs",
-    width: "28@s",
-    height: "28@s",
-    resizeMode: "contain",
-    transform: [{ translateX: -14 }],
-  },
-  feeLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "90%",
-    marginTop: "8@vs",
-  },
-  feeLabel: {
-    fontFamily: "Roboto",
-    fontSize: "13@ms",
-    fontWeight: "600",
-    color: "#CA251B",
-  },
   applyButton: {
     marginTop: "20@vs",
     backgroundColor: "#CA251B",
     paddingVertical: "12@vs",
     borderRadius: "12@ms",
     alignItems: "center",
-    fontStyle:"Roboto"
+    fontStyle: "Roboto"
   },
   applyText: {
     color: "white",
