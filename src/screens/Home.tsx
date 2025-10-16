@@ -1,23 +1,23 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, ImageBackground, FlatList, StyleSheet } from "react-native";
 import {
   Percent,
   Star,
   Pizza,
   Hamburger,
-  ChevronDown,
   Search,
   Utensils,
   Heart,
   Bike,
   Clock3,
+  MoveUp,
 } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
-import { ScaledSheet, s, vs } from "react-native-size-matters";
+import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
 import { LinearGradient } from "expo-linear-gradient";
 import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
@@ -66,6 +66,7 @@ export default function HomePage() {
   const navigation = useNavigation();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const listRef = useRef<FlatList>(null);
 
   const handleCategoryPress = (category: string) => {
     setSelectedCategory(category);
@@ -110,12 +111,12 @@ export default function HomePage() {
 
   type NearbyListItem =
     | {
-        type: 'section';
-        key: string;
-        title: string;
-        layout: SectionLayout;
-        restaurants: RestaurantSummary[];
-      }
+      type: 'section';
+      key: string;
+      title: string;
+      layout: SectionLayout;
+      restaurants: RestaurantSummary[];
+    }
     | { type: 'othersHeader'; key: string; title: string }
     | { type: 'restaurant'; key: string; restaurant: RestaurantSummary };
 
@@ -344,7 +345,7 @@ export default function HomePage() {
               {restaurant.type || restaurant.description}
             </Text>
           ) : null}
-          <Bike size={ s(14)} color="#CA251B" />
+          <Bike size={s(14)} color="#CA251B" />
           <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
             {deliveryLabel}
           </Text>
@@ -526,16 +527,21 @@ export default function HomePage() {
 
   const collapsedHeader = (
     <View style={styles.collapsedHeader}>
-      <TouchableOpacity style={styles.collapsedSearch} onPress={() => navigation.navigate('Search' as never)}>
-        <Search size={s(18)} color="gray" style={{ marginRight: s(6) }} />
-        <Text style={styles.collapsedPlaceholder}>Search in Food</Text>
+      <ImageBackground
+        source={require("../../assets/pattern1.png")}
+        imageStyle={{ borderRadius: s(50) }}
+        style={styles.backgroundImage}
+      />
+      <TouchableOpacity style={styles.collapsedUp} onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} >
+        <MoveUp size={s(22)} color="gray" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.filterButton}>
-        <Text style={styles.filterText}>Food Type</Text>
-        <ChevronDown size={s(14)} color="gray" />
+      <TouchableOpacity style={styles.collapsedSearch} onPress={() => navigation.navigate("Search" as never)} >
+        <Text style={styles.collapsedPlaceholder}>Search in Food</Text>
+        <Search size={s(18)} color="gray" style={{ marginLeft: s(120) }} />
       </TouchableOpacity>
     </View>
   );
+
 
   return (
     <>
@@ -554,6 +560,7 @@ export default function HomePage() {
         mainContent={mainContent}
         virtualizedListProps={{
           data: listData,
+          ref: listRef,
           renderItem,
           keyExtractor: (item) => item.key,
           ListEmptyComponent: renderListEmpty,
@@ -877,24 +884,38 @@ const styles = ScaledSheet.create({
   categoryButton: { alignItems: "center", marginHorizontal: "8@s" },
   categoryLabel: { color: "white", fontSize: "11@ms", marginTop: "4@vs", textAlign: "center" },
 
-  collapsedHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: "12@s",
-    backgroundColor: "white",
-    flex: 1,
-  },
+  collapsedHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: "16@s", flex: 1, },
   collapsedSearch: {
-    flex: 1,
+    flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: "16@ms", paddingHorizontal: "12@s", paddingVertical: "6@vs", borderWidth: 2,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  collapsedUp: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E5E5E5",
-    borderRadius: "50@ms",
-    paddingHorizontal: "12@s",
+    alignItems: "flex-start",
+    backgroundColor: "white",
+    borderRadius: "16@ms",
     paddingVertical: "6@vs",
+    paddingHorizontal: "6@vs",
+    marginRight: moderateScale(10),
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
   },
   collapsedPlaceholder: { color: "gray", fontSize: "13@ms" },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.2,
+  },
+
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
