@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
 import type { ListRenderItem } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -258,8 +258,18 @@ const OrderHistoryScreen = () => {
     ],
   );
 
+  const mainContent = () => (
+    <View style={{ flex: 1 }}>
+      <FlatList
+        {...virtualizedListProps}
+        nestedScrollEnabled
+        scrollEnabled={false}
+      />
+    </View>
+  );
+
   const customHeader = (
-    <View>
+    <View style={styles.header}>
       <HeaderWithBackButton title="Order History" titleMarginLeft={s(70)} />
     </View>
   )
@@ -283,21 +293,23 @@ const OrderHistoryScreen = () => {
       showFooter
       enableHeaderCollapse={false}
       enforceResponsiveHeaderSize={false}
-      headerMaxHeight={vs(60)}
-      headerMinHeight={vs(40)}
+      headerMaxHeight={vs(80)}
+      headerMinHeight={vs(30)}
       activeTab="Profile"
       customHeader={customHeader}
-      mainContent={<></>}
+      mainContent={mainContent()}
       floatingContent={continueOrderingButton}
       onRefresh={handleRefresh}
       isRefreshing={isRefreshing}
-      virtualizedListProps={virtualizedListProps}
     />
   );
 };
 
 const styles = ScaledSheet.create({
-
+  header: {
+    borderBottomColor: ' rgba(211, 211, 211, 0.4)',
+    borderBottomWidth: 2,
+  },
   stateWrapper: {
     flex: 1,
     alignItems: 'center',
@@ -342,10 +354,6 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '24@s',
     paddingBottom: '32@vs',
     gap: '16@vs',
-    borderTopColor: '#F9FAFB',
-    borderColor: '#F9FAFB',
-    borderTopWidth: 2,
-    borderBottomWidth: 0,
   },
   emptyIllustration: {
     width: '220@s',
@@ -381,10 +389,7 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '16@s',
     paddingBottom: '140@vs',
     paddingTop: '8@vs',
-    borderTopColor: '#F9FAFB',
-    borderColor: '#F9FAFB',
-    borderTopWidth: 2,
-    borderBottomWidth: 0,
+
   },
   orderSeparator: {
     height: '16@vs',
