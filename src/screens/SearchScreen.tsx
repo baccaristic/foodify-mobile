@@ -55,7 +55,7 @@ const QUICK_FILTERS_DEFAULT = Object.freeze({
 const OVERLAY_FILTERS_DEFAULT = Object.freeze({
   sort: "picked" as RestaurantSearchSort,
   topEat: false,
-  maxFee: 1.5,
+  maxFee: 2.5,
 });
 
 type QuickFilterKey = keyof typeof QUICK_FILTERS_DEFAULT;
@@ -76,7 +76,7 @@ interface PillButtonProps {
 const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButtonProps) => {
   const buttonStyle = [styles.pillButton, isActive && styles.pillActive];
   const textStyle = isActive ? styles.pillTextActive : styles.pillText;
-  const iconColor = textStyle.color;
+  const iconColor = "#CA251B";
 
   return (
     <TouchableOpacity onPress={onPress} style={buttonStyle} activeOpacity={0.85}>
