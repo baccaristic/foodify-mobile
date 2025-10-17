@@ -6,7 +6,7 @@ import MainLayout from '~/layouts/MainLayout';
 import { Image } from 'expo-image';
 import FixedOrderBar from '~/components/FixedOrderBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { vs } from 'react-native-size-matters';
+import { moderateScale, vs } from 'react-native-size-matters';
 import Header from '~/components/Header';
 
 import { BASE_API_URL } from '@env';
@@ -247,7 +247,7 @@ export default function Cart() {
         itemCount={totalItems}
         onSeeCart={() => navigation.navigate('CheckoutOrder')}
         buttonLabel="Checkout"
-        style={{ bottom: 60 + insets.bottom }}
+        style={{ bottom:moderateScale(72)  + insets.bottom }}
         disabled={!hasItems}
       />)}
     </View>
