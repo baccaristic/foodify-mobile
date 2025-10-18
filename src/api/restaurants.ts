@@ -63,17 +63,20 @@ export const getCategoryRestaurants = async ({
   lat,
   lng,
   categorie,
-  page = 0,
-  size = 10,
+  page,
+  size,
   sort,
 }: CategoryRestaurantsParams): Promise<CategoryRestaurantsResponse> => {
+  const safePage = typeof page === 'number' && Number.isFinite(page) ? page : 0;
+  const safeSize = typeof size === 'number' && Number.isFinite(size) ? size : 10;
+
   const { data } = await client.get<CategoryRestaurantsResponse>(`/client/filter/categorie`, {
     params: {
       lat,
       lng,
       categorie,
-      page,
-      size,
+      page: safePage,
+      size: safeSize,
       sort,
     },
   });

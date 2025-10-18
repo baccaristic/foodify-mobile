@@ -51,17 +51,32 @@ export default function CategoryOverlay({
         isFetchingNextPage,
     } = useInfiniteQuery<CategoryRestaurantsResponse>({
         queryKey: ["category-restaurants", category, userLatitude, userLongitude],
-        queryFn: ({ pageParam = 0 }: { pageParam?: number }) =>
-            getCategoryRestaurants({
+        queryFn: ({ pageParam = 0 }: { pageParam?: number }) => {
+            const nextPage =
+                typeof pageParam === "number" && Number.isFinite(pageParam) ? pageParam : 0;
+
+            return getCategoryRestaurants({
                 lat: userLatitude as number,
                 lng: userLongitude as number,
                 categorie: category,
-                page: pageParam,
+                page: nextPage,
                 size: PAGE_SIZE,
-            }),
+            });
+        },
         enabled: visible && Boolean(category) && hasLocation,
         initialPageParam: 0,
-        getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.number + 1),
+        getNextPageParam: (lastPage, allPages) => {
+            if (lastPage.last) {
+                return undefined;
+            }
+
+            const currentPageIndex =
+                typeof lastPage.number === "number" && Number.isFinite(lastPage.number)
+                    ? lastPage.number
+                    : allPages.length - 1;
+
+            return currentPageIndex + 1;
+        },
     });
 
     const restaurants = React.useMemo<RestaurantDisplay[]>(() => {
