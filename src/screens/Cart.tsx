@@ -8,6 +8,7 @@ import FixedOrderBar from '~/components/FixedOrderBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, vs } from 'react-native-size-matters';
 import Header from '~/components/Header';
+import { useTranslation } from '~/localization';
 
 import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
@@ -33,6 +34,7 @@ const CartItemRow: React.FC<{
   onModify: (item: CartItem) => void;
 }> = ({ item, onUpdateQuantity, onRemove, onModify }) => {
   const isMinQuantity = item.quantity <= 1;
+  const { t } = useTranslation();
 
   const handleMinus = () => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1));
   const handlePlus = () => onUpdateQuantity(item.id, item.quantity + 1);
@@ -54,7 +56,7 @@ const CartItemRow: React.FC<{
         </Text>
         <TouchableOpacity onPress={() => onModify(item)} className="mt-1 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
           <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
-            Modify
+            {t('common.modify')}
           </Text>
         </TouchableOpacity>
         {item.description ? (
@@ -78,7 +80,7 @@ const CartItemRow: React.FC<{
         </Text>
         {item.quantity > 1 ? (
           <Text allowFontScaling={false} className="text-xs text-gray-500">
-            {formatCurrency(item.pricePerItem)} each
+            {t('cart.priceEach', { price: formatCurrency(item.pricePerItem) })}
           </Text>
         ) : null}
       </View>
@@ -109,9 +111,10 @@ export default function Cart() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { items, restaurant, subtotal, itemCount, updateItemQuantity, removeItem, clearCart } = useCart();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const hasItems = items.length > 0;
-  const restaurantName = restaurant?.name ?? 'Restaurant';
+  const restaurantName = restaurant?.name ?? t('cart.defaultRestaurantName');
   const totalItems = itemCount;
   const totalOrderPrice = subtotal;
 
@@ -149,11 +152,14 @@ export default function Cart() {
   const cartContent = (
     <View className="px-4">
       <Text allowFontScaling={false} className="mb-4 mt-6 text-center text-2xl font-bold text-[#17213A]">
-        My cart
+        {t('cart.title')}
       </Text>
       {hasItems && (<View className="mb-4 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
-          {totalItems} {totalItems === 1 ? 'Product' : 'Products'} from{' '}
+          {t('cart.itemSummaryPrefix', {
+            count: totalItems,
+            productLabel: t(totalItems === 1 ? 'cart.productLabel.singular' : 'cart.productLabel.plural'),
+          })}
           <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
             {restaurantName}
           </Text>
@@ -193,16 +199,16 @@ export default function Cart() {
         <View className="mt-10 items-center px-6">
           <Image source={EMPTY_CART_IMAGE} style={{ width: 160, height: 160 }} contentFit="contain" />
           <Text allowFontScaling={false} className="mt-6 text-center text-lg font-bold text-[#17213A]">
-            Add items to start a basket
+            {t('cart.empty.title')}
           </Text>
           <Text allowFontScaling={false} className="mt-2 text-center text-sm text-gray-500">
-            Once you add items from a restaurant or store, your basket will appear here.
+            {t('cart.empty.subtitle')}
           </Text>
           <TouchableOpacity
             className="mt-6 w-full max-w-xs rounded-2xl bg-[#CA251B] py-3"
             onPress={handleAddMoreItems}>
             <Text allowFontScaling={false} className="text-center text-base font-semibold text-white">
-              Add items
+              {t('cart.empty.cta')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -211,7 +217,7 @@ export default function Cart() {
       {hasItems ? (
         <TouchableOpacity className="mx-auto my-4 rounded-xl bg-[#CA251B] px-4 py-2" onPress={handleAddMoreItems}>
           <Text allowFontScaling={false} className="text-center text-lg text-white">
-            Add more items
+            {t('cart.addMore')}
           </Text>
         </TouchableOpacity>
       ) : null}
@@ -222,7 +228,7 @@ export default function Cart() {
 
   const cartHeader = (
     <Header
-      title="Please choose your address."
+      title={t('home.header.chooseAddress')}
       onBack={() => navigation.goBack()}
       onLocationPress={() => console.log('Location pressed')}
     />
@@ -246,7 +252,7 @@ export default function Cart() {
         total={totalOrderPrice}
         itemCount={totalItems}
         onSeeCart={() => navigation.navigate('CheckoutOrder')}
-        buttonLabel="Checkout"
+        buttonLabel={t('common.checkout')}
         style={{ bottom:moderateScale(72)  + insets.bottom }}
         disabled={!hasItems}
       />)}

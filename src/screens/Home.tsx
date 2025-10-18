@@ -30,19 +30,29 @@ import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
+import { useTranslation } from '~/localization';
+import { CATEGORY_LABEL_KEYS } from '~/localization/categoryKeys';
 
 type SectionLayout = 'carousel' | 'flatList';
 
-const SECTION_LABELS: Record<string, string> = {
-  topPicks: 'Top picks for you',
-  orderAgain: 'Order again',
-  promotions: 'Promotions',
-  others: 'Other restaurants',
+const QUICK_CATEGORY_CONFIG = [
+  { key: 'discount', icon: Percent },
+  { key: 'top restaurants', icon: Star },
+  { key: 'dishes', icon: Utensils },
+  { key: 'pizza', icon: Pizza },
+  { key: 'burger', icon: Hamburger },
+] as const;
+
+const SECTION_LABEL_KEYS: Record<string, string> = {
+  topPicks: 'home.sections.topPicks',
+  orderAgain: 'home.sections.orderAgain',
+  promotions: 'home.sections.promotions',
+  others: 'home.sections.others',
 };
 
-const toSectionLabel = (key: string) => {
-  if (SECTION_LABELS[key]) {
-    return SECTION_LABELS[key];
+const toSectionLabel = (key: string, translate: (value: string) => string) => {
+  if (SECTION_LABEL_KEYS[key]) {
+    return translate(SECTION_LABEL_KEYS[key]);
   }
 
   const spaced = key
@@ -67,6 +77,7 @@ const PAGE_SIZE = 20;
 export default function HomePage() {
   const navigation = useNavigation();
   const { open: openLocationOverlay } = useLocationOverlay();
+  const { t } = useTranslation();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
@@ -74,6 +85,15 @@ export default function HomePage() {
   const handleCategoryPress = (category: string) => {
     setSelectedCategory(category);
   };
+
+  const quickCategories = useMemo(
+    () =>
+      QUICK_CATEGORY_CONFIG.map((config) => ({
+        ...config,
+        label: t(CATEGORY_LABEL_KEYS[config.key] ?? config.key),
+      })),
+    [t],
+  );
 
   const { selectedAddress } = useSelectedAddress();
   const hasSelectedAddress = Boolean(selectedAddress?.coordinates);
@@ -146,11 +166,11 @@ export default function HomePage() {
       .map((entry) => ({
         type: 'section' as const,
         key: entry.key,
-        title: toSectionLabel(entry.key),
+        title: toSectionLabel(entry.key, t),
         layout: resolveLayout(entry.section.displayType),
         restaurants: entry.section.restaurants,
       }));
-  }, [data]);
+  }, [data, t]);
 
   const otherRestaurants = useMemo(
     () => data?.pages.flatMap((page) => page.others.restaurants) ?? [],
@@ -170,7 +190,7 @@ export default function HomePage() {
         items.push({
           type: 'section',
           key: 'others-carousel',
-          title: toSectionLabel('others'),
+          title: toSectionLabel('others', t),
           layout: 'carousel',
           restaurants: otherRestaurants,
         });
@@ -178,7 +198,7 @@ export default function HomePage() {
         items.push({
           type: 'othersHeader',
           key: 'others-header',
-          title: toSectionLabel('others'),
+          title: toSectionLabel('others', t),
         });
         otherRestaurants.forEach((restaurant, index) => {
           items.push({
@@ -191,7 +211,7 @@ export default function HomePage() {
     }
 
     return items;
-  }, [otherRestaurants, othersLayout, topSections]);
+  }, [otherRestaurants, othersLayout, t, topSections]);
 
   const handleEndReached = useCallback(() => {
     if (!hasSelectedAddress) {
@@ -218,11 +238,13 @@ export default function HomePage() {
       ];
       const ratingPillStyles = [styles.ratingPill, isCompact && styles.ratingPillCompact];
 
-      const ratingLabel = restaurant.rating ? restaurant.rating.toFixed(1) : 'New';
+      const ratingLabel = restaurant.rating
+        ? restaurant.rating.toFixed(1)
+        : t('home.rating.new');
       const deliveryLabel =
         restaurant.deliveryFee > 0
           ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
-          : 'Free delivery';
+          : t('home.delivery.free');
 
       return (
         <TouchableOpacity
@@ -309,7 +331,7 @@ export default function HomePage() {
               <View style={[styles.cardMetaRow, styles.cardMetaRowSecondary]}>
                 <Clock3 size={isCompact ? s(12) : s(14)} color="#0F172A" />
                 <Text allowFontScaling={false} style={closingTextStyles} numberOfLines={1}>
-                  Closes {restaurant.closingHours}
+                  {t('home.delivery.closesAt', { values: { time: restaurant.closingHours } })}
                 </Text>
               </View>
             ) : null}
@@ -317,7 +339,7 @@ export default function HomePage() {
         </TouchableOpacity>
       );
     },
-    [navigation]
+    [navigation, t]
   );
 
   const renderTopPickCard = useCallback(
@@ -325,7 +347,7 @@ export default function HomePage() {
       const deliveryLabel =
         restaurant.deliveryFee > 0
           ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
-          : 'Free delivery';
+          : t('home.delivery.free');
 
       return (
         <TouchableOpacity
@@ -363,7 +385,7 @@ export default function HomePage() {
         </TouchableOpacity>
       );
     },
-    [navigation],
+    [navigation, t],
   );
 
   const renderItem = useCallback(
@@ -442,10 +464,10 @@ export default function HomePage() {
         <View style={styles.mainWrapper}>
           <View style={styles.addressPrompt}>
             <Text allowFontScaling={false} style={styles.addressPromptTitle}>
-              Choose an address to explore restaurants nearby.
+              {t('home.addressPrompt.title')}
             </Text>
             <Text allowFontScaling={false} style={styles.addressPromptSubtitle}>
-              Set your delivery location so we can show options available in your area.
+              {t('home.addressPrompt.subtitle')}
             </Text>
             <TouchableOpacity
               activeOpacity={0.85}
@@ -453,7 +475,7 @@ export default function HomePage() {
               onPress={openLocationOverlay}
             >
               <Text allowFontScaling={false} style={styles.addressPromptButtonLabel}>
-                Select address
+                {t('home.addressPrompt.cta')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -476,10 +498,10 @@ export default function HomePage() {
         <View style={styles.mainWrapper}>
           <View style={styles.errorWrapper}>
             <Text allowFontScaling={false} style={styles.errorTitle}>
-              We can&apos;t fetch restaurants right now.
+              {t('home.error.title')}
             </Text>
             <TouchableOpacity activeOpacity={0.8} style={styles.retryButton} onPress={() => refetch()}>
-              <Text allowFontScaling={false} style={styles.retryLabel}>Try again</Text>
+              <Text allowFontScaling={false} style={styles.retryLabel}>{t('home.error.action')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -490,15 +512,15 @@ export default function HomePage() {
       <View style={styles.mainWrapper}>
         <View style={styles.emptyWrapper}>
           <Text allowFontScaling={false} style={styles.emptyTitle}>
-            No restaurants in range.
+            {t('home.empty.title')}
           </Text>
           <Text allowFontScaling={false} style={styles.emptySubtitle}>
-            Expand your search radius or update your location to discover great meals nearby.
+            {t('home.empty.subtitle')}
           </Text>
         </View>
       </View>
     );
-  }, [hasSelectedAddress, isError, isLoading, openLocationOverlay, refetch]);
+  }, [hasSelectedAddress, isError, isLoading, openLocationOverlay, refetch, t]);
 
   const renderListFooter = useCallback(() => {
     if (!isFetchingNextPage) {
@@ -518,13 +540,17 @@ export default function HomePage() {
     <Animated.View entering={FadeIn.duration(500)}>
       <View style={styles.headerWrapper}>
         <Header
-          title="Please choose your address."
-          onBack={() => console.log("not working now !")}
+          title={t('home.header.chooseAddress')}
+          onBack={() => console.log('not working now !')}
           compact
         />
-        <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate('Search' as never)}
+        <TouchableOpacity
+          style={styles.searchBar}
+          onPress={() => navigation.navigate('Search' as never)}
         >
-          <Text allowFontScaling={false} style={styles.searchPlaceholder}>Ready to eat?</Text>
+          <Text allowFontScaling={false} style={styles.searchPlaceholder}>
+            {t('home.search.prompt')}
+          </Text>
           <Search size={s(18)} color="black" />
         </TouchableOpacity>
         <ScrollView
@@ -532,24 +558,17 @@ export default function HomePage() {
           showsHorizontalScrollIndicator={false}
           style={{ marginTop: vs(10) }}
         >
-          {[
-            { icon: Percent, label: "Discount" },
-            { icon: Star, label: "Top Restaurants" },
-            { icon: Utensils, label: "Dishes" },
-            { icon: Pizza, label: "Pizza" },
-            { icon: Hamburger, label: "Burger" },
-          ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={styles.categoryEqualWidth} onPress={() => handleCategoryPress(item.label.toLowerCase())}
+          {quickCategories.map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              style={styles.categoryEqualWidth}
+              onPress={() => handleCategoryPress(item.key)}
             >
               <View style={styles.categoryIconWrapper}>
                 <item.icon size={s(32)} color="#CA251B" />
               </View>
               <View style={styles.categoryTextContainer}>
-                <Text
-                  allowFontScaling={false}
-                  style={styles.categoryLabelFixed}
-                  numberOfLines={2}
-                >
+                <Text allowFontScaling={false} style={styles.categoryLabelFixed} numberOfLines={2}>
                   {item.label}
                 </Text>
               </View>
@@ -570,8 +589,11 @@ export default function HomePage() {
       <TouchableOpacity style={styles.collapsedUp} onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} >
         <MoveUp size={s(22)} color="gray" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.collapsedSearch} onPress={() => navigation.navigate("Search" as never)} >
-        <Text style={styles.collapsedPlaceholder}>Search in Food</Text>
+      <TouchableOpacity
+        style={styles.collapsedSearch}
+        onPress={() => navigation.navigate('Search' as never)}
+      >
+        <Text style={styles.collapsedPlaceholder}>{t('home.search.collapsedPlaceholder')}</Text>
         <Search size={s(18)} color="gray" style={{ marginLeft: s(120) }} />
       </TouchableOpacity>
     </View>

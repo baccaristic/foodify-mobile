@@ -3,6 +3,7 @@ import { Linking, Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import LocationPermissionPrompt from '~/components/LocationPermissionPrompt';
 import { requestLocationAccess } from '~/services/locationAccess';
+import { useTranslation } from '~/localization';
 
 export type LocationPermissionScreenParams = {
   nextRoute?: string;
@@ -18,6 +19,7 @@ type Props = NativeStackScreenProps<Record<string, object | undefined>, string> 
 const LocationPermissionScreen = ({ navigation, route, onComplete, onSkip }: Props) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const nextRoute = (route?.params as LocationPermissionScreenParams | undefined)?.nextRoute ?? 'Home';
   const resetOnComplete = (route?.params as LocationPermissionScreenParams | undefined)?.resetOnComplete ?? true;
@@ -46,19 +48,19 @@ const LocationPermissionScreen = ({ navigation, route, onComplete, onSkip }: Pro
       navigateToNext();
     } else {
       if (!result.permissionGranted && !result.canAskAgain) {
-        setErrorMessage('Location permission is disabled. Please enable it in Settings.');
+        setErrorMessage(t('locationPermission.errors.disabled'));
         if (Platform.OS !== 'web') {
           Linking.openSettings().catch(() => undefined);
         }
       } else if (result.permissionGranted && !result.servicesEnabled) {
-        setErrorMessage('Please enable your device location services.');
+        setErrorMessage(t('locationPermission.errors.servicesDisabled'));
       } else {
-        setErrorMessage('We need your permission to show nearby restaurants.');
+        setErrorMessage(t('locationPermission.errors.generic'));
       }
     }
 
     setIsProcessing(false);
-  }, [isProcessing, navigateToNext, onComplete]);
+  }, [isProcessing, navigateToNext, onComplete, t]);
 
   const handleClose = useCallback(() => {
     onSkip();
