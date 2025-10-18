@@ -13,7 +13,7 @@ import {
   MoveUp,
 } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
@@ -73,10 +73,19 @@ export default function HomePage() {
     setSelectedCategory(category);
   };
 
-  // TODO: replace with actual user location from location services
-   const savedAddresse = useSelectedAddress();
-    const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude;
-    const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude;;
+  const { selectedAddress } = useSelectedAddress();
+  const hasSelectedAddress = Boolean(selectedAddress?.coordinates);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasSelectedAddress) {
+        navigation.navigate('LocationSelection' as never);
+      }
+    }, [hasSelectedAddress, navigation])
+  );
+
+  const userLatitude = selectedAddress?.coordinates.latitude;
+  const userLongitude = selectedAddress?.coordinates.longitude;
 
   const radiusKm = 10;
 
@@ -110,6 +119,7 @@ export default function HomePage() {
       return page + 1;
     },
     initialPageParam: INITIAL_PAGE,
+    enabled: hasSelectedAddress,
   });
 
   type NearbyListItem =
