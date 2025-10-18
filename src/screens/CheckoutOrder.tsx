@@ -366,7 +366,7 @@ const CheckoutOrder: React.FC = () => {
     () => Math.max(subtotal + deliveryFee + serviceFee - discountValue, 0),
     [subtotal, deliveryFee, serviceFee, discountValue],
   );
-
+  const deliveryToken =  (viewOrder as any)?.deliveryToken;
   const displayItems = useMemo<DisplayItem[]>(() => {
     if (isViewMode && viewOrder) {
       return viewOrderItems.map((item, index) => {
@@ -1319,7 +1319,7 @@ const CheckoutOrder: React.FC = () => {
                 className="text-center text-lg font-bold mb-3"
                 style={{ color: sectionTitleColor }}
               >
-                YOUR DELIVERY CODE
+                YOUR DELIVERY CODE 
               </Text>
 
               <Text
@@ -1338,7 +1338,7 @@ const CheckoutOrder: React.FC = () => {
                     allowFontScaling={false}
                     className="text-white text-2xl font-bold text-center tracking-[2]"
                   >
-                    483254
+                    {deliveryToken}
                   </Text>
                 </View>
               </View>
