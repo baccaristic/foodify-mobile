@@ -66,13 +66,34 @@ export default function CategoryOverlay({
         enabled: visible && Boolean(category) && hasLocation,
         initialPageParam: 0,
         getNextPageParam: (lastPage, allPages) => {
-            if (lastPage.last) {
+            const itemsOnLastPage = lastPage.items?.length ?? 0;
+            const pageSize =
+                typeof lastPage.pageSize === "number" && Number.isFinite(lastPage.pageSize) && lastPage.pageSize > 0
+                    ? lastPage.pageSize
+                    : PAGE_SIZE;
+            const totalItems =
+                typeof lastPage.totalItems === "number" && Number.isFinite(lastPage.totalItems)
+                    ? lastPage.totalItems
+                    : undefined;
+
+            if (totalItems !== undefined) {
+                const fetchedCount = allPages.reduce(
+                    (sum, page) => sum + (page.items?.length ?? 0),
+                    0
+                );
+
+                if (fetchedCount >= totalItems) {
+                    return undefined;
+                }
+            }
+
+            if (itemsOnLastPage < pageSize) {
                 return undefined;
             }
 
             const currentPageIndex =
-                typeof lastPage.number === "number" && Number.isFinite(lastPage.number)
-                    ? lastPage.number
+                typeof lastPage.page === "number" && Number.isFinite(lastPage.page)
+                    ? lastPage.page
                     : allPages.length - 1;
 
             return currentPageIndex + 1;
@@ -84,7 +105,7 @@ export default function CategoryOverlay({
             return [];
         }
 
-        return data.pages.flatMap((page) => page.content ?? []);
+        return data.pages.flatMap((page) => page.items ?? []);
     }, [data]);
 
     const handleEndReached = React.useCallback(() => {

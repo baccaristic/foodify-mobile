@@ -167,27 +167,28 @@ export interface MenuItemPromotion {
   imageUrl: string;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  number: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
-}
-
 export interface RestaurantDisplay {
   id: number;
   name: string;
-  type?: string;
-  rating: number | null;
-  deliveryFee: number | null;
+  description?: string | null;
+  rating?: number | null;
+  type?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  openingHours?: string | null;
+  closingHours?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  deliveryFee?: number | null;
   imageUrl?: string | null;
-  hasPromotion?: boolean;
+  favorite?: boolean | null;
+  hasPromotion?: boolean | null;
   promotionSummary?: string | null;
-  favorite?: boolean;
 }
 
-export type CategoryRestaurantsResponse = PageResponse<RestaurantDisplay>;
+export interface CategoryRestaurantsResponse {
+  items: RestaurantDisplay[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+}
