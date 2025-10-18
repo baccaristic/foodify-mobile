@@ -139,6 +139,73 @@ const en: TranslationDictionary = {
       noResults: 'No matching places. Try refining the keywords.',
     },
   },
+  search: {
+    header: {
+      title: 'Please choose your address.',
+    },
+    searchBar: {
+      placeholder: 'Search…',
+    },
+    filters: {
+      promotions: 'Promotions',
+      topChoice: 'Top Choice',
+      freeDelivery: 'Free Delivery',
+    },
+    delivery: {
+      withFee: '{{fee}} delivery fee',
+      free: 'Free delivery',
+    },
+    card: {
+      freeDeliveryPill: 'Free Delivery',
+    },
+    promoted: {
+      heading: 'Promoted items',
+    },
+    alerts: {
+      menuUnavailableTitle: 'Menu item unavailable',
+      menuUnavailableMessage:
+        "We couldn't load this promoted item right now. Please try again later.",
+      genericErrorTitle: 'Something went wrong',
+      genericErrorMessage: "We couldn't load this promoted item. Please try again.",
+    },
+    results: {
+      searching: 'Searching…',
+      count: '{{count}} results{{query}}',
+      querySuffix: ' for “{{query}}”',
+      updating: 'Updating results…',
+      loadingMore: 'Loading more restaurants…',
+    },
+    states: {
+      addressPrompt: {
+        title: 'Set your address to start searching.',
+        subtitle: 'Add your delivery location so we can show restaurants available in your area.',
+        cta: 'Select address',
+      },
+      loading: 'Loading restaurants…',
+      error: 'We couldn’t load restaurants. Please try again.',
+      empty: 'No restaurants match your filters yet.',
+    },
+  },
+  menuDetail: {
+    labels: {
+      itemSingular: 'item',
+      itemPlural: 'items',
+    },
+    customizing: 'Customizing item {{current}} of {{total}}',
+    draftLabel: '#{{index}}',
+    optionGroups: {
+      selectExact: 'Choose {{count}} {{item}}',
+      selectRange: 'Choose {{min}}-{{max}} items',
+      selectAtLeast: 'Choose at least {{count}} {{item}}',
+      selectUpTo: 'Choose up to {{count}} {{item}}',
+      selectAny: 'Choose any item',
+      required: 'Required',
+      optional: 'Optional',
+    },
+    itemTotal: 'Item {{index}} total',
+    validationMessage: 'Finish required selections for every item. Items shown in red need attention.',
+    summary: '{{action}} {{count}} {{item}} for {{price}}',
+  },
 };
 
 export default en;

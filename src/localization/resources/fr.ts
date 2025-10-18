@@ -141,6 +141,75 @@ const fr: TranslationDictionary = {
       noResults: 'Aucun lieu correspondant. Essayez de préciser vos mots-clés.',
     },
   },
+  search: {
+    header: {
+      title: 'Veuillez choisir votre adresse.',
+    },
+    searchBar: {
+      placeholder: 'Rechercher…',
+    },
+    filters: {
+      promotions: 'Promotions',
+      topChoice: 'Meilleur choix',
+      freeDelivery: 'Livraison gratuite',
+    },
+    delivery: {
+      withFee: 'Frais de livraison {{fee}}',
+      free: 'Livraison gratuite',
+    },
+    card: {
+      freeDeliveryPill: 'Livraison gratuite',
+    },
+    promoted: {
+      heading: 'Articles mis en avant',
+    },
+    alerts: {
+      menuUnavailableTitle: 'Article indisponible',
+      menuUnavailableMessage:
+        'Nous ne pouvons pas charger cet article promotionnel pour le moment. Veuillez réessayer plus tard.',
+      genericErrorTitle: 'Un problème est survenu',
+      genericErrorMessage: "Nous n'avons pas pu charger cet article promotionnel. Veuillez réessayer.",
+    },
+    results: {
+      searching: 'Recherche…',
+      count: '{{count}} résultats{{query}}',
+      querySuffix: ' pour « {{query}} »',
+      updating: 'Mise à jour des résultats…',
+      loadingMore: 'Chargement d’autres restaurants…',
+    },
+    states: {
+      addressPrompt: {
+        title: 'Définissez votre adresse pour commencer votre recherche.',
+        subtitle:
+          'Ajoutez votre lieu de livraison afin que nous puissions afficher les restaurants disponibles autour de vous.',
+        cta: 'Sélectionner une adresse',
+      },
+      loading: 'Chargement des restaurants…',
+      error: 'Nous n’avons pas pu charger les restaurants. Veuillez réessayer.',
+      empty: 'Aucun restaurant ne correspond encore à vos filtres.',
+    },
+  },
+  menuDetail: {
+    labels: {
+      itemSingular: 'article',
+      itemPlural: 'articles',
+    },
+    customizing: 'Personnalisation de l’article {{current}} sur {{total}}',
+    draftLabel: 'n°{{index}}',
+    optionGroups: {
+      selectExact: 'Choisissez {{count}} {{item}}',
+      selectRange: 'Choisissez entre {{min}} et {{max}} articles',
+      selectAtLeast: 'Choisissez au moins {{count}} {{item}}',
+      selectUpTo: 'Choisissez jusqu’à {{count}} {{item}}',
+      selectAny: 'Choisissez n’importe quel article',
+      required: 'Obligatoire',
+      optional: 'Facultatif',
+    },
+    itemTotal: 'Total article {{index}}',
+    validationMessage:
+      'Finalisez les sélections obligatoires pour chaque article. Les éléments en rouge nécessitent une attention.',
+    summary: '{{action}} {{count}} {{item}} pour {{price}}',
+  },
 };
 
 export default fr;
