@@ -13,7 +13,7 @@ import {
   MoveUp,
 } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
-import { useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
@@ -65,6 +65,7 @@ const INITIAL_PAGE = 0;
 const PAGE_SIZE = 20;
 
 export default function HomePage() {
+  const navigation = useNavigation();
   const { open: openLocationOverlay } = useLocationOverlay();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -76,14 +77,6 @@ export default function HomePage() {
 
   const { selectedAddress } = useSelectedAddress();
   const hasSelectedAddress = Boolean(selectedAddress?.coordinates);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasSelectedAddress) {
-        openLocationOverlay();
-      }
-    }, [hasSelectedAddress, openLocationOverlay])
-  );
 
   const userLatitude = selectedAddress?.coordinates.latitude;
   const userLongitude = selectedAddress?.coordinates.longitude;
@@ -201,10 +194,14 @@ export default function HomePage() {
   }, [otherRestaurants, othersLayout, topSections]);
 
   const handleEndReached = useCallback(() => {
+    if (!hasSelectedAddress) {
+      return;
+    }
+
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, hasSelectedAddress, isFetchingNextPage]);
 
   const renderRestaurantCard = useCallback(
     (restaurant: RestaurantSummary, variant: 'default' | 'compact' = 'default') => {
@@ -440,6 +437,30 @@ export default function HomePage() {
   );
 
   const renderListEmpty = useCallback(() => {
+    if (!hasSelectedAddress) {
+      return (
+        <View style={styles.mainWrapper}>
+          <View style={styles.addressPrompt}>
+            <Text allowFontScaling={false} style={styles.addressPromptTitle}>
+              Choose an address to explore restaurants nearby.
+            </Text>
+            <Text allowFontScaling={false} style={styles.addressPromptSubtitle}>
+              Set your delivery location so we can show options available in your area.
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.addressPromptButton}
+              onPress={openLocationOverlay}
+            >
+              <Text allowFontScaling={false} style={styles.addressPromptButtonLabel}>
+                Select address
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
     if (isLoading) {
       return (
         <View style={styles.mainWrapper}>
@@ -477,7 +498,7 @@ export default function HomePage() {
         </View>
       </View>
     );
-  }, [isError, isLoading, refetch]);
+  }, [hasSelectedAddress, isError, isLoading, openLocationOverlay, refetch]);
 
   const renderListFooter = useCallback(() => {
     if (!isFetchingNextPage) {
@@ -649,6 +670,36 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     paddingVertical: '28@vs',
     gap: '10@vs',
+  },
+  addressPrompt: {
+    paddingVertical: '36@vs',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: '16@s',
+  },
+  addressPromptTitle: {
+    fontSize: '18@ms',
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  addressPromptSubtitle: {
+    marginTop: '8@vs',
+    fontSize: '13@ms',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  addressPromptButton: {
+    marginTop: '18@vs',
+    paddingHorizontal: '20@s',
+    paddingVertical: '10@vs',
+    borderRadius: '20@ms',
+    backgroundColor: '#CA251B',
+  },
+  addressPromptButtonLabel: {
+    fontSize: '14@ms',
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   emptyTitle: {
     fontSize: '16@ms',
