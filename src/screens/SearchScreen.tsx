@@ -324,7 +324,7 @@ export default function SearchScreen() {
       hasFreeDelivery: freeDelivery,
       sort,
       topEatOnly: topEat,
-      maxDeliveryFee: maxFee,
+      maxDeliveryFee: 4,
       pageSize: PAGE_SIZE,
     };
   }, [
