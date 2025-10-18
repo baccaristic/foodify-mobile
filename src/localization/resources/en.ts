@@ -206,6 +206,95 @@ const en: TranslationDictionary = {
     validationMessage: 'Finish required selections for every item. Items shown in red need attention.',
     summary: '{{action}} {{count}} {{item}} for {{price}}',
   },
+  checkout: {
+    title: 'My order',
+    defaults: {
+      item: 'Item',
+    },
+    items: {
+      extrasLabel: 'Extras {{extras}}',
+      empty: {
+        viewMode: 'No items to display.',
+        editMode: 'Your cart is empty.',
+      },
+    },
+    sections: {
+      allergies: {
+        title: 'I have allergies',
+        placeholder: 'Add your allergies',
+      },
+      comment: {
+        title: 'Add a comment',
+        placeholder: 'Leave a note for the restaurant',
+      },
+    },
+    address: {
+      sectionTitle: 'Delivery address',
+      changeCta: 'Change',
+      choosePrompt: 'Choose where to deliver your order',
+      savedAddressFallback: 'Saved address',
+      deliveryAddressFallback: 'Delivery address',
+      empty: {
+        viewMode: 'Delivery details unavailable for this order.',
+        editMode: 'Add a delivery address to preview it here.',
+      },
+      mapUnavailable: {
+        viewMode: 'Map preview unavailable for this address',
+        editMode: 'Set a precise location to preview it here',
+      },
+      markerTitle: 'Delivery address',
+    },
+    payment: {
+      sectionTitle: 'Payment method',
+      modalTitle: 'Payment method',
+      selectMethod: 'Select payment method',
+      methodFallback: 'Payment method',
+      options: {
+        card: 'Add new credit card',
+        cash: 'Pay with cash',
+      },
+      methodNames: {
+        card: 'Credit card',
+        cash: 'Cash',
+      },
+    },
+    coupon: {
+      add: 'Add coupon code',
+      applied: 'Coupon applied',
+    },
+    summary: {
+      items: 'Items',
+      extras: 'Extras',
+      delivery: 'Delivery',
+      service: 'Service',
+      fees: 'Fees & delivery',
+      coupon: 'Coupon ({{code}})',
+      promotion: 'Promotion',
+      total: 'Total',
+    },
+    deliveryCode: {
+      title: 'YOUR DELIVERY CODE',
+      description:
+        'Give this code to the deliverer when you pick up your order to confirm that you’ve received your meal.',
+    },
+    instructions: {
+      allergies: 'Allergies: {{value}}',
+    },
+    errors: {
+      emptyCart: 'Your cart is empty.',
+      missingRestaurant: 'Missing restaurant information.',
+      missingAddress: 'Please choose a delivery address.',
+      missingCoordinates: 'The selected address is missing coordinates. Please update it and try again.',
+      missingPayment: 'Select a payment method to continue.',
+      generic: 'We could not place your order. Please try again.',
+    },
+    alerts: {
+      orderFailedTitle: 'Order failed',
+    },
+    actions: {
+      confirm: 'Confirm and pay to order',
+    },
+  },
 };
 
 export default en;

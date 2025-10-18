@@ -210,6 +210,95 @@ const fr: TranslationDictionary = {
       'Finalisez les sélections obligatoires pour chaque article. Les éléments en rouge nécessitent une attention.',
     summary: '{{action}} {{count}} {{item}} pour {{price}}',
   },
+  checkout: {
+    title: 'Ma commande',
+    defaults: {
+      item: 'Article',
+    },
+    items: {
+      extrasLabel: 'Suppléments {{extras}}',
+      empty: {
+        viewMode: 'Aucun article à afficher.',
+        editMode: 'Votre panier est vide.',
+      },
+    },
+    sections: {
+      allergies: {
+        title: 'J\'ai des allergies',
+        placeholder: 'Ajoutez vos allergies',
+      },
+      comment: {
+        title: 'Ajouter un commentaire',
+        placeholder: 'Laissez une note pour le restaurant',
+      },
+    },
+    address: {
+      sectionTitle: 'Adresse de livraison',
+      changeCta: 'Modifier',
+      choosePrompt: 'Choisissez où livrer votre commande',
+      savedAddressFallback: 'Adresse enregistrée',
+      deliveryAddressFallback: 'Adresse de livraison',
+      empty: {
+        viewMode: 'Les détails de livraison ne sont pas disponibles pour cette commande.',
+        editMode: 'Ajoutez une adresse de livraison pour l\'afficher ici.',
+      },
+      mapUnavailable: {
+        viewMode: 'Aperçu de la carte indisponible pour cette adresse',
+        editMode: 'Définissez une localisation précise pour l\'afficher ici',
+      },
+      markerTitle: 'Adresse de livraison',
+    },
+    payment: {
+      sectionTitle: 'Mode de paiement',
+      modalTitle: 'Mode de paiement',
+      selectMethod: 'Sélectionnez un mode de paiement',
+      methodFallback: 'Mode de paiement',
+      options: {
+        card: 'Ajouter une nouvelle carte bancaire',
+        cash: 'Payer en espèces',
+      },
+      methodNames: {
+        card: 'Carte bancaire',
+        cash: 'Espèces',
+      },
+    },
+    coupon: {
+      add: 'Ajouter un code promo',
+      applied: 'Code promo appliqué',
+    },
+    summary: {
+      items: 'Articles',
+      extras: 'Suppléments',
+      delivery: 'Livraison',
+      service: 'Service',
+      fees: 'Frais et livraison',
+      coupon: 'Code promo ({{code}})',
+      promotion: 'Promotion',
+      total: 'Total',
+    },
+    deliveryCode: {
+      title: 'VOTRE CODE DE LIVRAISON',
+      description:
+        'Communiquez ce code au livreur lorsque vous récupérez votre commande afin de confirmer la réception de votre repas.',
+    },
+    instructions: {
+      allergies: 'Allergies : {{value}}',
+    },
+    errors: {
+      emptyCart: 'Votre panier est vide.',
+      missingRestaurant: 'Informations sur le restaurant manquantes.',
+      missingAddress: 'Veuillez choisir une adresse de livraison.',
+      missingCoordinates: 'L\'adresse sélectionnée ne comporte pas de coordonnées. Veuillez la mettre à jour puis réessayer.',
+      missingPayment: 'Sélectionnez un mode de paiement pour continuer.',
+      generic: 'Nous n\'avons pas pu passer votre commande. Veuillez réessayer.',
+    },
+    alerts: {
+      orderFailedTitle: 'Échec de la commande',
+    },
+    actions: {
+      confirm: 'Confirmer et payer la commande',
+    },
+  },
 };
 
 export default fr;

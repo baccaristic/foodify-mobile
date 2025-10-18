@@ -29,6 +29,7 @@ import useAuth from '~/hooks/useAuth';
 import { createOrder } from '~/api/orders';
 import type { MonetaryAmount } from '~/interfaces/Order';
 import type { OrderTrackingData } from './OrderTracking';
+import { useTranslation } from '~/localization';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -53,15 +54,6 @@ const extractNumericAmount = (value: MonetaryAmount | null | undefined): number 
   return null;
 };
 
-
-const formatPaymentMethodName = (method?: string | null) => {
-  if (!method) {
-    return 'Payment method';
-  }
-
-  const normalized = method.replace(/_/g, ' ');
-  return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
-};
 
 const resolvePaymentIcon = (method?: string | null) => {
   if (!method) {
@@ -122,9 +114,15 @@ type PaymentOption = {
   Icon: React.ComponentType<{ size?: number; color?: string }>;
 };
 
-const PAYMENT_OPTIONS: PaymentOption[] = [
-  { id: 'CARD', label: 'Add new Credit Card', Icon: CreditCard },
-  { id: 'CASH', label: 'Pay by Cash', Icon: Wallet },
+type PaymentOptionConfig = {
+  id: PaymentMethod;
+  labelKey: string;
+  Icon: React.ComponentType<{ size?: number; color?: string }>;
+};
+
+const PAYMENT_OPTION_CONFIG: PaymentOptionConfig[] = [
+  { id: 'CARD', labelKey: 'checkout.payment.options.card', Icon: CreditCard },
+  { id: 'CASH', labelKey: 'checkout.payment.options.cash', Icon: Wallet },
 ];
 
 const PaymentModal: React.FC<{
@@ -132,7 +130,9 @@ const PaymentModal: React.FC<{
   onClose: () => void;
   onSelect: (method: PaymentMethod) => void;
   selected: PaymentMethod | null;
-}> = ({ visible, onClose, onSelect, selected }) => (
+  title: string;
+  options: PaymentOption[];
+}> = ({ visible, onClose, onSelect, selected, title, options }) => (
   <Modal
     animationType="fade"
     transparent
@@ -147,9 +147,9 @@ const PaymentModal: React.FC<{
       />
       <View className="rounded-3xl bg-white p-6 shadow-lg">
         <Text allowFontScaling={false} className="text-center text-lg font-semibold" style={{ color: sectionTitleColor }}>
-          Payment method
+          {title}
         </Text>
-        {PAYMENT_OPTIONS.map((option, index) => {
+        {options.map((option, index) => {
           const isSelected = selected === option.id;
           return (
             <TouchableOpacity
@@ -201,6 +201,7 @@ type CheckoutRoute = RouteProp<{ CheckoutOrder: CheckoutRouteParams }, 'Checkout
 const CheckoutOrder: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<CheckoutRoute>();
+  const { t } = useTranslation();
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
@@ -214,6 +215,37 @@ const CheckoutOrder: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+
+  const paymentOptions = useMemo(
+    () =>
+      PAYMENT_OPTION_CONFIG.map((option) => ({
+        id: option.id,
+        Icon: option.Icon,
+        label: t(option.labelKey),
+      })),
+    [t],
+  );
+
+  const formatPaymentMethodLabel = useCallback(
+    (method?: string | null) => {
+      if (!method) {
+        return t('checkout.payment.methodFallback');
+      }
+
+      const normalized = method.replace(/_/g, ' ').toLowerCase();
+
+      if (normalized.includes('cash')) {
+        return t('checkout.payment.methodNames.cash');
+      }
+
+      if (normalized.includes('card') || normalized.includes('credit')) {
+        return t('checkout.payment.methodNames.card');
+      }
+
+      return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+    },
+    [t],
+  );
 
   const rawOrderParam = route.params?.order ?? null;
   const isViewMode = Boolean(route.params?.viewMode && rawOrderParam);
@@ -349,7 +381,7 @@ const CheckoutOrder: React.FC = () => {
   }, [paymentDetails]);
 
   const hasItems = items.length > 0;
-  const restaurantName = restaurant?.name ?? 'Restaurant';
+  const restaurantName = restaurant?.name ?? t('cart.defaultRestaurantName');
 
   const extrasTotal = useMemo(
     () => items.reduce((sum, item) => sum + item.extrasTotal * item.quantity, 0),
@@ -397,7 +429,7 @@ const CheckoutOrder: React.FC = () => {
             : null) ??
           (typeof rawItem.menuItemName === 'string' && rawItem.menuItemName.trim().length
             ? rawItem.menuItemName
-            : 'Item');
+            : t('checkout.defaults.item'));
 
         const extrasSource = rawItem.extras;
         const extrasLabel = (() => {
@@ -497,13 +529,25 @@ const CheckoutOrder: React.FC = () => {
         item.extras.flatMap((group) => group.extras.map((extra) => extra.name)).join(', ') || undefined,
       total: item.totalPrice,
     }));
-  }, [isViewMode, viewOrder, viewOrderItems, items]);
+  }, [isViewMode, viewOrder, viewOrderItems, items, t]);
 
   const displayItemCount = useMemo(
     () => displayItems.reduce((sum, item) => sum + item.quantity, 0),
     [displayItems],
   );
   const hasDisplayItems = displayItems.length > 0;
+  const itemSummaryPrefix = useMemo(
+    () =>
+      t('cart.itemSummaryPrefix', {
+        count: displayItemCount,
+        productLabel: t(
+          displayItemCount === 1
+            ? 'cart.productLabel.singular'
+            : 'cart.productLabel.plural',
+        ),
+      }),
+    [displayItemCount, t],
+  );
   const displayRestaurantName = useMemo(() => {
     if (!isViewMode || !viewOrder) {
       return restaurantName;
@@ -519,8 +563,8 @@ const CheckoutOrder: React.FC = () => {
       (value): value is string => typeof value === 'string' && value.trim().length > 0,
     );
 
-    return resolved ?? 'Restaurant';
-  }, [isViewMode, viewOrder, restaurantName]);
+    return resolved ?? t('cart.defaultRestaurantName');
+  }, [isViewMode, viewOrder, restaurantName, t]);
 
   const displaySubtotal = useMemo(() => {
     if (!isViewMode || !viewOrder) {
@@ -704,7 +748,7 @@ const CheckoutOrder: React.FC = () => {
       if (selectedAddress?.label?.trim()?.length) {
         return selectedAddress.label;
       }
-      return 'Saved address';
+      return t('checkout.address.savedAddressFallback');
     }
 
     const candidates = [
@@ -716,15 +760,15 @@ const CheckoutOrder: React.FC = () => {
       (value): value is string => typeof value === 'string' && value.trim().length > 0,
     );
 
-    return resolved ?? 'Delivery address';
-  }, [isViewMode, viewOrder, selectedAddress]);
+    return resolved ?? t('checkout.address.deliveryAddressFallback');
+  }, [isViewMode, viewOrder, selectedAddress, t]);
 
   const hasDeliveryAddress = isViewMode
     ? Boolean(deliveryAddressValue && deliveryAddressValue.trim().length)
     : Boolean(selectedAddress);
   const emptyAddressMessage = isViewMode
-    ? 'Delivery details unavailable for this order.'
-    : 'Add a delivery address to preview it here.';
+    ? t('checkout.address.empty.viewMode')
+    : t('checkout.address.empty.editMode');
 
   const combinedInstructions = useMemo(() => {
     const trimmedComment = comment.trim();
@@ -736,7 +780,7 @@ const CheckoutOrder: React.FC = () => {
     }
 
     if (trimmedAllergies.length) {
-      parts.push(`Allergies: ${trimmedAllergies}`);
+      parts.push(t('checkout.instructions.allergies', { value: trimmedAllergies }));
     }
 
     if (!parts.length) {
@@ -744,21 +788,29 @@ const CheckoutOrder: React.FC = () => {
     }
 
     return parts.join(' | ');
-  }, [allergies, comment]);
+  }, [allergies, comment, t]);
 
   const paymentMethodLabel = useMemo(() => {
     if (isViewMode && viewOrder) {
       const method = paymentDetails?.method ?? viewOrder.paymentMethod;
-      return formatPaymentMethodName(method);
+      return formatPaymentMethodLabel(method);
     }
 
     if (!selectedPaymentMethod) {
-      return 'Select payment method';
+      return t('checkout.payment.selectMethod');
     }
 
-    const option = PAYMENT_OPTIONS.find((candidate) => candidate.id === selectedPaymentMethod);
-    return option?.label ?? 'Select payment method';
-  }, [isViewMode, viewOrder, selectedPaymentMethod, paymentDetails]);
+    const option = paymentOptions.find((candidate) => candidate.id === selectedPaymentMethod);
+    return option?.label ?? t('checkout.payment.selectMethod');
+  }, [
+    isViewMode,
+    viewOrder,
+    paymentDetails,
+    formatPaymentMethodLabel,
+    selectedPaymentMethod,
+    paymentOptions,
+    t,
+  ]);
 
   const SelectedPaymentIcon = useMemo(() => {
     if (isViewMode && viewOrder) {
@@ -769,9 +821,9 @@ const CheckoutOrder: React.FC = () => {
     if (!selectedPaymentMethod) {
       return CreditCard;
     }
-    const option = PAYMENT_OPTIONS.find((candidate) => candidate.id === selectedPaymentMethod);
+    const option = paymentOptions.find((candidate) => candidate.id === selectedPaymentMethod);
     return option?.Icon ?? CreditCard;
-  }, [isViewMode, viewOrder, selectedPaymentMethod, paymentDetails]);
+  }, [isViewMode, viewOrder, selectedPaymentMethod, paymentDetails, paymentOptions]);
 
   const deliveryRegion = useMemo(() => {
     if (isViewMode && viewOrder) {
@@ -872,17 +924,17 @@ const CheckoutOrder: React.FC = () => {
     }
 
     if (!hasItems) {
-      setSubmissionError('Your cart is empty.');
+      setSubmissionError(t('checkout.errors.emptyCart'));
       return;
     }
 
     if (!restaurant?.id) {
-      setSubmissionError('Missing restaurant information.');
+      setSubmissionError(t('checkout.errors.missingRestaurant'));
       return;
     }
 
     if (!selectedAddress) {
-      setSubmissionError('Please choose a delivery address.');
+      setSubmissionError(t('checkout.errors.missingAddress'));
       return;
     }
 
@@ -890,12 +942,12 @@ const CheckoutOrder: React.FC = () => {
     const lngCandidate = Number(selectedAddress.coordinates?.longitude);
 
     if (!Number.isFinite(latCandidate) || !Number.isFinite(lngCandidate)) {
-      setSubmissionError('The selected address is missing coordinates. Please update it and try again.');
+      setSubmissionError(t('checkout.errors.missingCoordinates'));
       return;
     }
 
     if (!selectedPaymentMethod) {
-      setSubmissionError('Select a payment method to continue.');
+      setSubmissionError(t('checkout.errors.missingPayment'));
       return;
     }
 
@@ -941,18 +993,18 @@ const CheckoutOrder: React.FC = () => {
             (typeof error.response?.data === 'object' && error.response?.data && 'message' in error.response.data
               ? String((error.response?.data as { message?: unknown }).message)
               : null) ?? error.message;
-          return responseMessage || 'We could not place your order. Please try again.';
+          return responseMessage || t('checkout.errors.generic');
         }
 
         if (error instanceof Error) {
           return error.message;
         }
 
-        return 'We could not place your order. Please try again.';
+        return t('checkout.errors.generic');
       })();
 
       setSubmissionError(message);
-      Alert.alert('Order failed', message);
+      Alert.alert(t('checkout.alerts.orderFailedTitle'), message);
     } finally {
       setIsSubmitting(false);
     }
@@ -967,6 +1019,7 @@ const CheckoutOrder: React.FC = () => {
     combinedInstructions,
     clearCart,
     navigation,
+    t,
   ]);
 
   const canSubmit =
@@ -979,7 +1032,7 @@ const CheckoutOrder: React.FC = () => {
           <ArrowLeft size={20} color={sectionTitleColor} />
         </TouchableOpacity>
         <Text allowFontScaling={false} className="flex-1 text-center text-xl font-bold" style={{ color: sectionTitleColor }}>
-          My Order
+          {t('checkout.title')}
         </Text>
         <View className="w-10" />
       </View>
@@ -994,7 +1047,7 @@ const CheckoutOrder: React.FC = () => {
             >
               <View>
                 <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: accentColor }}>
-                  {displayItemCount} {displayItemCount === 1 ? 'Product' : 'Products'} from
+                  {itemSummaryPrefix}
                 </Text>
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
                   {displayRestaurantName}
@@ -1020,7 +1073,7 @@ const CheckoutOrder: React.FC = () => {
                         </Text>
                         {item.extrasLabel ? (
                           <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
-                            Extras {item.extrasLabel}
+                            {t('checkout.items.extrasLabel', { extras: item.extrasLabel })}
                           </Text>
                         ) : null}
                       </View>
@@ -1032,7 +1085,11 @@ const CheckoutOrder: React.FC = () => {
                 ) : (
                   <View className="px-5 py-4">
                     <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                      {isViewMode ? 'No items to display.' : 'Your cart is empty.'}
+                      {t(
+                        isViewMode
+                          ? 'checkout.items.empty.viewMode'
+                          : 'checkout.items.empty.editMode',
+                      )}
                     </Text>
                   </View>
                 )}
@@ -1043,14 +1100,14 @@ const CheckoutOrder: React.FC = () => {
           {!isViewMode ? (
             <>
               <Accordion
-                title="I have Allergies"
+                title={t('checkout.sections.allergies.title')}
                 expanded={allergiesExpanded}
                 onToggle={() => setAllergiesExpanded((prev) => !prev)}
               >
                 <TextInput
                   allowFontScaling={false}
                   multiline
-                  placeholder="Add your allergies"
+                  placeholder={t('checkout.sections.allergies.placeholder')}
                   placeholderTextColor="#9CA3AF"
                   value={allergies}
                   onChangeText={setAllergies}
@@ -1060,14 +1117,14 @@ const CheckoutOrder: React.FC = () => {
               </Accordion>
 
               <Accordion
-                title="Add a comment"
+                title={t('checkout.sections.comment.title')}
                 expanded={commentExpanded}
                 onToggle={() => setCommentExpanded((prev) => !prev)}
               >
                 <TextInput
                   allowFontScaling={false}
                   multiline
-                  placeholder="Leave a note for the restaurant"
+                  placeholder={t('checkout.sections.comment.placeholder')}
                   placeholderTextColor="#9CA3AF"
                   value={comment}
                   onChangeText={setComment}
@@ -1081,7 +1138,7 @@ const CheckoutOrder: React.FC = () => {
           <View className="mt-6">
             <View className="flex-row items-center justify-between">
               <Text allowFontScaling={false} className="text-base font-bold" style={{ color: sectionTitleColor }}>
-                Delivery Address
+                {t('checkout.address.sectionTitle')}
               </Text>
               {!isViewMode ? (
                 <TouchableOpacity
@@ -1090,7 +1147,7 @@ const CheckoutOrder: React.FC = () => {
                   className="rounded-full bg-[#FDE7E5] px-3 py-1"
                 >
                   <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
-                    Change
+                    {t('checkout.address.changeCta')}
                   </Text>
                 </TouchableOpacity>
               ) : null}
@@ -1110,7 +1167,7 @@ const CheckoutOrder: React.FC = () => {
                     >
                       <Marker
                         coordinate={deliveryRegion}
-                        title="Delivery Address"
+                        title={t('checkout.address.markerTitle')}
                         description={deliveryAddressValue || undefined}
                       />
                     </MapView>
@@ -1118,7 +1175,11 @@ const CheckoutOrder: React.FC = () => {
                     <View className="flex-1 items-center justify-center bg-[#FDE7E5]">
                       <MapPin size={24} color={accentColor} />
                       <Text allowFontScaling={false} className="mt-2 text-xs font-semibold text-[#CA251B]">
-                        {isViewMode ? 'Map preview unavailable for this address' : 'Set a precise location to preview it here'}
+                        {t(
+                          isViewMode
+                            ? 'checkout.address.mapUnavailable.viewMode'
+                            : 'checkout.address.mapUnavailable.editMode',
+                        )}
                       </Text>
                     </View>
                   )}
@@ -1149,7 +1210,7 @@ const CheckoutOrder: React.FC = () => {
                 <View className="flex-1 flex-row items-center">
                   <MapPin size={22} color={accentColor} />
                   <Text allowFontScaling={false} className="ml-3 flex-1 text-base font-semibold" style={{ color: sectionTitleColor }}>
-                    Choose where to deliver your order
+                    {t('checkout.address.choosePrompt')}
                   </Text>
                 </View>
                 <ChevronDown size={20} color={sectionTitleColor} style={{ transform: [{ rotate: '-90deg' }] }} />
@@ -1168,7 +1229,7 @@ const CheckoutOrder: React.FC = () => {
 
           <View className="mt-6">
             <Text allowFontScaling={false} className="text-base font-bold" style={{ color: sectionTitleColor }}>
-              Payment method
+              {t('checkout.payment.sectionTitle')}
             </Text>
             {isViewMode ? (
               <View className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4">
@@ -1210,7 +1271,7 @@ const CheckoutOrder: React.FC = () => {
                 <TicketPercent size={22} color={accentColor} />
                 <View className="ml-3 flex-1">
                   <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
-                    {appliedCoupon ? 'Coupon applied' : 'Add Coupon code'}
+                    {appliedCoupon ? t('checkout.coupon.applied') : t('checkout.coupon.add')}
                   </Text>
                   {appliedCoupon ? (
                     <Text allowFontScaling={false} className="mt-1 text-sm text-[#6B7280]">
@@ -1238,7 +1299,7 @@ const CheckoutOrder: React.FC = () => {
           <View className="mt-6 rounded-3xl border border-[#F0F1F3] bg-white p-5">
             <View className="flex-row items-center justify-between">
               <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                Items
+                {t('checkout.summary.items')}
               </Text>
               <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
                 {formatCurrency(displaySubtotal)}
@@ -1246,7 +1307,7 @@ const CheckoutOrder: React.FC = () => {
             </View>
             <View className="mt-3 flex-row items-center justify-between">
               <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                Extras
+                {t('checkout.summary.extras')}
               </Text>
               <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
                 {formatCurrency(displayExtrasTotal)}
@@ -1256,7 +1317,7 @@ const CheckoutOrder: React.FC = () => {
               <>
                 <View className="mt-3 flex-row items-center justify-between">
                   <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                    Delivery
+                    {t('checkout.summary.delivery')}
                   </Text>
                   <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
                     {formatCurrency(deliveryFee)}
@@ -1264,7 +1325,7 @@ const CheckoutOrder: React.FC = () => {
                 </View>
                 <View className="mt-3 flex-row items-center justify-between">
                   <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                    Service
+                    {t('checkout.summary.service')}
                   </Text>
                   <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
                     {formatCurrency(serviceFee)}
@@ -1274,7 +1335,7 @@ const CheckoutOrder: React.FC = () => {
             ) : (
               <View className="mt-3 flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                  Fees & delivery
+                  {t('checkout.summary.fees')}
                 </Text>
                 <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
                   {formatCurrency(displayFees)}
@@ -1284,7 +1345,7 @@ const CheckoutOrder: React.FC = () => {
             {!isViewMode && appliedCoupon ? (
               <View className="mt-3 flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                  Coupon ({appliedCoupon.code})
+                  {t('checkout.summary.coupon', { code: appliedCoupon.code })}
                 </Text>
                 <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
                   −{formatCurrency(discountValue)}
@@ -1294,7 +1355,7 @@ const CheckoutOrder: React.FC = () => {
             {isViewMode && displayPromotionDiscount > 0 ? (
               <View className="mt-3 flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                  Promotion
+                  {t('checkout.summary.promotion')}
                 </Text>
                 <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
                   −{formatCurrency(displayPromotionDiscount)}
@@ -1304,7 +1365,7 @@ const CheckoutOrder: React.FC = () => {
             <View className="mt-4 border-t border-dashed pt-4" style={{ borderColor }}>
               <View className="flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: sectionTitleColor }}>
-                  Total
+                  {t('checkout.summary.total')}
                 </Text>
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
                   {formatCurrency(displayTotal)}
@@ -1319,14 +1380,14 @@ const CheckoutOrder: React.FC = () => {
                 className="text-center text-lg font-bold mb-3"
                 style={{ color: sectionTitleColor }}
               >
-                YOUR DELIVERY CODE 
+                {t('checkout.deliveryCode.title')}
               </Text>
 
               <Text
                 allowFontScaling={false}
                 className="text-center text-sm text-[#4B5563] mb-5"
               >
-                Give this code to the deliverer when you pick up your order to confirm that you’ve received your meal
+                {t('checkout.deliveryCode.description')}
               </Text>
 
               <View className="items-center justify-center">
@@ -1369,7 +1430,7 @@ const CheckoutOrder: React.FC = () => {
                 allowFontScaling={false}
                 className={`text-center text-base font-semibold ${canSubmit ? 'text-white' : 'text-[#9CA3AF]'}`}
               >
-                Confirm and pay to order
+                {t('checkout.actions.confirm')}
               </Text>
             )}
           </TouchableOpacity>
@@ -1381,6 +1442,8 @@ const CheckoutOrder: React.FC = () => {
         onClose={() => setIsPaymentModalVisible(false)}
         onSelect={handlePaymentSelection}
         selected={isViewMode ? null : selectedPaymentMethod}
+        title={t('checkout.payment.modalTitle')}
+        options={paymentOptions}
       />
     </SafeAreaView>
   );
