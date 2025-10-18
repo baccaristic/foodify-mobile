@@ -94,6 +94,51 @@ const en: TranslationDictionary = {
     },
     defaultType: 'Restaurant',
   },
+  cart: {
+    title: 'My cart',
+    defaultRestaurantName: 'Restaurant',
+    productLabel: {
+      singular: 'Product',
+      plural: 'Products',
+    },
+    itemSummaryPrefix: '{{count}} {{productLabel}} from ',
+    priceEach: '{{price}} each',
+    empty: {
+      title: 'Add items to start a basket',
+      subtitle: 'Once you add items from a restaurant or store, your basket will appear here.',
+      cta: 'Add items',
+    },
+    addMore: 'Add more items',
+  },
+  coupon: {
+    title: 'Coupon code',
+    subtitle: 'Add your coupon',
+    placeholder: 'ABCDE123',
+    checkCta: 'Check coupon code',
+    status: {
+      success: 'Coupon code valid and applied',
+      error: 'Coupon code not valid. Please try again.',
+    },
+  },
+  locationPermission: {
+    prompt: {
+      title: 'Allow location access',
+      description: 'This lets us show you which restaurants and stores you can order from.',
+      agree: 'I Agree',
+    },
+    errors: {
+      disabled: 'Location permission is disabled. Please enable it in Settings.',
+      servicesDisabled: 'Please enable your device location services.',
+      generic: 'We need your permission to show nearby restaurants.',
+    },
+  },
+  locationSearch: {
+    placeholder: 'Enter street, building number, etc',
+    empty: {
+      initial: 'Start typing to search for a street, building or area.',
+      noResults: 'No matching places. Try refining the keywords.',
+    },
+  },
 };
 
 export default en;

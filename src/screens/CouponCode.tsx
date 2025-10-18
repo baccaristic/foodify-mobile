@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigation, useRoute, NavigationProp, ParamListBase, RouteProp } from '@react-navigation/native';
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react-native';
+import { useTranslation } from '~/localization';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -21,18 +22,19 @@ const CouponCode: React.FC = () => {
   const route = useRoute<CouponRoute>();
   const [couponCode, setCouponCode] = useState(route.params?.currentCode ?? '');
   const [status, setStatus] = useState<CouponStatus>('idle');
+  const { t } = useTranslation();
 
   const helperText = useMemo(() => {
     if (status === 'success') {
-      return 'Coupon Code valid and applied';
+      return t('coupon.status.success');
     }
 
     if (status === 'error') {
-      return 'Coupon Code not valid please try again';
+      return t('coupon.status.error');
     }
 
     return '';
-  }, [status]);
+  }, [status, t]);
 
   const helperColor = status === 'success' ? '#22C55E' : status === 'error' ? accentColor : '#9CA3AF';
 
@@ -67,24 +69,24 @@ const CouponCode: React.FC = () => {
       <View className="flex-row items-center px-4 pb-4 pt-2">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="mr-4 rounded-full border border-[#E4E6EB] p-2"
-        >
-          <ArrowLeft size={20} color={sectionTitleColor} />
-        </TouchableOpacity>
+        className="mr-4 rounded-full border border-[#E4E6EB] p-2"
+      >
+        <ArrowLeft size={20} color={sectionTitleColor} />
+      </TouchableOpacity>
         <Text allowFontScaling={false} className="flex-1 text-center text-xl font-bold" style={{ color: sectionTitleColor }}>
-          Coupon code
+          {t('coupon.title')}
         </Text>
         <View className="w-10" />
       </View>
 
       <View className="flex-1 px-6">
         <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: sectionTitleColor }}>
-          Add your Coupon
+          {t('coupon.subtitle')}
         </Text>
         <View className="mt-3 rounded-3xl border px-5 py-4" style={{ borderColor }}>
           <TextInput
             allowFontScaling={false}
-            placeholder="ABCDE123"
+            placeholder={t('coupon.placeholder')}
             placeholderTextColor="#9CA3AF"
             value={couponCode}
             onChangeText={(value) => {
@@ -118,7 +120,7 @@ const CouponCode: React.FC = () => {
           className="rounded-full bg-[#CA251B] px-6 py-4"
         >
           <Text allowFontScaling={false} className="text-center text-base font-semibold text-white">
-            Check Coupon code
+            {t('coupon.checkCta')}
           </Text>
         </TouchableOpacity>
       </View>

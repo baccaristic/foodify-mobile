@@ -94,6 +94,53 @@ const fr: TranslationDictionary = {
     },
     defaultType: 'Restaurant',
   },
+  cart: {
+    title: 'Mon panier',
+    defaultRestaurantName: 'Restaurant',
+    productLabel: {
+      singular: 'produit',
+      plural: 'produits',
+    },
+    itemSummaryPrefix: '{{count}} {{productLabel}} de ',
+    priceEach: '{{price}} l\'unité',
+    empty: {
+      title: 'Ajoutez des articles pour commencer votre panier',
+      subtitle:
+        'Une fois que vous aurez ajouté des articles d\'un restaurant ou d\'une boutique, votre panier apparaîtra ici.',
+      cta: 'Ajouter des articles',
+    },
+    addMore: 'Ajouter d\'autres articles',
+  },
+  coupon: {
+    title: 'Code promo',
+    subtitle: 'Ajoutez votre code promo',
+    placeholder: 'ABCDE123',
+    checkCta: 'Vérifier le code promo',
+    status: {
+      success: 'Code promo appliqué avec succès',
+      error: 'Ce code promo est invalide. Veuillez réessayer.',
+    },
+  },
+  locationPermission: {
+    prompt: {
+      title: 'Autoriser l’accès à la localisation',
+      description:
+        'Cela nous permet de vous montrer les restaurants et commerces auprès desquels vous pouvez commander.',
+      agree: 'J’accepte',
+    },
+    errors: {
+      disabled: 'L’autorisation de localisation est désactivée. Veuillez l’activer dans les réglages.',
+      servicesDisabled: 'Veuillez activer les services de localisation de votre appareil.',
+      generic: 'Nous avons besoin de votre autorisation pour afficher les restaurants à proximité.',
+    },
+  },
+  locationSearch: {
+    placeholder: 'Entrez une rue, un bâtiment, etc.',
+    empty: {
+      initial: 'Commencez à taper pour rechercher une rue, un bâtiment ou un quartier.',
+      noResults: 'Aucun lieu correspondant. Essayez de préciser vos mots-clés.',
+    },
+  },
 };
 
 export default fr;
