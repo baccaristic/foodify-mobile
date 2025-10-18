@@ -222,7 +222,7 @@ export default function Cart() {
 
   const cartHeader = (
     <Header
-      title="San Francisco Bay Area"
+      title="Please choose your address."
       onBack={() => navigation.goBack()}
       onLocationPress={() => console.log('Location pressed')}
     />

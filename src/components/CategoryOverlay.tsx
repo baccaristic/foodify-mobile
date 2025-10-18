@@ -4,16 +4,17 @@ import {
     Text,
     TouchableOpacity,
     Modal,
-    ScrollView,
     ActivityIndicator,
+    FlatList,
 } from "react-native";
+import type { ListRenderItem } from "react-native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import { X, Star, Percent } from "lucide-react-native";
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
-import { getNearbyRestaurants } from "~/api/restaurants";
-import type { NearbyRestaurantsResponse, RestaurantSummary } from "~/interfaces/Restaurant";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getCategoryRestaurants } from "~/api/restaurants";
+import type { CategoryRestaurantsResponse, RestaurantDisplay } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import { LinearGradient } from "expo-linear-gradient";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
@@ -27,6 +28,8 @@ interface CategoryOverlayProps {
 const formatDeliveryFee = (fee: number) =>
     fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
 
+const PAGE_SIZE = 10;
+
 export default function CategoryOverlay({
     visible,
     category,
@@ -34,44 +37,170 @@ export default function CategoryOverlay({
 }: CategoryOverlayProps) {
     const navigation = useNavigation();
     const savedAddresse = useSelectedAddress();
-    const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude;
-    const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude;;
+    const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude ?? null;
+    const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude ?? null;
+    const hasLocation = userLatitude !== null && userLongitude !== null;
 
     const {
         data,
         isLoading,
         isError,
         refetch,
-    } = useQuery<NearbyRestaurantsResponse>({
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery<CategoryRestaurantsResponse>({
         queryKey: ["category-restaurants", category, userLatitude, userLongitude],
-        queryFn: () =>
-            getNearbyRestaurants({
-                lat: userLatitude,
-                lng: userLongitude,
-                radiusKm: 5,
-                category,
-            }),
-        enabled: visible && Boolean(category),
+        queryFn: ({ pageParam = 0 }: { pageParam?: number }) => {
+            const nextPage =
+                typeof pageParam === "number" && Number.isFinite(pageParam) ? pageParam : 0;
+
+            return getCategoryRestaurants({
+                lat: userLatitude as number,
+                lng: userLongitude as number,
+                categorie: category,
+                page: pageParam - 1,
+                size: PAGE_SIZE,
+            });
+        },
+        enabled: visible && Boolean(category) && hasLocation,
+        initialPageParam: 0,
+        getNextPageParam: (lastPage, allPages) => {
+            const itemsOnLastPage = lastPage.items?.length ?? 0;
+            const pageSize =
+                typeof lastPage.pageSize === "number" && Number.isFinite(lastPage.pageSize) && lastPage.pageSize > 0
+                    ? lastPage.pageSize
+                    : PAGE_SIZE;
+            const totalItems =
+                typeof lastPage.totalItems === "number" && Number.isFinite(lastPage.totalItems)
+                    ? lastPage.totalItems
+                    : undefined;
+
+            if (totalItems !== undefined) {
+                const fetchedCount = allPages.reduce(
+                    (sum, page) => sum + (page.items?.length ?? 0),
+                    0
+                );
+
+                if (fetchedCount >= totalItems) {
+                    return undefined;
+                }
+            }
+
+            if (itemsOnLastPage < pageSize) {
+                return undefined;
+            }
+
+            const currentPageIndex =
+                typeof lastPage.page === "number" && Number.isFinite(lastPage.page)
+                    ? lastPage.page
+                    : allPages.length - 1;
+
+            return currentPageIndex + 1;
+        },
     });
 
-    const restaurants = React.useMemo<RestaurantSummary[]>(() => {
-        if (!data) {
+    const restaurants = React.useMemo<RestaurantDisplay[]>(() => {
+        if (!data?.pages?.length) {
             return [];
         }
 
-        const sections: RestaurantSummary[][] = [
-            data.topPicks?.restaurants ?? [],
-            data.orderAgain?.restaurants ?? [],
-            data.promotions?.restaurants ?? [],
-            data.others?.restaurants ?? [],
-        ];
-
-        return sections.flat();
+        return data.pages.flatMap((page) => page.items ?? []);
     }, [data]);
+
+    const handleEndReached = React.useCallback(() => {
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+        }
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+    const renderRestaurant = React.useCallback<ListRenderItem<RestaurantDisplay>>(
+        ({ item }) => {
+            const ratingDisplay = item.rating ? `${item.rating}/5` : "New";
+
+            return (
+                <TouchableOpacity
+                    style={styles.card}
+                    onPress={() =>{
+                       navigation.navigate(
+                            "RestaurantDetails" as never,
+                            { restaurantId: item.id } as never
+                        )
+                        onClose();
+                    }
+                        
+                    }
+                    activeOpacity={0.85}
+                >
+                    <Image
+                        source={
+                            item.imageUrl
+                                ? { uri: `${BASE_API_URL}/auth/image/${item.imageUrl}` }
+                                : require("../../assets/baguette.png")
+                        }
+                        style={styles.cardImage}
+                        contentFit="cover"
+                    />
+                    {item.hasPromotion && item.promotionSummary ? (
+                        <View style={styles.promotionStickerContainer}>
+                            <LinearGradient
+                                colors={["#FACC15", "#F97316"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
+                                style={styles.promotionSticker}
+                            >
+                                <Percent size={s(11)} color="#0F172A" />
+                                <Text style={styles.promotionText} numberOfLines={1}>
+                                    {item.promotionSummary}
+                                </Text>
+                            </LinearGradient>
+                        </View>
+                    ) : null}
+                    <View style={styles.cardBody}>
+                        <Text style={styles.cardTitle}>{item.name}</Text>
+                        <View style={styles.cardRow}>
+                            <Text style={styles.deliveryTime}>{item.type ?? "Restaurant"}</Text>
+                            <View style={styles.ratingRow}>
+                                <Star size={s(14)} color="#FACC15" fill="#FACC15" />
+                                <Text style={styles.ratingText}>{ratingDisplay}</Text>
+                            </View>
+                        </View>
+                        <Text style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee ?? 0)}</Text>
+                    </View>
+                </TouchableOpacity>
+            );
+        },
+        [navigation]
+    );
+
+    const listFooter = React.useMemo(
+        () =>
+            isFetchingNextPage ? (
+                <View style={styles.listFooter}>
+                    <ActivityIndicator size="small" color="#CA251B" />
+                </View>
+            ) : null,
+        [isFetchingNextPage]
+    );
+
+    const listEmptyComponent = React.useCallback(
+        () => (
+            <View style={styles.emptyWrapper}>
+                <Text style={styles.emptyText}>No {category} restaurants found.</Text>
+            </View>
+        ),
+        [category]
+    );
 
     let content: React.ReactNode;
 
-    if (isLoading) {
+    if (!hasLocation) {
+        content = (
+            <View style={styles.emptyWrapper}>
+                <Text style={styles.emptyText}>Select an address to explore restaurants.</Text>
+            </View>
+        );
+    } else if (isLoading) {
         content = (
             <View style={styles.loadingWrapper}>
                 <ActivityIndicator size="large" color="#CA251B" />
@@ -88,70 +217,22 @@ export default function CategoryOverlay({
                 </TouchableOpacity>
             </View>
         );
-    } else if (restaurants.length === 0) {
-        content = (
-            <View style={styles.emptyWrapper}>
-                <Text style={styles.emptyText}>No {category} restaurants found.</Text>
-            </View>
-        );
     } else {
         content = (
-            <ScrollView
+            <FlatList
+                data={restaurants}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderRestaurant}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.cardList}
-            >
-                {restaurants.map((restaurant) => (
-                    <TouchableOpacity
-                        key={restaurant.id}
-                        style={styles.card}
-                        onPress={() =>
-                            navigation.navigate(
-                                "RestaurantDetails" as never,
-                                { restaurantId: restaurant.id } as never
-                            )
-                        }
-                        activeOpacity={0.85}
-                    >
-                        <Image
-                            source={
-                                restaurant.imageUrl
-                                    ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
-                                    : require("../../assets/baguette.png")
-                            }
-                            style={styles.cardImage}
-                            contentFit="cover"
-                        />
-                        {restaurant.hasPromotion && restaurant.promotionSummary ? (
-                            <View style={styles.promotionStickerContainer}>
-                                <LinearGradient
-                                    colors={["#FACC15", "#F97316"]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 0, y: 1 }}
-                                    style={styles.promotionSticker}
-                                >
-                                    <Percent size={s(11)} color="#0F172A" />
-                                    <Text style={styles.promotionText} numberOfLines={1}>
-                                        {restaurant.promotionSummary}
-                                    </Text>
-                                </LinearGradient>
-                            </View>
-                        ) : null}
-                        <View style={styles.cardBody}>
-                            <Text style={styles.cardTitle}>{restaurant.name}</Text>
-                            <View style={styles.cardRow}>
-                                <Text style={styles.deliveryTime}>{restaurant.type}</Text>
-                                <View style={styles.ratingRow}>
-                                    <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-                                    <Text style={styles.ratingText}>
-                                        {restaurant.rating ? `${restaurant.rating}/5` : "New"}
-                                    </Text>
-                                </View>
-                            </View>
-                            <Text style={styles.deliveryFee}>{formatDeliveryFee(restaurant.deliveryFee)}</Text>
-                        </View>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+                contentContainerStyle={[
+                    styles.cardList,
+                    restaurants.length === 0 ? styles.listEmptyContent : undefined,
+                ]}
+                onEndReached={handleEndReached}
+                onEndReachedThreshold={0.6}
+                ListEmptyComponent={listEmptyComponent}
+                ListFooterComponent={listFooter}
+            />
         );
     }
 
@@ -211,6 +292,8 @@ const styles = ScaledSheet.create({
     emptyWrapper: { flex: 1, justifyContent: "center", alignItems: "center" },
     emptyText: { color: "#6B7280", fontSize: "14@ms" },
     cardList: { paddingBottom: vs(40) },
+    listEmptyContent: { flexGrow: 1 },
+    listFooter: { paddingVertical: vs(16) },
     card: {
         backgroundColor: "white",
         borderRadius: "12@ms",

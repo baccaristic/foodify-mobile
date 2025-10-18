@@ -166,3 +166,29 @@ export interface MenuItemPromotion {
   promotionLabel?: string | null;
   imageUrl: string;
 }
+
+export interface RestaurantDisplay {
+  id: number;
+  name: string;
+  description?: string | null;
+  rating?: number | null;
+  type?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  openingHours?: string | null;
+  closingHours?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  deliveryFee?: number | null;
+  imageUrl?: string | null;
+  favorite?: boolean | null;
+  hasPromotion?: boolean | null;
+  promotionSummary?: string | null;
+}
+
+export interface CategoryRestaurantsResponse {
+  items: RestaurantDisplay[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+}

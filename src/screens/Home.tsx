@@ -518,7 +518,7 @@ export default function HomePage() {
     <Animated.View entering={FadeIn.duration(500)}>
       <View style={styles.headerWrapper}>
         <Header
-          title="San Francisco Bay Area"
+          title="Please choose your address."
           onBack={() => console.log("not working now !")}
           compact
         />
@@ -539,7 +539,7 @@ export default function HomePage() {
             { icon: Pizza, label: "Pizza" },
             { icon: Hamburger, label: "Burger" },
           ].map((item, idx) => (
-            <TouchableOpacity key={idx} style={styles.categoryEqualWidth} onPress={() => handleCategoryPress(item.label)}
+            <TouchableOpacity key={idx} style={styles.categoryEqualWidth} onPress={() => handleCategoryPress(item.label.toLowerCase())}
             >
               <View style={styles.categoryIconWrapper}>
                 <item.icon size={s(32)} color="#CA251B" />

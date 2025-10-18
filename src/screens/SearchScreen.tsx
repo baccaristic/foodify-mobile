@@ -682,7 +682,7 @@ export default function SearchScreen() {
   const customHeader = (
     <Animated.View entering={FadeIn.duration(500)} style={styles.headerWrapper}>
       <Header
-        title="San Francisco Bay Area"
+        title="Please choose your address."
         onBack={() => navigation.goBack()}
         onLocationPress={() => console.log("Location pressed")}
         compact
