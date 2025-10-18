@@ -35,7 +35,7 @@ const borderColor = "#E8E9EC";
 
 const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
   const navigation = useNavigation<any>();
-  const { addItem } = useCart();
+  const { addItem,clearCart } = useCart();
   if (!order) return null;
 
   const formatCurrency = (val: number | string | null | undefined): string => {
@@ -98,6 +98,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
 
   const handleReorder = () => {
     if (!order || !restaurant?.id) return;
+    clearCart();
     items.forEach((it: OrderItemDto) => {
       addItem({
         restaurant: { id: restaurant.id, name: restaurant.name },

@@ -42,7 +42,7 @@ const buildOrderSummary = (order: OrderDto) => {
 
 const OrderHistoryScreen = () => {
   const navigation = useNavigation();
-  const { addItem } = useCart();
+  const { addItem,clearCart } = useCart();
   const [selectedOrder, setSelectedOrder] = useState<OrderDto | null>(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
 
@@ -59,6 +59,7 @@ const OrderHistoryScreen = () => {
   const handleReorder = useCallback(
     (order: OrderDto) => {
       if (!order || !order.items?.length) return;
+      clearCart();
       order.items.forEach((it: OrderItemDto) => {
         addItem({
           restaurant: { id: order.restaurantId, name: order.restaurantName },
@@ -75,7 +76,7 @@ const OrderHistoryScreen = () => {
       });
       navigation.navigate('CheckoutOrder' as never);
     },
-    [addItem, navigation],
+    [addItem,clearCart, navigation],
   );
 
   const {
