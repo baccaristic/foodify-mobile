@@ -1156,21 +1156,6 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
             </View>
           </View>
-          <View style={styles.courierStickyActions}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.courierActionButton}
-              onPress={handleCallCourier}
-            >
-              <Phone size={18} color={accentColor} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[styles.courierActionButton, styles.courierActionButtonSpacing]}
-            >
-              <MessageCircle size={18} color={accentColor} />
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
 
@@ -1199,27 +1184,6 @@ const OrderTrackingScreen: React.FC = () => {
               <Text style={styles.helpDescription}>
                 Our support team is available 24/7 to assist you.
               </Text>
-              <TouchableOpacity
-                style={styles.helpOption}
-                activeOpacity={0.85}
-                onPress={handleCallSupport}
-              >
-                <View style={styles.helpOptionIcon}>
-                  <Phone size={20} color="white" />
-                </View>
-                <View style={styles.helpOptionContent}>
-                  <Text style={styles.helpOptionTitle}>Call customer support</Text>
-                  <Text style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.helpChatButton}
-                activeOpacity={0.9}
-                onPress={handleRequestLiveChat}
-              >
-                <MessageCircle size={18} color="white" />
-                <Text style={styles.helpChatButtonText}>Request instant live chat</Text>
-              </TouchableOpacity>
             </Animated.View>
           </View>
         </Modal>
@@ -1706,21 +1670,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: textSecondary,
   },
-  courierStickyActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  courierActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#F8F9FC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  courierActionButtonSpacing: {
-    marginLeft: 8,
-  },
+  
   helpModalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1759,49 +1709,5 @@ const styles = StyleSheet.create({
     color: textSecondary,
     marginBottom: 24,
   },
-  helpOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginBottom: 18,
-  },
-  helpOptionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: accentColor,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  helpOptionContent: {
-    flex: 1,
-  },
-  helpOptionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: textPrimary,
-    marginBottom: 4,
-  },
-  helpOptionSubtitle: {
-    fontSize: 14,
-    color: textSecondary,
-  },
-  helpChatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: accentColor,
-    borderRadius: 20,
-    paddingVertical: 16,
-  },
-  helpChatButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 10,
-  },
+ 
 });
