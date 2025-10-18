@@ -5,7 +5,17 @@ import type {
   RestaurantDetailsResponse,
   RestaurantSearchParams,
   RestaurantSearchResponse,
+  CategoryRestaurantsResponse,
 } from '~/interfaces/Restaurant';
+
+interface CategoryRestaurantsParams {
+  lat: number;
+  lng: number;
+  categorie: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
 
 export const getNearbyRestaurants = async ({
   lat,
@@ -44,6 +54,28 @@ export const searchRestaurants = async (
 ): Promise<RestaurantSearchResponse> => {
   const { data } = await client.get<RestaurantSearchResponse>(`/client/restaurants/search`, {
     params,
+  });
+
+  return data;
+};
+
+export const getCategoryRestaurants = async ({
+  lat,
+  lng,
+  categorie,
+  page = 0,
+  size = 10,
+  sort,
+}: CategoryRestaurantsParams): Promise<CategoryRestaurantsResponse> => {
+  const { data } = await client.get<CategoryRestaurantsResponse>(`/client/filter/categorie`, {
+    params: {
+      lat,
+      lng,
+      categorie,
+      page,
+      size,
+      sort,
+    },
   });
 
   return data;

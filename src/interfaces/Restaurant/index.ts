@@ -166,3 +166,28 @@ export interface MenuItemPromotion {
   promotionLabel?: string | null;
   imageUrl: string;
 }
+
+export interface PageResponse<T> {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+export interface RestaurantDisplay {
+  id: number;
+  name: string;
+  type?: string;
+  rating: number | null;
+  deliveryFee: number | null;
+  imageUrl?: string | null;
+  hasPromotion?: boolean;
+  promotionSummary?: string | null;
+  favorite?: boolean;
+}
+
+export type CategoryRestaurantsResponse = PageResponse<RestaurantDisplay>;
