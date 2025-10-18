@@ -49,6 +49,7 @@ import PrivacyScreen from '~/screens/Profile/PrivacyScreen';
 import ProfileSettingsScreen from '~/screens/Profile/ProfilSettingsScreen';
 import CouponCodeScreen from '~/screens/Profile/CouponCodeScreen';
 import FavoritesScreen from '~/screens/Profile/FavoritesScreen';
+import { LocalizationProvider } from '~/localization';
 
 const Stack = createNativeStackNavigator();
 
@@ -230,25 +231,27 @@ const RootNavigator = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <NavigationContainer>
-          <AuthProvider>
-            <OngoingOrderProvider>
-              <WebSocketProvider>
-                <PhoneSignupProvider>
-                  <SelectedAddressProvider>
-                    <CartProvider>
-                      <LocationOverlayProvider>
-                        <RootNavigator />
-                      </LocationOverlayProvider>
-                    </CartProvider>
-                  </SelectedAddressProvider>
-                </PhoneSignupProvider>
-              </WebSocketProvider>
-            </OngoingOrderProvider>
-          </AuthProvider>
-        </NavigationContainer>
-      </QueryClientProvider>
+      <LocalizationProvider>
+        <QueryClientProvider client={queryClient}>
+          <NavigationContainer>
+            <AuthProvider>
+              <OngoingOrderProvider>
+                <WebSocketProvider>
+                  <PhoneSignupProvider>
+                    <SelectedAddressProvider>
+                      <CartProvider>
+                        <LocationOverlayProvider>
+                          <RootNavigator />
+                        </LocationOverlayProvider>
+                      </CartProvider>
+                    </SelectedAddressProvider>
+                  </PhoneSignupProvider>
+                </WebSocketProvider>
+              </OngoingOrderProvider>
+            </AuthProvider>
+          </NavigationContainer>
+        </QueryClientProvider>
+      </LocalizationProvider>
     </SafeAreaProvider>
   );
 }

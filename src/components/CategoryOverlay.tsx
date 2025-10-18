@@ -18,15 +18,14 @@ import type { CategoryRestaurantsResponse, RestaurantDisplay } from "~/interface
 import { BASE_API_URL } from "@env";
 import { LinearGradient } from "expo-linear-gradient";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
+import { useTranslation } from "~/localization";
+import { getCategoryLabelKey } from "~/localization/categoryKeys";
 
 interface CategoryOverlayProps {
     visible: boolean;
     category: string;
     onClose: () => void;
 }
-
-const formatDeliveryFee = (fee: number) =>
-    fee > 0 ? `${fee.toFixed(3).replace('.', ',')} DT delivery fee` : 'Free delivery';
 
 const PAGE_SIZE = 10;
 
@@ -37,9 +36,39 @@ export default function CategoryOverlay({
 }: CategoryOverlayProps) {
     const navigation = useNavigation();
     const savedAddresse = useSelectedAddress();
+    const { t } = useTranslation();
     const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude ?? null;
     const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude ?? null;
     const hasLocation = userLatitude !== null && userLongitude !== null;
+
+    const categoryLabel = React.useMemo(() => {
+        const labelKey = getCategoryLabelKey(category);
+        if (labelKey) {
+            return t(labelKey);
+        }
+        return category;
+    }, [category, t]);
+
+    const categoryTitle = React.useMemo(() => categoryLabel?.toUpperCase() ?? '', [categoryLabel]);
+    const categoryLabelForCopy = React.useMemo(() => {
+        if (categoryLabel) {
+            return categoryLabel.toLowerCase();
+        }
+        if (category) {
+            return category.toLowerCase();
+        }
+        return t('categoryOverlay.defaultType').toLowerCase();
+    }, [category, categoryLabel, t]);
+
+    const formatDeliveryFee = React.useCallback(
+        (fee: number) =>
+            fee > 0
+                ? t('categoryOverlay.delivery.withFee', {
+                      values: { fee: fee.toFixed(3).replace('.', ',') },
+                  })
+                : t('home.delivery.free'),
+        [t],
+    );
 
     const {
         data,
@@ -116,7 +145,7 @@ export default function CategoryOverlay({
 
     const renderRestaurant = React.useCallback<ListRenderItem<RestaurantDisplay>>(
         ({ item }) => {
-            const ratingDisplay = item.rating ? `${item.rating}/5` : "New";
+            const ratingDisplay = item.rating ? `${item.rating}/5` : t('home.rating.new');
 
             return (
                 <TouchableOpacity
@@ -159,7 +188,7 @@ export default function CategoryOverlay({
                     <View style={styles.cardBody}>
                         <Text style={styles.cardTitle}>{item.name}</Text>
                         <View style={styles.cardRow}>
-                            <Text style={styles.deliveryTime}>{item.type ?? "Restaurant"}</Text>
+                            <Text style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
                             <View style={styles.ratingRow}>
                                 <Star size={s(14)} color="#FACC15" fill="#FACC15" />
                                 <Text style={styles.ratingText}>{ratingDisplay}</Text>
@@ -170,7 +199,7 @@ export default function CategoryOverlay({
                 </TouchableOpacity>
             );
         },
-        [navigation]
+        [formatDeliveryFee, navigation, onClose, t]
     );
 
     const listFooter = React.useMemo(
@@ -186,10 +215,12 @@ export default function CategoryOverlay({
     const listEmptyComponent = React.useCallback(
         () => (
             <View style={styles.emptyWrapper}>
-                <Text style={styles.emptyText}>No {category} restaurants found.</Text>
+                <Text style={styles.emptyText}>
+                    {t('categoryOverlay.empty.title', { values: { category: categoryLabelForCopy } })}
+                </Text>
             </View>
         ),
-        [category]
+        [categoryLabel, t]
     );
 
     let content: React.ReactNode;
@@ -197,7 +228,7 @@ export default function CategoryOverlay({
     if (!hasLocation) {
         content = (
             <View style={styles.emptyWrapper}>
-                <Text style={styles.emptyText}>Select an address to explore restaurants.</Text>
+                <Text style={styles.emptyText}>{t('categoryOverlay.addressPrompt')}</Text>
             </View>
         );
     } else if (isLoading) {
@@ -210,10 +241,10 @@ export default function CategoryOverlay({
         content = (
             <View style={styles.errorWrapper}>
                 <Text style={styles.errorText}>
-                    Could not load {category} restaurants.
+                    {t('categoryOverlay.error.title', { values: { category: categoryLabelForCopy } })}
                 </Text>
                 <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-                    <Text style={styles.retryText}>Retry</Text>
+                    <Text style={styles.retryText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -244,7 +275,7 @@ export default function CategoryOverlay({
                         <TouchableOpacity onPress={onClose}>
                             <X color="#17213A" size={s(22)} />
                         </TouchableOpacity>
-                        <Text style={styles.title}>{category.toUpperCase()}</Text>
+                        <Text style={styles.title}>{categoryTitle}</Text>
                         <View style={{ width: s(22) }} />
                     </View>
 

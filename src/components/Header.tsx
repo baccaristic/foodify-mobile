@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown } from "lucide-react-native";
 
 import useLocationOverlay from '~/hooks/useLocationOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
+import { useTranslation } from '~/localization';
 
 interface HeaderProps {
   title?: string;
@@ -20,13 +21,15 @@ export default function Header({
 }: HeaderProps) {
   const { open } = useLocationOverlay();
   const { selectedAddress } = useSelectedAddress();
+  const { t } = useTranslation();
 
   const handleLocationPress = () => {
     open();
     onLocationPress?.();
   };
 
-  const displayTitle = selectedAddress?.formattedAddress ?? title ?? 'Choose delivery address';
+  const displayTitle =
+    selectedAddress?.formattedAddress ?? title ?? t('header.chooseAddress');
 
   return (
     <View className={compact ? "px-3 py-1" : "px-5 py-5"}>
