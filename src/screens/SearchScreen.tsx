@@ -39,6 +39,7 @@ import { getMenuItemBasePrice } from "~/utils/menuPricing";
 import { updateMenuItemFavoriteState } from "~/utils/restaurantFavorites";
 import { BASE_API_URL } from "@env";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
+import useLocationOverlay from "~/hooks/useLocationOverlay";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
@@ -237,7 +238,13 @@ export default function SearchScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const queryClient = useQueryClient();
   const { addItem } = useCart();
-  const selectedAddress = useSelectedAddress();
+  const { open: openLocationOverlay } = useLocationOverlay();
+  const { selectedAddress } = useSelectedAddress();
+
+  const coordinates = selectedAddress?.coordinates;
+  const userLatitude = typeof coordinates?.latitude === "number" ? coordinates.latitude : null;
+  const userLongitude = typeof coordinates?.longitude === "number" ? coordinates.longitude : null;
+  const hasSelectedAddress = userLatitude !== null && userLongitude !== null;
 
   const [isMenuModalVisible, setIsMenuModalVisible] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
@@ -301,10 +308,12 @@ export default function SearchScreen() {
   const { promotions, topChoice, freeDelivery } = quickFilters;
   const { sort, topEat, maxFee } = overlayFilters;
 
-  const searchParamsBase = useMemo<RestaurantSearchParams>(() => {
+  const searchParamsBase = useMemo<RestaurantSearchParams | null>(() => {
     const trimmedQuery = debouncedSearchTerm.trim();
-      const userLatitude = selectedAddress.selectedAddress?.coordinates.latitude as number;
-  const userLongitude = selectedAddress.selectedAddress?.coordinates.longitude as number;
+
+    if (!hasSelectedAddress || userLatitude === null || userLongitude === null) {
+      return null;
+    }
 
     return {
       lat: userLatitude,
@@ -318,7 +327,18 @@ export default function SearchScreen() {
       maxDeliveryFee: maxFee,
       pageSize: PAGE_SIZE,
     };
-  }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee, selectedAddress]);
+  }, [
+    debouncedSearchTerm,
+    freeDelivery,
+    hasSelectedAddress,
+    maxFee,
+    promotions,
+    sort,
+    topChoice,
+    topEat,
+    userLatitude,
+    userLongitude,
+  ]);
 
   const {
     data,
@@ -331,11 +351,16 @@ export default function SearchScreen() {
     isRefetching,
   } = useInfiniteQuery({
     queryKey: ["restaurants-search", searchParamsBase],
-    queryFn: ({ pageParam = INITIAL_PAGE }) =>
-      searchRestaurants({
+    queryFn: ({ pageParam = INITIAL_PAGE }) => {
+      if (!searchParamsBase) {
+        throw new Error("Search parameters are not available");
+      }
+
+      return searchRestaurants({
         ...searchParamsBase,
         page: pageParam,
-      }),
+      });
+    },
     getNextPageParam: (lastPage) => {
       const fetchedItems = lastPage.page * lastPage.pageSize + lastPage.items.length;
       if (fetchedItems >= lastPage.totalItems) {
@@ -345,6 +370,7 @@ export default function SearchScreen() {
       return lastPage.page + 1;
     },
     initialPageParam: INITIAL_PAGE,
+    enabled: Boolean(searchParamsBase),
   });
 
   const menuItemFavoriteMutation = useMutation({
@@ -376,11 +402,13 @@ export default function SearchScreen() {
         return;
       }
 
+      if (!hasSelectedAddress || userLatitude === null || userLongitude === null) {
+        return;
+      }
+
       setIsFetchingMenuItem(true);
 
       try {
-          const userLatitude = selectedAddress.selectedAddress?.coordinates.latitude as number;
-  const userLongitude = selectedAddress.selectedAddress?.coordinates.longitude as number;
         const details = await queryClient.fetchQuery({
           queryKey: ["restaurant-details", restaurant.id, userLatitude, userLongitude],
           queryFn: () =>
@@ -406,13 +434,14 @@ export default function SearchScreen() {
         setIsFetchingMenuItem(false);
       }
     },
-    [isFetchingMenuItem, queryClient, selectedAddress]
+    [hasSelectedAddress, isFetchingMenuItem, queryClient, userLatitude, userLongitude]
   );
 
   const handleToggleMenuItemFavorite = useCallback(
     (menuItemId: number, nextFavorite: boolean) => {
-        const userLatitude = selectedAddress.selectedAddress?.coordinates.latitude as number;
-  const userLongitude = selectedAddress.selectedAddress?.coordinates.longitude as number;
+      if (!hasSelectedAddress || userLatitude === null || userLongitude === null) {
+        return;
+      }
       const previousData =
         selectedRestaurantId !== null
           ? queryClient.getQueryData<RestaurantDetailsResponse>([
@@ -461,7 +490,14 @@ export default function SearchScreen() {
         }
       );
     },
-    [menuItemFavoriteMutation, queryClient, selectedRestaurantId, selectedAddress]
+    [
+      hasSelectedAddress,
+      menuItemFavoriteMutation,
+      queryClient,
+      selectedRestaurantId,
+      userLatitude,
+      userLongitude,
+    ]
   );
 
   const handleAddMenuItem = useCallback(
@@ -522,13 +558,18 @@ export default function SearchScreen() {
   }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee]);
 
   const showInlineSpinner = isRefetching && !isFetchingNextPage && restaurants.length > 0;
-  const isEmpty = !isLoading && !isError && !isRefetching && restaurants.length === 0;
+  const isEmpty =
+    hasSelectedAddress && !isLoading && !isError && !isRefetching && restaurants.length === 0;
 
   const handleEndReached = useCallback(() => {
+    if (!hasSelectedAddress) {
+      return;
+    }
+
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, hasSelectedAddress, isFetchingNextPage]);
 
   const renderResultItem = useCallback(
     ({ item }: { item: RestaurantSearchItem }) => (
@@ -563,6 +604,24 @@ export default function SearchScreen() {
   ), [debouncedSearchTerm, isLoading, showInlineSpinner, showResultCount, totalItems]);
 
   const renderListEmpty = useCallback(() => {
+    if (!hasSelectedAddress) {
+      return (
+        <View style={styles.stateContainer}>
+          <Text style={styles.addressPromptTitle}>Set your address to start searching.</Text>
+          <Text style={styles.addressPromptSubtitle}>
+            Add your delivery location so we can show restaurants available in your area.
+          </Text>
+          <TouchableOpacity
+            style={styles.addressPromptButton}
+            activeOpacity={0.85}
+            onPress={openLocationOverlay}
+          >
+            <Text style={styles.addressPromptButtonText}>Select address</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     if (isLoading) {
       return (
         <View style={styles.stateContainer}>
@@ -592,7 +651,14 @@ export default function SearchScreen() {
     }
 
     return null;
-  }, [isEmpty, isError, isLoading, refetch]);
+  }, [
+    hasSelectedAddress,
+    isEmpty,
+    isError,
+    isLoading,
+    openLocationOverlay,
+    refetch,
+  ]);
 
   const renderListFooter = useCallback(() => {
     if (!isFetchingNextPage) {
@@ -611,7 +677,7 @@ export default function SearchScreen() {
 
   const mainContent = <></>;
 
-  const isRefreshing = isRefetching && !isFetchingNextPage;
+  const isRefreshing = hasSelectedAddress && isRefetching && !isFetchingNextPage;
 
   const customHeader = (
     <Animated.View entering={FadeIn.duration(500)} style={styles.headerWrapper}>
@@ -678,7 +744,9 @@ export default function SearchScreen() {
         mainContent={mainContent}
         isRefreshing={isRefreshing}
         onRefresh={() => {
-          refetch();
+          if (hasSelectedAddress) {
+            refetch();
+          }
         }}
         virtualizedListProps={{
           data: restaurants,
@@ -982,6 +1050,35 @@ const styles = ScaledSheet.create({
     fontSize: "14@ms",
     fontWeight: "500",
     maxWidth: "240@s",
+  },
+  addressPromptTitle: {
+    textAlign: "center",
+    color: "#111827",
+    fontFamily: "Roboto",
+    fontSize: "17@ms",
+    fontWeight: "700",
+    paddingHorizontal: "12@s",
+  },
+  addressPromptSubtitle: {
+    textAlign: "center",
+    color: "#6B7280",
+    fontFamily: "Roboto",
+    fontSize: "13@ms",
+    paddingHorizontal: "18@s",
+    lineHeight: "18@vs",
+  },
+  addressPromptButton: {
+    marginTop: "4@vs",
+    backgroundColor: "#CA251B",
+    borderRadius: "22@ms",
+    paddingHorizontal: "24@s",
+    paddingVertical: "10@vs",
+  },
+  addressPromptButtonText: {
+    color: "#FFFFFF",
+    fontFamily: "Roboto",
+    fontSize: "14@ms",
+    fontWeight: "600",
   },
   retryButton: {
     backgroundColor: "#CA251B",

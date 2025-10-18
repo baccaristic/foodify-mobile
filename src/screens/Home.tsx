@@ -29,6 +29,7 @@ import type {
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
+import useLocationOverlay from '~/hooks/useLocationOverlay';
 
 type SectionLayout = 'carousel' | 'flatList';
 
@@ -65,6 +66,7 @@ const PAGE_SIZE = 20;
 
 export default function HomePage() {
   const navigation = useNavigation();
+  const { open: openLocationOverlay } = useLocationOverlay();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
@@ -73,10 +75,11 @@ export default function HomePage() {
     setSelectedCategory(category);
   };
 
-  // TODO: replace with actual user location from location services
-   const savedAddresse = useSelectedAddress();
-    const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude;
-    const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude;;
+  const { selectedAddress } = useSelectedAddress();
+  const hasSelectedAddress = Boolean(selectedAddress?.coordinates);
+
+  const userLatitude = selectedAddress?.coordinates.latitude;
+  const userLongitude = selectedAddress?.coordinates.longitude;
 
   const radiusKm = 10;
 
@@ -110,6 +113,7 @@ export default function HomePage() {
       return page + 1;
     },
     initialPageParam: INITIAL_PAGE,
+    enabled: hasSelectedAddress,
   });
 
   type NearbyListItem =
@@ -190,10 +194,14 @@ export default function HomePage() {
   }, [otherRestaurants, othersLayout, topSections]);
 
   const handleEndReached = useCallback(() => {
+    if (!hasSelectedAddress) {
+      return;
+    }
+
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, hasSelectedAddress, isFetchingNextPage]);
 
   const renderRestaurantCard = useCallback(
     (restaurant: RestaurantSummary, variant: 'default' | 'compact' = 'default') => {
@@ -429,6 +437,30 @@ export default function HomePage() {
   );
 
   const renderListEmpty = useCallback(() => {
+    if (!hasSelectedAddress) {
+      return (
+        <View style={styles.mainWrapper}>
+          <View style={styles.addressPrompt}>
+            <Text allowFontScaling={false} style={styles.addressPromptTitle}>
+              Choose an address to explore restaurants nearby.
+            </Text>
+            <Text allowFontScaling={false} style={styles.addressPromptSubtitle}>
+              Set your delivery location so we can show options available in your area.
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.addressPromptButton}
+              onPress={openLocationOverlay}
+            >
+              <Text allowFontScaling={false} style={styles.addressPromptButtonLabel}>
+                Select address
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
     if (isLoading) {
       return (
         <View style={styles.mainWrapper}>
@@ -466,7 +498,7 @@ export default function HomePage() {
         </View>
       </View>
     );
-  }, [isError, isLoading, refetch]);
+  }, [hasSelectedAddress, isError, isLoading, openLocationOverlay, refetch]);
 
   const renderListFooter = useCallback(() => {
     if (!isFetchingNextPage) {
@@ -638,6 +670,36 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     paddingVertical: '28@vs',
     gap: '10@vs',
+  },
+  addressPrompt: {
+    paddingVertical: '36@vs',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: '16@s',
+  },
+  addressPromptTitle: {
+    fontSize: '18@ms',
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  addressPromptSubtitle: {
+    marginTop: '8@vs',
+    fontSize: '13@ms',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  addressPromptButton: {
+    marginTop: '18@vs',
+    paddingHorizontal: '20@s',
+    paddingVertical: '10@vs',
+    borderRadius: '20@ms',
+    backgroundColor: '#CA251B',
+  },
+  addressPromptButtonLabel: {
+    fontSize: '14@ms',
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   emptyTitle: {
     fontSize: '16@ms',

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { ListRenderItem } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -115,9 +115,19 @@ const OrderHistoryScreen = () => {
   const isRefreshing = isFetching && !isLoading && !isFetchingNextPage;
   const handleRefresh = useCallback(() => refetch(), [refetch]);
   const handleEndReached = useCallback(() => {
-    if (!hasNextPage || isFetchingNextPage) return;
+    if (!hasNextPage || isFetchingNextPage || isFetching) return;
     void fetchNextPage();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, isFetching, isFetchingNextPage]);
+
+  const renderListFooter = useCallback(() => {
+    if (!isFetchingNextPage) return null;
+
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={accentColor} />
+      </View>
+    );
+  }, [isFetchingNextPage]);
 
   const renderOrderItem = useCallback<ListRenderItem<OrderDto>>(
     ({ item }) => {
@@ -215,22 +225,7 @@ const OrderHistoryScreen = () => {
     );
   }, [isLoading, isError, navigation, refetch]);
 
-  const mainContent = () => (
-    <View style={{ flex: 1 }}>
-      <FlatList
-        data={orders}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderOrderItem}
-        ItemSeparatorComponent={renderSeparator}
-        ListEmptyComponent={renderEmptyState}
-        contentContainerStyle={styles.ordersListContent}
-        showsVerticalScrollIndicator={false}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.35}
-        scrollEnabled={false}
-      />
-    </View>
-  );
+  const mainContent = <></>;
 
   const customHeader = (
     <View style={styles.header}>
@@ -262,7 +257,19 @@ const OrderHistoryScreen = () => {
         headerMinHeight={vs(30)}
         activeTab="Profile"
         customHeader={customHeader}
-        mainContent={mainContent()}
+        mainContent={mainContent}
+        virtualizedListProps={{
+          data: orders,
+          keyExtractor: (item) => item.id.toString(),
+          renderItem: renderOrderItem,
+          ItemSeparatorComponent: renderSeparator,
+          ListEmptyComponent: renderEmptyState,
+          ListFooterComponent: renderListFooter,
+          contentContainerStyle: styles.ordersListContent,
+          showsVerticalScrollIndicator: false,
+          onEndReached: handleEndReached,
+          onEndReachedThreshold: 0.35,
+        }}
         floatingContent={continueOrderingButton}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
@@ -311,6 +318,7 @@ const styles = ScaledSheet.create({
   totalStatusText: { fontSize: '14@ms', fontWeight: '700', color: accentColor, marginTop: vs(6) },
   orderSeparator: { height: '14@vs' },
   ordersListContent: { flexGrow: 1, paddingHorizontal: '16@s', paddingBottom: '140@vs', paddingTop: '8@vs' },
+  footerLoader: { paddingVertical: '12@vs', alignItems: 'center', justifyContent: 'center' },
   stateWrapper: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: '24@s', gap: '16@vs' },
   stateTitle: { fontSize: '16@ms', fontWeight: '600', color: primaryColor, textAlign: 'center' },
   stateSubtitle: { fontSize: '13@ms', color: '#64748B', textAlign: 'center', marginTop: vs(2) },
