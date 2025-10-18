@@ -59,7 +59,7 @@ export default function CategoryOverlay({
                 lat: userLatitude as number,
                 lng: userLongitude as number,
                 categorie: category,
-                page: nextPage,
+                page: pageParam - 1,
                 size: PAGE_SIZE,
             });
         },
@@ -121,11 +121,14 @@ export default function CategoryOverlay({
             return (
                 <TouchableOpacity
                     style={styles.card}
-                    onPress={() =>
-                        navigation.navigate(
+                    onPress={() =>{
+                       navigation.navigate(
                             "RestaurantDetails" as never,
                             { restaurantId: item.id } as never
                         )
+                        onClose();
+                    }
+                        
                     }
                     activeOpacity={0.85}
                 >

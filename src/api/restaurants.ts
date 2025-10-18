@@ -78,7 +78,7 @@ export const getCategoryRestaurants = async ({
     params: {
       lat,
       lng,
-      categorie,
+      category: categorie.toLowerCase(),
       page: safePage,
       size: safeSize,
       sort,
