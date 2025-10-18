@@ -13,7 +13,7 @@ import {
   MoveUp,
 } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
@@ -29,6 +29,7 @@ import type {
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
+import useLocationOverlay from '~/hooks/useLocationOverlay';
 
 type SectionLayout = 'carousel' | 'flatList';
 
@@ -64,7 +65,7 @@ const INITIAL_PAGE = 0;
 const PAGE_SIZE = 20;
 
 export default function HomePage() {
-  const navigation = useNavigation();
+  const { open: openLocationOverlay } = useLocationOverlay();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
@@ -79,9 +80,9 @@ export default function HomePage() {
   useFocusEffect(
     useCallback(() => {
       if (!hasSelectedAddress) {
-        navigation.navigate('LocationSelection' as never);
+        openLocationOverlay();
       }
-    }, [hasSelectedAddress, navigation])
+    }, [hasSelectedAddress, openLocationOverlay])
   );
 
   const userLatitude = selectedAddress?.coordinates.latitude;
