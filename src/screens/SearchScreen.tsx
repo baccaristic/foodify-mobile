@@ -38,6 +38,7 @@ import type { CartItemOptionSelection } from "~/context/CartContext";
 import { getMenuItemBasePrice } from "~/utils/menuPricing";
 import { updateMenuItemFavoriteState } from "~/utils/restaurantFavorites";
 import { BASE_API_URL } from "@env";
+import useSelectedAddress from "~/hooks/useSelectedAddress";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
@@ -236,8 +237,7 @@ export default function SearchScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const queryClient = useQueryClient();
   const { addItem } = useCart();
-  const userLatitude = 36.8065;
-  const userLongitude = 10.1815;
+  const selectedAddress = useSelectedAddress();
 
   const [isMenuModalVisible, setIsMenuModalVisible] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
@@ -303,6 +303,8 @@ export default function SearchScreen() {
 
   const searchParamsBase = useMemo<RestaurantSearchParams>(() => {
     const trimmedQuery = debouncedSearchTerm.trim();
+      const userLatitude = selectedAddress.selectedAddress?.coordinates.latitude as number;
+  const userLongitude = selectedAddress.selectedAddress?.coordinates.longitude as number;
 
     return {
       lat: userLatitude,
@@ -316,7 +318,7 @@ export default function SearchScreen() {
       maxDeliveryFee: maxFee,
       pageSize: PAGE_SIZE,
     };
-  }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee, userLatitude, userLongitude]);
+  }, [debouncedSearchTerm, promotions, topChoice, freeDelivery, sort, topEat, maxFee, selectedAddress]);
 
   const {
     data,
@@ -377,6 +379,8 @@ export default function SearchScreen() {
       setIsFetchingMenuItem(true);
 
       try {
+          const userLatitude = selectedAddress.selectedAddress?.coordinates.latitude as number;
+  const userLongitude = selectedAddress.selectedAddress?.coordinates.longitude as number;
         const details = await queryClient.fetchQuery({
           queryKey: ["restaurant-details", restaurant.id, userLatitude, userLongitude],
           queryFn: () =>
@@ -402,11 +406,13 @@ export default function SearchScreen() {
         setIsFetchingMenuItem(false);
       }
     },
-    [isFetchingMenuItem, queryClient, userLatitude, userLongitude]
+    [isFetchingMenuItem, queryClient, selectedAddress]
   );
 
   const handleToggleMenuItemFavorite = useCallback(
     (menuItemId: number, nextFavorite: boolean) => {
+        const userLatitude = selectedAddress.selectedAddress?.coordinates.latitude as number;
+  const userLongitude = selectedAddress.selectedAddress?.coordinates.longitude as number;
       const previousData =
         selectedRestaurantId !== null
           ? queryClient.getQueryData<RestaurantDetailsResponse>([
@@ -455,7 +461,7 @@ export default function SearchScreen() {
         }
       );
     },
-    [menuItemFavoriteMutation, queryClient, selectedRestaurantId, userLatitude, userLongitude]
+    [menuItemFavoriteMutation, queryClient, selectedRestaurantId, selectedAddress]
   );
 
   const handleAddMenuItem = useCallback(

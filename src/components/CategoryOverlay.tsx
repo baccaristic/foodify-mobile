@@ -16,6 +16,7 @@ import { getNearbyRestaurants } from "~/api/restaurants";
 import type { NearbyRestaurantsResponse, RestaurantSummary } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import { LinearGradient } from "expo-linear-gradient";
+import useSelectedAddress from "~/hooks/useSelectedAddress";
 
 interface CategoryOverlayProps {
     visible: boolean;
@@ -32,8 +33,9 @@ export default function CategoryOverlay({
     onClose,
 }: CategoryOverlayProps) {
     const navigation = useNavigation();
-    const userLatitude = 36.8065;
-    const userLongitude = 10.1815;
+    const savedAddresse = useSelectedAddress();
+    const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude;
+    const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude;;
 
     const {
         data,

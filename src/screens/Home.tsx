@@ -28,6 +28,7 @@ import type {
 } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
+import useSelectedAddress from '~/hooks/useSelectedAddress';
 
 type SectionLayout = 'carousel' | 'flatList';
 
@@ -73,9 +74,11 @@ export default function HomePage() {
   };
 
   // TODO: replace with actual user location from location services
-  const userLatitude = 36.8065;
-  const userLongitude = 10.1815;
-  const radiusKm = 5;
+   const savedAddresse = useSelectedAddress();
+    const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude;
+    const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude;;
+
+  const radiusKm = 10;
 
   const {
     data,

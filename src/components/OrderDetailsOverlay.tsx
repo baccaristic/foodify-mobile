@@ -20,6 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import { moderateScale } from "react-native-size-matters";
 import { useCart } from "~/context/CartContext";
 import type { OrderDto, OrderItemDto } from "~/interfaces/Order";
+import { BASE_API_URL } from "@env";
 
 interface Props {
   visible: boolean;
@@ -126,7 +127,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
             <View style={styles.header}>
               <Image
                 source={
-                  image ? { uri: image } : require("../../assets/TEST.png")
+                  image ? { uri: `${BASE_API_URL}/auth/image/${image}` } : require("../../assets/TEST.png")
                 }
                 style={styles.headerImage}
               />

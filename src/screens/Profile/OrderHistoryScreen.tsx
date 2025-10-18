@@ -11,6 +11,7 @@ import type { OrderDto, OrderItemDto } from '~/interfaces/Order';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import OrderDetailsOverlay from '~/components/OrderDetailsOverlay';
 import { useCart } from '~/context/CartContext';
+import { BASE_API_URL } from '@env';
 
 const accentColor = '#CA251B';
 const primaryColor = '#17213A';
@@ -88,10 +89,10 @@ const OrderHistoryScreen = () => {
     isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: ['client', 'my-orders'],
-    initialPageParam: 1,
+    initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       getMyOrders({
-        page: typeof pageParam === 'number' ? pageParam : Number(pageParam) || 1,
+        page: typeof pageParam === 'number' ? pageParam : Number(pageParam) || 0,
         pageSize: PAGE_SIZE,
       }),
     getNextPageParam: (lastPage) => {
@@ -124,7 +125,7 @@ const OrderHistoryScreen = () => {
       const isCanceled = item.status?.toUpperCase() === 'CANCELED';
       return (
         <TouchableOpacity activeOpacity={0.9} style={styles.orderCard} onPress={() => openOverlay(item)}>
-          <Image source={orderPlaceholder} style={styles.orderImage} contentFit="cover" />
+          <Image source={{ uri: `${BASE_API_URL}/auth/image/${(item as any)?.restaurantImage}` }} style={styles.orderImage} contentFit="cover" />
           <View style={styles.orderContent}>
             <Text allowFontScaling={false} style={styles.orderName} numberOfLines={1}>
               {item.restaurantName}
