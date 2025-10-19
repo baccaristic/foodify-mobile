@@ -13,6 +13,7 @@ import {
 import Animated, { FadeInUp, FadeOutDown } from 'react-native-reanimated';
 import { ScaledSheet, s } from 'react-native-size-matters';
 import { ArrowLeft, Search } from 'lucide-react-native';
+import { useTranslation } from '~/localization';
 
 
 const palette = {
@@ -57,6 +58,7 @@ export default function LocationSearchOverlay({
   onSubmitQuery,
 }: LocationSearchOverlayProps) {
   const inputRef = useRef<TextInput | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!visible) {
@@ -73,7 +75,7 @@ export default function LocationSearchOverlay({
 
   const emptyState = useMemo(() => {
     if (!query.trim()) {
-      return 'Start typing to search for a street, building or area.';
+      return t('locationSearch.empty.initial');
     }
     if (loading) {
       return '';
@@ -82,10 +84,10 @@ export default function LocationSearchOverlay({
       return error;
     }
     if (!predictions.length) {
-      return 'No matching places. Try refining the keywords.';
+      return t('locationSearch.empty.noResults');
     }
     return '';
-  }, [error, loading, predictions.length, query]);
+  }, [error, loading, predictions.length, query, t]);
 
   return (
     <Modal
@@ -116,7 +118,7 @@ export default function LocationSearchOverlay({
                   value={query}
                   onChangeText={onChangeQuery}
                   onSubmitEditing={onSubmitQuery}
-                  placeholder="Enter street, building number, etc"
+                  placeholder={t('locationSearch.placeholder')}
                   placeholderTextColor={palette.textSecondary}
                   style={styles.input}
                   returnKeyType="search"

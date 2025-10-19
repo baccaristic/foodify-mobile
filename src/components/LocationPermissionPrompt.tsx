@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import BackButtonHeader from '~/components/BackButtonHeader';
 import locationIcon from '../../assets/locationIcon.png';
 import AuthBackground from './AuthBackGround';
+import { useTranslation } from '~/localization';
 
 type LocationPermissionPromptProps = {
   title?: string;
@@ -18,22 +19,28 @@ type LocationPermissionPromptProps = {
 };
 
 const LocationPermissionPrompt = ({
-  title = 'Allow location access',
-  description = 'This lets us show you which restaurants and stores you can order from.',
-  agreeLabel = 'I Agree',
-  closeLabel = 'Close',
+  title,
+  description,
+  agreeLabel,
+  closeLabel,
   onAgree,
   onClose,
   isProcessing = false,
   errorMessage = null,
   showBackButton = true,
 }: LocationPermissionPromptProps) => {
+  const { t } = useTranslation();
   const agreeButtonStyle = useMemo(
     () =>
       `w-full h-14 rounded-lg justify-center items-center mb-4 ${isProcessing ? 'opacity-80 bg-[#17213A]' : 'bg-[#17213A]'
       }`,
     [isProcessing],
   );
+
+  const resolvedTitle = title ?? t('locationPermission.prompt.title');
+  const resolvedDescription = description ?? t('locationPermission.prompt.description');
+  const resolvedAgreeLabel = agreeLabel ?? t('locationPermission.prompt.agree');
+  const resolvedCloseLabel = closeLabel ?? t('common.close');
 
   return (
     <View className="flex-1 bg-white ">
@@ -51,7 +58,7 @@ const LocationPermissionPrompt = ({
 
           {/* Title */}
           <Text allowFontScaling={false} className="text-3xl font-bold mb-4 text-black text-center">
-            {title}
+            {resolvedTitle}
           </Text>
 
           {/* Description */}
@@ -59,7 +66,7 @@ const LocationPermissionPrompt = ({
             allowFontScaling={false}
             className="text-base text-gray-700 mb-6 leading-relaxed text-center"
           >
-            {description}
+            {resolvedDescription}
           </Text>
 
           {/* Error message */}
@@ -80,7 +87,7 @@ const LocationPermissionPrompt = ({
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-                {agreeLabel}
+                {resolvedAgreeLabel}
               </Text>
             )}
           </TouchableOpacity>
@@ -92,7 +99,7 @@ const LocationPermissionPrompt = ({
             activeOpacity={0.85}
           >
             <Text allowFontScaling={false} className="text-[#17213A] font-semibold text-lg">
-              {closeLabel}
+              {resolvedCloseLabel}
             </Text>
           </TouchableOpacity>
         </View>

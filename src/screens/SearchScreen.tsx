@@ -40,6 +40,7 @@ import { updateMenuItemFavoriteState } from "~/utils/restaurantFavorites";
 import { BASE_API_URL } from "@env";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
 import useLocationOverlay from "~/hooks/useLocationOverlay";
+import { useTranslation } from "~/localization";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
@@ -91,8 +92,6 @@ const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButton
 };
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace(".", ",")} DT`;
-const formatDeliveryFee = (fee: number) => (fee > 0 ? `${formatCurrency(fee)} delivery fee` : "Free delivery");
-
 const flattenCategories = (categories: RestaurantMenuCategory[] = []) =>
   categories.reduce<RestaurantMenuItemDetails[]>((acc, category) => acc.concat(category.items), []);
 
@@ -126,9 +125,17 @@ const RestaurantCard = ({
   onPress: () => void;
 }) => {
   const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl, deliveryFee } = data;
+  const { t } = useTranslation();
 
   const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
+  const formatDeliveryFee = useCallback(
+    (fee: number) =>
+      fee > 0
+        ? t("search.delivery.withFee", { values: {fee: formatCurrency(fee)} })
+        : t("search.delivery.free"),
+    [t],
+  );
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
@@ -150,12 +157,12 @@ const RestaurantCard = ({
           </View>
         </View>
 
-        <Text style={styles.deliveryFee}>{formatDeliveryFee(deliveryFee)}</Text>
+          <Text style={styles.deliveryFee}>{formatDeliveryFee(deliveryFee)}</Text>
 
         {hasFreeDelivery && (
           <View style={styles.promoContainer}>
             <View style={styles.freeDeliveryPill}>
-              <Text style={styles.promoText}>Free Delivery</Text>
+              <Text style={styles.promoText}>{t("search.card.freeDeliveryPill")}</Text>
             </View>
           </View>
         )}
@@ -213,13 +220,14 @@ const RestaurantResult = ({
   onPromotedItemPress: (restaurant: RestaurantSearchItem, item: MenuItemPromotion) => void;
 }) => {
   const promotions = restaurant.promotedMenuItems ?? [];
+  const { t } = useTranslation();
 
   return (
     <View style={styles.restaurantResult}>
       <RestaurantCard data={restaurant} onPress={() => onRestaurantPress(restaurant.id)} />
       {promotions.length > 0 && (
         <View style={styles.promotedMenuList}>
-          <Text style={styles.promotedMenuHeading}>Promoted items</Text>
+          <Text style={styles.promotedMenuHeading}>{t("search.promoted.heading")}</Text>
           {promotions.map((item) => (
             <PromotedMenuItemCard
               key={`promotion-${restaurant.id}-${item.id}`}
@@ -240,6 +248,7 @@ export default function SearchScreen() {
   const { addItem } = useCart();
   const { open: openLocationOverlay } = useLocationOverlay();
   const { selectedAddress } = useSelectedAddress();
+  const { t } = useTranslation();
 
   const coordinates = selectedAddress?.coordinates;
   const userLatitude = typeof coordinates?.latitude === "number" ? coordinates.latitude : null;
@@ -419,8 +428,8 @@ export default function SearchScreen() {
 
         if (!menuItemDetails) {
           Alert.alert(
-            "Menu item unavailable",
-            "We couldn't load this promoted item right now. Please try again later."
+            t("search.alerts.menuUnavailableTitle"),
+            t("search.alerts.menuUnavailableMessage"),
           );
           return;
         }
@@ -429,12 +438,22 @@ export default function SearchScreen() {
         setSelectedRestaurant({ id: details.id, name: details.name });
         setIsMenuModalVisible(true);
       } catch {
-        Alert.alert("Something went wrong", "We couldn't load this promoted item. Please try again.");
+        Alert.alert(
+          t("search.alerts.genericErrorTitle"),
+          t("search.alerts.genericErrorMessage"),
+        );
       } finally {
         setIsFetchingMenuItem(false);
       }
     },
-    [hasSelectedAddress, isFetchingMenuItem, queryClient, userLatitude, userLongitude]
+    [
+      hasSelectedAddress,
+      isFetchingMenuItem,
+      queryClient,
+      t,
+      userLatitude,
+      userLongitude,
+    ]
   );
 
   const handleToggleMenuItemFavorite = useCallback(
@@ -589,34 +608,48 @@ export default function SearchScreen() {
       {showResultCount && (
         <Text style={styles.resultsCount}>
           {isLoading
-            ? "Searching..."
-            : `${totalItems} Results${debouncedSearchTerm ? ` for “${debouncedSearchTerm}”` : ""}`}
+            ? t("search.results.searching")
+            : t("search.results.count", {
+                values: {count: totalItems,
+                query: debouncedSearchTerm
+                  ? t("search.results.querySuffix", { values: {query: debouncedSearchTerm }})
+                  : "",}
+              })}
         </Text>
       )}
 
       {showInlineSpinner && (
         <View style={styles.inlineSpinner}>
           <ActivityIndicator size="small" color="#CA251B" />
-          <Text style={styles.inlineSpinnerText}>Updating results...</Text>
+          <Text style={styles.inlineSpinnerText}>{t("search.results.updating")}</Text>
         </View>
       )}
     </View>
-  ), [debouncedSearchTerm, isLoading, showInlineSpinner, showResultCount, totalItems]);
+  ), [
+    debouncedSearchTerm,
+    isLoading,
+    showInlineSpinner,
+    showResultCount,
+    t,
+    totalItems,
+  ]);
 
   const renderListEmpty = useCallback(() => {
     if (!hasSelectedAddress) {
       return (
         <View style={styles.stateContainer}>
-          <Text style={styles.addressPromptTitle}>Set your address to start searching.</Text>
+          <Text style={styles.addressPromptTitle}>{t("search.states.addressPrompt.title")}</Text>
           <Text style={styles.addressPromptSubtitle}>
-            Add your delivery location so we can show restaurants available in your area.
+            {t("search.states.addressPrompt.subtitle")}
           </Text>
           <TouchableOpacity
             style={styles.addressPromptButton}
             activeOpacity={0.85}
             onPress={openLocationOverlay}
           >
-            <Text style={styles.addressPromptButtonText}>Select address</Text>
+            <Text style={styles.addressPromptButtonText}>
+              {t("search.states.addressPrompt.cta")}
+            </Text>
           </TouchableOpacity>
         </View>
       );
@@ -626,7 +659,7 @@ export default function SearchScreen() {
       return (
         <View style={styles.stateContainer}>
           <ActivityIndicator size="large" color="#CA251B" />
-          <Text style={styles.stateText}>Loading restaurants...</Text>
+          <Text style={styles.stateText}>{t("search.states.loading")}</Text>
         </View>
       );
     }
@@ -634,9 +667,9 @@ export default function SearchScreen() {
     if (isError) {
       return (
         <View style={styles.stateContainer}>
-          <Text style={styles.stateText}>We couldn’t load restaurants. Please try again.</Text>
+          <Text style={styles.stateText}>{t("search.states.error")}</Text>
           <TouchableOpacity style={styles.retryButton} activeOpacity={0.8} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t("common.retry")}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -645,7 +678,7 @@ export default function SearchScreen() {
     if (isEmpty) {
       return (
         <View style={styles.stateContainer}>
-          <Text style={styles.stateText}>No restaurants match your filters yet.</Text>
+          <Text style={styles.stateText}>{t("search.states.empty")}</Text>
         </View>
       );
     }
@@ -657,6 +690,7 @@ export default function SearchScreen() {
     isError,
     isLoading,
     openLocationOverlay,
+    t,
     refetch,
   ]);
 
@@ -668,10 +702,10 @@ export default function SearchScreen() {
     return (
       <View style={styles.listFooter}>
         <ActivityIndicator size="small" color="#CA251B" />
-        <Text style={styles.inlineSpinnerText}>Loading more restaurants...</Text>
+        <Text style={styles.inlineSpinnerText}>{t("search.results.loadingMore")}</Text>
       </View>
     );
-  }, [isFetchingNextPage]);
+  }, [isFetchingNextPage, t]);
 
   const listItemSeparator = useCallback(() => <View style={styles.itemSeparator} />, []);
 
@@ -682,7 +716,7 @@ export default function SearchScreen() {
   const customHeader = (
     <Animated.View entering={FadeIn.duration(500)} style={styles.headerWrapper}>
       <Header
-        title="Please choose your address."
+        title={t("search.header.title")}
         onBack={() => navigation.goBack()}
         onLocationPress={() => console.log("Location pressed")}
         compact
@@ -692,7 +726,7 @@ export default function SearchScreen() {
         <View style={styles.searchBar}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search..."
+            placeholder={t("search.searchBar.placeholder")}
             value={searchTerm}
             onChangeText={setSearchTerm}
             placeholderTextColor="#666"
@@ -712,17 +746,17 @@ export default function SearchScreen() {
         <PillButton icon={SlidersHorizontal} onPress={() => setShowFilters(true)} isActive={showFilters} />
 
         <PillButton
-          label="Promotions"
+          label={t("search.filters.promotions")}
           onPress={() => toggleQuickFilter("promotions")}
           isActive={promotions}
         />
         <PillButton
-          label="Top Choice"
+          label={t("search.filters.topChoice")}
           onPress={() => toggleQuickFilter("topChoice")}
           isActive={topChoice}
         />
         <PillButton
-          label="Free Delivery"
+          label={t("search.filters.freeDelivery")}
           onPress={() => toggleQuickFilter("freeDelivery")}
           isActive={freeDelivery}
         />
@@ -778,7 +812,7 @@ export default function SearchScreen() {
             menuItem={selectedMenuItem}
             handleAddItem={handleAddMenuItem}
             onClose={handleCloseMenuModal}
-            actionLabel="Add"
+            actionLabel={t("common.add")}
             onToggleFavorite={(nextFavorite) =>
               handleToggleMenuItemFavorite(selectedMenuItem.id, nextFavorite)
             }

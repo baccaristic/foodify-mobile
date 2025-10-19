@@ -13,6 +13,7 @@ import type {
 } from '~/interfaces/Restaurant';
 import { BASE_API_URL } from '@env';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
+import { useTranslation } from '~/localization';
 
 const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
@@ -79,25 +80,6 @@ const OptionRow: React.FC<OptionRowProps> = ({ group, extra, isSelected, isLast,
     </View>
   </TouchableOpacity>
 );
-
-const describeGroupSelection = (group: RestaurantMenuOptionGroup) => {
-  if (group.minSelect > 0 && group.maxSelect > 0) {
-    if (group.minSelect === group.maxSelect) {
-      return `Choose ${group.minSelect} ${group.minSelect === 1 ? 'item' : 'items'}`;
-    }
-    return `Choose ${group.minSelect}-${group.maxSelect} items`;
-  }
-
-  if (group.minSelect > 0) {
-    return `Choose at least ${group.minSelect} ${group.minSelect === 1 ? 'item' : 'items'}`;
-  }
-
-  if (group.maxSelect > 0) {
-    return `Choose up to ${group.maxSelect} ${group.maxSelect === 1 ? 'item' : 'items'}`;
-  }
-
-  return 'Choose any item';
-};
 
 const resolveMinSelect = (group: RestaurantMenuOptionGroup) => {
   const baseMin = group.minSelect ?? 0;
@@ -193,11 +175,54 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
   handleAddItem,
   onClose,
   initialDraftSelections,
-  actionLabel = 'Add',
+  actionLabel,
   onToggleFavorite,
   isFavoriteLoading = false,
 }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const getItemLabel = useCallback(
+    (count: number) =>
+      count === 1
+        ? t('menuDetail.labels.itemSingular')
+        : t('menuDetail.labels.itemPlural'),
+    [t],
+  );
+
+  const describeGroupSelection = useCallback(
+    (group: RestaurantMenuOptionGroup) => {
+      if (group.minSelect > 0 && group.maxSelect > 0) {
+        if (group.minSelect === group.maxSelect) {
+          return t('menuDetail.optionGroups.selectExact', {
+            values: {count: group.minSelect,
+            item: getItemLabel(group.minSelect),}
+          });
+        }
+        return t('menuDetail.optionGroups.selectRange', {values: {min: group.minSelect,
+          max: group.maxSelect,}
+        });
+      }
+
+      if (group.minSelect > 0) {
+        return t('menuDetail.optionGroups.selectAtLeast', {values: {count: group.minSelect,
+          item: getItemLabel(group.minSelect),}
+        });
+      }
+
+      if (group.maxSelect > 0) {
+        return t('menuDetail.optionGroups.selectUpTo', {
+          values: {count: group.maxSelect,
+          item: getItemLabel(group.maxSelect),}
+        });
+      }
+
+      return t('menuDetail.optionGroups.selectAny');
+    },
+    [getItemLabel, t],
+  );
+
+  const resolvedActionLabel = actionLabel ?? t('common.add');
 
   const [drafts, setDrafts] = useState<DraftConfiguration[]>(() =>
     createDraftsFromInitialSelections(menuItem, initialDraftSelections)
@@ -437,7 +462,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 
       <View className="mt-4">
         <Text allowFontScaling={false} className="text-base font-semibold text-[#17213A]">
-          Customizing item {activeIndex + 1} of {drafts.length}
+          {t('menuDetail.customizing', { values: {current: activeIndex + 1, total: drafts.length} })}
         </Text>
         {drafts.length > 1 ? (
           <ScrollView
@@ -462,7 +487,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
                   <Text
                     allowFontScaling={false}
                     className={`text-sm font-semibold ${textClass}`}>
-                    #{index + 1}
+                    {t('menuDetail.draftLabel', { values: {index: index + 1 }})}
                   </Text>
                 </TouchableOpacity>
               );
@@ -485,7 +510,9 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
               <Text
                 allowFontScaling={false}
                 className={`text-xs font-semibold uppercase ${group.required ? 'text-white' : 'text-gray-700'}`}>
-                {group.required ? 'Required' : 'Optional'}
+                {group.required
+                  ? t('menuDetail.optionGroups.required')
+                  : t('menuDetail.optionGroups.optional')}
               </Text>
             </View>
           </View>
@@ -514,7 +541,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       className="absolute bottom-0 left-0 right-0 w-full border-t border-gray-100 bg-white p-4 shadow-2xl">
       <View className="mb-2 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-          Item {activeIndex + 1} total
+          {t('menuDetail.itemTotal', { values: {index: activeIndex + 1} })}
         </Text>
         <View className="flex-row items-baseline gap-2">
           <Text allowFontScaling={false} className="text-sm font-bold text-[#CA251B]">
@@ -545,7 +572,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 
       {!allValid ? (
         <Text allowFontScaling={false} className="mb-3 text-center text-xs font-medium text-red-600">
-          Finish required selections for every item. Items shown in red need attention.
+          {t('menuDetail.validationMessage')}
         </Text>
       ) : null}
 
@@ -555,7 +582,12 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         disabled={!allValid}>
         <View className="items-center">
           <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
-            {actionLabel} {drafts.length} {drafts.length === 1 ? 'item' : 'items'} for {formatPrice(cartTotal)}
+            {t('menuDetail.summary', {
+              values: {action: resolvedActionLabel,
+              count: drafts.length,
+              item: getItemLabel(drafts.length),
+              price: formatPrice(cartTotal),}
+            })}
           </Text>
           {hasPromotion ? (
             <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-white/80 line-through">
