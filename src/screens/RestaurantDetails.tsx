@@ -814,13 +814,22 @@ export default function RestaurantDetails() {
   );
 
   const collapsedHeader = (
-    <View className="flex-1 flex-row items-center justify-center bg-white px-4">
+    <View className="flex-1 flex-row items-center justify-between bg-white px-4">
       <TouchableOpacity className="p-2" onPress={() => navigation.goBack()}>
         <ArrowLeft size={20} color="#CA251B" />
       </TouchableOpacity>
-      <Text allowFontScaling={false} className="flex-1 text-center text-lg font-bold text-gray-800">
-        {restaurant?.name ?? t('restaurantDetails.fallbackName')}
-      </Text>
+
+      <View className="flex-1 items-center justify-center px-2">
+        <Image
+          source={resolveImageSource(restaurant?.imageUrl)}
+          style={{ width: 32, height: 32, borderRadius: 16, marginBottom: 4 }}
+          contentFit="cover"
+        />
+        <Text allowFontScaling={false} className="text-center text-lg font-bold text-gray-800">
+          {restaurant?.name ?? t('restaurantDetails.fallbackName')}
+        </Text>
+      </View>
+
       <TouchableOpacity
         className="p-2"
         disabled={!restaurant || restaurantFavoriteMutation.isPending}
