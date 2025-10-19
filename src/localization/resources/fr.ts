@@ -209,6 +209,35 @@ const fr: TranslationDictionary = {
     validationMessage:
       'Finalisez les sélections obligatoires pour chaque article. Les éléments en rouge nécessitent une attention.',
     summary: '{{action}} {{count}} {{item}} pour {{price}}',
+    actions: {
+      add: 'Ajouter',
+      update: 'Mettre à jour',
+    },
+  },
+  restaurantDetails: {
+    tabs: {
+      topSales: 'Meilleures ventes',
+    },
+    sections: {
+      topSalesWithCount: 'Meilleures ventes ({{count}})',
+      infoTitle: 'Infos restaurant',
+    },
+    states: {
+      noSelection: {
+        title: 'Aucun restaurant sélectionné.',
+      },
+      error: {
+        title: 'Impossible de charger ce restaurant.',
+      },
+    },
+    delivery: {
+      withFee: 'Frais de livraison {{fee}}',
+      free: 'Livraison gratuite',
+    },
+    rating: {
+      new: 'Nouveau',
+    },
+    fallbackName: 'Restaurant',
   },
   checkout: {
     title: 'Ma commande',
@@ -297,6 +326,46 @@ const fr: TranslationDictionary = {
     },
     actions: {
       confirm: 'Confirmer et payer la commande',
+    },
+  },
+  liveChat: {
+    agent: {
+      name: 'Elena',
+      role: 'Spécialiste Foodify Care',
+      brand: 'Foodify Care',
+    },
+    header: {
+      title: 'Chat en direct',
+      subtitle: '{{agentName}} · {{agentRole}}',
+    },
+    ticket: {
+      statusActive: 'Actif',
+      orderLabel: 'Commande {{order}}',
+      fallbackSubtitle: 'Nous vous tiendrons au courant dans cette conversation.',
+    },
+    topicFallback: 'Assistance commande',
+    typingIndicator: '{{agentName}} est en train d’écrire…',
+    input: {
+      placeholder: 'Écrivez votre message',
+    },
+    cannedResponses: {
+      first: 'Je viens de contacter votre coursier pour obtenir les dernières nouvelles.',
+      second: 'Merci de votre patience ! Je vois qu’il approche de votre adresse.',
+      third: 'Souhaitez-vous que je vérifie autre chose pendant l’attente ?',
+    },
+    initialMessages: {
+      system:
+        'Vous êtes en ligne avec {{agentName}} de {{brand}}. Nous répondons généralement en moins de 2 minutes.',
+      agentGreeting:
+        'Bonjour ! Merci de nous avoir contactés. Je suis là pour vous aider pour votre commande.',
+      customerQuestion:
+        'Bonjour {{agentName}}, pouvez-vous vérifier pourquoi mon livreur semble bloqué sur la carte ?',
+      agentFollowUp:
+        'Bien sûr ! Laissez-moi vérifier son trajet et je vous tiens au courant dans un instant.',
+    },
+    timestamp: {
+      am: 'AM',
+      pm: 'PM',
     },
   },
   profile: {

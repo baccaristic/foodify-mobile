@@ -14,6 +14,7 @@ import {
 import { useNavigation, useRoute, type NavigationProp, type ParamListBase, type RouteProp } from '@react-navigation/native';
 import { ArrowLeft, Headset, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from '~/localization';
 
 const palette = {
   background: '#F5F6FA',
@@ -43,53 +44,67 @@ type LiveChatRouteParams = {
   from?: string | null;
 };
 
-const cannedAgentResponses = [
-  'I just pinged your courier to confirm the latest update for you.',
-  'Thanks for your patience! I can see they are approaching your location now.',
-  'Is there anything else you would like me to double-check while you wait?'
-];
-
-const initialMessages: Message[] = [
-  {
-    id: 'system-1',
-    sender: 'system',
-    content: 'You are connected with Elena from Foodify Care. We typically reply in under 2 minutes.',
-    timestamp: '09:41',
-  },
-  {
-    id: 'agent-1',
-    sender: 'agent',
-    content: 'Hi there! Thanks for reaching out. I\'m here to help with anything related to your order.',
-    timestamp: '09:42',
-  },
-  {
-    id: 'customer-1',
-    sender: 'customer',
-    content: 'Hi Elena, could you check why my driver seems to be stuck on the map?',
-    timestamp: '09:42',
-  },
-  {
-    id: 'agent-2',
-    sender: 'agent',
-    content: 'Absolutely! Let me review their route and I\'ll share what I find in just a moment.',
-    timestamp: '09:43',
-  },
-];
-
-const formatTimestamp = (date: Date) => {
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-};
-
 const LiveChatScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<RouteProp<Record<string, LiveChatRouteParams>, string>>();
   const params = route.params ?? {};
   const { orderId, topic } = params;
+  const { t } = useTranslation();
+
+  const agentName = t('liveChat.agent.name');
+  const agentRole = t('liveChat.agent.role');
+  const agentBrand = t('liveChat.agent.brand');
+
+  const formatTimestamp = useCallback(
+    (date: Date) => {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+      const ampm = hours >= 12 ? t('liveChat.timestamp.pm') : t('liveChat.timestamp.am');
+      return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    },
+    [t],
+  );
+
+  const cannedAgentResponses = useMemo(
+    () => [
+      t('liveChat.cannedResponses.first'),
+      t('liveChat.cannedResponses.second'),
+      t('liveChat.cannedResponses.third'),
+    ],
+    [t],
+  );
+
+  const initialMessages = useMemo(
+    () => [
+      {
+        id: 'system-1',
+        sender: 'system' as const,
+        content: t('liveChat.initialMessages.system', { values: { agentName, brand: agentBrand } }),
+        timestamp: '09:41',
+      },
+      {
+        id: 'agent-1',
+        sender: 'agent' as const,
+        content: t('liveChat.initialMessages.agentGreeting'),
+        timestamp: '09:42',
+      },
+      {
+        id: 'customer-1',
+        sender: 'customer' as const,
+        content: t('liveChat.initialMessages.customerQuestion', { values: { agentName } }),
+        timestamp: '09:42',
+      },
+      {
+        id: 'agent-2',
+        sender: 'agent' as const,
+        content: t('liveChat.initialMessages.agentFollowUp'),
+        timestamp: '09:43',
+      },
+    ],
+    [agentBrand, agentName, t],
+  );
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
@@ -106,8 +121,11 @@ const LiveChatScreen: React.FC = () => {
 
     return typeof orderId === 'string' ? orderId : `#${orderId}`;
   }, [orderId]);
+  const topicLabel = topic ?? t('liveChat.topicFallback');
 
-  const topicLabel = topic ?? 'Order support';
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages]);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -168,7 +186,7 @@ const LiveChatScreen: React.FC = () => {
       setMessages((prev) => [...prev, agentMessage]);
       setIsAgentTyping(false);
     }, 900);
-  }, []);
+  }, [cannedAgentResponses, formatTimestamp]);
 
   const handleSendMessage = useCallback(() => {
     const trimmed = inputValue.trim();
@@ -186,7 +204,7 @@ const LiveChatScreen: React.FC = () => {
     setMessages((prev) => [...prev, newMessage]);
     setInputValue('');
     scheduleAgentResponse();
-  }, [inputValue, scheduleAgentResponse]);
+  }, [formatTimestamp, inputValue, scheduleAgentResponse]);
 
   const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isCustomer = item.sender === 'customer';
@@ -228,38 +246,43 @@ const LiveChatScreen: React.FC = () => {
     );
   }, []);
 
+  const typingLabel = t('liveChat.typingIndicator', { values: { agentName } });
   const typingIndicator = (
-    <Animated.View style={[styles.typingIndicator, { opacity: typingOpacity }]}> 
+    <Animated.View style={[styles.typingIndicator, { opacity: typingOpacity }]}>
       <View style={styles.typingDot} />
       <View style={[styles.typingDot, styles.typingDotDelayed]} />
       <View style={[styles.typingDot, styles.typingDotExtraDelayed]} />
-      <Text style={styles.typingLabel}>Elena is typing…</Text>
+      <Text style={styles.typingLabel}>{typingLabel}</Text>
     </Animated.View>
   );
 
   return (
     <SafeAreaView style={[styles.safeArea, { paddingTop: insets.top }]}> 
       <View style={styles.container}>
-        <View style={styles.header}> 
+        <View style={styles.header}>
           <TouchableOpacity onPress={handleGoBack} style={styles.backButton} activeOpacity={0.8}>
             <ArrowLeft size={22} color={palette.primaryText} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Live chat</Text>
-            <Text style={styles.headerSubtitle}>Elena · Foodify Care Specialist</Text>
+            <Text style={styles.headerTitle}>{t('liveChat.header.title')}</Text>
+            <Text style={styles.headerSubtitle}>
+              {t('liveChat.header.subtitle', { values: { agentName, agentRole } })}
+            </Text>
           </View>
         </View>
 
         <View style={styles.ticketSummary}>
           <View style={styles.summaryBadge}>
-            <Text style={styles.summaryBadgeText}>Active</Text>
+            <Text style={styles.summaryBadgeText}>{t('liveChat.ticket.statusActive')}</Text>
           </View>
           <View style={styles.summaryTextContainer}>
             <Text style={styles.summaryTitle}>{topicLabel}</Text>
             {orderLabel ? (
-              <Text style={styles.summarySubtitle}>Order {orderLabel}</Text>
+              <Text style={styles.summarySubtitle}>
+                {t('liveChat.ticket.orderLabel', { values: { order: orderLabel } })}
+              </Text>
             ) : (
-              <Text style={styles.summarySubtitle}>We’ll keep you updated in this conversation.</Text>
+              <Text style={styles.summarySubtitle}>{t('liveChat.ticket.fallbackSubtitle')}</Text>
             )}
           </View>
         </View>
@@ -281,7 +304,7 @@ const LiveChatScreen: React.FC = () => {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Type your message"
+              placeholder={t('liveChat.input.placeholder')}
               placeholderTextColor={palette.secondaryText}
               value={inputValue}
               onChangeText={setInputValue}

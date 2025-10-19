@@ -205,6 +205,35 @@ const en: TranslationDictionary = {
     itemTotal: 'Item {{index}} total',
     validationMessage: 'Finish required selections for every item. Items shown in red need attention.',
     summary: '{{action}} {{count}} {{item}} for {{price}}',
+    actions: {
+      add: 'Add',
+      update: 'Update',
+    },
+  },
+  restaurantDetails: {
+    tabs: {
+      topSales: 'Top sales',
+    },
+    sections: {
+      topSalesWithCount: 'Top sales ({{count}})',
+      infoTitle: 'Restaurant info',
+    },
+    states: {
+      noSelection: {
+        title: 'No restaurant selected.',
+      },
+      error: {
+        title: 'We could not load this restaurant.',
+      },
+    },
+    delivery: {
+      withFee: '{{fee}} delivery fee',
+      free: 'Free delivery',
+    },
+    rating: {
+      new: 'New',
+    },
+    fallbackName: 'Restaurant',
   },
   checkout: {
     title: 'My order',
@@ -293,6 +322,42 @@ const en: TranslationDictionary = {
     },
     actions: {
       confirm: 'Confirm and pay to order',
+    },
+  },
+  liveChat: {
+    agent: {
+      name: 'Elena',
+      role: 'Foodify Care Specialist',
+      brand: 'Foodify Care',
+    },
+    header: {
+      title: 'Live chat',
+      subtitle: '{{agentName}} · {{agentRole}}',
+    },
+    ticket: {
+      statusActive: 'Active',
+      orderLabel: 'Order {{order}}',
+      fallbackSubtitle: 'We’ll keep you updated in this conversation.',
+    },
+    topicFallback: 'Order support',
+    typingIndicator: '{{agentName}} is typing…',
+    input: {
+      placeholder: 'Type your message',
+    },
+    cannedResponses: {
+      first: 'I just pinged your courier to confirm the latest update for you.',
+      second: 'Thanks for your patience! I can see they are approaching your location now.',
+      third: 'Is there anything else you would like me to double-check while you wait?',
+    },
+    initialMessages: {
+      system: 'You are connected with {{agentName}} from {{brand}}. We typically reply in under 2 minutes.',
+      agentGreeting: 'Hi there! Thanks for reaching out. I’m here to help with anything related to your order.',
+      customerQuestion: 'Hi {{agentName}}, could you check why my driver seems to be stuck on the map?',
+      agentFollowUp: 'Absolutely! Let me review their route and I’ll share what I find in just a moment.',
+    },
+    timestamp: {
+      am: 'AM',
+      pm: 'PM',
     },
   },
   profile: {
