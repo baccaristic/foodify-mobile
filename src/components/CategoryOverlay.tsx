@@ -14,16 +14,16 @@ import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getCategoryRestaurants } from "~/api/restaurants";
-import type { CategoryRestaurantsResponse, RestaurantDisplay } from "~/interfaces/Restaurant";
+import type { CategoryRestaurantsResponse, RestaurantCategory, RestaurantDisplay } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import { LinearGradient } from "expo-linear-gradient";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
 import { useTranslation } from "~/localization";
-import { getCategoryLabelKey } from "~/localization/categoryKeys";
+import { getCategoryLabelKey, toCategoryDisplayName } from "~/localization/categoryKeys";
 
 interface CategoryOverlayProps {
     visible: boolean;
-    category: string;
+    category: RestaurantCategory;
     onClose: () => void;
 }
 
@@ -41,24 +41,24 @@ export default function CategoryOverlay({
     const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude ?? null;
     const hasLocation = userLatitude !== null && userLongitude !== null;
 
+    const fallbackCategoryLabel = React.useMemo(
+        () => toCategoryDisplayName(category),
+        [category],
+    );
+
     const categoryLabel = React.useMemo(() => {
         const labelKey = getCategoryLabelKey(category);
         if (labelKey) {
             return t(labelKey);
         }
-        return category;
-    }, [category, t]);
+        return fallbackCategoryLabel;
+    }, [category, fallbackCategoryLabel, t]);
 
-    const categoryTitle = React.useMemo(() => categoryLabel?.toUpperCase() ?? '', [categoryLabel]);
-    const categoryLabelForCopy = React.useMemo(() => {
-        if (categoryLabel) {
-            return categoryLabel.toLowerCase();
-        }
-        if (category) {
-            return category.toLowerCase();
-        }
-        return t('categoryOverlay.defaultType').toLowerCase();
-    }, [category, categoryLabel, t]);
+    const categoryTitle = React.useMemo(() => categoryLabel.toUpperCase(), [categoryLabel]);
+    const categoryLabelForCopy = React.useMemo(
+        () => categoryLabel.toLowerCase(),
+        [categoryLabel],
+    );
 
     const formatDeliveryFee = React.useCallback(
         (fee: number) =>
@@ -82,13 +82,13 @@ export default function CategoryOverlay({
         queryKey: ["category-restaurants", category, userLatitude, userLongitude],
         queryFn: ({ pageParam = 0 }: { pageParam?: number }) => {
             const nextPage =
-                typeof pageParam === "number" && Number.isFinite(pageParam) ? pageParam : 0;
+                typeof pageParam === 'number' && Number.isFinite(pageParam) ? pageParam : 0;
 
             return getCategoryRestaurants({
                 lat: userLatitude as number,
                 lng: userLongitude as number,
                 categorie: category,
-                page: pageParam - 1,
+                page: nextPage - 1,
                 size: PAGE_SIZE,
             });
         },
@@ -220,7 +220,7 @@ export default function CategoryOverlay({
                 </Text>
             </View>
         ),
-        [categoryLabel, t]
+        [categoryLabelForCopy, t]
     );
 
     let content: React.ReactNode;
