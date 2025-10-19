@@ -30,6 +30,7 @@ import {
   loadNotificationPreferencesFromCache,
   saveNotificationPreferencesToCache,
 } from '~/services/notificationPreferencesCache';
+import { useTranslation } from '~/localization';
 
 type PreferenceState = Record<NotificationType, NotificationPreferenceResponse>;
 
@@ -78,6 +79,7 @@ export default function NotificationsScreen() {
   const [cacheLoaded, setCacheLoaded] = useState(false);
   const preferencesRef = useRef(preferences);
   const hasFocusedRef = useRef(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     preferencesRef.current = preferences;
@@ -172,7 +174,10 @@ export default function NotificationsScreen() {
         setPreferences(context);
       }
 
-      Alert.alert('Unable to update notifications', 'Please try again in a moment.');
+      Alert.alert(
+        t('profile.notifications.alerts.updateFailureTitle'),
+        t('profile.notifications.alerts.updateFailureMessage'),
+      );
     },
     onSuccess: handleServerSuccess,
   });
@@ -209,7 +214,10 @@ export default function NotificationsScreen() {
         setPreferences(context);
       }
 
-      Alert.alert('Unable to enable all notifications', 'Please try again in a moment.');
+      Alert.alert(
+        t('profile.notifications.alerts.enableAllFailureTitle'),
+        t('profile.notifications.alerts.enableAllFailureMessage'),
+      );
     },
     onSuccess: handleServerSuccess,
   });
@@ -244,7 +252,7 @@ export default function NotificationsScreen() {
 
   const customHeader = (
     <View>
-      <HeaderWithBackButton title="Notifications" titleMarginLeft={s(70)} />
+      <HeaderWithBackButton title={t('profile.notifications.title')} titleMarginLeft={s(70)} />
     </View>
   );
 
@@ -258,11 +266,10 @@ export default function NotificationsScreen() {
 
       <View style={styles.headerBox}>
         <Text allowFontScaling={false} style={styles.headerTitle}>
-          Stay in the Loop — Get Real-Time Updates!
+          {t('profile.notifications.hero.title')}
         </Text>
         <Text allowFontScaling={false} style={styles.headerText}>
-          Turn on notifications to never miss order updates, delivery alerts, or exclusive deals.
-          You’re in control — pick what matters most.
+          {t('profile.notifications.hero.description')}
         </Text>
 
         <TouchableOpacity
@@ -275,7 +282,7 @@ export default function NotificationsScreen() {
           activeOpacity={0.88}
         >
           <Text allowFontScaling={false} style={styles.enableButtonText}>
-            Enable All & Customize Later
+            {t('profile.notifications.hero.enableAll')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -283,24 +290,24 @@ export default function NotificationsScreen() {
       <View style={styles.section}>
         <View style={styles.titleRow}>
           <Text allowFontScaling={false} style={styles.sectionTitle}>
-            Order Status
+            {t('profile.notifications.orderStatus.title')}
           </Text>
           <View style={styles.recommendedContainer}>
             <Text allowFontScaling={false} style={styles.recommendedText}>
-              Recommended
+              {t('profile.notifications.orderStatus.recommended')}
             </Text>
           </View>
         </View>
 
         <Text allowFontScaling={false} style={styles.sectionDesc}>
-          Get real-time updates from your courier + support team. We recommend this!
+          {t('profile.notifications.orderStatus.description')}
         </Text>
 
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <Bell size={24} color="#CA251B" style={styles.icon} />
             <Text allowFontScaling={false} style={styles.switchLabel}>
-              Push Notifications
+              {t('profile.notifications.labels.push')}
             </Text>
           </View>
           <Switch
@@ -315,17 +322,17 @@ export default function NotificationsScreen() {
 
       <View style={styles.section}>
         <Text allowFontScaling={false} style={styles.sectionTitle}>
-          Special offers just for you
+          {t('profile.notifications.marketing.title')}
         </Text>
         <Text allowFontScaling={false} style={styles.sectionDesc}>
-          Unlock discounts, promos, and coupons tailored to your tastes.
+          {t('profile.notifications.marketing.description')}
         </Text>
 
         <View style={styles.switchRow}>
           <View style={styles.labelRow}>
             <Bell size={24} color="#CA251B" style={styles.icon} />
             <Text allowFontScaling={false} style={styles.switchLabel}>
-              Push Notifications
+              {t('profile.notifications.labels.push')}
             </Text>
           </View>
           <Switch
@@ -341,7 +348,7 @@ export default function NotificationsScreen() {
           <View style={styles.labelRow}>
             <MailOpen size={24} color="#CA251B" style={styles.icon} />
             <Text allowFontScaling={false} style={styles.switchLabel}>
-              Personalized Emails
+              {t('profile.notifications.labels.email')}
             </Text>
           </View>
           <Switch

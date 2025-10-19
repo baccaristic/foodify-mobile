@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moderateScale, vs } from 'react-native-size-matters';
 import Header from '~/components/Header';
 import { useTranslation } from '~/localization';
+import { useCurrencyFormatter } from '~/localization/hooks';
 
 import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
@@ -17,8 +18,6 @@ import type { CartItem } from '~/context/CartContext';
 const primaryColor = '#CA251B';
 const FALLBACK_IMAGE = require('../../assets/baguette.png');
 const EMPTY_CART_IMAGE = require('../../assets/empty-cart.png');
-
-const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
 const resolveImageSource = (imagePath?: string | null) => {
   if (imagePath) {
@@ -35,6 +34,7 @@ const CartItemRow: React.FC<{
 }> = ({ item, onUpdateQuantity, onRemove, onModify }) => {
   const isMinQuantity = item.quantity <= 1;
   const { t } = useTranslation();
+  const formatCurrency = useCurrencyFormatter();
 
   const handleMinus = () => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1));
   const handlePlus = () => onUpdateQuantity(item.id, item.quantity + 1);
@@ -80,7 +80,7 @@ const CartItemRow: React.FC<{
         </Text>
         {item.quantity > 1 ? (
           <Text allowFontScaling={false} className="text-xs text-gray-500">
-            {t('cart.priceEach', { price: formatCurrency(item.pricePerItem) })}
+            {t('cart.priceEach', { values: { price: formatCurrency(item.pricePerItem) } })}
           </Text>
         ) : null}
       </View>
@@ -117,6 +117,12 @@ export default function Cart() {
   const restaurantName = restaurant?.name ?? t('cart.defaultRestaurantName');
   const totalItems = itemCount;
   const totalOrderPrice = subtotal;
+  const productLabel = t(
+    totalItems === 1 ? 'cart.productLabel.singular' : 'cart.productLabel.plural',
+  );
+  const itemSummaryPrefix = t('cart.itemSummaryPrefix', {
+    values: { count: totalItems, productLabel },
+  });
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
     updateItemQuantity(itemId, newQuantity);
@@ -154,35 +160,36 @@ export default function Cart() {
       <Text allowFontScaling={false} className="mb-4 mt-6 text-center text-2xl font-bold text-[#17213A]">
         {t('cart.title')}
       </Text>
-      {hasItems && (<View className="mb-4 flex-row items-center justify-between">
-        <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
-          {t('cart.itemSummaryPrefix', {values: {count: totalItems,
-            productLabel: t(totalItems === 1 ? 'cart.productLabel.singular' : 'cart.productLabel.plural')}
-          })}
-          <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
-            {restaurantName}
+      {hasItems && (
+        <View className="mb-4 flex-row items-center justify-between">
+          <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
+            {itemSummaryPrefix}
+            <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
+              {restaurantName}
+            </Text>
           </Text>
-        </Text>
-        <TouchableOpacity onPress={handleClearCart} disabled={!hasItems}>
-          <View
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              backgroundColor: '#FFF',
-              justifyContent: 'center',
-              alignItems: 'center',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-              opacity: hasItems ? 1 : 0.4,
-            }}>
-            <Trash2 size={30} color="#CA251B" strokeWidth={2} />
-          </View>
-        </TouchableOpacity>
-      </View>)}
+          <TouchableOpacity onPress={handleClearCart} disabled={!hasItems}>
+            <View
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: '#FFF',
+                justifyContent: 'center',
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 2,
+                opacity: hasItems ? 1 : 0.4,
+              }}
+            >
+              <Trash2 size={30} color="#CA251B" strokeWidth={2} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {hasItems ? (
         items.map((item) => (

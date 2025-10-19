@@ -23,6 +23,7 @@ import type {
 } from '~/interfaces/Favorites';
 import { BASE_API_URL } from '@env';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
+import { useTranslation } from '~/localization';
 
 const fallbackImage = require('../../../assets/baguette.png');
 
@@ -51,19 +52,20 @@ const FavoriteRestaurantCard = ({
   onPress: () => void;
   width: number;
 }) => {
+  const { t } = useTranslation();
   const ratingLabel = useMemo(() => {
     if (restaurant.rating == null) {
-      return 'New';
+      return t('profile.favorites.labels.new');
     }
 
     const numericRating = Number(restaurant.rating);
 
     if (!Number.isFinite(numericRating) || numericRating <= 0) {
-      return 'New';
+      return t('profile.favorites.labels.new');
     }
 
-    return `${numericRating.toFixed(1)} / 5`;
-  }, [restaurant.rating]);
+    return t('profile.favorites.labels.rating', { values: { rating: numericRating.toFixed(1) } });
+  }, [restaurant.rating, t]);
 
   return (
     <TouchableOpacity
@@ -84,7 +86,7 @@ const FavoriteRestaurantCard = ({
           <View style={styles.metaPill}>
             <UtensilsCrossed size={s(14)} color="white" />
             <Text allowFontScaling={false} style={styles.metaPillText}>
-              {restaurant.type || 'Cuisine mix'}
+              {restaurant.type || t('profile.favorites.labels.defaultCuisine')}
             </Text>
           </View>
         </View>
@@ -106,7 +108,7 @@ const FavoriteRestaurantCard = ({
           <Text allowFontScaling={false} style={styles.restaurantHint} numberOfLines={1}>
             {restaurant.openingHours && restaurant.closingHours
               ? `${restaurant.openingHours} - ${restaurant.closingHours}`
-              : 'Tap to open the full menu'}
+              : t('profile.favorites.labels.openMenuHint')}
           </Text>
           <ArrowRight size={s(16)} color="white" />
         </View>
@@ -123,6 +125,7 @@ const FavoriteMenuItemCard = ({
   onPress: () => void;
 }) => {
   const hasPromotion = item.promotionActive && typeof item.promotionPrice === 'number';
+  const { t } = useTranslation();
 
   return (
     <TouchableOpacity style={styles.menuItemCard} activeOpacity={0.88} onPress={onPress}>
@@ -152,7 +155,7 @@ const FavoriteMenuItemCard = ({
                 return trimmed;
               }
             }
-            return 'Tap to customise and add it to your cart.';
+            return t('profile.favorites.labels.addToCartHint');
           })()}
         </Text>
         <View style={styles.menuBadgesRow}>
@@ -167,7 +170,9 @@ const FavoriteMenuItemCard = ({
           {item.popular ? (
             <View style={[styles.badge, styles.badgeWarm]}>
               <Flame size={s(12)} color="white" />
-              <Text allowFontScaling={false} style={styles.badgeText}>Popular</Text>
+              <Text allowFontScaling={false} style={styles.badgeText}>
+                {t('profile.favorites.labels.popular')}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -179,6 +184,7 @@ const FavoriteMenuItemCard = ({
 const FavoritesScreen = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { width: screenWidth } = useWindowDimensions();
+  const { t } = useTranslation();
 
   const restaurantCardWidth = useMemo(
     () => Math.max(screenWidth - carouselHorizontalPadding * 2, s(240)),
@@ -202,7 +208,11 @@ const FavoritesScreen = () => {
 
   const customHeader = (
     <View>
-      <HeaderWithBackButton title="Favorites" titleMarginLeft={s(70)} onBack={() => navigation.goBack()} />
+      <HeaderWithBackButton
+        title={t('profile.favorites.title')}
+        titleMarginLeft={s(70)}
+        onBack={() => navigation.goBack()}
+      />
     </View>
   );
 
@@ -213,7 +223,7 @@ const FavoritesScreen = () => {
       <View style={styles.stateWrapper}>
         <ActivityIndicator size="large" color={accentColor} />
         <Text allowFontScaling={false} style={styles.stateTitle}>
-          Setting the table for your favorites…
+          {t('profile.favorites.states.loadingTitle')}
         </Text>
       </View>
     );
@@ -221,10 +231,10 @@ const FavoritesScreen = () => {
     mainContent = (
       <View style={styles.stateWrapper}>
         <Text allowFontScaling={false} style={styles.stateTitle}>
-          We could not fetch your saved spots.
+          {t('profile.favorites.states.errorTitle')}
         </Text>
         <Text allowFontScaling={false} style={styles.stateSubtitle}>
-          Check your connection and try again.
+          {t('profile.favorites.states.errorSubtitle')}
         </Text>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -232,7 +242,7 @@ const FavoritesScreen = () => {
           onPress={() => refetch()}
         >
           <Text allowFontScaling={false} style={styles.retryLabel}>
-            Try again
+            {t('profile.favorites.actions.retry')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -241,10 +251,10 @@ const FavoritesScreen = () => {
     mainContent = (
       <View style={styles.stateWrapper}>
         <Text allowFontScaling={false} style={styles.stateTitle}>
-          Your heart is wide open.
+          {t('profile.favorites.states.emptyTitle')}
         </Text>
         <Text allowFontScaling={false} style={styles.stateSubtitle}>
-          Explore restaurants and tap the heart to start your collection.
+          {t('profile.favorites.states.emptySubtitle')}
         </Text>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -252,7 +262,7 @@ const FavoritesScreen = () => {
           onPress={() => navigation.navigate('Home' as never)}
         >
           <Text allowFontScaling={false} style={styles.primaryButtonLabel}>
-            Discover restaurants
+            {t('profile.favorites.actions.discover')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -260,13 +270,13 @@ const FavoritesScreen = () => {
   } else {
     mainContent = (
       <View style={styles.contentWrapper}>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text allowFontScaling={false} style={styles.sectionTitle}>
-              Beloved restaurants
+       <View style={styles.section}>
+         <View style={styles.sectionHeader}>
+           <Text allowFontScaling={false} style={styles.sectionTitle}>
+              {t('profile.favorites.sections.restaurants.title')}
             </Text>
             <Text allowFontScaling={false} style={styles.sectionSubtitle}>
-              Cozy corners and go-to kitchens
+              {t('profile.favorites.sections.restaurants.subtitle')}
             </Text>
           </View>
           <FlatList
@@ -295,13 +305,13 @@ const FavoritesScreen = () => {
           />
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text allowFontScaling={false} style={styles.sectionTitle}>
-              Saved dishes
+       <View style={styles.section}>
+         <View style={styles.sectionHeader}>
+           <Text allowFontScaling={false} style={styles.sectionTitle}>
+              {t('profile.favorites.sections.menu.title')}
             </Text>
             <Text allowFontScaling={false} style={styles.sectionSubtitle}>
-              Cravings worth coming back to
+              {t('profile.favorites.sections.menu.subtitle')}
             </Text>
           </View>
           <View style={styles.menuList}>

@@ -3,6 +3,7 @@ import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import MainLayout from '~/layouts/MainLayout';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
+import { useTranslation } from '~/localization';
 
 const palette = {
   accent: '#CA251B',
@@ -10,9 +11,11 @@ const palette = {
 };
 
 const CouponCodeScreen = () => {
+  const { t } = useTranslation();
+
   const customHeader = (
     <View>
-      <HeaderWithBackButton title="Coupon Code" titleMarginLeft={s(80)} />
+      <HeaderWithBackButton title={t('profile.coupon.title')} titleMarginLeft={s(80)} />
     </View>
   );
 
@@ -22,19 +25,17 @@ const CouponCodeScreen = () => {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <Text allowFontScaling={false} style={styles.label}>Add promo code</Text>
+      <Text allowFontScaling={false} style={styles.label}>{t('profile.coupon.addLabel')}</Text>
       <TextInput
         style={styles.input}
-        placeholder=""
+        placeholder={t('profile.coupon.placeholder')}
         placeholderTextColor="#999"
       />
 
-      <Text allowFontScaling={false} style={styles.subTitle}>Your coupon codes</Text>
+      <Text allowFontScaling={false} style={styles.subTitle}>{t('profile.coupon.listTitle')}</Text>
       <View style={styles.divider} />
 
-      <Text allowFontScaling={false} style={styles.infoText}>
-        New deals drop weekly! Follow us, order often, or check back soon — your wallet will thank you.
-      </Text>
+      <Text allowFontScaling={false} style={styles.infoText}>{t('profile.coupon.emptyHint')}</Text>
     </ScrollView>
   );
 

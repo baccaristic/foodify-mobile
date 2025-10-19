@@ -30,12 +30,11 @@ import { createOrder } from '~/api/orders';
 import type { MonetaryAmount } from '~/interfaces/Order';
 import type { OrderTrackingData } from './OrderTracking';
 import { useTranslation } from '~/localization';
+import { useCurrencyFormatter } from '~/localization/hooks';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
 const borderColor = '#E8E9EC';
-
-const formatCurrency = (value: number) => `${value.toFixed(3)} dt`;
 
 const extractNumericAmount = (value: MonetaryAmount | null | undefined): number | null => {
   if (value == null) {
@@ -202,6 +201,7 @@ const CheckoutOrder: React.FC = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const route = useRoute<CheckoutRoute>();
   const { t } = useTranslation();
+  const formatCurrency = useCurrencyFormatter();
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
@@ -539,12 +539,14 @@ const CheckoutOrder: React.FC = () => {
   const itemSummaryPrefix = useMemo(
     () =>
       t('cart.itemSummaryPrefix', {
-        values: {count: displayItemCount,
-        productLabel: t(
-          displayItemCount === 1
-            ? 'cart.productLabel.singular'
-            : 'cart.productLabel.plural',
-        ),}
+        values: {
+          count: displayItemCount,
+          productLabel: t(
+            displayItemCount === 1
+              ? 'cart.productLabel.singular'
+              : 'cart.productLabel.plural',
+          ),
+        },
       }),
     [displayItemCount, t],
   );
@@ -1073,7 +1075,7 @@ const CheckoutOrder: React.FC = () => {
                         </Text>
                         {item.extrasLabel ? (
                           <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
-                            {t('checkout.items.extrasLabel', { values: {extras: item.extrasLabel} })}
+                            {t('checkout.items.extrasLabel', { values: { extras: item.extrasLabel } })}
                           </Text>
                         ) : null}
                       </View>
@@ -1345,7 +1347,7 @@ const CheckoutOrder: React.FC = () => {
             {!isViewMode && appliedCoupon ? (
               <View className="mt-3 flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                  {t('checkout.summary.coupon', { code: appliedCoupon.code })}
+                  {t('checkout.summary.coupon', { values: { code: appliedCoupon.code } })}
                 </Text>
                 <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
                   −{formatCurrency(discountValue)}

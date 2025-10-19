@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import MainLayout from '~/layouts/MainLayout';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import { ChevronDown } from 'lucide-react-native';
+import { useTranslation } from '~/localization';
 
 const palette = {
   accent: '#CA251B',
@@ -25,38 +26,43 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const qaData = [
+type FaqSection = {
+  key: string;
+  items: { key: string }[];
+};
+
+const sectionsDefinition: FaqSection[] = [
   {
-    title: 'Ordering & Payments',
+    key: 'orderingPayments',
     items: [
-      { q: 'How do I apply a promo code?', a: 'You can apply your promo code at checkout in the “Promo Code” field before placing your order.' },
-      { q: 'Can I split payment between two cards?', a: 'Currently, split payments are not supported. You can only use one payment method per order.' },
-      { q: 'What payment methods do you accept?', a: 'We accept major debit/credit cards, mobile wallets, and gift cards.' },
-      { q: 'Will I be charged if I cancel my order?', a: 'You will not be charged if the order is canceled before processing. Refunds may take up to 3–5 business days.' },
-      { q: 'Why was my payment declined?', a: 'This can occur if your card has insufficient funds or if your bank declined the transaction for security reasons.' },
+      { key: 'applyPromo' },
+      { key: 'splitPayment' },
+      { key: 'paymentMethods' },
+      { key: 'cancelCharge' },
+      { key: 'declinedPayment' },
     ],
   },
   {
-    title: 'Delivery & Timing',
+    key: 'deliveryTiming',
     items: [
-      { q: 'Can I track my rider in real time?', a: 'Yes, once your order is confirmed, you can track your delivery in real time from the “Orders” section.' },
-      { q: 'Can I schedule a delivery for later?', a: 'Yes! You can select a preferred delivery time during checkout.' },
-      { q: 'How long does grocery delivery usually take?', a: 'Typical delivery time ranges from 30 to 60 minutes depending on your location and order size.' },
+      { key: 'trackRider' },
+      { key: 'scheduleDelivery' },
+      { key: 'deliveryTime' },
     ],
   },
   {
-    title: 'Issues & Refund',
+    key: 'issuesRefund',
     items: [
-      { q: 'What if my order is missing items?', a: 'Please contact our support team through the “Help” section, and we’ll resolve it quickly.' },
-      { q: 'My food arrived cold—what can I do?', a: 'We’re sorry! Reach out to support to report the issue and request compensation or refund.' },
-      { q: 'Can I get a refund if my order is late?', a: 'Refunds may apply depending on the delay. Contact customer service for more details.' },
+      { key: 'missingItems' },
+      { key: 'coldFood' },
+      { key: 'lateOrder' },
     ],
   },
   {
-    title: 'Account & Safety',
+    key: 'accountSafety',
     items: [
-      { q: 'Is my payment data secure?', a: 'Yes, we use encrypted payment systems to ensure your information is safe and protected.' },
-      { q: 'Can I delete my account permanently?', a: 'Yes, go to “Account Settings” → “Delete Account & Data” to permanently remove your account.' },
+      { key: 'paymentSecurity' },
+      { key: 'deleteAccount' },
     ],
   },
 ];
@@ -125,6 +131,19 @@ const AnimatedAnswer = ({ isVisible, text }: { isVisible: boolean; text: string 
 
 const FAQScreen = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const { t } = useTranslation();
+
+  const qaData = useMemo(
+    () =>
+      sectionsDefinition.map((section) => ({
+        title: t(`profile.faq.sections.${section.key}.title`),
+        items: section.items.map((item) => ({
+          q: t(`profile.faq.sections.${section.key}.questions.${item.key}.question`),
+          a: t(`profile.faq.sections.${section.key}.questions.${item.key}.answer`),
+        })),
+      })),
+    [t],
+  );
 
   const handleToggle = (question: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -133,7 +152,7 @@ const FAQScreen = () => {
 
   const customHeader = (
     <View>
-      <HeaderWithBackButton title="FAQ" titleMarginLeft={s(100)} />
+      <HeaderWithBackButton title={t('profile.faq.title')} titleMarginLeft={s(100)} />
     </View>
   );
 

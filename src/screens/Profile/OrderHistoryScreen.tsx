@@ -12,6 +12,7 @@ import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import OrderDetailsOverlay from '~/components/OrderDetailsOverlay';
 import { useCart } from '~/context/CartContext';
 import { BASE_API_URL } from '@env';
+import { useTranslation } from '~/localization';
 
 const accentColor = '#CA251B';
 const primaryColor = '#17213A';
@@ -26,15 +27,15 @@ const formatOrderTotal = (total: OrderDto['total']) => {
   return `${parsed.toLocaleString('en-US', { minimumFractionDigits: 0 })} DT`;
 };
 
-const buildOrderSummary = (order: OrderDto) => {
-  if (!order?.items?.length) return order.restaurantAddress ?? 'Ready for pickup soon';
+const buildOrderSummary = (order: OrderDto, fallback: string) => {
+  if (!order?.items?.length) return order.restaurantAddress ?? fallback;
   const entries = order.items
     .filter((item) => item?.menuItemName)
     .map((item) => {
       const quantity = item.quantity && item.quantity > 1 ? `${item.quantity}x ` : '';
       return `${quantity}${item.menuItemName}`;
     });
-  if (!entries.length) return order.restaurantAddress ?? 'Ready for pickup soon';
+  if (!entries.length) return order.restaurantAddress ?? fallback;
   const summary = entries.slice(0, 2).join(' • ');
   const remaining = order.items.length - 2;
   return remaining > 0 ? `${summary} • +${remaining} more` : summary;
@@ -45,6 +46,7 @@ const OrderHistoryScreen = () => {
   const { addItem } = useCart();
   const [selectedOrder, setSelectedOrder] = useState<OrderDto | null>(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const { t } = useTranslation();
 
   const openOverlay = useCallback((order: OrderDto) => {
     setSelectedOrder(order);
@@ -64,7 +66,7 @@ const OrderHistoryScreen = () => {
           restaurant: { id: order.restaurantId, name: order.restaurantName },
           menuItem: {
             id: it.menuItemId || 0,
-            name: it.menuItemName || it.name || 'Item',
+            name: it.menuItemName || it.name || t('profile.orderHistory.fallbackItem'),
             description: '',
             imageUrl: (order as any).restaurantImage || null,
             price: Number(it.lineTotal) / (it.quantity || 1),
@@ -75,7 +77,7 @@ const OrderHistoryScreen = () => {
       });
       navigation.navigate('CheckoutOrder' as never);
     },
-    [addItem, navigation],
+    [addItem, navigation, t],
   );
 
   const {
@@ -141,22 +143,22 @@ const OrderHistoryScreen = () => {
               {item.restaurantName}
             </Text>
             <View style={styles.summaryRow}>
-              <Text allowFontScaling={false} style={styles.orderSummary} numberOfLines={2}>
-                {buildOrderSummary(item)}
-              </Text>
-              {isDelivered && (
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.orderActionButton}
-                  onPress={() => handleReorder(item)}
-                >
-                  <Text allowFontScaling={false} style={styles.orderActionLabel}>
-                    REORDER
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <Text allowFontScaling={false} style={styles.totalStatusText}>
+            <Text allowFontScaling={false} style={styles.orderSummary} numberOfLines={2}>
+              {buildOrderSummary(item, t('profile.orderHistory.summaryFallback'))}
+            </Text>
+            {isDelivered && (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.orderActionButton}
+                onPress={() => handleReorder(item)}
+              >
+                <Text allowFontScaling={false} style={styles.orderActionLabel}>
+                  {t('profile.orderHistory.actions.reorder').toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text allowFontScaling={false} style={styles.totalStatusText}>
               {`${formatOrderTotal(item.total)} - `}
               <Text
                 allowFontScaling={false}
@@ -172,7 +174,7 @@ const OrderHistoryScreen = () => {
         </TouchableOpacity>
       );
     },
-    [openOverlay, handleReorder],
+    [openOverlay, handleReorder, t],
   );
 
   const renderSeparator = useCallback(() => <View style={styles.orderSeparator} />, []);
@@ -183,7 +185,7 @@ const OrderHistoryScreen = () => {
         <View style={styles.stateWrapper}>
           <ActivityIndicator size="large" color={accentColor} />
           <Text allowFontScaling={false} style={styles.stateTitle}>
-            Fetching your delicious memories...
+            {t('profile.orderHistory.states.loadingTitle')}
           </Text>
         </View>
       );
@@ -191,14 +193,14 @@ const OrderHistoryScreen = () => {
       return (
         <View style={styles.stateWrapper}>
           <Text allowFontScaling={false} style={styles.stateTitle}>
-            We couldn’t load your orders.
+            {t('profile.orderHistory.states.errorTitle')}
           </Text>
           <Text allowFontScaling={false} style={styles.stateSubtitle}>
-            Check your connection and try again in a moment.
+            {t('profile.orderHistory.states.errorSubtitle')}
           </Text>
           <TouchableOpacity activeOpacity={0.85} style={styles.retryButton} onPress={() => refetch()}>
             <Text allowFontScaling={false} style={styles.retryLabel}>
-              Try again
+              {t('profile.orderHistory.actions.retry')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -207,10 +209,10 @@ const OrderHistoryScreen = () => {
       <View style={styles.emptyBody}>
         <Image source={emptyIllustration} style={styles.emptyIllustration} contentFit="contain" />
         <Text allowFontScaling={false} style={styles.emptyTitle}>
-          Your order history is empty
+          {t('profile.orderHistory.states.emptyTitle')}
         </Text>
         <Text allowFontScaling={false} style={styles.emptySubtitle}>
-          Every great meal begins with a first click. Browse top-rated restaurants and build your flavor legacy today.
+          {t('profile.orderHistory.states.emptySubtitle')}
         </Text>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -218,18 +220,18 @@ const OrderHistoryScreen = () => {
           onPress={() => navigation.navigate('Home' as never)}
         >
           <Text allowFontScaling={false} style={styles.primaryButtonLabel}>
-            Start Ordering
+            {t('profile.orderHistory.actions.startOrdering')}
           </Text>
         </TouchableOpacity>
       </View>
     );
-  }, [isLoading, isError, navigation, refetch]);
+  }, [isLoading, isError, navigation, refetch, t]);
 
   const mainContent = <></>;
 
   const customHeader = (
     <View style={styles.header}>
-      <HeaderWithBackButton title="Order History" titleMarginLeft={s(70)} />
+      <HeaderWithBackButton title={t('profile.orderHistory.title')} titleMarginLeft={s(70)} />
     </View>
   );
 
@@ -241,7 +243,7 @@ const OrderHistoryScreen = () => {
         onPress={() => navigation.navigate('Home' as never)}
       >
         <Text allowFontScaling={false} style={styles.continueLabel}>
-          Continue Ordering
+          {t('profile.orderHistory.actions.continueOrdering')}
         </Text>
       </TouchableOpacity>
     </View>

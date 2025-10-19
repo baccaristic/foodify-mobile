@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { ScaledSheet, vs } from 'react-native-size-matters';
+import { ScaledSheet } from 'react-native-size-matters';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
+import { useTranslation } from '~/localization';
 
 const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
+
+  const invalidError = t('profile.modals.password.errors.invalidCurrent');
+  const mismatchError = t('profile.modals.password.errors.mismatch');
 
   const handleContinue = () => {
     if (currentPass !== 'correctpassword') {
-      setError('Wrong Password ! Please try again');
+      setError(invalidError);
       return;
     }
     if (newPass !== confirmPass) {
-      setError('Passwords do not match !');
+      setError(mismatchError);
       return;
     }
     setError(null);
@@ -26,13 +31,15 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <HeaderWithBackButton title="Modify password" onBack={onClose} />
+        <HeaderWithBackButton title={t('profile.modals.password.title')} onBack={onClose} />
 
         <View style={styles.inner}>
-          <Text allowFontScaling={false} style={styles.label}>Enter your current password</Text>
+          <Text allowFontScaling={false} style={styles.label}>
+            {t('profile.modals.password.currentPrompt')}
+          </Text>
           <TextInput
             secureTextEntry
-            placeholder="Current password"
+            placeholder={t('profile.modals.password.currentPlaceholder')}
             style={styles.input}
             value={currentPass}
             onChangeText={(t) => {
@@ -41,12 +48,14 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
             }}
           />
 
-          {error?.includes('Wrong Password') && <Text style={styles.error}>{error}</Text>}
+          {error === invalidError && <Text style={styles.error}>{error}</Text>}
 
-          <Text allowFontScaling={false} style={styles.label}>Enter your new password</Text>
+          <Text allowFontScaling={false} style={styles.label}>
+            {t('profile.modals.password.newPrompt')}
+          </Text>
           <TextInput
             secureTextEntry
-            placeholder="Password"
+            placeholder={t('profile.modals.password.newPlaceholder')}
             style={styles.input}
             value={newPass}
             onChangeText={(t) => {
@@ -55,10 +64,12 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
             }}
           />
 
-          <Text allowFontScaling={false} style={styles.label}>Confirm new password</Text>
+          <Text allowFontScaling={false} style={styles.label}>
+            {t('profile.modals.password.confirmPrompt')}
+          </Text>
           <TextInput
             secureTextEntry
-            placeholder="Password"
+            placeholder={t('profile.modals.password.confirmPlaceholder')}
             style={styles.input}
             value={confirmPass}
             onChangeText={(t) => {
@@ -67,10 +78,12 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
             }}
           />
 
-          {error?.includes('match') && <Text style={styles.error}>{error}</Text>}
+          {error === mismatchError && <Text style={styles.error}>{error}</Text>}
 
           <TouchableOpacity style={styles.button} onPress={handleContinue}>
-            <Text allowFontScaling={false} style={styles.buttonText}>Continue</Text>
+            <Text allowFontScaling={false} style={styles.buttonText}>
+              {t('profile.modals.common.continue')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

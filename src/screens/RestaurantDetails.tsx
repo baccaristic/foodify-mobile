@@ -33,6 +33,7 @@ import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 import { moderateScale, vs } from 'react-native-size-matters';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
+import { useTranslation } from '~/localization';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -57,7 +58,6 @@ type MenuCardItem = RestaurantMenuItemDetails | RestaurantMenuItemSummary;
 const FALLBACK_IMAGE = require('../../assets/baguette.png');
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
-const formatDeliveryFee = (fee: number) => (fee > 0 ? `${formatCurrency(fee)} delivery fee` : 'Free delivery');
 
 const resolveImageSource = (imagePath?: string | null) => {
   if (imagePath) {
@@ -158,6 +158,7 @@ export default function RestaurantDetails() {
   const sectionRelativeOffsetsRef = useRef<Record<string, number>>({});
 
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { addItem, itemCount, items: cartItems, removeItem, restaurant: cartRestaurant } = useCart();
 
   const translateY = useSharedValue(modalHeight);
@@ -196,7 +197,7 @@ export default function RestaurantDetails() {
     const sections: { key: string; label: string }[] = [];
 
     if (restaurant.topSales?.length) {
-      sections.push({ key: 'top-sales', label: 'Top Sales' });
+      sections.push({ key: 'top-sales', label: t('restaurantDetails.tabs.topSales') });
     }
 
     restaurant.categories.forEach((category, index) => {
@@ -204,8 +205,16 @@ export default function RestaurantDetails() {
     });
 
     return sections;
-  }, [restaurant]);
+  }, [restaurant, t]);
   const hasMenuSections = menuSections.length > 0;
+
+  const formatDeliveryFeeLabel = useCallback(
+    (fee: number) =>
+      fee > 0
+        ? t('restaurantDetails.delivery.withFee', { values: { fee: formatCurrency(fee) } })
+        : t('restaurantDetails.delivery.free'),
+    [t],
+  );
 
   const restaurantFavoriteMutation = useMutation({
     mutationFn: async ({
@@ -597,7 +606,9 @@ export default function RestaurantDetails() {
     return (
       <View className="px-4" onLayout={(event) => handleSectionLayout('top-sales', event)}>
         <Text allowFontScaling={false} className="mb-4 text-lg font-semibold text-black/60">
-          Top Sales ({restaurant.topSales.length})
+          {t('restaurantDetails.sections.topSalesWithCount', {
+            values: { count: restaurant.topSales.length },
+          })}
         </Text>
 
         <View className="mb-4 flex-row flex-wrap justify-between gap-y-4">
@@ -645,13 +656,13 @@ export default function RestaurantDetails() {
       return (
         <View className="flex-1 items-center justify-center px-6 py-20">
           <Text allowFontScaling={false} className="mb-4 text-center text-lg font-semibold text-[#17213A]">
-            No restaurant selected.
+            {t('restaurantDetails.states.noSelection.title')}
           </Text>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             className="rounded-full bg-[#CA251B] px-6 py-3">
             <Text allowFontScaling={false} className="text-white">
-              Go back
+              {t('common.back')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -670,13 +681,13 @@ export default function RestaurantDetails() {
       return (
         <View className="flex-1 items-center justify-center px-6 py-20">
           <Text allowFontScaling={false} className="mb-4 text-center text-lg font-semibold text-[#17213A]">
-            We could not load this restaurant.
+            {t('restaurantDetails.states.error.title')}
           </Text>
           <TouchableOpacity
             onPress={() => refetch()}
             className="rounded-full bg-[#CA251B] px-6 py-3">
             <Text allowFontScaling={false} className="text-white">
-              Retry
+              {t('common.retry')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -706,7 +717,7 @@ export default function RestaurantDetails() {
 
               <View className="flex flex-row items-center gap-1 font-sans">
                 <Text allowFontScaling={false} className="text-sm text-gray-700">
-                  {restaurant.rating || 'New'}
+                  {restaurant.rating || t('restaurantDetails.rating.new')}
                 </Text>
                 <Star size={16} color="#CA251B" fill="#CA251B" />
               </View>
@@ -720,7 +731,7 @@ export default function RestaurantDetails() {
 
               <View className="flex flex-row items-center gap-1 font-sans">
                 <Text allowFontScaling={false} className="text-sm text-gray-700">
-                  {formatDeliveryFee(restaurant.deliveryFee)}
+                  {formatDeliveryFeeLabel(restaurant.deliveryFee)}
                 </Text>
               </View>
             </View>
@@ -730,7 +741,7 @@ export default function RestaurantDetails() {
         <View className="mb-4 mt-4 rounded-lg bg-gray-100">
           <View className="p-3 px-4">
             <Text allowFontScaling={false} className="mb-1 font-semibold text-[#17213A]">
-              Restaurant Info
+              {t('restaurantDetails.sections.infoTitle')}
             </Text>
             {restaurant.description ? (
               <Text allowFontScaling={false} className="text-sm text-[#17213A]">
@@ -808,7 +819,7 @@ export default function RestaurantDetails() {
         <ArrowLeft size={20} color="#CA251B" />
       </TouchableOpacity>
       <Text allowFontScaling={false} className="flex-1 text-center text-lg font-bold text-gray-800">
-        {restaurant?.name ?? 'Restaurant'}
+        {restaurant?.name ?? t('restaurantDetails.fallbackName')}
       </Text>
       <TouchableOpacity
         className="p-2"
@@ -931,7 +942,11 @@ export default function RestaurantDetails() {
               handleAddItem={handleUpdateCartAndClose}
               onClose={() => handleUpdateCartAndClose([])}
               initialDraftSelections={initialDraftSelections ?? undefined}
-              actionLabel={editingCartItemId ? 'Update' : 'Add'}
+              actionLabel={
+                editingCartItemId
+                  ? t('menuDetail.actions.update')
+                  : t('menuDetail.actions.add')
+              }
               onToggleFavorite={(nextFavorite) =>
                 handleToggleMenuItemFavorite(selectedMenuItem.id, nextFavorite)
               }

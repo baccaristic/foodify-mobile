@@ -35,19 +35,13 @@ import { useNavigation, useRoute, NavigationProp } from '@react-navigation/nativ
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { formatOrderStatusLabel } from '~/utils/order';
+import { useTranslation } from '~/localization';
 
 type NavItem = {
   icon: LucideIcon;
   label: string;
   route: string;
 };
-
-const defaultNavItems: NavItem[] = [
-  { icon: Home, label: 'Home', route: 'Home' },
-  { icon: Search, label: 'Search', route: 'Search' },
-  { icon: ShoppingBag, label: 'Orders', route: 'Cart' },
-  { icon: User, label: 'Account', route: 'Profile' },
-];
 
 const useOptionalNavigation = () => {
   try {
@@ -112,6 +106,7 @@ export default function MainLayout({
   scrollRef,
   virtualizedListProps = null,
 }: MainLayoutProps) {
+  const { t } = useTranslation();
   const screenHeight = Dimensions.get('screen').height;
   const insets = useSafeAreaInsets();
   const defaultMax = screenHeight * 0.28;
@@ -368,7 +363,17 @@ export default function MainLayout({
       )
     : undefined;
 
-  const resolvedNavItems = navItems ?? defaultNavItems;
+  const fallbackNavItems = useMemo<NavItem[]>(
+    () => [
+      { icon: Home, label: t('navigation.home'), route: 'Home' },
+      { icon: Search, label: t('navigation.search'), route: 'Search' },
+      { icon: ShoppingBag, label: t('navigation.cart'), route: 'Cart' },
+      { icon: User, label: t('navigation.profile'), route: 'Profile' },
+    ],
+    [t],
+  );
+
+  const resolvedNavItems = navItems ?? fallbackNavItems;
   const routeName = route?.name;
   const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
 
@@ -526,8 +531,11 @@ export default function MainLayout({
             <OngoingOrderSection
               isExpanded={isOngoingExpanded}
               onToggle={handleToggleOngoing}
-              statusLabel={ongoingStatusLabel ?? 'Tracking...'}
+              statusLabel={ongoingStatusLabel ?? t('layout.ongoingOrder.trackingFallback')}
               onPressDetails={handleViewOrderDetails}
+              title={t('layout.ongoingOrder.bannerTitle')}
+              statusHeading={t('layout.ongoingOrder.statusHeading')}
+              detailsLabel={t('layout.ongoingOrder.seeDetails')}
             />
           ) : null}
           <View style={[styles.navRow, ongoingOrder ? styles.navRowWithBanner : null]}>
@@ -566,6 +574,9 @@ interface OngoingOrderSectionProps {
   onToggle: () => void;
   statusLabel: string;
   onPressDetails: () => void;
+  title: string;
+  statusHeading: string;
+  detailsLabel: string;
 }
 
 const OngoingOrderSection = ({
@@ -573,6 +584,9 @@ const OngoingOrderSection = ({
   onToggle,
   statusLabel,
   onPressDetails,
+  title,
+  statusHeading,
+  detailsLabel,
 }: OngoingOrderSectionProps) => {
   return (
     <View style={styles.ongoingContainer}>
@@ -582,7 +596,7 @@ const OngoingOrderSection = ({
         style={styles.ongoingHeader}
       >
         <Text allowFontScaling={false} style={styles.ongoingHeaderText} numberOfLines={1}>
-          your order is on the way
+          {title}
         </Text>
         {isExpanded ? (
           <ChevronDown size={s(18)} color="#FFFFFF" />
@@ -594,7 +608,7 @@ const OngoingOrderSection = ({
         <View style={styles.ongoingBody}>
           <View style={styles.statusCard}>
             <Text allowFontScaling={false} style={styles.statusCardLabel}>
-              Status
+              {statusHeading}
             </Text>
             <Text allowFontScaling={false} style={styles.statusCardValue} numberOfLines={2}>
               {statusLabel}
@@ -606,7 +620,7 @@ const OngoingOrderSection = ({
             onPress={onPressDetails}
           >
             <Text allowFontScaling={false} style={styles.detailsButtonLabel}>
-              See Details
+              {detailsLabel}
             </Text>
           </TouchableOpacity>
         </View>

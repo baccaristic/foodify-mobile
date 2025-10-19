@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
+import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { User, Phone, Mail, Lock, Star, Languages, ChevronRight } from 'lucide-react-native';
 import MainLayout from '~/layouts/MainLayout';
@@ -11,6 +12,7 @@ import ModifyEmailOverlay from '~/components/ProfilSettings/ModifyEmailOverlay';
 import ModifyPhoneOverlay from '~/components/ProfilSettings/ModifyPhoneOverlay';
 import ModifyPasswordOverlay from '~/components/ProfilSettings/ModifyPasswordOverlay';
 import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
+import { useTranslation } from '~/localization';
 
 const palette = {
   accent: '#CA251B',
@@ -19,6 +21,8 @@ const palette = {
 
 const ProfileSettingsScreen = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const { t } = useTranslation();
   const displayName = user?.name ?? 'Flen Foulani';
   const displayEmail = user?.email ?? 'flenfoulani@email.com';
   const displayPhone = user?.phone ?? '987654432';
@@ -30,7 +34,7 @@ const ProfileSettingsScreen = () => {
 
   const customHeader = (
     <View>
-      <HeaderWithBackButton title="Profile Settings" titleMarginLeft={s(80)} />
+      <HeaderWithBackButton title={t('profile.settings.title')} titleMarginLeft={s(80)} />
     </View>
   );
 
@@ -41,7 +45,9 @@ const ProfileSettingsScreen = () => {
 </View>
 
 
-      <Text allowFontScaling={false} style={styles.sectionTitle}>Personal informations</Text>
+      <Text allowFontScaling={false} style={styles.sectionTitle}>
+        {t('profile.settings.sections.personalInfo')}
+      </Text>
       <View style={styles.infoCard}>
         <View style={styles.infoRow}>
           <View style={styles.infoLeft}>
@@ -49,7 +55,9 @@ const ProfileSettingsScreen = () => {
             <Text allowFontScaling={false} style={styles.infoText}>{displayName}</Text>
           </View>
           <TouchableOpacity style={styles.modifyButton} onPress={() => openOverlay('name')}>
-            <Text allowFontScaling={false} style={styles.modifyText}>Modify</Text>
+            <Text allowFontScaling={false} style={styles.modifyText}>
+              {t('profile.settings.actions.modify')}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -61,7 +69,9 @@ const ProfileSettingsScreen = () => {
             <Text allowFontScaling={false} style={styles.infoText}>{displayPhone}</Text>
           </View>
           <TouchableOpacity style={styles.modifyButton} onPress={() => openOverlay('phone')}>
-            <Text allowFontScaling={false} style={styles.modifyText}>Modify</Text>
+            <Text allowFontScaling={false} style={styles.modifyText}>
+              {t('profile.settings.actions.modify')}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -73,8 +83,9 @@ const ProfileSettingsScreen = () => {
             <Text allowFontScaling={false} style={styles.infoText}>{displayEmail}</Text>
           </View>
           <TouchableOpacity style={styles.modifyButton} onPress={() => openOverlay('email')}>
-            <Text allowFontScaling={false} style={styles.modifyText} numberOfLines={1}
-            >Modify</Text>
+            <Text allowFontScaling={false} style={styles.modifyText} numberOfLines={1}>
+              {t('profile.settings.actions.modify')}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -83,27 +94,37 @@ const ProfileSettingsScreen = () => {
         <TouchableOpacity style={styles.infoRow} onPress={() => openOverlay('password')}>
           <View style={styles.infoLeft}>
             <Lock size={20} color={palette.accent} />
-            <Text allowFontScaling={false} style={styles.infoText}>Change Password</Text>
+            <Text allowFontScaling={false} style={styles.infoText}>
+              {t('profile.settings.actions.changePassword')}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
 
-      <Text allowFontScaling={false} style={styles.sectionTitle}>Other</Text>
+      <Text allowFontScaling={false} style={styles.sectionTitle}>{t('profile.settings.sections.other')}</Text>
       <View style={styles.infoCard}>
         <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
           <View style={styles.infoLeft}>
             <Star size={20} color={palette.accent} />
-            <Text allowFontScaling={false} style={styles.infoText}>Points & Level</Text>
+            <Text allowFontScaling={false} style={styles.infoText}>
+              {t('profile.settings.actions.pointsAndLevel')}
+            </Text>
           </View>
           <ChevronRight size={s(18)} color={palette.accent} />
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
-        <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.linkRow}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('LanguageSettings' as never)}
+        >
           <View style={styles.infoLeft}>
             <Languages size={20} color={palette.accent} />
-            <Text allowFontScaling={false} style={styles.infoText}>Language</Text>
+            <Text allowFontScaling={false} style={styles.infoText}>
+              {t('profile.settings.actions.language')}
+            </Text>
           </View>
           <ChevronRight size={s(18)} color={palette.accent} />
         </TouchableOpacity>

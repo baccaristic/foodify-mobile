@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import { X, Award, Heart, Flame, Star, Bike } from "lucide-react-native";
+import { useTranslation } from "~/localization";
 
 interface FiltersOverlayProps {
   visible: boolean;
@@ -29,6 +30,7 @@ export default function FiltersOverlay({
   onClearAll,
   initialFilters,
 }: FiltersOverlayProps) {
+  const { t } = useTranslation();
   const feeSteps = [1, 1.5, 2, 2.5];
   const [maxFee, setMaxFee] = useState(initialFilters?.maxFee ?? 2.5);
   const [sortOption, setSortOption] = useState(initialFilters?.sort ?? "picked");
@@ -72,14 +74,14 @@ export default function FiltersOverlay({
             <TouchableOpacity onPress={onClose}>
               <X color="#17213A" size={s(22)} />
             </TouchableOpacity>
-            <Text style={styles.title}>FILTERS</Text>
+            <Text style={styles.title}>{t("filters.title")}</Text>
             <TouchableOpacity onPress={clearAll}>
-              <Text style={styles.clearText}>Clear all</Text>
+              <Text style={styles.clearText}>{t("filters.clear")}</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.sectionTitle}>Sort</Text>
+            <Text style={styles.sectionTitle}>{t("filters.sections.sort")}</Text>
 
             <TouchableOpacity
               style={styles.optionRow}
@@ -95,7 +97,7 @@ export default function FiltersOverlay({
                   { color: sortOption === "picked" ? "#CA251B" : "#17213A" },
                 ]}
               >
-                Picked for you
+                {t("filters.sortOptions.picked")}
               </Text>
             </TouchableOpacity>
 
@@ -113,7 +115,7 @@ export default function FiltersOverlay({
                   { color: sortOption === "popular" ? "#CA251B" : "#17213A" },
                 ]}
               >
-                Most popular
+                {t("filters.sortOptions.popular")}
               </Text>
             </TouchableOpacity>
 
@@ -121,7 +123,7 @@ export default function FiltersOverlay({
               style={styles.optionRow}
               onPress={() => {
                 setSortOption("fee_asc");
-                setMaxFee(getNextFeeStep())
+                setMaxFee(getNextFeeStep());
               }}
             >
               <Bike
@@ -134,7 +136,7 @@ export default function FiltersOverlay({
                   { color: sortOption === "fee_asc" ? "#CA251B" : "#17213A" },
                 ]}
               >
-                Delivery Fee
+                {t("filters.sortOptions.fee")}
               </Text>
             </TouchableOpacity>
 
@@ -152,7 +154,7 @@ export default function FiltersOverlay({
                   { color: sortOption === "rating" ? "#CA251B" : "#17213A" },
                 ]}
               >
-                Rating
+                {t("filters.sortOptions.rating")}
               </Text>
             </TouchableOpacity>
 
@@ -161,7 +163,7 @@ export default function FiltersOverlay({
             <View style={styles.rowBetween}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: s(6) }}>
                 <Award color="#CA251B" size={s(22)} />
-                <Text style={styles.sectionTitle}>Top Eat</Text>
+                <Text style={styles.sectionTitle}>{t("filters.sections.topEat")}</Text>
               </View>
               <Switch
                 trackColor={{ false: "#ccc", true: "#CA251B" }}
@@ -174,7 +176,7 @@ export default function FiltersOverlay({
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-              <Text style={styles.applyText}>Apply Filters</Text>
+              <Text style={styles.applyText}>{t("filters.actions.apply")}</Text>
             </TouchableOpacity>
 
             <View style={{ height: vs(40) }} />

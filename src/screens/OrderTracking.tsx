@@ -25,6 +25,8 @@ import useOngoingOrder from '~/hooks/useOngoingOrder';
 import type { OngoingOrderData } from '~/context/OngoingOrderContext';
 import { formatOrderStatusLabel } from '~/utils/order';
 import { BASE_API_URL } from '@env';
+import { useTranslation } from '~/localization';
+import { useCurrencyFormatter } from '~/localization/hooks';
 const HEADER_MAX_HEIGHT = 320;
 const HEADER_MIN_HEIGHT = 72;
 const COLLAPSE_THRESHOLD = 80;
@@ -38,6 +40,16 @@ const borderColor = '#F0F1F5';
 
 type LatLng = { latitude: number; longitude: number };
 
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  PENDING: 'orderTracking.status.pending',
+  ACCEPTED: 'orderTracking.status.accepted',
+  PREPARING: 'orderTracking.status.preparing',
+  READY_FOR_PICK_UP: 'orderTracking.status.readyForPickup',
+  IN_DELIVERY: 'orderTracking.status.inDelivery',
+  DELIVERED: 'orderTracking.status.delivered',
+  CANCELLED: 'orderTracking.status.cancelled',
+};
+
 export type OrderTrackingData = (OngoingOrderData & Partial<CreateOrderResponse>) & {
   statusHistory?: OrderStatusHistoryDto[] | null;
 };
@@ -45,23 +57,6 @@ export type OrderTrackingData = (OngoingOrderData & Partial<CreateOrderResponse>
 type StatusChangeInfo = {
   title: string;
   description?: string | null;
-};
-
-const formatCurrency = (value: MonetaryAmount | null | undefined) => {
-  if (value == null) {
-    return undefined;
-  }
-
-  if (typeof value === 'number') {
-    return `${value.toFixed(3)} dt`;
-  }
-
-  const parsed = Number(String(value).replace(',', '.'));
-  if (Number.isFinite(parsed)) {
-    return `${parsed.toFixed(3)} dt`;
-  }
-
-  return undefined;
 };
 
 const extractNumericAmount = (
@@ -97,6 +92,33 @@ const OrderTrackingScreen: React.FC = () => {
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
   const { order: ongoingOrder } = useOngoingOrder();
+  const { t } = useTranslation();
+  const formatCurrency = useCurrencyFormatter();
+  const formatMonetaryAmount = useCallback(
+    (value: MonetaryAmount | null | undefined) => {
+      const amount = extractNumericAmount(value);
+      return amount != null ? formatCurrency(amount) : undefined;
+    },
+    [formatCurrency],
+  );
+  const getStatusLabel = useCallback(
+    (status: string | null | undefined) => {
+      if (!status) {
+        return null;
+      }
+
+      const normalized = status.toString().toUpperCase();
+      const key = STATUS_LABEL_KEYS[normalized];
+      if (key) {
+        return t(key, {
+          defaultValue: formatOrderStatusLabel(status) ?? normalized.replace(/_/g, ' '),
+        });
+      }
+
+      return formatOrderStatusLabel(status) ?? normalized.replace(/_/g, ' ');
+    },
+    [t],
+  );
 
   const order = useMemo<OrderTrackingData | null>(
     () => (ongoingOrder ? (ongoingOrder as OrderTrackingData) : null),
@@ -135,7 +157,7 @@ const OrderTrackingScreen: React.FC = () => {
 
     return baseStatus ? String(baseStatus).toUpperCase() : null;
   }, [order?.status, statusHistory]);
-  const formattedStatus = formatOrderStatusLabel(order?.status);
+  const formattedStatus = getStatusLabel(normalizedStatus);
   const isPendingStatus = normalizedStatus === 'PENDING';
   const isAcceptedStatus = normalizedStatus === 'ACCEPTED';
   const isPreparingStatus = normalizedStatus === 'PREPARING';
@@ -157,28 +179,28 @@ const OrderTrackingScreen: React.FC = () => {
     if (isPendingStatus) {
       return {
         source: require('../../assets/animations/order_placed.json'),
-        message: 'Restaurant has received your order.',
+        message: t('orderTracking.hero.pending'),
       } as const;
     }
 
     if (isAcceptedStatus) {
       return {
         source: require('../../assets/animations/order_placed.json'),
-        message: 'Restaurant accepted your order, finding a suitable driver…',
+        message: t('orderTracking.hero.accepted'),
       } as const;
     }
 
     if (isPreparingStatus) {
       return {
         source: require('../../assets/animations/prepare_food.json'),
-        message: 'Restaurant is preparing your order.',
+        message: t('orderTracking.hero.preparing'),
       } as const;
     }
 
     if (isReadyForPickupStatus) {
       return {
         source: require('../../assets/animations/order_ready.json'),
-        message: 'Your order is ready, the driver is picking it up.',
+        message: t('orderTracking.hero.readyForPickup'),
       } as const;
     }
 
@@ -188,6 +210,7 @@ const OrderTrackingScreen: React.FC = () => {
     isPendingStatus,
     isPreparingStatus,
     isReadyForPickupStatus,
+    t,
   ]);
 
   const handleCloseSupport = useCallback(() => {
@@ -222,10 +245,13 @@ const OrderTrackingScreen: React.FC = () => {
     const telUrl = `tel:${sanitizedNumber}`;
 
     Linking.openURL(telUrl).catch(() => {
-      Alert.alert('Unable to place call', `Please dial ${supportPhoneNumber} manually.`);
+      Alert.alert(
+        t('orderTracking.help.callErrorTitle'),
+        t('orderTracking.help.callErrorMessage', { values: { phone: supportPhoneNumber } }),
+      );
     });
     handleCloseSupport();
-  }, [handleCloseSupport, supportPhoneNumber]);
+  }, [handleCloseSupport, supportPhoneNumber, t]);
 
   const handleRequestLiveChat = useCallback(() => {
     handleCloseSupport();
@@ -234,12 +260,12 @@ const OrderTrackingScreen: React.FC = () => {
         'LiveChat' as never,
         {
           orderId: order?.orderId ?? null,
-          topic: 'Order support',
+          topic: t('orderTracking.help.liveChatTopic'),
           from: 'OrderTracking',
         } as never,
       );
     }, 260);
-  }, [handleCloseSupport, navigation, order?.orderId]);
+  }, [handleCloseSupport, navigation, order?.orderId, t]);
 
   useEffect(() => {
     previousStatusRef.current = null;
@@ -361,7 +387,8 @@ const OrderTrackingScreen: React.FC = () => {
     const previousStatus = previousStatusRef.current;
 
     if (normalizedStatus && previousStatus && normalizedStatus !== previousStatus) {
-      const statusLabel = formatOrderStatusLabel(normalizedStatus) ?? 'Status updated';
+      const statusLabel =
+        getStatusLabel(normalizedStatus) ?? t('orderTracking.history.statusUpdated');
       const latestStatusEntry =
         statusHistory.length > 0 ? statusHistory[statusHistory.length - 1] ?? null : null;
 
@@ -370,7 +397,7 @@ const OrderTrackingScreen: React.FC = () => {
         description:
           latestStatusEntry?.reason ??
           latestStatusEntry?.action ??
-          'Your order moved to the next step.',
+          t('orderTracking.history.defaultDescription'),
       });
 
       const highlightKey = getHistoryEntryKey(
@@ -386,7 +413,13 @@ const OrderTrackingScreen: React.FC = () => {
     if (normalizedStatus) {
       previousStatusRef.current = normalizedStatus;
     }
-  }, [getHistoryEntryKey, normalizedStatus, statusHistory]);
+  }, [
+    getHistoryEntryKey,
+    getStatusLabel,
+    normalizedStatus,
+    statusHistory,
+    t,
+  ]);
 
   const orderTotal = useMemo(() => {
     if (!order) {
@@ -411,14 +444,14 @@ const OrderTrackingScreen: React.FC = () => {
     ];
 
     for (const candidate of candidates) {
-      const formatted = formatCurrency(candidate);
+      const formatted = formatMonetaryAmount(candidate);
       if (formatted) {
         return formatted;
       }
     }
 
     return undefined;
-  }, [order]);
+  }, [formatCurrency, formatMonetaryAmount, order]);
   const deliverySummary = (order?.delivery ?? null) as Record<string, any> | null;
   const courierDetails = deliverySummary?.courier ?? deliverySummary?.driver ?? null;
   const parsedCourierRating = Number(courierDetails?.rating ?? NaN);
@@ -429,11 +462,14 @@ const OrderTrackingScreen: React.FC = () => {
   const courierDeliveries = Number.isFinite(courierDeliveriesValue)
     ? courierDeliveriesValue
     : null;
-  const courierName = courierDetails?.name ?? 'Courier assigned soon';
+  const courierName = courierDetails?.name ?? t('orderTracking.courier.pending');
   const courierAvatarUri = courierDetails?.avatarUrl ?? undefined;
   const restaurantAvatarUri = (order as any)?.restaurant?.imageUrl ?? undefined;
-  const orderIdentifier = order?.orderId ? `Order #${order.orderId}` : 'Order details';
-  const restaurantName = order?.restaurant?.name ?? 'Restaurant pending';
+  const orderIdentifier = order?.orderId
+    ? t('orderTracking.summary.orderId', { values: { id: order.orderId } })
+    : t('orderTracking.summary.titleFallback');
+  const restaurantName =
+    order?.restaurant?.name ?? t('restaurantDetails.fallbackName');
   const courierRatingText = courierRating ? `${courierRating} / 5` : '—';
   const courierDeliveriesText = courierDeliveries != null ? ` (${courierDeliveries})` : '';
   const canViewDetails = Boolean(order);
@@ -765,12 +801,12 @@ const OrderTrackingScreen: React.FC = () => {
               />
               <View style={styles.statusTextWrapper}>
                 <Text style={styles.statusHeading}>
-                  {formattedStatus ?? 'Waiting for restaurant'}
+                  {formattedStatus ?? t('orderTracking.hero.waitingTitle')}
                 </Text>
                 <Text style={styles.statusSubheading}>
                   {hasAssignedCourier
-                    ? 'Driver is getting ready — location coming soon.'
-                    : 'We will show the driver once they are assigned to your order.'}
+                    ? t('orderTracking.hero.driverEnRoute')
+                    : t('orderTracking.hero.driverUnassigned')}
                 </Text>
               </View>
             </View>
@@ -814,7 +850,7 @@ const OrderTrackingScreen: React.FC = () => {
   const renderSteps = () => (
     <View style={styles.stepsCard}>
       <View style={styles.stepsHeader}>
-        <Text style={styles.stepsTitle}>Order progress</Text>
+        <Text style={styles.stepsTitle}>{t('orderTracking.history.title')}</Text>
         {formattedStatus ? (
           <View style={styles.stepsStatusBadge}>
             <Text style={styles.stepsStatusText}>{formattedStatus}</Text>
@@ -844,7 +880,7 @@ const OrderTrackingScreen: React.FC = () => {
       ) : null}
       {statusHistory.length === 0 ? (
         <Text style={styles.stepsEmptyText}>
-          Tracking updates will appear once we receive status changes from the restaurant.
+          {t('orderTracking.history.empty')}
         </Text>
       ) : (
         statusHistory.map((entry, index) => {
@@ -859,12 +895,14 @@ const OrderTrackingScreen: React.FC = () => {
           const highlightKey = getHistoryEntryKey(entry, index);
           const isHighlighted = highlightedStepKey === highlightKey;
           const title =
-            formatOrderStatusLabel(entryStatus) ??
+            getStatusLabel(entryStatus) ??
             entry?.newStatus ??
             entry?.action ??
-            `Update ${index + 1}`;
+            t('orderTracking.history.updateFallback', { values: { index: index + 1 } });
           const description =
-            entry?.reason ?? entry?.action ?? 'Your order moved to the next step.';
+            entry?.reason ??
+            entry?.action ??
+            t('orderTracking.history.defaultDescription');
           const changedAt = entry?.changedAt ? new Date(entry.changedAt) : null;
           const timeLabel = changedAt
             ? changedAt.toLocaleTimeString(undefined, {
@@ -1030,7 +1068,7 @@ const OrderTrackingScreen: React.FC = () => {
                 const displayName =
                   item?.name ??
                   (item as { menuItemName?: string } | null | undefined)?.menuItemName ??
-                  'Menu item';
+                  t('checkout.defaults.item');
                 const totalDisplay = (() => {
                   const lineTotal = extractNumericAmount(item?.lineTotal);
                   const unitPrice = extractNumericAmount(item?.unitPrice);
@@ -1114,7 +1152,7 @@ const OrderTrackingScreen: React.FC = () => {
               })
             ) : (
               <Text style={styles.summaryEmptyText}>
-                Items will appear once your order is confirmed.
+                {t('orderTracking.summary.empty')}
               </Text>
             )}
           </View>
@@ -1130,7 +1168,7 @@ const OrderTrackingScreen: React.FC = () => {
                 !canViewDetails && styles.summaryDetailsButtonDisabled,
               ]}
             >
-              <Text style={styles.summaryDetailsText}>See details</Text>
+              <Text style={styles.summaryDetailsText}>{t('orderTracking.summary.detailsCta')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1145,7 +1183,7 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
             )}
             <View>
-              <Text style={styles.courierStickyLabel}>Delivered by</Text>
+              <Text style={styles.courierStickyLabel}>{t('orderTracking.courier.label')}</Text>
               <Text style={styles.courierStickyName}>{courierName}</Text>
               <View style={styles.courierStickyRating}>
                 <Star size={14} color={accentColor} fill={accentColor} />
@@ -1195,9 +1233,9 @@ const OrderTrackingScreen: React.FC = () => {
               ]}
             >
               <View style={styles.helpHandle} />
-              <Text style={styles.helpTitle}>Need help with your order?</Text>
+              <Text style={styles.helpTitle}>{t('orderTracking.help.title')}</Text>
               <Text style={styles.helpDescription}>
-                Our support team is available 24/7 to assist you.
+                {t('orderTracking.help.description')}
               </Text>
               <TouchableOpacity
                 style={styles.helpOption}
@@ -1208,7 +1246,9 @@ const OrderTrackingScreen: React.FC = () => {
                   <Phone size={20} color="white" />
                 </View>
                 <View style={styles.helpOptionContent}>
-                  <Text style={styles.helpOptionTitle}>Call customer support</Text>
+                  <Text style={styles.helpOptionTitle}>
+                    {t('orderTracking.help.callSupport')}
+                  </Text>
                   <Text style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
                 </View>
               </TouchableOpacity>
@@ -1218,7 +1258,9 @@ const OrderTrackingScreen: React.FC = () => {
                 onPress={handleRequestLiveChat}
               >
                 <MessageCircle size={18} color="white" />
-                <Text style={styles.helpChatButtonText}>Request instant live chat</Text>
+                <Text style={styles.helpChatButtonText}>
+                  {t('orderTracking.help.liveChatCta')}
+                </Text>
               </TouchableOpacity>
             </Animated.View>
           </View>
