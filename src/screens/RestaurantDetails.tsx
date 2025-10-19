@@ -697,24 +697,16 @@ export default function RestaurantDetails() {
     return (
       <View>
         <View className="px-4">
-          <View className="relative mt-14 rounded-3xl bg-white px-4 pb-6 pt-6 shadow-3xl">
-            <View
-              style={{
-                position: 'absolute',
-                top: -moderateScale(42),
-                left: moderateScale(22),
-              }}
-            >
-              <View className="rounded-3xl bg-white p-1.5 shadow-xl">
-                <Image
-                  source={resolveImageSource(restaurant.iconUrl ?? restaurant.imageUrl)}
-                  style={{ width: moderateScale(76), height: moderateScale(76), borderRadius: moderateScale(24) }}
-                  contentFit="cover"
-                />
-              </View>
+          <View className="mt-4 flex-row items-center gap-4">
+            <View className="rounded-3xl bg-white p-1.5 shadow-lg">
+              <Image
+                source={resolveImageSource(restaurant.iconUrl ?? restaurant.imageUrl)}
+                style={{ width: moderateScale(64), height: moderateScale(64), borderRadius: moderateScale(20) }}
+                contentFit="cover"
+              />
             </View>
 
-            <View style={{ marginLeft: moderateScale(96) }}>
+            <View className="flex-1">
               <Text allowFontScaling={false} className="text-2xl font-bold text-[#17213A]">
                 {restaurant.name}
               </Text>
@@ -724,31 +716,33 @@ export default function RestaurantDetails() {
                 </Text>
               ) : null}
             </View>
+          </View>
 
-            <View className="mt-6 flex flex-row flex-wrap items-center gap-4 text-xs text-[#17213A]">
-              <View className="flex flex-row items-center gap-2 rounded-full bg-[#CA251B]/5 px-3 py-1">
+          <View className="mt-4 flex flex-row items-center justify-center text-xs text-[#17213A]">
+            <View className="border-1 mt-2 flex flex-row items-center gap-4 rounded-xl border-black/5 bg-white px-4 py-2 shadow-xl">
+              <View className="flex flex-row items-center gap-1 font-sans">
                 <Clock7 size={16} color="#CA251B" />
-                <Text allowFontScaling={false} className="text-sm text-[#17213A]">
+                <Text allowFontScaling={false} className="text-sm text-gray-700">
                   {restaurant.openingHours} - {restaurant.closingHours}
                 </Text>
               </View>
 
-              <View className="flex flex-row items-center gap-2 rounded-full bg-[#CA251B]/5 px-3 py-1">
-                <Star size={16} color="#CA251B" fill="#CA251B" />
-                <Text allowFontScaling={false} className="text-sm text-[#17213A]">
+              <View className="flex flex-row items-center gap-1 font-sans">
+                <Text allowFontScaling={false} className="text-sm text-gray-700">
                   {restaurant.rating || t('restaurantDetails.rating.new')}
                 </Text>
+                <Star size={16} color="#CA251B" fill="#CA251B" />
               </View>
 
-              <View className="flex flex-row items-center gap-2 rounded-full bg-[#CA251B]/5 px-3 py-1">
+              <View className="flex flex-row items-center gap-1 font-sans">
                 <MapPin size={16} color="#CA251B" />
-                <Text allowFontScaling={false} className="text-sm text-[#17213A]">
+                <Text allowFontScaling={false} className="text-sm text-gray-700">
                   {restaurant.type}
                 </Text>
               </View>
 
-              <View className="flex flex-row items-center gap-2 rounded-full bg-[#CA251B]/5 px-3 py-1">
-                <Text allowFontScaling={false} className="text-sm text-[#17213A]">
+              <View className="flex flex-row items-center gap-1 font-sans">
+                <Text allowFontScaling={false} className="text-sm text-gray-700">
                   {formatDeliveryFeeLabel(restaurant.deliveryFee)}
                 </Text>
               </View>
