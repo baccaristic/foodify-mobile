@@ -73,7 +73,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
   return (
     <View style={{ width: width / 2 - 24 }} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md">
       <View className="relative">
-        <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="cover" />
+        <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="contain" />
         {promotionActive && item.promotionLabel ? (
           <View className="absolute left-2 top-2 rounded-full bg-[#CA251B]/90 px-2 py-1">
             <Text allowFontScaling={false} className="text-[10px] font-semibold uppercase text-white">
