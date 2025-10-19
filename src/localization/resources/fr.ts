@@ -18,6 +18,7 @@ const fr: TranslationDictionary = {
     save: 'Enregistrer',
     loading: 'Chargement…',
     error: 'Une erreur est survenue',
+    currency: '{{amount}} DT',
   },
   header: {
     chooseAddress: 'Choisir une adresse de livraison',
@@ -326,6 +327,52 @@ const fr: TranslationDictionary = {
     },
     actions: {
       confirm: 'Confirmer et payer la commande',
+    },
+  },
+  orderTracking: {
+    status: {
+      pending: 'Commande reçue',
+      accepted: 'Commande acceptée',
+      preparing: 'Préparation en cours',
+      readyForPickup: 'Commande prête',
+      inDelivery: 'En livraison',
+      delivered: 'Livrée',
+      cancelled: 'Annulée',
+    },
+    hero: {
+      pending: 'Le restaurant a reçu votre commande.',
+      accepted: 'Le restaurant a accepté votre commande et cherche un livreur…',
+      preparing: 'Le restaurant prépare votre commande.',
+      readyForPickup: 'Votre commande est prête, le livreur la récupère.',
+      waitingTitle: 'En attente du restaurant',
+      driverEnRoute: 'Le livreur se prépare — localisation disponible bientôt.',
+      driverUnassigned: 'Nous afficherons le livreur dès qu’il sera attribué à votre commande.',
+    },
+    history: {
+      title: 'Suivi de la commande',
+      empty: 'Les mises à jour apparaîtront dès que nous recevrons des changements du restaurant.',
+      statusUpdated: 'Statut mis à jour',
+      defaultDescription: 'Votre commande est passée à l’étape suivante.',
+      updateFallback: 'Mise à jour {{index}}',
+    },
+    summary: {
+      orderId: 'Commande n°{{id}}',
+      titleFallback: 'Détails de la commande',
+      empty: 'Les articles apparaîtront une fois la commande confirmée.',
+      detailsCta: 'Voir les détails',
+    },
+    courier: {
+      pending: 'Livreur attribué bientôt',
+      label: 'Livré par',
+    },
+    help: {
+      title: 'Besoin d’aide pour votre commande ?',
+      description: 'Notre équipe d’assistance est disponible 24h/24 et 7j/7.',
+      callSupport: 'Appeler le service client',
+      liveChatCta: 'Demander un chat en direct immédiat',
+      liveChatTopic: 'Assistance commande',
+      callErrorTitle: 'Impossible de passer l’appel',
+      callErrorMessage: 'Veuillez composer le {{phone}} manuellement.',
     },
   },
   liveChat: {

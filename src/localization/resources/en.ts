@@ -18,6 +18,7 @@ const en: TranslationDictionary = {
     save: 'Save',
     loading: 'Loading…',
     error: 'Something went wrong',
+    currency: '{{amount}} DT',
   },
   header: {
     chooseAddress: 'Choose delivery address',
@@ -322,6 +323,52 @@ const en: TranslationDictionary = {
     },
     actions: {
       confirm: 'Confirm and pay to order',
+    },
+  },
+  orderTracking: {
+    status: {
+      pending: 'Order received',
+      accepted: 'Order accepted',
+      preparing: 'Preparing order',
+      readyForPickup: 'Ready for pickup',
+      inDelivery: 'On the way',
+      delivered: 'Delivered',
+      cancelled: 'Cancelled',
+    },
+    hero: {
+      pending: 'Restaurant has received your order.',
+      accepted: 'Restaurant accepted your order and is finding a driver…',
+      preparing: 'Restaurant is preparing your order.',
+      readyForPickup: 'Your order is ready, the driver is picking it up.',
+      waitingTitle: 'Waiting for restaurant',
+      driverEnRoute: 'Driver is getting ready — location coming soon.',
+      driverUnassigned: 'We will show the driver once they are assigned to your order.',
+    },
+    history: {
+      title: 'Order progress',
+      empty: 'Tracking updates will appear once we receive status changes from the restaurant.',
+      statusUpdated: 'Status updated',
+      defaultDescription: 'Your order moved to the next step.',
+      updateFallback: 'Update {{index}}',
+    },
+    summary: {
+      orderId: 'Order #{{id}}',
+      titleFallback: 'Order details',
+      empty: 'Items will appear once your order is confirmed.',
+      detailsCta: 'See details',
+    },
+    courier: {
+      pending: 'Courier assigned soon',
+      label: 'Delivered by',
+    },
+    help: {
+      title: 'Need help with your order?',
+      description: 'Our support team is available 24/7 to assist you.',
+      callSupport: 'Call customer support',
+      liveChatCta: 'Request instant live chat',
+      liveChatTopic: 'Order support',
+      callErrorTitle: 'Unable to place call',
+      callErrorMessage: 'Please dial {{phone}} manually.',
     },
   },
   liveChat: {

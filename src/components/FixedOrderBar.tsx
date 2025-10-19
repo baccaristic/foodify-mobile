@@ -3,9 +3,7 @@ import { View, TouchableOpacity, Text, StyleProp, ViewStyle } from 'react-native
 
 import { useCart } from '~/context/CartContext';
 import { useTranslation } from '~/localization';
-
-const formatTotal = (value: number) =>
-  `${(Number.isFinite(value) ? value : 0).toFixed(3).replace('.', ',')} DT`;
+import { useCurrencyFormatter } from '~/localization/hooks';
 
 export interface FixedOrderBarProps {
   total?: number;
@@ -26,6 +24,7 @@ const FixedOrderBar: React.FC<FixedOrderBarProps> = ({
 }) => {
   const { subtotal, itemCount: cartItemCount } = useCart();
   const { t } = useTranslation();
+  const formatCurrency = useCurrencyFormatter();
 
   const computedTotal = Number.isFinite(total ?? subtotal) ? (total ?? subtotal) : 0;
   const computedCount = itemCount ?? cartItemCount;
@@ -35,7 +34,7 @@ const FixedOrderBar: React.FC<FixedOrderBarProps> = ({
       ? t('fixedOrderBar.orderWithCount', { values: { count: computedCount } })
       : t('fixedOrderBar.order');
   const orderSummary = t('fixedOrderBar.orderSummary', {
-    values: { order: baseOrderLabel, total: formatTotal(computedTotal) },
+    values: { order: baseOrderLabel, total: formatCurrency(computedTotal) },
   });
   const resolvedButtonLabel = buttonLabel ?? t('fixedOrderBar.seeCart');
 
