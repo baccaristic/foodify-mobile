@@ -1,5 +1,15 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, ImageBackground, FlatList, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Dimensions,
+  ImageBackground,
+  FlatList,
+  StyleSheet,
+} from 'react-native';
 import {
   Percent,
   Star,
@@ -11,7 +21,26 @@ import {
   Bike,
   Clock3,
   MoveUp,
-} from "lucide-react-native";
+  Soup,
+  Croissant,
+  Sunrise,
+  Drumstick,
+  CupSoda,
+  Flame,
+  IceCreamCone,
+  ChefHat,
+  Globe,
+  UtensilsCrossed,
+  Salad,
+  Sandwich,
+  Fish,
+  FishSymbol,
+  Cookie,
+  CakeSlice,
+  Coffee,
+  Sprout,
+} from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -25,23 +54,51 @@ import type {
   NearbyRestaurantsResponse,
   RestaurantCategorySection,
   RestaurantSummary,
+  RestaurantCategory,
 } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
 import { useTranslation } from '~/localization';
-import { CATEGORY_LABEL_KEYS } from '~/localization/categoryKeys';
+import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 
 type SectionLayout = 'carousel' | 'flatList';
 
-const QUICK_CATEGORY_CONFIG = [
-  { key: 'discount', icon: Percent },
-  { key: 'top restaurants', icon: Star },
-  { key: 'dishes', icon: Utensils },
-  { key: 'pizza', icon: Pizza },
-  { key: 'burger', icon: Hamburger },
-] as const;
+type QuickCategoryItem = {
+  category: RestaurantCategory;
+  label: string;
+  Icon: LucideIcon;
+};
+
+const CATEGORY_ICON_MAP: Partial<Record<RestaurantCategory, LucideIcon>> = {
+  [RestaurantCategory.ASIAN]: Soup,
+  [RestaurantCategory.BAKERY]: Croissant,
+  [RestaurantCategory.BREAKFAST]: Sunrise,
+  [RestaurantCategory.BURGERS]: Hamburger,
+  [RestaurantCategory.CHICKEN]: Drumstick,
+  [RestaurantCategory.FAST_FOOD]: CupSoda,
+  [RestaurantCategory.GRILL]: Flame,
+  [RestaurantCategory.ICE_CREAM]: IceCreamCone,
+  [RestaurantCategory.INDIAN]: ChefHat,
+  [RestaurantCategory.INTERNATIONAL]: Globe,
+  [RestaurantCategory.ITALIAN]: UtensilsCrossed,
+  [RestaurantCategory.MEXICAN]: UtensilsCrossed,
+  [RestaurantCategory.ORIENTAL]: Sprout,
+  [RestaurantCategory.PASTA]: Utensils,
+  [RestaurantCategory.PIZZA]: Pizza,
+  [RestaurantCategory.SALDAS]: Salad,
+  [RestaurantCategory.SADWICH]: Sandwich,
+  [RestaurantCategory.SEAFOOD]: Fish,
+  [RestaurantCategory.SNACKS]: Cookie,
+  [RestaurantCategory.SUSHI]: FishSymbol,
+  [RestaurantCategory.SWEETS]: CakeSlice,
+  [RestaurantCategory.TACOS]: Utensils,
+  [RestaurantCategory.TEA_COFFEE]: Coffee,
+  [RestaurantCategory.TRADITIONAL]: ChefHat,
+  [RestaurantCategory.TUNISIAN]: Soup,
+  [RestaurantCategory.TURKISH]: ChefHat,
+};
 
 const SECTION_LABEL_KEYS: Record<string, string> = {
   topPicks: 'home.sections.topPicks',
@@ -79,21 +136,41 @@ export default function HomePage() {
   const { open: openLocationOverlay } = useLocationOverlay();
   const { t } = useTranslation();
 
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<RestaurantCategory | null>(null);
   const listRef = useRef<FlatList>(null);
 
-  const handleCategoryPress = (category: string) => {
+  const handleCategoryPress = useCallback((category: RestaurantCategory) => {
     setSelectedCategory(category);
-  };
+  }, []);
 
-  const quickCategories = useMemo(
-    () =>
-      QUICK_CATEGORY_CONFIG.map((config) => ({
-        ...config,
-        label: t(CATEGORY_LABEL_KEYS[config.key] ?? config.key),
-      })),
-    [t],
-  );
+  const quickCategories = useMemo<QuickCategoryItem[]>(() => {
+    return (Object.values(RestaurantCategory) as RestaurantCategory[]).map((category) => {
+      const labelKey = getCategoryLabelKey(category);
+      const label = labelKey ? t(labelKey) : toCategoryDisplayName(category);
+      const Icon = CATEGORY_ICON_MAP[category] ?? Utensils;
+
+      return { category, label, Icon };
+    });
+  }, [t]);
+
+  const renderQuickCategoryItem = useCallback(({ item }: { item: QuickCategoryItem }) => {
+    return (
+      <TouchableOpacity
+        style={styles.categoryEqualWidth}
+        onPress={() => handleCategoryPress(item.category)}
+        activeOpacity={0.88}
+      >
+        <View style={styles.categoryIconWrapper}>
+          <item.Icon size={s(28)} color="#CA251B" />
+        </View>
+        <View style={styles.categoryTextContainer}>
+          <Text allowFontScaling={false} style={styles.categoryLabelFixed} numberOfLines={2}>
+            {item.label}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }, [handleCategoryPress]);
 
   const { selectedAddress } = useSelectedAddress();
   const hasSelectedAddress = Boolean(selectedAddress?.coordinates);
@@ -555,28 +632,15 @@ export default function HomePage() {
           </Text>
           <Search size={s(18)} color="black" />
         </TouchableOpacity>
-        <ScrollView
+        <FlatList
           horizontal
+          data={quickCategories}
+          renderItem={renderQuickCategoryItem}
+          keyExtractor={(item) => item.category}
           showsHorizontalScrollIndicator={false}
-          style={{ marginTop: vs(10) }}
-        >
-          {quickCategories.map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={styles.categoryEqualWidth}
-              onPress={() => handleCategoryPress(item.key)}
-            >
-              <View style={styles.categoryIconWrapper}>
-                <item.icon size={s(32)} color="#CA251B" />
-              </View>
-              <View style={styles.categoryTextContainer}>
-                <Text allowFontScaling={false} style={styles.categoryLabelFixed} numberOfLines={2}>
-                  {item.label}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          style={styles.categoryList}
+          contentContainerStyle={styles.categoryListContent}
+        />
       </View>
     </Animated.View>
   );
@@ -968,12 +1032,17 @@ const styles = ScaledSheet.create({
     paddingVertical: "8@vs",
     marginTop: "6@vs",
   },
-  searchPlaceholder: { color: "gray", flex: 1, fontSize: "13@ms" },
+  searchPlaceholder: { color: 'gray', flex: 1, fontSize: '13@ms' },
 
-  categoryButton: { alignItems: "center", marginHorizontal: "8@s" },
-  categoryLabel: { color: "white", fontSize: "11@ms", marginTop: "4@vs", textAlign: "center" },
+  categoryList: {
+    marginTop: '10@vs',
+  },
+  categoryListContent: {
+    paddingHorizontal: '4@s',
+    paddingVertical: '6@vs',
+  },
 
-  collapsedHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: "16@s", flex: 1, },
+  collapsedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: '16@s', flex: 1, },
   collapsedSearch: {
     flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: "16@ms", paddingHorizontal: "12@s", paddingVertical: "6@vs", borderWidth: 2,
     borderColor: "#E5E7EB",
@@ -1016,25 +1085,29 @@ const styles = ScaledSheet.create({
   },
   filterText: { color: "#333", fontSize: "12@ms", marginRight: "4@s" },
   categoryEqualWidth: {
-    alignItems: "center",
-    width: "25%",
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: '6@s',
+    width: '72@s',
   },
 
   categoryLabelFixed: {
-    color: "white",
-    fontSize: "11@ms",
-    textAlign: "center"
+    color: '#FFFFFF',
+    fontSize: '11@ms',
+    textAlign: 'center',
   },
 
   categoryIconWrapper: {
-    backgroundColor: "white",
-    borderRadius: "50@ms",
-    padding: "8@s"
+    backgroundColor: '#FFFFFF',
+    borderRadius: '36@ms',
+    paddingVertical: '8@vs',
+    paddingHorizontal: '8@s',
   },
   categoryTextContainer: {
-    height: "20@vs",
+    marginTop: '6@vs',
+    minHeight: '28@vs',
     justifyContent: 'center',
-    width: '150%',
+    paddingHorizontal: '4@s',
   },
   centeredHeaderGroup: {
     flexDirection: "row",

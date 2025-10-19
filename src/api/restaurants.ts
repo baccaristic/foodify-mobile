@@ -6,12 +6,13 @@ import type {
   RestaurantSearchParams,
   RestaurantSearchResponse,
   CategoryRestaurantsResponse,
+  RestaurantCategory,
 } from '~/interfaces/Restaurant';
 
 interface CategoryRestaurantsParams {
   lat: number;
   lng: number;
-  categorie: string;
+  categorie: RestaurantCategory;
   page?: number;
   size?: number;
   sort?: string;
@@ -78,7 +79,7 @@ export const getCategoryRestaurants = async ({
     params: {
       lat,
       lng,
-      category: categorie.toLowerCase(),
+      category: categorie,
       page: safePage,
       size: safeSize,
       sort,

@@ -1,3 +1,32 @@
+export enum RestaurantCategory {
+  ASIAN = 'ASIAN',
+  BAKERY = 'BAKERY',
+  BREAKFAST = 'BREAKFAST',
+  BURGERS = 'BURGERS',
+  CHICKEN = 'CHICKEN',
+  FAST_FOOD = 'FAST_FOOD',
+  GRILL = 'GRILL',
+  ICE_CREAM = 'ICE_CREAM',
+  INDIAN = 'INDIAN',
+  INTERNATIONAL = 'INTERNATIONAL',
+  ITALIAN = 'ITALIAN',
+  MEXICAN = 'MEXICAN',
+  ORIENTAL = 'ORIENTAL',
+  PASTA = 'PASTA',
+  PIZZA = 'PIZZA',
+  SALDAS = 'SALDAS',
+  SADWICH = 'SADWICH',
+  SEAFOOD = 'SEAFOOD',
+  SNACKS = 'SNACKS',
+  SUSHI = 'SUSHI',
+  SWEETS = 'SWEETS',
+  TACOS = 'TACOS',
+  TEA_COFFEE = 'TEA_COFFEE',
+  TRADITIONAL = 'TRADITIONAL',
+  TUNISIAN = 'TUNISIAN',
+  TURKISH = 'TURKISH',
+}
+
 export interface RestaurantBadge {
   label: string;
   value: string;
@@ -72,6 +101,7 @@ export interface RestaurantDetailsResponse {
   quickFilters: string[];
   topSales: RestaurantMenuItemSummary[];
   categories: RestaurantMenuCategory[];
+  cuisineCategories?: RestaurantCategory[];
   favorite?: boolean;
 }
 
@@ -96,13 +126,15 @@ export interface RestaurantSummary {
   favorite?: boolean;
   hasPromotion?: boolean;
   promotionSummary?: string | null;
+  categories?: RestaurantCategory[];
+  cuisineCategories?: RestaurantCategory[];
 }
 
 export interface NearbyRestaurantsParams {
   lat: number;
   lng: number;
   radiusKm?: number;
-  category?: string;
+  category?: RestaurantCategory;
   page?: number;
   pageSize?: number;
 }
@@ -152,6 +184,7 @@ export interface RestaurantSearchItem {
   imageUrl: string;
   iconUrl?: string | null;
   promotedMenuItems?: MenuItemPromotion[];
+  categories?: RestaurantCategory[];
 }
 
 export interface RestaurantSearchResponse {
@@ -188,6 +221,7 @@ export interface RestaurantDisplay {
   favorite?: boolean | null;
   hasPromotion?: boolean | null;
   promotionSummary?: string | null;
+  categories?: RestaurantCategory[] | null;
 }
 
 export interface CategoryRestaurantsResponse {
