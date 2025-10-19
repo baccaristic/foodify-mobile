@@ -382,7 +382,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 
   const detailHeader = (
     <View>
-      <Image source={resolveImageSource(menuItem.imageUrl)} style={{ width, height: '100%' }} contentFit="cover" />
+      <Image source={resolveImageSource(menuItem.imageUrl)} style={{ width, height: '100%' }} contentFit="contain" />
       <View className="absolute left-4 top-8">
         <TouchableOpacity className="rounded-full bg-white p-2" onPress={onClose}>
           <X size={20} color={primaryColor} />
