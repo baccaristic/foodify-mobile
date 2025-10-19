@@ -299,6 +299,328 @@ const fr: TranslationDictionary = {
       confirm: 'Confirmer et payer la commande',
     },
   },
+  profile: {
+    home: {
+      greeting: 'Bonjour, {{name}}',
+      collapsedGreeting: '{{name}}',
+      collapsedHint: 'Touchez une option ci-dessous',
+      statusLabel: 'Superstar',
+      pointsLabel: '{{points}} PTS',
+      actions: {
+        logout: 'Se déconnecter',
+      },
+      rowIndicator: '›',
+      sections: {
+        favorites: {
+          title: 'Favoris',
+          items: {
+            overview: 'Voir mes favoris',
+          },
+        },
+        payment: {
+          title: 'Paiement',
+          items: {
+            methods: 'Modes de paiement',
+            history: 'Historique des commandes',
+            coupons: 'Codes promo',
+          },
+        },
+        profile: {
+          title: 'Profil',
+          items: {
+            settings: 'Paramètres du profil',
+          },
+        },
+        other: {
+          title: 'Autre',
+          items: {
+            notifications: 'Notifications',
+            faq: 'FAQ',
+            privacy: 'Gérer la confidentialité',
+            deleteAccount: 'Supprimer le compte et les données',
+          },
+        },
+      },
+    },
+    settings: {
+      title: 'Paramètres du profil',
+      sections: {
+        personalInfo: 'Informations personnelles',
+        other: 'Autre',
+      },
+      actions: {
+        modify: 'Modifier',
+        changePassword: 'Modifier le mot de passe',
+        pointsAndLevel: 'Points et niveau',
+        language: 'Langue',
+      },
+    },
+    language: {
+      title: 'Langue',
+      heading: 'Choisissez votre langue',
+      description: 'Sélectionnez la langue dans laquelle vous souhaitez utiliser Foodify.',
+      options: {
+        en: 'Anglais',
+        fr: 'Français',
+      },
+      hints: {
+        en: 'Recommandée pour les utilisateurs internationaux',
+        fr: 'Idéale pour les francophones',
+      },
+      note: 'Votre sélection s\'applique immédiatement dans l\'application.',
+    },
+    coupon: {
+      title: 'Code promo',
+      addLabel: 'Ajouter un code promo',
+      placeholder: 'Saisir le code',
+      listTitle: 'Vos codes promo',
+      emptyHint: 'De nouvelles offres arrivent chaque semaine ! Suivez-nous, commandez souvent ou revenez bientôt — votre portefeuille vous remerciera.',
+    },
+    notifications: {
+      title: 'Notifications',
+      hero: {
+        title: 'Restez informé en temps réel !',
+        description:
+          'Activez les notifications pour ne rien manquer : suivi des commandes, alertes de livraison et offres exclusives. À vous de choisir ce qui compte.',
+        enableAll: 'Tout activer et personnaliser plus tard',
+      },
+      orderStatus: {
+        title: 'Suivi des commandes',
+        recommended: 'Recommandé',
+        description: 'Recevez les mises à jour de votre livreur et de l\'assistance en temps réel. Nous vous le conseillons !',
+      },
+      marketing: {
+        title: 'Offres spéciales pour vous',
+        description: 'Profitez de réductions, promos et coupons adaptés à vos envies.',
+      },
+      labels: {
+        push: 'Notifications push',
+        email: 'E-mails personnalisés',
+      },
+      alerts: {
+        updateFailureTitle: 'Impossible de mettre à jour les notifications',
+        updateFailureMessage: 'Veuillez réessayer dans un instant.',
+        enableAllFailureTitle: 'Impossible d\'activer toutes les notifications',
+        enableAllFailureMessage: 'Veuillez réessayer dans un instant.',
+      },
+    },
+    faq: {
+      title: 'FAQ',
+      sections: {
+        orderingPayments: {
+          title: 'Commandes et paiements',
+          questions: {
+            applyPromo: {
+              question: 'Comment appliquer un code promo ?',
+              answer: 'Ajoutez votre code promo au moment du paiement dans le champ « Code promo » avant de valider la commande.',
+            },
+            splitPayment: {
+              question: 'Puis-je partager le paiement sur deux cartes ?',
+              answer: 'Le paiement fractionné n\'est pas encore disponible. Une seule méthode de paiement est acceptée par commande.',
+            },
+            paymentMethods: {
+              question: 'Quels moyens de paiement acceptez-vous ?',
+              answer: 'Nous acceptons les principales cartes bancaires, les portefeuilles mobiles et les cartes cadeaux.',
+            },
+            cancelCharge: {
+              question: 'Serai-je facturé si j\'annule ma commande ?',
+              answer: 'Aucun frais si la commande est annulée avant préparation. Les remboursements peuvent prendre 3 à 5 jours ouvrés.',
+            },
+            declinedPayment: {
+              question: 'Pourquoi mon paiement a-t-il été refusé ?',
+              answer: 'Cela peut venir d\'un solde insuffisant ou d\'un refus de votre banque pour des raisons de sécurité.',
+            },
+          },
+        },
+        deliveryTiming: {
+          title: 'Livraison et délais',
+          questions: {
+            trackRider: {
+              question: 'Puis-je suivre mon livreur en temps réel ?',
+              answer: 'Oui, une fois la commande confirmée, suivez la livraison en temps réel depuis la section « Commandes ».',
+            },
+            scheduleDelivery: {
+              question: 'Puis-je programmer une livraison plus tard ?',
+              answer: 'Bien sûr ! Choisissez l\'horaire de livraison souhaité lors du paiement.',
+            },
+            deliveryTime: {
+              question: 'Quel est le délai de livraison habituel ?',
+              answer: 'Compte entre 30 et 60 minutes selon votre localisation et la taille de la commande.',
+            },
+          },
+        },
+        issuesRefund: {
+          title: 'Problèmes et remboursements',
+          questions: {
+            missingItems: {
+              question: 'Que faire si des articles manquent ?',
+              answer: 'Contactez notre support via la rubrique « Aide » et nous réglerons le problème rapidement.',
+            },
+            coldFood: {
+              question: 'Mon repas est arrivé froid, que faire ?',
+              answer: 'Nous en sommes désolés ! Signalez-le au support pour demander une compensation ou un remboursement.',
+            },
+            lateOrder: {
+              question: 'Puis-je être remboursé si ma commande est en retard ?',
+              answer: 'Selon le retard, un remboursement peut être envisagé. Contactez le service client pour en savoir plus.',
+            },
+          },
+        },
+        accountSafety: {
+          title: 'Compte et sécurité',
+          questions: {
+            paymentSecurity: {
+              question: 'Mes données de paiement sont-elles protégées ?',
+              answer: 'Oui, nous utilisons des systèmes de paiement chiffrés pour garantir la sécurité de vos informations.',
+            },
+            deleteAccount: {
+              question: 'Puis-je supprimer définitivement mon compte ?',
+              answer: 'Oui. Rendez-vous dans « Paramètres du compte » → « Supprimer le compte et les données » pour procéder.',
+            },
+          },
+        },
+      },
+    },
+    privacy: {
+      title: 'Gérer la confidentialité',
+      sections: {
+        personalization: 'Personnalisation et publicités',
+        location: 'Accès à la localisation',
+        data: 'Données et confidentialité',
+      },
+      cards: {
+        personalizedRecommendations: {
+          title: 'Autoriser les recommandations personnalisées',
+          description: 'Nous utilisons votre historique de commandes pour vous suggérer des plats susceptibles de vous plaire.',
+        },
+        location: {
+          title: 'Utiliser la localisation précise pour des livraisons plus rapides',
+          description: 'Votre position nous aide à estimer les délais de livraison.',
+        },
+      },
+      links: {
+        policy: 'Consulter la politique de confidentialité',
+        download: 'Télécharger mes données',
+      },
+    },
+    favorites: {
+      title: 'Favoris',
+      labels: {
+        new: 'Nouveau',
+        rating: '{{rating}} / 5',
+        defaultCuisine: 'Cuisine variée',
+        openMenuHint: 'Touchez pour ouvrir le menu complet',
+        addToCartHint: 'Personnalisez et ajoutez-le à votre panier.',
+        popular: 'Populaire',
+      },
+      sections: {
+        restaurants: {
+          title: 'Restaurants préférés',
+          subtitle: 'Vos adresses coup de cœur',
+        },
+        menu: {
+          title: 'Plats enregistrés',
+          subtitle: 'Des envies à retrouver facilement',
+        },
+      },
+      states: {
+        loadingTitle: 'Nous préparons vos favoris…',
+        errorTitle: 'Impossible de récupérer vos adresses favorites.',
+        errorSubtitle: 'Vérifiez votre connexion puis réessayez.',
+        emptyTitle: 'Votre liste est encore vide.',
+        emptySubtitle: 'Explorez les restaurants et touchez le cœur pour commencer votre collection.',
+      },
+      actions: {
+        retry: 'Réessayer',
+        discover: 'Découvrir des restaurants',
+        startOrdering: 'Commencer à commander',
+      },
+    },
+    orderHistory: {
+      title: 'Historique des commandes',
+      summaryFallback: 'Bientôt prêt à être récupéré',
+      fallbackItem: 'Article',
+      states: {
+        loadingTitle: 'Chargement de vos délicieuses commandes…',
+        errorTitle: 'Nous n\'avons pas pu charger vos commandes.',
+        errorSubtitle: 'Vérifiez votre connexion puis réessayez dans un instant.',
+        emptyTitle: 'Votre historique est vide',
+        emptySubtitle: 'Chaque festin commence par une première commande. Parcourez les restaurants et écrivez votre histoire gourmande.',
+      },
+      actions: {
+        retry: 'Réessayer',
+        startOrdering: 'Commencer à commander',
+        continueOrdering: 'Continuer à commander',
+        reorder: 'Recommander',
+      },
+    },
+    deleteAccount: {
+      title: 'Supprimer le compte et les données',
+      warningTitle: 'Action irréversible',
+      warningDescription:
+        'La suppression de votre compte effacera définitivement toutes vos données : gains, historique de livraison et informations personnelles.',
+      confirmPrompt: 'Veuillez confirmer pour continuer',
+      confirmationLabel: 'Je comprends que la suppression de mon compte est définitive et que toutes mes données seront perdues.',
+      deleteCta: 'Supprimer mon compte',
+      cancel: 'Annuler',
+      deletingTitle: 'Suppression du compte en cours',
+      deletingDescription: 'Cela peut prendre quelques instants. Ne fermez pas l\'application.',
+      deletingNote: 'Nous vous informerons lorsque le processus sera terminé ou en cas de problème.',
+      successTitle: 'Compte supprimé',
+      successDescription:
+        'Votre compte et toutes les données associées ont été supprimés avec succès. Vous allez être déconnecté automatiquement.',
+      okay: 'OK',
+    },
+    modals: {
+      common: {
+        continue: 'Continuer',
+      },
+      name: {
+        title: 'Modifier le nom',
+        currentLabel: 'Nom actuel',
+        prompt: 'Saisissez votre nouveau nom',
+        firstPlaceholder: 'Prénom',
+        lastPlaceholder: 'Nom',
+      },
+      email: {
+        title: 'Modifier l\'adresse e-mail',
+        currentLabel: 'E-mail actuel',
+        prompt: 'Saisissez votre nouvel e-mail',
+        inputPlaceholder: 'Entrez votre e-mail',
+        emptyValue: 'Ajouter une adresse e-mail',
+        errors: {
+          invalid: 'Veuillez saisir une adresse e-mail valide.',
+        },
+        resendMethod: 'E-mail',
+        resendButton: 'Renvoyer le code par e-mail',
+      },
+      phone: {
+        title: 'Modifier le numéro de téléphone',
+        currentLabel: 'Numéro actuel',
+        prompt: 'Saisissez votre nouveau numéro',
+        inputPlaceholder: 'ex. 98765432',
+        emptyValue: 'Ajouter un numéro de téléphone',
+        errors: {
+          invalid: 'Veuillez saisir un numéro de téléphone valide.',
+        },
+        resendMethod: 'SMS',
+        resendButton: 'Renvoyer le code par SMS',
+      },
+      password: {
+        title: 'Modifier le mot de passe',
+        currentPrompt: 'Saisissez votre mot de passe actuel',
+        currentPlaceholder: 'Mot de passe actuel',
+        newPrompt: 'Saisissez votre nouveau mot de passe',
+        newPlaceholder: 'Mot de passe',
+        confirmPrompt: 'Confirmez le nouveau mot de passe',
+        confirmPlaceholder: 'Mot de passe',
+        errors: {
+          invalidCurrent: 'Mot de passe incorrect. Veuillez réessayer.',
+          mismatch: 'Les mots de passe ne correspondent pas.',
+        },
+      },
+    },
+  },
 };
 
 export default fr;

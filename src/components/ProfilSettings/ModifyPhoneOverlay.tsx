@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import { ScaledSheet } from 'react-native-size-matters';
 import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
+import { useTranslation } from '~/localization';
 
 const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
   const [newNumber, setNewNumber] = useState('');
   const [stage, setStage] = useState<'form' | 'verify'>('form');
   const [error, setError] = useState<string | null>(null);
-   const { user } = useAuth();
- 
-  const displayPhone = user?.phone ?? 'Add phone number';
+  const { user } = useAuth();
+  const { t } = useTranslation();
+
+  const displayPhone = user?.phone ?? t('profile.modals.phone.emptyValue');
 
   const handleContinue = () => {
     if (!/^\d{8,15}$/.test(newNumber)) {
-      setError('Please enter a valid phone number');
+      setError(t('profile.modals.phone.errors.invalid'));
       return;
     }
     setStage('verify');
@@ -25,10 +27,10 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
     return (
       <VerificationCodeTemplate
         contact={newNumber}
-        resendMethod="SMS"
+        resendMethod={t('profile.modals.phone.resendMethod')}
         onResendPress={() => console.log('Resent code via SMS')}
         onSubmit={(code) => console.log('Phone verified:', code)}
-        resendButtonLabel="Resend the code via SMS"
+        resendButtonLabel={t('profile.modals.phone.resendButton')}
         errorMessage={error}
         onClearError={() => setError(null)}
       />
@@ -38,15 +40,19 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.overlayContainer}>
-        <HeaderWithBackButton title="Modify Phone number" onBack={onClose} />
+        <HeaderWithBackButton title={t('profile.modals.phone.title')} onBack={onClose} />
         <View style={styles.innerContainer}>
-          <Text  allowFontScaling={false} style={styles.currentLabel}>Current Phone number</Text>
+          <Text allowFontScaling={false} style={styles.currentLabel}>
+            {t('profile.modals.phone.currentLabel')}
+          </Text>
           <Text allowFontScaling={false} style={styles.currentValue}>{displayPhone}</Text>
 
-          <Text allowFontScaling={false} style={styles.label}>Enter your new number</Text>
+          <Text allowFontScaling={false} style={styles.label}>
+            {t('profile.modals.phone.prompt')}
+          </Text>
           <TextInput
             style={styles.input}
-            placeholder="Eg.98765432"
+            placeholder={t('profile.modals.phone.inputPlaceholder')}
             placeholderTextColor="#666"
             keyboardType="phone-pad"
             value={newNumber}
@@ -59,7 +65,9 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
           {error && <Text style={styles.errorText}>{error}</Text>}
 
           <TouchableOpacity style={styles.button} onPress={handleContinue}>
-            <Text allowFontScaling={false}  style={styles.buttonText}>Continue</Text>
+            <Text allowFontScaling={false} style={styles.buttonText}>
+              {t('profile.modals.common.continue')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -10,10 +10,12 @@ import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react-native';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import MainLayout from '~/layouts/MainLayout';
+import { useTranslation } from '~/localization';
 
 export default function DeleteAccountScreen() {
     const [step, setStep] = useState<'confirm' | 'deleting' | 'done'>('confirm');
     const [checked, setChecked] = useState(false);
+    const { t } = useTranslation();
 
     const handleDelete = () => {
         if (!checked) return;
@@ -25,7 +27,7 @@ export default function DeleteAccountScreen() {
 
     const customHeader = (
         <View>
-            <HeaderWithBackButton title="Delete account & Data" titleMarginLeft={s(40)} />
+            <HeaderWithBackButton title={t('profile.deleteAccount.title')} titleMarginLeft={s(40)} />
         </View>
     );
 
@@ -33,14 +35,17 @@ export default function DeleteAccountScreen() {
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.warningBox}>
                 <AlertTriangle size={70} color="#CA251B" />
-                <Text style={styles.warningTitle}>This is Irreversible</Text>
-                <Text style={styles.warningText}>
-                    Deleting your account will permanently remove all your data, including earnings,
-                    delivery history, and personal information.
+                <Text allowFontScaling={false} style={styles.warningTitle}>
+                    {t('profile.deleteAccount.warningTitle')}
+                </Text>
+                <Text allowFontScaling={false} style={styles.warningText}>
+                    {t('profile.deleteAccount.warningDescription')}
                 </Text>
             </View>
 
-            <Text style={styles.confirmTitle}>Please confirm to continue</Text>
+            <Text allowFontScaling={false} style={styles.confirmTitle}>
+                {t('profile.deleteAccount.confirmPrompt')}
+            </Text>
 
             <TouchableOpacity
                 style={styles.checkboxRow}
@@ -53,8 +58,8 @@ export default function DeleteAccountScreen() {
                         { backgroundColor: checked ? '#CA251B' : 'transparent' },
                     ]}
                 />
-                <Text style={styles.checkboxLabel}>
-                    I understand that deleting my account is permanent. All my data will be lost forever.
+                <Text allowFontScaling={false} style={styles.checkboxLabel}>
+                    {t('profile.deleteAccount.confirmationLabel')}
                 </Text>
             </TouchableOpacity>
 
@@ -66,14 +71,18 @@ export default function DeleteAccountScreen() {
                 disabled={!checked}
                 onPress={handleDelete}
             >
-                <Text style={styles.deleteText}>Delete My Account</Text>
+                <Text allowFontScaling={false} style={styles.deleteText}>
+                    {t('profile.deleteAccount.deleteCta')}
+                </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setStep('confirm')}
             >
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.cancelText}>
+                    {t('profile.deleteAccount.cancel')}
+                </Text>
             </TouchableOpacity>
         </ScrollView>
     );
@@ -82,15 +91,17 @@ export default function DeleteAccountScreen() {
     const renderDeleting = () => (
         <View style={styles.centerBox}>
             <ActivityIndicator color="#CA251B" size="large" />
-            <Text style={styles.deletingTitle}>Deleting Your Account</Text>
-            <Text style={styles.deletingText}>
-                This may take a few moments. Please don’t close the app.
+            <Text allowFontScaling={false} style={styles.deletingTitle}>
+                {t('profile.deleteAccount.deletingTitle')}
+            </Text>
+            <Text allowFontScaling={false} style={styles.deletingText}>
+                {t('profile.deleteAccount.deletingDescription')}
             </Text>
             <View style={styles.progressBarContainer}>
                 <View style={styles.progressBar} />
             </View>
-            <Text style={styles.deletingSubText}>
-                You will be notified when the process is complete or if any issues arise
+            <Text allowFontScaling={false} style={styles.deletingSubText}>
+                {t('profile.deleteAccount.deletingNote')}
             </Text>
         </View>
     );
@@ -99,13 +110,16 @@ export default function DeleteAccountScreen() {
     const renderDone = () => (
         <View style={styles.centerBox}>
             <CheckCircle2 size={72} color="#CA251B" />
-            <Text style={styles.doneTitle}>Account Deleted</Text>
-            <Text style={styles.doneText}>
-                Your account and all associated data have been successfully deleted.{"\n"}
-                You will be logged out automatically.
+            <Text allowFontScaling={false} style={styles.doneTitle}>
+                {t('profile.deleteAccount.successTitle')}
+            </Text>
+            <Text allowFontScaling={false} style={styles.doneText}>
+                {t('profile.deleteAccount.successDescription')}
             </Text>
             <TouchableOpacity style={styles.okayButton}>
-                <Text style={styles.okayText}>Okay</Text>
+                <Text allowFontScaling={false} style={styles.okayText}>
+                    {t('profile.deleteAccount.okay')}
+                </Text>
             </TouchableOpacity>
         </View>
     );

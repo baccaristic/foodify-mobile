@@ -1,43 +1,49 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { ScaledSheet, vs } from 'react-native-size-matters';
+import { ScaledSheet } from 'react-native-size-matters';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
+import { useTranslation } from '~/localization';
 
 const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-    const { user } = useAuth();
-    const displayName = user?.name ?? 'Guest User';
-
-
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const displayName = user?.name ?? 'Guest User';
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <HeaderWithBackButton title="Modify name" onBack={onClose} />
+        <HeaderWithBackButton title={t('profile.modals.name.title')} onBack={onClose} />
 
         <View style={styles.inner}>
-          <Text allowFontScaling={false} style={styles.currentLabel}>Current Name</Text>
-          <Text  allowFontScaling={false} style={styles.currentValue}>{displayName}</Text>
+          <Text allowFontScaling={false} style={styles.currentLabel}>
+            {t('profile.modals.name.currentLabel')}
+          </Text>
+          <Text allowFontScaling={false} style={styles.currentValue}>{displayName}</Text>
 
-          <Text  allowFontScaling={false} style={styles.label}>Enter your new name</Text>
+          <Text allowFontScaling={false} style={styles.label}>
+            {t('profile.modals.name.prompt')}
+          </Text>
 
           <TextInput
-            placeholder="Flen"
+            placeholder={t('profile.modals.name.firstPlaceholder')}
             style={styles.input}
             value={firstName}
             onChangeText={setFirstName}
           />
           <TextInput
-            placeholder="Foulani"
+            placeholder={t('profile.modals.name.lastPlaceholder')}
             style={styles.input}
             value={lastName}
             onChangeText={setLastName}
           />
 
           <TouchableOpacity style={styles.button}>
-            <Text allowFontScaling={false} style={styles.buttonText}>Continue</Text>
+            <Text allowFontScaling={false} style={styles.buttonText}>
+              {t('profile.modals.common.continue')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -4,6 +4,7 @@ import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { ChevronRight } from 'lucide-react-native';
 import MainLayout from '~/layouts/MainLayout';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
+import { useTranslation } from '~/localization';
 
 const palette = {
     accent: '#CA251B',
@@ -14,10 +15,11 @@ const palette = {
 const PrivacyScreen = () => {
     const [personalizedAds, setPersonalizedAds] = useState(true);
     const [locationAccess, setLocationAccess] = useState(true);
+    const { t } = useTranslation();
 
     const customHeader = (
         <View>
-            <HeaderWithBackButton title="Manage Privacy" titleMarginLeft={s(60)} />
+            <HeaderWithBackButton title={t('profile.privacy.title')} titleMarginLeft={s(60)} />
         </View>
     );
 
@@ -27,12 +29,14 @@ const PrivacyScreen = () => {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
         >
-            <Text allowFontScaling={false} style={styles.sectionTitle}>Personalization & Ads</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>
+                {t('profile.privacy.sections.personalization')}
+            </Text>
 
             <View style={styles.card}>
                 <View style={styles.rowTop}>
                     <Text allowFontScaling={false} style={styles.rowTitle}>
-                        Allow personalized recommendations
+                        {t('profile.privacy.cards.personalizedRecommendations.title')}
                     </Text>
                     <Switch
                         value={personalizedAds}
@@ -43,16 +47,18 @@ const PrivacyScreen = () => {
                     />
                 </View>
                 <Text allowFontScaling={false} style={styles.rowDescription}>
-                    We use your order history to suggest items you might like
+                    {t('profile.privacy.cards.personalizedRecommendations.description')}
                 </Text>
             </View>
 
-            <Text allowFontScaling={false} style={styles.sectionTitle}>Location access</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>
+                {t('profile.privacy.sections.location')}
+            </Text>
 
             <View style={styles.card}>
                 <View style={styles.rowTop}>
                     <Text allowFontScaling={false} style={styles.rowTitle}>
-                        Use precise location for faster deliveries
+                        {t('profile.privacy.cards.location.title')}
                     </Text>
                     <Switch
                         value={locationAccess}
@@ -63,22 +69,28 @@ const PrivacyScreen = () => {
                     />
                 </View>
                 <Text allowFontScaling={false} style={styles.rowDescription}>
-                    We use your location to estimate delivery times
+                    {t('profile.privacy.cards.location.description')}
                 </Text>
             </View>
 
-            <Text allowFontScaling={false} style={styles.sectionTitle}>Data & Privacy</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>
+                {t('profile.privacy.sections.data')}
+            </Text>
 
             <View style={styles.card}>
                 <TouchableOpacity activeOpacity={0.7} style={styles.linkRow}>
-                    <Text allowFontScaling={false} style={styles.linkText}>View Privacy Policy</Text>
+                    <Text allowFontScaling={false} style={styles.linkText}>
+                        {t('profile.privacy.links.policy')}
+                    </Text>
                     <ChevronRight size={s(18)} color={palette.accent} />
                 </TouchableOpacity>
 
                 <View style={styles.separator} />
 
                 <TouchableOpacity activeOpacity={0.7} style={styles.linkRow}>
-                    <Text allowFontScaling={false} style={styles.linkText}>Download My Data</Text>
+                    <Text allowFontScaling={false} style={styles.linkText}>
+                        {t('profile.privacy.links.download')}
+                    </Text>
                     <ChevronRight size={s(18)} color={palette.accent} />
                 </TouchableOpacity>
             </View>

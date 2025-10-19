@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import { ScaledSheet } from 'react-native-size-matters';
 import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
+import { useTranslation } from '~/localization';
 
 const palette = {
   accent: '#CA251B',
@@ -14,13 +15,14 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
   const [newEmail, setNewEmail] = useState('');
   const [stage, setStage] = useState<'form' | 'verify'>('form');
   const [error, setError] = useState<string | null>(null);
-   const { user } = useAuth();
-  const displayEmail = user?.email ?? 'Add email address';
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const displayEmail = user?.email ?? t('profile.modals.email.emptyValue');
   
 
   const handleContinue = () => {
     if (!newEmail.includes('@')) {
-      setError('Please enter a valid email address');
+      setError(t('profile.modals.email.errors.invalid'));
       return;
     }
     setStage('verify');
@@ -30,12 +32,12 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
     return (
       <VerificationCodeTemplate
         contact={newEmail}
-        resendMethod="Email"
+        resendMethod={t('profile.modals.email.resendMethod')}
         onResendPress={() => console.log('Resent code via email')}
         onSubmit={(code) => console.log('Verified code:', code)}
         errorMessage={error}
         onClearError={() => setError(null)}
-        resendButtonLabel="Resend the code via Email"
+        resendButtonLabel={t('profile.modals.email.resendButton')}
       />
     );
   }
@@ -43,15 +45,19 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.overlayContainer}>
-        <HeaderWithBackButton title="Modify email address" onBack={onClose} />
+        <HeaderWithBackButton title={t('profile.modals.email.title')} onBack={onClose} />
         <View style={styles.innerContainer}>
-          <Text allowFontScaling={false} style={styles.currentLabel}>Current mail</Text>
+          <Text allowFontScaling={false} style={styles.currentLabel}>
+            {t('profile.modals.email.currentLabel')}
+          </Text>
           <Text allowFontScaling={false} style={styles.currentValue}>{displayEmail}</Text>
 
-          <Text  allowFontScaling={false} style={styles.label}>Enter your new e-mail</Text>
+          <Text allowFontScaling={false} style={styles.label}>
+            {t('profile.modals.email.prompt')}
+          </Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter your e-mail"
+            placeholder={t('profile.modals.email.inputPlaceholder')}
             placeholderTextColor="#666"
             value={newEmail}
             onChangeText={(t) => {
@@ -63,7 +69,9 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
           {error && <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>}
 
           <TouchableOpacity style={styles.button} onPress={handleContinue}>
-            <Text allowFontScaling={false} style={styles.buttonText}>Continue</Text>
+            <Text allowFontScaling={false} style={styles.buttonText}>
+              {t('profile.modals.common.continue')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

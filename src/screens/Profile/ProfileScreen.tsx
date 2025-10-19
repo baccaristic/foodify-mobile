@@ -17,6 +17,7 @@ import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
 import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
+import { useTranslation } from '~/localization';
 const palette = {
   accent: '#CA251B',
   accentDark: '#17213A',
@@ -36,57 +37,56 @@ type ProfileSection = {
 };
 
 const useProfileSections = (
-  onNavigate: (route: string) => void,
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): ProfileSection[] =>
   useMemo(
     () => [
       {
-        title: 'Favorites',
+        title: t('profile.home.sections.favorites.title'),
         items: [
           {
-            label: 'See my favorites',
+            label: t('profile.home.sections.favorites.items.overview'),
             icon: Heart,
             route: 'Favorites',
           },
         ],
       },
       {
-        title: 'Payment',
+        title: t('profile.home.sections.payment.title'),
         items: [
-          { label: 'Payment methods', icon: CreditCard, route: 'PaymentMethods' },
-          { label: 'Order history', icon: History, route: 'OrderHistory' },
-          { label: 'Coupon codes', icon: Gift, route: 'CouponCodes' },
+          { label: t('profile.home.sections.payment.items.methods'), icon: CreditCard, route: 'PaymentMethods' },
+          { label: t('profile.home.sections.payment.items.history'), icon: History, route: 'OrderHistory' },
+          { label: t('profile.home.sections.payment.items.coupons'), icon: Gift, route: 'CouponCodes' },
         ],
       },
       {
-        title: 'Profile',
+        title: t('profile.home.sections.profile.title'),
         items: [
           {
-            label: 'Profile Settings',
+            label: t('profile.home.sections.profile.items.settings'),
             icon: UserRound,
-            route: 'ProfilSettings'
+            route: 'ProfilSettings',
           },
-
-
         ],
       },
       {
-        title: 'Other',
+        title: t('profile.home.sections.other.title'),
         items: [
-          { label: 'Notifications', icon: Bell, route: 'Notifications' },
-          { label: 'FAQ', icon: MessageCircleQuestion, route: 'FAQ' },
-          { label: 'Manage Privacy', icon: ShieldCheck, route: 'Privacy' },
-          { label: 'Delete account & Data', icon: Trash2, route: 'DeleteAccount' },
+          { label: t('profile.home.sections.other.items.notifications'), icon: Bell, route: 'Notifications' },
+          { label: t('profile.home.sections.other.items.faq'), icon: MessageCircleQuestion, route: 'FAQ' },
+          { label: t('profile.home.sections.other.items.privacy'), icon: ShieldCheck, route: 'Privacy' },
+          { label: t('profile.home.sections.other.items.deleteAccount'), icon: Trash2, route: 'DeleteAccount' },
         ],
       },
     ],
-    [onNavigate],
+    [t],
   );
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { t } = useTranslation();
 
   const handleLogout = useCallback(async () => {
     if (isSigningOut) {
@@ -151,13 +151,13 @@ const ProfileScreen = () => {
   const displayName = user?.name ?? 'Guest User';
 
 
-  const sections = useProfileSections(handleNavigate);
+  const sections = useProfileSections(t);
 
   const heroHeader = (
     <View style={styles.headerContent}>
       <View style={styles.topRow}>
         <Text allowFontScaling={false} style={styles.greetingLabel}>
-          Hello, {displayName.split(' ')[0]}
+          {t('profile.home.greeting', { values: { name: displayName.split(' ')[0] } })}
         </Text>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -168,13 +168,15 @@ const ProfileScreen = () => {
           {isSigningOut ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text allowFontScaling={false} style={styles.logoutLabelHeader}>Logout</Text>
+            <Text allowFontScaling={false} style={styles.logoutLabelHeader}>
+              {t('profile.home.actions.logout')}
+            </Text>
           )}
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
+    </View>
 
-      <View style={styles.greetingRow}>
-        <View style={styles.leftProfile}>
+    <View style={styles.greetingRow}>
+      <View style={styles.leftProfile}>
           <View >
             <LetteredAvatar name={displayName} size={56} />
           </View>
@@ -185,14 +187,16 @@ const ProfileScreen = () => {
               {displayName}
             </Text>
             <Text allowFontScaling={false} style={styles.superstarText}>
-              Superstar
+              {t('profile.home.statusLabel')}
             </Text>
           </View>
         </View>
 
         <View style={styles.pointsContainer}>
           <View style={styles.pointsBadge}>
-            <Text allowFontScaling={false} style={styles.pointsValue}>246 PTS</Text>
+            <Text allowFontScaling={false} style={styles.pointsValue}>
+              {t('profile.home.pointsLabel', { values: { points: 246 } })}
+            </Text>
           </View>
         </View>
       </View>
@@ -207,12 +211,12 @@ const ProfileScreen = () => {
           <LetteredAvatar name={displayName} size={38} borderWidth={1.5} borderColor="rgba(255,255,255,0.5)" />
         </View>
 
-        <View style={styles.collapsedText}>
-          <Text allowFontScaling={false} style={styles.collapsedGreeting}>
-            {displayName.split(' ')[0]}
-          </Text>
+      <View style={styles.collapsedText}>
+        <Text allowFontScaling={false} style={styles.collapsedGreeting}>
+          {t('profile.home.collapsedGreeting', { values: { name: displayName.split(' ')[0] } })}
+        </Text>
           <Text allowFontScaling={false} style={styles.collapsedHint}>
-            Tap options below
+            {t('profile.home.collapsedHint')}
           </Text>
         </View>
       </View>
@@ -225,7 +229,9 @@ const ProfileScreen = () => {
         {isSigningOut ? (
           <ActivityIndicator color="#FFFFFF" size="small" />
         ) : (
-          <Text allowFontScaling={false} style={styles.collapsedLogoutLabel}>Log out</Text>
+          <Text allowFontScaling={false} style={styles.collapsedLogoutLabel}>
+            {t('profile.home.actions.logout')}
+          </Text>
         )}
       </TouchableOpacity>
     </View>
@@ -266,7 +272,7 @@ const ProfileScreen = () => {
                     </View>
                     {item.extra ?? (
                       <Text allowFontScaling={false} style={styles.rowAction}>
-                        {item.route ? '>' : ''}
+                        {item.route ? t('profile.home.rowIndicator') : ''}
                       </Text>
                     )}
                   </TouchableOpacity>
