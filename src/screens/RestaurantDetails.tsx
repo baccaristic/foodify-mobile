@@ -697,16 +697,28 @@ export default function RestaurantDetails() {
     return (
       <View>
         <View className="px-4">
-          <Text allowFontScaling={false} className="ml-2 mt-4 text-2xl font-bold text-[#17213A]">
-            {restaurant.name}
-          </Text>
-          {restaurant.description ? (
-            <Text allowFontScaling={false} className="ml-2 mt-2 text-sm text-[#17213A]">
-              {restaurant.description}
-            </Text>
-          ) : null}
+          <View className="mt-4 flex-row items-center gap-4">
+            <View className="rounded-3xl bg-white p-1.5 shadow-lg">
+              <Image
+                source={resolveImageSource(restaurant.iconUrl ?? restaurant.imageUrl)}
+                style={{ width: moderateScale(64), height: moderateScale(64), borderRadius: moderateScale(20) }}
+                contentFit="cover"
+              />
+            </View>
 
-          <View className="mt-3 flex flex-row items-center justify-center text-xs text-[#17213A]">
+            <View className="flex-1">
+              <Text allowFontScaling={false} className="text-2xl font-bold text-[#17213A]">
+                {restaurant.name}
+              </Text>
+              {restaurant.description ? (
+                <Text allowFontScaling={false} className="mt-1 text-sm text-[#17213A]">
+                  {restaurant.description}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+
+          <View className="mt-4 flex flex-row items-center justify-center text-xs text-[#17213A]">
             <View className="border-1 mt-2 flex flex-row items-center gap-4 rounded-xl border-black/5 bg-white px-4 py-2 shadow-xl">
               <View className="flex flex-row items-center gap-1 font-sans">
                 <Clock7 size={16} color="#CA251B" />
