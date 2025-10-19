@@ -110,7 +110,7 @@ const fr: TranslationDictionary = {
       breakfast: 'Petit-déjeuner',
       burgers: 'Burgers',
       chicken: 'Poulet',
-      fastFood: 'Restauration rapide',
+      fastFood: 'Fast food',
       grill: 'Grillades',
       iceCream: 'Glaces',
       indian: 'Indien',

@@ -50,7 +50,7 @@ import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
 import { LinearGradient } from "expo-linear-gradient";
 import Header from "~/components/Header";
 import { getNearbyRestaurants } from "~/api/restaurants";
-import type {
+import {
   NearbyRestaurantsResponse,
   RestaurantCategorySection,
   RestaurantSummary,
@@ -639,7 +639,6 @@ export default function HomePage() {
           keyExtractor={(item) => item.category}
           showsHorizontalScrollIndicator={false}
           style={styles.categoryList}
-          contentContainerStyle={styles.categoryListContent}
         />
       </View>
     </Animated.View>
@@ -1037,10 +1036,6 @@ const styles = ScaledSheet.create({
   categoryList: {
     marginTop: '10@vs',
   },
-  categoryListContent: {
-    paddingHorizontal: '4@s',
-    paddingVertical: '6@vs',
-  },
 
   collapsedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: '16@s', flex: 1, },
   collapsedSearch: {
@@ -1087,7 +1082,6 @@ const styles = ScaledSheet.create({
   categoryEqualWidth: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: '6@s',
     width: '72@s',
   },
 
