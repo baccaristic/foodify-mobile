@@ -539,12 +539,12 @@ const CheckoutOrder: React.FC = () => {
   const itemSummaryPrefix = useMemo(
     () =>
       t('cart.itemSummaryPrefix', {
-        count: displayItemCount,
+        values: {count: displayItemCount,
         productLabel: t(
           displayItemCount === 1
             ? 'cart.productLabel.singular'
             : 'cart.productLabel.plural',
-        ),
+        ),}
       }),
     [displayItemCount, t],
   );
@@ -1073,7 +1073,7 @@ const CheckoutOrder: React.FC = () => {
                         </Text>
                         {item.extrasLabel ? (
                           <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
-                            {t('checkout.items.extrasLabel', { extras: item.extrasLabel })}
+                            {t('checkout.items.extrasLabel', { values: {extras: item.extrasLabel} })}
                           </Text>
                         ) : null}
                       </View>

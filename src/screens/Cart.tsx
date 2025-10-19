@@ -156,9 +156,8 @@ export default function Cart() {
       </Text>
       {hasItems && (<View className="mb-4 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
-          {t('cart.itemSummaryPrefix', {
-            count: totalItems,
-            productLabel: t(totalItems === 1 ? 'cart.productLabel.singular' : 'cart.productLabel.plural'),
+          {t('cart.itemSummaryPrefix', {values: {count: totalItems,
+            productLabel: t(totalItems === 1 ? 'cart.productLabel.singular' : 'cart.productLabel.plural')}
           })}
           <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
             {restaurantName}

@@ -195,27 +195,25 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       if (group.minSelect > 0 && group.maxSelect > 0) {
         if (group.minSelect === group.maxSelect) {
           return t('menuDetail.optionGroups.selectExact', {
-            count: group.minSelect,
-            item: getItemLabel(group.minSelect),
+            values: {count: group.minSelect,
+            item: getItemLabel(group.minSelect),}
           });
         }
-        return t('menuDetail.optionGroups.selectRange', {
-          min: group.minSelect,
-          max: group.maxSelect,
+        return t('menuDetail.optionGroups.selectRange', {values: {min: group.minSelect,
+          max: group.maxSelect,}
         });
       }
 
       if (group.minSelect > 0) {
-        return t('menuDetail.optionGroups.selectAtLeast', {
-          count: group.minSelect,
-          item: getItemLabel(group.minSelect),
+        return t('menuDetail.optionGroups.selectAtLeast', {values: {count: group.minSelect,
+          item: getItemLabel(group.minSelect),}
         });
       }
 
       if (group.maxSelect > 0) {
         return t('menuDetail.optionGroups.selectUpTo', {
-          count: group.maxSelect,
-          item: getItemLabel(group.maxSelect),
+          values: {count: group.maxSelect,
+          item: getItemLabel(group.maxSelect),}
         });
       }
 
@@ -464,7 +462,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 
       <View className="mt-4">
         <Text allowFontScaling={false} className="text-base font-semibold text-[#17213A]">
-          {t('menuDetail.customizing', { current: activeIndex + 1, total: drafts.length })}
+          {t('menuDetail.customizing', { values: {current: activeIndex + 1, total: drafts.length} })}
         </Text>
         {drafts.length > 1 ? (
           <ScrollView
@@ -489,7 +487,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
                   <Text
                     allowFontScaling={false}
                     className={`text-sm font-semibold ${textClass}`}>
-                    {t('menuDetail.draftLabel', { index: index + 1 })}
+                    {t('menuDetail.draftLabel', { values: {index: index + 1 }})}
                   </Text>
                 </TouchableOpacity>
               );
@@ -543,7 +541,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       className="absolute bottom-0 left-0 right-0 w-full border-t border-gray-100 bg-white p-4 shadow-2xl">
       <View className="mb-2 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
-          {t('menuDetail.itemTotal', { index: activeIndex + 1 })}
+          {t('menuDetail.itemTotal', { values: {index: activeIndex + 1} })}
         </Text>
         <View className="flex-row items-baseline gap-2">
           <Text allowFontScaling={false} className="text-sm font-bold text-[#CA251B]">
@@ -585,10 +583,10 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <View className="items-center">
           <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
             {t('menuDetail.summary', {
-              action: resolvedActionLabel,
+              values: {action: resolvedActionLabel,
               count: drafts.length,
               item: getItemLabel(drafts.length),
-              price: formatPrice(cartTotal),
+              price: formatPrice(cartTotal),}
             })}
           </Text>
           {hasPromotion ? (

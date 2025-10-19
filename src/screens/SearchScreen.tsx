@@ -132,7 +132,7 @@ const RestaurantCard = ({
   const formatDeliveryFee = useCallback(
     (fee: number) =>
       fee > 0
-        ? t("search.delivery.withFee", { fee: formatCurrency(fee) })
+        ? t("search.delivery.withFee", { values: {fee: formatCurrency(fee)} })
         : t("search.delivery.free"),
     [t],
   );
@@ -220,6 +220,7 @@ const RestaurantResult = ({
   onPromotedItemPress: (restaurant: RestaurantSearchItem, item: MenuItemPromotion) => void;
 }) => {
   const promotions = restaurant.promotedMenuItems ?? [];
+  const { t } = useTranslation();
 
   return (
     <View style={styles.restaurantResult}>
@@ -609,10 +610,10 @@ export default function SearchScreen() {
           {isLoading
             ? t("search.results.searching")
             : t("search.results.count", {
-                count: totalItems,
+                values: {count: totalItems,
                 query: debouncedSearchTerm
-                  ? t("search.results.querySuffix", { query: debouncedSearchTerm })
-                  : "",
+                  ? t("search.results.querySuffix", { values: {query: debouncedSearchTerm }})
+                  : "",}
               })}
         </Text>
       )}
