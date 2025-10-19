@@ -71,7 +71,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
   const displayPrice = formatCurrency(getMenuItemBasePrice(item));
 
   return (
-    <View style={{ width: width / 2 - 24 }} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md">
+    <TouchableOpacity style={{ width: width / 2 - 24 }} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md" onPress={() => onOpenModal(item.id)}>
       <View className="relative">
         <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="contain" />
         {promotionActive && item.promotionLabel ? (
@@ -108,7 +108,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
