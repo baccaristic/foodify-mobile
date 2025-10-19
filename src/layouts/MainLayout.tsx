@@ -33,6 +33,7 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import LottieView from 'lottie-react-native';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { formatOrderStatusLabel } from '~/utils/order';
 import { useTranslation } from '~/localization';
@@ -595,9 +596,23 @@ const OngoingOrderSection = ({
         onPress={onToggle}
         style={styles.ongoingHeader}
       >
-        <Text allowFontScaling={false} style={styles.ongoingHeaderText} numberOfLines={1}>
-          {title}
-        </Text>
+        <View style={styles.ongoingHeaderContent}>
+          {!isExpanded ? (
+            <View style={styles.headerAnimationBubble}>
+              <LottieView
+                autoPlay
+                loop
+                style={styles.headerAnimation}
+                source={require('../../assets/animations/delivering.json')}
+              />
+            </View>
+          ) : (
+            <View style={styles.headerAnimationPlaceholder} />
+          )}
+          <Text allowFontScaling={false} style={styles.ongoingHeaderText} numberOfLines={1}>
+            {title}
+          </Text>
+        </View>
         {isExpanded ? (
           <ChevronDown size={s(18)} color="#FFFFFF" />
         ) : (
@@ -606,23 +621,33 @@ const OngoingOrderSection = ({
       </TouchableOpacity>
       {isExpanded ? (
         <View style={styles.ongoingBody}>
-          <View style={styles.statusCard}>
-            <Text allowFontScaling={false} style={styles.statusCardLabel}>
-              {statusHeading}
-            </Text>
-            <Text allowFontScaling={false} style={styles.statusCardValue} numberOfLines={2}>
-              {statusLabel}
-            </Text>
+          <View style={styles.animationCard}>
+            <LottieView
+              autoPlay
+              loop
+              style={styles.animation}
+              source={require('../../assets/animations/delivering.json')}
+            />
           </View>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.detailsButton}
-            onPress={onPressDetails}
-          >
-            <Text allowFontScaling={false} style={styles.detailsButtonLabel}>
-              {detailsLabel}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.ongoingDetails}>
+            <View style={styles.statusCard}>
+              <Text allowFontScaling={false} style={styles.statusCardLabel}>
+                {statusHeading}
+              </Text>
+              <Text allowFontScaling={false} style={styles.statusCardValue} numberOfLines={2}>
+                {statusLabel}
+              </Text>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.detailsButton}
+              onPress={onPressDetails}
+            >
+              <Text allowFontScaling={false} style={styles.detailsButtonLabel}>
+                {detailsLabel}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : null}
     </View>
@@ -691,6 +716,32 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  ongoingHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: '12@s',
+  },
+  headerAnimationBubble: {
+    width: '42@s',
+    height: '42@vs',
+    borderRadius: '21@ms',
+    backgroundColor: 'rgba(202, 37, 27, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: '12@s',
+  },
+  headerAnimation: {
+    width: '32@s',
+    height: '32@vs',
+  },
+  headerAnimationPlaceholder: {
+    width: '42@s',
+    height: '42@vs',
+    borderRadius: '21@ms',
+    backgroundColor: 'rgba(202, 37, 27, 0.18)',
+    marginRight: '12@s',
+  },
   ongoingHeaderText: {
     color: '#FFFFFF',
     fontSize: '14@ms',
@@ -701,13 +752,30 @@ const styles = ScaledSheet.create({
     alignItems: 'stretch',
     marginTop: '12@vs',
   },
-  statusCard: {
+  animationCard: {
+    width: '110@s',
+    borderRadius: '16@ms',
+    backgroundColor: 'rgba(36, 50, 85, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: '6@vs',
+    paddingHorizontal: '6@s',
+    marginRight: '12@s',
+  },
+  animation: {
+    width: '90@s',
+    height: '90@vs',
+  },
+  ongoingDetails: {
     flex: 1,
+    justifyContent: 'space-between',
+  },
+  statusCard: {
     backgroundColor: '#CA251B',
     borderRadius: '16@ms',
     paddingVertical: '12@vs',
     paddingHorizontal: '14@s',
-    marginRight: '12@s',
+    marginBottom: '12@vs',
   },
   statusCardLabel: {
     color: '#FFFFFF',
@@ -721,13 +789,13 @@ const styles = ScaledSheet.create({
     fontWeight: '500',
   },
   detailsButton: {
-    flex: 1,
     backgroundColor: '#CA251B',
     borderRadius: '16@ms',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: '14@vs',
     paddingHorizontal: '12@s',
+    width: '100%',
   },
   detailsButtonLabel: {
     color: '#FFFFFF',
