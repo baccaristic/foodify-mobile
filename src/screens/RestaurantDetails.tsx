@@ -821,7 +821,7 @@ export default function RestaurantDetails() {
 
       <View className="flex-1 items-center justify-center px-2">
         <Image
-          source={resolveImageSource(restaurant?.imageUrl)}
+          source={resolveImageSource(restaurant?.iconUrl ?? restaurant?.imageUrl)}
           style={{ width: 32, height: 32, borderRadius: 16, marginBottom: 4 }}
           contentFit="cover"
         />

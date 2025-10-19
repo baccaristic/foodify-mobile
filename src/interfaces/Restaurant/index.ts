@@ -59,6 +59,7 @@ export interface RestaurantDetailsResponse {
   description: string;
   deliveryFee: number;
   imageUrl: string;
+  iconUrl?: string | null;
   address: string;
   phone: string;
   type: string;
@@ -90,6 +91,7 @@ export interface RestaurantSummary {
   latitude: number;
   longitude: number;
   imageUrl: string;
+  iconUrl?: string | null;
   menu: RestaurantMenuItemDetails[];
   favorite?: boolean;
   hasPromotion?: boolean;
@@ -148,6 +150,7 @@ export interface RestaurantSearchItem {
   isTopChoice: boolean;
   hasFreeDelivery: boolean;
   imageUrl: string;
+  iconUrl?: string | null;
   promotedMenuItems?: MenuItemPromotion[];
 }
 
@@ -181,6 +184,7 @@ export interface RestaurantDisplay {
   longitude?: number | null;
   deliveryFee?: number | null;
   imageUrl?: string | null;
+  iconUrl?: string | null;
   favorite?: boolean | null;
   hasPromotion?: boolean | null;
   promotionSummary?: string | null;

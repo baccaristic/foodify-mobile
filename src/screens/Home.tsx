@@ -349,6 +349,8 @@ export default function HomePage() {
           ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
           : t('home.delivery.free');
 
+      const topPickImagePath = restaurant.iconUrl || restaurant.imageUrl;
+
       return (
         <TouchableOpacity
           style={styles.topPickCard}
@@ -362,8 +364,8 @@ export default function HomePage() {
           <View style={styles.topPickMedia}>
             <Image
               source={
-                restaurant.imageUrl
-                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
+                topPickImagePath
+                  ? { uri: `${BASE_API_URL}/auth/image/${topPickImagePath}` }
                   : require('../../assets/baguette.png')
               }
               style={styles.topPickImage}
