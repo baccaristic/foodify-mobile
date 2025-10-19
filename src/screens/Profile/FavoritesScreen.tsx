@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -12,17 +11,17 @@ import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/
 import { useQuery } from '@tanstack/react-query';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { Image } from 'expo-image';
-import { ArrowRight, Flame, Sparkles, Star, UtensilsCrossed } from 'lucide-react-native';
+import { Flame, Sparkles } from 'lucide-react-native';
 
 import MainLayout from '~/layouts/MainLayout';
 import { getClientFavorites } from '~/api/favorites';
 import type {
   ClientFavoritesResponse,
   FavoriteMenuItem,
-  FavoriteRestaurant,
 } from '~/interfaces/Favorites';
 import { BASE_API_URL } from '@env';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
+import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
 import { useTranslation } from '~/localization';
 
 const fallbackImage = require('../../../assets/baguette.png');
@@ -41,80 +40,6 @@ const resolveImageSource = (imagePath?: string | null) => {
     return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
   }
   return fallbackImage;
-};
-
-const FavoriteRestaurantCard = ({
-  restaurant,
-  onPress,
-  width,
-}: {
-  restaurant: FavoriteRestaurant;
-  onPress: () => void;
-  width: number;
-}) => {
-  const { t } = useTranslation();
-  const ratingLabel = useMemo(() => {
-    if (restaurant.rating == null) {
-      return t('profile.favorites.labels.new');
-    }
-
-    const numericRating = Number(restaurant.rating);
-
-    if (!Number.isFinite(numericRating) || numericRating <= 0) {
-      return t('profile.favorites.labels.new');
-    }
-
-    return t('profile.favorites.labels.rating', { values: { rating: numericRating.toFixed(1) } });
-  }, [restaurant.rating, t]);
-
-  return (
-    <TouchableOpacity
-      style={[styles.restaurantCard, { width }]}
-      activeOpacity={0.9}
-      onPress={onPress}
-    >
-      <Image source={resolveImageSource(restaurant.imageUrl)} style={styles.restaurantImage} contentFit="cover" />
-      <View style={styles.restaurantOverlay} />
-      <View style={styles.restaurantContent}>
-        <View style={styles.restaurantMetaRow}>
-          <View style={styles.metaPill}>
-            <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-            <Text allowFontScaling={false} style={styles.metaPillText}>
-              {ratingLabel}
-            </Text>
-          </View>
-          <View style={styles.metaPill}>
-            <UtensilsCrossed size={s(14)} color="white" />
-            <Text allowFontScaling={false} style={styles.metaPillText}>
-              {restaurant.type || t('profile.favorites.labels.defaultCuisine')}
-            </Text>
-          </View>
-        </View>
-        <Text allowFontScaling={false} style={styles.restaurantName} numberOfLines={2}>
-          {restaurant.name}
-        </Text>
-        <Text allowFontScaling={false} style={styles.restaurantDescription} numberOfLines={2}>
-          {(() => {
-            if (typeof restaurant.description === 'string') {
-              const trimmed = restaurant.description.trim();
-              if (trimmed.length > 0) {
-                return trimmed;
-              }
-            }
-            return restaurant.address;
-          })()}
-        </Text>
-        <View style={styles.restaurantFooter}>
-          <Text allowFontScaling={false} style={styles.restaurantHint} numberOfLines={1}>
-            {restaurant.openingHours && restaurant.closingHours
-              ? `${restaurant.openingHours} - ${restaurant.closingHours}`
-              : t('profile.favorites.labels.openMenuHint')}
-          </Text>
-          <ArrowRight size={s(16)} color="white" />
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
 };
 
 const FavoriteMenuItemCard = ({
@@ -288,8 +213,15 @@ const FavoritesScreen = () => {
             data={favoriteRestaurants}
             keyExtractor={(restaurant) => `favorite-restaurant-${restaurant.id}`}
             renderItem={({ item: restaurant }) => (
-              <FavoriteRestaurantCard
-                restaurant={restaurant}
+              <RestaurantShowcaseCard
+                name={restaurant.name}
+                description={restaurant.description}
+                address={restaurant.address}
+                rating={restaurant.rating}
+                type={restaurant.type}
+                imageUrl={restaurant.imageUrl}
+                openingHours={restaurant.openingHours}
+                closingHours={restaurant.closingHours}
                 width={restaurantCardWidth}
                 onPress={() =>
                   navigation.navigate('RestaurantDetails' as never, {
@@ -379,65 +311,6 @@ const styles = ScaledSheet.create({
   },
   restaurantSeparator: {
     width: restaurantItemGap,
-  },
-  restaurantCard: {
-    height: '200@vs',
-    borderRadius: '20@ms',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  restaurantImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: '20@ms',
-  },
-  restaurantOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(23, 33, 58, 0.45)',
-  },
-  restaurantContent: {
-    position: 'absolute',
-    inset: 0,
-    padding: '14@s',
-    justifyContent: 'space-between',
-  },
-  restaurantMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  metaPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: '16@ms',
-    paddingHorizontal: '8@s',
-    paddingVertical: '4@vs',
-    gap: '4@s',
-  },
-  metaPillText: {
-    color: 'white',
-    fontSize: '11@ms',
-    fontWeight: '600',
-  },
-  restaurantName: {
-    fontSize: '16@ms',
-    fontWeight: '700',
-    color: 'white',
-  },
-  restaurantDescription: {
-    fontSize: '12@ms',
-    color: 'rgba(255,255,255,0.85)',
-  },
-  restaurantFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  restaurantHint: {
-    flex: 1,
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: '11@ms',
-    marginRight: '8@s',
   },
   menuList: {
     gap: '16@vs',
