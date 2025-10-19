@@ -34,6 +34,31 @@ const en: TranslationDictionary = {
     privacy: 'Manage Privacy',
     deleteAccount: 'Delete account & Data',
   },
+  layout: {
+    ongoingOrder: {
+      bannerTitle: 'Your order is on the way',
+      statusHeading: 'Status',
+      trackingFallback: 'Tracking…',
+      seeDetails: 'See details',
+    },
+  },
+  filters: {
+    title: 'Filters',
+    clear: 'Clear all',
+    sections: {
+      sort: 'Sort',
+      topEat: 'Top Eat',
+    },
+    sortOptions: {
+      picked: 'Picked for you',
+      popular: 'Most popular',
+      fee: 'Delivery fee',
+      rating: 'Rating',
+    },
+    actions: {
+      apply: 'Apply filters',
+    },
+  },
   fixedOrderBar: {
     order: 'Order',
     orderWithCount: 'Order ({{count}})',
