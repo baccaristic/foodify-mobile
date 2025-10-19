@@ -11,15 +11,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import {
-  Percent,
-  Star,
   Pizza,
   Hamburger,
   Search,
   Utensils,
-  Heart,
   Bike,
-  Clock3,
   MoveUp,
   Soup,
   Croissant,
@@ -47,8 +43,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
-import { LinearGradient } from "expo-linear-gradient";
 import Header from "~/components/Header";
+import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
 import { getNearbyRestaurants } from "~/api/restaurants";
 import {
   NearbyRestaurantsResponse,
@@ -301,123 +297,29 @@ export default function HomePage() {
   }, [fetchNextPage, hasNextPage, hasSelectedAddress, isFetchingNextPage]);
 
   const renderRestaurantCard = useCallback(
-    (restaurant: RestaurantSummary, variant: 'default' | 'compact' = 'default') => {
-      const isCompact = variant === 'compact';
-      const cardStyles = [styles.card, isCompact && styles.cardCompact];
-      const mediaStyles = [styles.cardMedia, isCompact && styles.cardMediaCompact];
-      const contentStyles = [styles.cardContent, isCompact && styles.cardContentCompact];
-      const titleStyles = [styles.cardTitle, isCompact && styles.cardTitleCompact];
-      const subtitleStyles = [styles.cardSubtitle, isCompact && styles.cardSubtitleCompact];
-      const metaTextStyles = [styles.cardMetaText, isCompact && styles.cardMetaTextCompact];
-      const closingTextStyles = [
-        styles.cardClosingText,
-        isCompact && styles.cardClosingTextCompact,
-      ];
-      const ratingPillStyles = [styles.ratingPill, isCompact && styles.ratingPillCompact];
-
-      const ratingLabel = restaurant.rating
-        ? restaurant.rating.toFixed(1)
-        : t('home.rating.new');
-      const deliveryLabel =
-        restaurant.deliveryFee > 0
-          ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
-          : t('home.delivery.free');
-
+    (restaurant: RestaurantSummary, options?: { width?: number | string }) => {
       return (
-        <TouchableOpacity
-          style={cardStyles}
+        <RestaurantShowcaseCard
+          name={restaurant.name}
+          description={restaurant.description}
+          address={restaurant.address}
+          rating={restaurant.rating}
+          type={restaurant.type}
+          imageUrl={restaurant.imageUrl}
+          fallbackImageUrl={restaurant.iconUrl}
+          openingHours={restaurant.openingHours}
+          closingHours={restaurant.closingHours}
+          width={options?.width}
           onPress={() =>
             navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
           }
-          activeOpacity={0.88}
-        >
-          <View style={mediaStyles}>
-            <Image
-              source={
-                restaurant.imageUrl
-                  ? { uri: `${BASE_API_URL}/auth/image/${restaurant.imageUrl}` }
-                  : require('../../assets/baguette.png')
-              }
-              style={styles.cardImage}
-              contentFit="cover"
-            />
-            {restaurant.hasPromotion && restaurant.promotionSummary ? (
-              <View
-                style={[
-                  styles.promotionStickerContainer,
-                  isCompact && styles.promotionStickerContainerCompact,
-                ]}
-              >
-                <LinearGradient
-                  colors={['#CA251B', '#CA251B']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={[styles.promotionSticker, isCompact && styles.promotionStickerCompact]}
-                >
-                  <Percent size={isCompact ? s(10) : s(12)} color="#FFFFFF" />
-                  <Text
-                    allowFontScaling={false}
-                    style={[
-                      styles.promotionStickerText,
-                      isCompact && styles.promotionStickerTextCompact,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {restaurant.promotionSummary}
-                  </Text>
-                </LinearGradient>
-              </View>
-            ) : null}
-            <View
-              style={[
-                styles.favoriteButton,
-                restaurant.favorite && styles.favoriteButtonActive,
-              ]}
-            >
-              <Heart
-                size={isCompact ? s(16) : s(18)}
-                color={restaurant.favorite ? '#FFFFFF' : '#CA251B'}
-                fill={restaurant.favorite ? '#FFFFFF' : 'none'}
-              />
-            </View>
-          </View>
-          <View style={contentStyles}>
-            <View style={styles.cardTitleRow}>
-              <Text allowFontScaling={false} style={titleStyles} numberOfLines={1}>
-                {restaurant.name}
-              </Text>
-              <View style={ratingPillStyles}>
-                <Star size={isCompact ? s(12) : s(14)} color="#F97316" fill="#F97316" />
-                <Text allowFontScaling={false} style={styles.ratingPillText}>
-                  {ratingLabel}
-                </Text>
-              </View>
-            </View>
-            {(restaurant.description || restaurant.type || restaurant.address) ? (
-              <Text allowFontScaling={false} style={subtitleStyles} numberOfLines={1}>
-                {restaurant.description || restaurant.type || restaurant.address}
-              </Text>
-            ) : null}
-            <View style={styles.cardMetaRow}>
-              <Bike size={isCompact ? s(12) : s(14)} color="#CA251B" />
-              <Text allowFontScaling={false} style={metaTextStyles} numberOfLines={1}>
-                {deliveryLabel}
-              </Text>
-            </View>
-            {restaurant.closingHours ? (
-              <View style={[styles.cardMetaRow, styles.cardMetaRowSecondary]}>
-                <Clock3 size={isCompact ? s(12) : s(14)} color="#0F172A" />
-                <Text allowFontScaling={false} style={closingTextStyles} numberOfLines={1}>
-                  {t('home.delivery.closesAt', { values: { time: restaurant.closingHours } })}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </TouchableOpacity>
+        />
       );
     },
-    [navigation, t]
+    [navigation]
   );
+
+  const compactRestaurantCardWidth = useMemo(() => s(240), []);
 
   const renderTopPickCard = useCallback(
     (restaurant: RestaurantSummary) => {
@@ -491,7 +393,7 @@ export default function HomePage() {
                   >
                     {isTopPicks
                       ? renderTopPickCard(restaurant)
-                      : renderRestaurantCard(restaurant, 'compact')}
+                      : renderRestaurantCard(restaurant, { width: compactRestaurantCardWidth })}
                   </View>
                 ))}
               </ScrollView>
@@ -534,7 +436,7 @@ export default function HomePage() {
         </View>
       );
     },
-    [renderRestaurantCard, renderTopPickCard]
+    [compactRestaurantCardWidth, renderRestaurantCard, renderTopPickCard]
   );
 
   const renderListEmpty = useCallback(() => {
@@ -800,158 +702,8 @@ const styles = ScaledSheet.create({
     paddingHorizontal: '12@s',
   },
 
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: '20@ms',
-    overflow: 'hidden',
-    shadowColor: 'rgba(15, 23, 42, 0.12)',
-    shadowOpacity: 0.18,
-    shadowRadius: '18@ms',
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
-  },
-  cardCompact: {
-    width: '220@s',
-  },
   cardContainer: {
     marginBottom: '16@vs',
-  },
-  cardMedia: {
-    width: '100%',
-    aspectRatio: 16 / 11,
-    backgroundColor: '#F3F4F6',
-    position: 'relative',
-  },
-  cardMediaCompact: {
-    aspectRatio: 1.25,
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  promotionStickerContainer: {
-    position: 'absolute',
-    left: 0,
-    top: '14@vs',
-  },
-  promotionStickerContainerCompact: {
-    top: '10@vs',
-  },
-  promotionSticker: {
-    paddingVertical: '6@vs',
-    paddingHorizontal: '14@s',
-    borderTopRightRadius: '16@ms',
-    borderBottomRightRadius: '16@ms',
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: 'rgba(15, 23, 42, 0.18)',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 2, height: 4 },
-    shadowRadius: '10@ms',
-    elevation: 5,
-  },
-  promotionStickerCompact: {
-    paddingHorizontal: '12@s',
-    borderTopRightRadius: '14@ms',
-    borderBottomRightRadius: '14@ms',
-  },
-  promotionStickerText: {
-    fontSize: '7@ms',
-    fontWeight: '500',
-    color: '#ffffff',
-    marginLeft: '6@s',
-  },
-  promotionStickerTextCompact: {
-    fontSize: '10@ms',
-    marginLeft: '4@s',
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: '12@vs',
-    right: '12@s',
-    width: '34@s',
-    height: '34@s',
-    borderRadius: '18@ms',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-  },
-  favoriteButtonActive: {
-    backgroundColor: '#CA251B',
-  },
-  cardContent: {
-    paddingHorizontal: '16@s',
-    paddingVertical: '14@vs',
-  },
-  cardContentCompact: {
-    paddingHorizontal: '14@s',
-    paddingVertical: '12@vs',
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardTitle: {
-    fontSize: '18@ms',
-    fontWeight: '700',
-    color: '#111827',
-    flex: 1,
-    marginRight: '12@s',
-  },
-  cardTitleCompact: {
-    fontSize: '16@ms',
-  },
-  ratingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: '8@s',
-    paddingVertical: '4@vs',
-    borderRadius: '14@ms',
-    backgroundColor: '#F1F5F9',
-  },
-  ratingPillCompact: {
-    paddingHorizontal: '6@s',
-    paddingVertical: '3@vs',
-  },
-  ratingPillText: {
-    fontSize: '12@ms',
-    fontWeight: '600',
-    color: '#111827',
-    marginLeft: '4@s',
-  },
-  cardSubtitle: {
-    marginTop: '6@vs',
-    fontSize: '13@ms',
-    color: '#64748B',
-  },
-  cardSubtitleCompact: {
-    fontSize: '12@ms',
-  },
-  cardMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: '12@vs',
-  },
-  cardMetaRowSecondary: {
-    marginTop: '6@vs',
-  },
-  cardMetaText: {
-    marginLeft: '8@s',
-    fontSize: '13@ms',
-    fontWeight: '500',
-    color: '#CA251B',
-  },
-  cardMetaTextCompact: {
-    fontSize: '12@ms',
-  },
-  cardClosingText: {
-    marginLeft: '8@s',
-    fontSize: '12@ms',
-    color: '#64748B',
-  },
-  cardClosingTextCompact: {
-    fontSize: '11@ms',
   },
 
   topPickCard: {

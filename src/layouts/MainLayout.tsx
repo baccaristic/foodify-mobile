@@ -647,7 +647,8 @@ const styles = ScaledSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: '24@ms',
     borderTopRightRadius: '24@ms',
-    marginTop: '-14@vs',
+    marginTop: '-8@vs',
+    marginBottom: '88@vs',
     zIndex: 1,
   },
   staticScrollView: {
