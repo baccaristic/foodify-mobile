@@ -282,7 +282,7 @@ const OrderHistoryScreen = () => {
 };
 
 const styles = ScaledSheet.create({
-  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2,numberOfLines:2  },
   orderCard: {
     flexDirection: 'row',
     backgroundColor: '#FFF',

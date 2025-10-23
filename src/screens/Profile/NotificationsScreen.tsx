@@ -251,7 +251,7 @@ export default function NotificationsScreen() {
   const showLoadingOverlay = isMutating;
 
   const customHeader = (
-    <View>
+    <View style={styles.header}>
       <HeaderWithBackButton title={t('profile.notifications.title')} titleMarginLeft={s(70)} />
     </View>
   );
@@ -369,7 +369,7 @@ export default function NotificationsScreen() {
       showFooter
       collapsedHeader={false}
       enableHeaderCollapse={false}
-      headerMaxHeight={vs(60)}
+      headerMaxHeight={vs(70)}
       headerMinHeight={vs(30)}
       activeTab="Profile"
       enforceResponsiveHeaderSize={false}
@@ -380,14 +380,11 @@ export default function NotificationsScreen() {
 }
 
 const styles = ScaledSheet.create({
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: '16@s',
-    borderTopColor: '#F9FAFB',
-    borderColor: '#F9FAFB',
-    borderTopWidth: 2,
-    borderBottomWidth: 0,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

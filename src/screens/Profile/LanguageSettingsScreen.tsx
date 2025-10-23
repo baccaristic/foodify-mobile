@@ -26,7 +26,7 @@ const LanguageSettingsScreen = () => {
   );
 
   const customHeader = (
-    <View>
+    <View style={styles.header}>
       <HeaderWithBackButton title={t('profile.language.title')} titleMarginLeft={s(80)} />
     </View>
   );
@@ -86,7 +86,7 @@ const LanguageSettingsScreen = () => {
       showFooter
       collapsedHeader={false}
       enableHeaderCollapse={false}
-      headerMaxHeight={vs(60)}
+      headerMaxHeight={vs(70)}
       headerMinHeight={vs(30)}
       activeTab="Profile"
       enforceResponsiveHeaderSize={false}
@@ -97,11 +97,11 @@ const LanguageSettingsScreen = () => {
 };
 
 const styles = ScaledSheet.create({
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: '18@s',
-    paddingVertical: '16@vs',
     gap: '16@vs',
   },
   heading: {

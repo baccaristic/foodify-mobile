@@ -1,5 +1,5 @@
-import React, { useMemo, useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, InteractionManager } from 'react-native';
+import React, { useMemo, useCallback, useState} from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, InteractionManager,PixelRatio } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import {
   Heart,
@@ -12,7 +12,7 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-react-native';
-import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
 
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
@@ -23,6 +23,11 @@ const palette = {
   accentDark: '#17213A',
   neutral: '#4B5563',
 };
+let textsize = 34;
+if (PixelRatio.get() <= 2) {
+  textsize = 28;
+}
+
 
 type ProfileItem = {
   label: string;
@@ -293,7 +298,7 @@ const styles = ScaledSheet.create({
     paddingBottom: vs(16),
   },
   greetingLabel: {
-    fontSize: '32@ms',
+    fontSize: textsize,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: vs(8),
@@ -303,17 +308,17 @@ const styles = ScaledSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: vs(8),
+    gap:4
   },
-
-
 
   logoutButtonHeader: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: '18@s',
+    paddingHorizontal: '8@s',
     paddingVertical: '8@vs',
     borderRadius: '16@ms',
     borderColor: 'white',
     borderWidth: 2,
+
   },
 
   logoutLabelHeader: {
@@ -410,6 +415,7 @@ const styles = ScaledSheet.create({
   collapsedHint: {
     color: 'rgba(255,255,255,0.75)',
     fontSize: '11@ms',
+    maxWidth:moderateScale(100),
   },
   collapsedPoints: {
     backgroundColor: 'rgba(255,255,255,0.2)',

@@ -43,7 +43,7 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
         <ArrowLeft color="#CA251B" size={s(26)} />
       </TouchableOpacity>
 
-      <Text style={[styles.title, { marginLeft: titleMarginLeft }]} numberOfLines={1}>
+      <Text allowFontScaling={true} style={[styles.title, { marginLeft: titleMarginLeft, maxWidth:s(200) }]} numberOfLines={2}>
         {title}
       </Text>
     </View>
@@ -78,5 +78,6 @@ const styles = ScaledSheet.create({
     fontSize: '18@ms',
     fontWeight: '700',
     color: '#17213A',
+     maxWidth:s(300)
   },
 });

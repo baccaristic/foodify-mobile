@@ -31,8 +31,9 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <HeaderWithBackButton title={t('profile.modals.password.title')} onBack={onClose} />
-
+        <View style={styles.header}>
+          <HeaderWithBackButton title={t('profile.modals.password.title')} onBack={onClose} />
+        </View>
         <View style={styles.inner}>
           <Text allowFontScaling={false} style={styles.label}>
             {t('profile.modals.password.currentPrompt')}
@@ -92,6 +93,7 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
 };
 
 const styles = ScaledSheet.create({
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
   container: { flex: 1, backgroundColor: '#fff' },
   inner: { paddingHorizontal: '20@s', paddingVertical: '30@vs' },
   label: { color: '#000', fontSize: '16@ms', fontWeight: '600', marginBottom: '6@vs' },

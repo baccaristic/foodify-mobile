@@ -18,8 +18,8 @@ const PrivacyScreen = () => {
     const { t } = useTranslation();
 
     const customHeader = (
-        <View>
-            <HeaderWithBackButton title={t('profile.privacy.title')} titleMarginLeft={s(60)} />
+        <View style={styles.header}>
+            <HeaderWithBackButton title={t('profile.privacy.title')} titleMarginLeft={s(70)} />
         </View>
     );
 
@@ -103,7 +103,7 @@ const PrivacyScreen = () => {
             showFooter
             collapsedHeader={false}
             enableHeaderCollapse={false}
-            headerMaxHeight={vs(60)}
+            headerMaxHeight={vs(80)}
             headerMinHeight={vs(30)}
             activeTab="Profile"
             enforceResponsiveHeaderSize={false}
@@ -114,14 +114,11 @@ const PrivacyScreen = () => {
 };
 
 const styles = ScaledSheet.create({
+    header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 }, 
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
         paddingHorizontal: '4@s',
-        borderTopColor: palette.lightGray,
-        borderColor:palette.lightGray,
-        borderTopWidth: 2,
-        borderBottomWidth: 0,
     },
     scrollContent: {
         paddingHorizontal: '12@s',
@@ -131,7 +128,6 @@ const styles = ScaledSheet.create({
         fontSize: '18@ms',
         fontWeight: '700',
         marginBottom: '8@vs',
-        marginTop: '12@vs',
     },
     card: {
         backgroundColor: '#FFFFFF',

@@ -151,8 +151,8 @@ const FAQScreen = () => {
   };
 
   const customHeader = (
-    <View>
-      <HeaderWithBackButton title={t('profile.faq.title')} titleMarginLeft={s(100)} />
+    <View style={styles.header}>
+      <HeaderWithBackButton title={t('profile.faq.title')} titleMarginLeft={s(110)} />
     </View>
   );
 
@@ -206,7 +206,7 @@ const FAQScreen = () => {
       showFooter
       collapsedHeader={false}
       enableHeaderCollapse={false}
-      headerMaxHeight={vs(60)}
+      headerMaxHeight={vs(70)}
       headerMinHeight={vs(30)}
       activeTab="Profile"
       enforceResponsiveHeaderSize={false}
@@ -217,18 +217,14 @@ const FAQScreen = () => {
 };
 
 const styles = ScaledSheet.create({
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: '4@s',
-    borderTopColor: palette.lightgray,
-    borderColor: palette.lightgray,
-    borderTopWidth: 2,
-    borderBottomWidth: 0,
   },
   scrollContent: {
     paddingHorizontal: '16@s',
-    paddingVertical: '10@vs',
   },
   section: {
     marginBottom: '20@vs',
