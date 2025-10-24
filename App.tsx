@@ -14,6 +14,7 @@ import NameEntry from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/NameEntry';
 import PhoneNumberEntry from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/PhoneNumberEntry';
 import SignUpEmailPassword from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/SignUpEmailPassword';
 import EmailVerificationCode from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/EmailVerificationCode';
+import EmailPhoneVerificationCode from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/EmailPhoneVerificationCode';
 import PhoneEmailEntry from '~/screens/Auth/AuthWithPhone.tsx/EmailEntry';
 import PhoneNameEntry from '~/screens/Auth/AuthWithPhone.tsx/NameEntry';
 import PhoneVerificationCode from '~/screens/Auth/AuthWithPhone.tsx/PhoneVerificationCode';
@@ -33,6 +34,7 @@ import RestaurantDetails from '~/screens/RestaurantDetails';
 import SearchScreen from '~/screens/SearchScreen';
 import { CartProvider } from '~/context/CartContext';
 import { AuthProvider } from '~/context/AuthContext';
+import { EmailSignupProvider } from '~/context/EmailSignupContext';
 import { LocationOverlayProvider } from '~/context/LocationOverlayContext';
 import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
@@ -214,6 +216,10 @@ const RootNavigator = () => {
             <Stack.Screen name="LocationAccess" component={LocationAccess} />
             <Stack.Screen name="NameEntry" component={NameEntry} />
             <Stack.Screen name="PhoneVerificationCode" component={PhoneVerificationCode} />
+            <Stack.Screen
+              name="EmailPhoneVerificationCode"
+              component={EmailPhoneVerificationCode}
+            />
             <Stack.Screen name="PhoneNumberEntry" component={PhoneNumberEntry} />
             <Stack.Screen name="AcceptTerms" component={AcceptTerms} />
             <Stack.Screen name="SignUpEmailPassword" component={SignUpEmailPassword} />
@@ -242,19 +248,21 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <NavigationContainer>
             <AuthProvider>
-              <OngoingOrderProvider>
-                <WebSocketProvider>
-                  <PhoneSignupProvider>
-                    <SelectedAddressProvider>
-                      <CartProvider>
-                        <LocationOverlayProvider>
-                          <RootNavigator />
-                        </LocationOverlayProvider>
-                      </CartProvider>
-                    </SelectedAddressProvider>
-                  </PhoneSignupProvider>
-                </WebSocketProvider>
-              </OngoingOrderProvider>
+              <EmailSignupProvider>
+                <OngoingOrderProvider>
+                  <WebSocketProvider>
+                    <PhoneSignupProvider>
+                      <SelectedAddressProvider>
+                        <CartProvider>
+                          <LocationOverlayProvider>
+                            <RootNavigator />
+                          </LocationOverlayProvider>
+                        </CartProvider>
+                      </SelectedAddressProvider>
+                    </PhoneSignupProvider>
+                  </WebSocketProvider>
+                </OngoingOrderProvider>
+              </EmailSignupProvider>
             </AuthProvider>
           </NavigationContainer>
         </QueryClientProvider>

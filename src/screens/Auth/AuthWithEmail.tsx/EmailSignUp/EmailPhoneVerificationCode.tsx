@@ -20,9 +20,9 @@ const computeSecondsUntil = (timestamp: string | null) => {
   return diff > 0 ? diff : null;
 };
 
-const EmailVerificationCode = () => {
+const EmailPhoneVerificationCode = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
-  const { state, verifyEmailCode, resendEmailCode } = useEmailSignup();
+  const { state, verifyPhoneCode, resendPhoneCode } = useEmailSignup();
   const { t } = useTranslation();
 
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +57,7 @@ const EmailVerificationCode = () => {
     if (state.nextStep !== previousStepRef.current) {
       previousStepRef.current = state.nextStep;
       const nextRoute = getRouteForEmailSignupStep(state.nextStep);
-      if (nextRoute && nextRoute !== 'EmailVerificationCode') {
+      if (nextRoute && nextRoute !== 'EmailPhoneVerificationCode') {
         navigation.navigate(nextRoute as never);
       }
     }
@@ -70,32 +70,40 @@ const EmailVerificationCode = () => {
       return;
     }
 
+    if (!state.phoneProvided) {
+      navigation.navigate('PhoneNumberEntry' as never);
+      return;
+    }
+
+    if (!state.emailVerified) {
+      navigation.navigate('EmailVerificationCode' as never);
+      return;
+    }
+
     const updateTimers = () => {
       setResendCountdown(
-        state.emailVerified ? null : computeSecondsUntil(state.emailResendAvailableAt),
+        state.phoneVerified ? null : computeSecondsUntil(state.phoneResendAvailableAt),
       );
       setExpiryCountdown(
-        state.emailVerified ? null : computeSecondsUntil(state.emailCodeExpiresAt),
+        state.phoneVerified ? null : computeSecondsUntil(state.phoneCodeExpiresAt),
       );
     };
 
     updateTimers();
     const interval = setInterval(updateTimers, 1000);
     return () => clearInterval(interval);
-  }, [state]);
+  }, [navigation, state]);
 
   const handleVerify = async (code: string) => {
     if (!state || isSubmitting) {
       return;
     }
-
     setError(null);
     setIsSubmitting(true);
-
     try {
-      const nextState = await verifyEmailCode(code);
+      const nextState = await verifyPhoneCode(code);
       const nextRoute = getRouteForEmailSignupStep(nextState.nextStep);
-      if (nextRoute && nextRoute !== 'EmailVerificationCode') {
+      if (nextRoute && nextRoute !== 'EmailPhoneVerificationCode') {
         navigation.navigate(nextRoute as never);
       }
     } catch (err) {
@@ -113,7 +121,7 @@ const EmailVerificationCode = () => {
     setError(null);
     setIsResending(true);
     try {
-      await resendEmailCode();
+      await resendPhoneCode();
     } catch (err) {
       const message = getErrorMessage(err, t('auth.common.verification.errors.resendFailed'));
       setError(message);
@@ -122,26 +130,22 @@ const EmailVerificationCode = () => {
     }
   };
 
-  const contactLabel = state?.email || t('auth.email.signup.emailVerification.contactPlaceholder');
-
   const helperMessage = useMemo(() => {
-    if (!state) {
+    if (!state || !state.phoneProvided || !state.emailVerified) {
       return null;
     }
     const messageLines: string[] = [];
     const metaParts: string[] = [];
 
-    if (typeof state.emailAttemptsRemaining === 'number') {
+    if (typeof state.phoneAttemptsRemaining === 'number') {
       metaParts.push(
-        t('auth.common.helper.attempts', { values: { count: state.emailAttemptsRemaining } }),
+        t('auth.common.helper.attempts', { values: { count: state.phoneAttemptsRemaining } }),
       );
     }
 
-    if (typeof state.emailResendsRemaining === 'number') {
-      metaParts.push(
-        t('auth.common.helper.resends', { values: { count: state.emailResendsRemaining } }),
-      );
-    }
+    metaParts.push(
+      t('auth.common.helper.resends', { values: { count: state.phoneResendsRemaining } }),
+    );
 
     if (expiryCountdown !== null) {
       metaParts.push(
@@ -155,13 +159,14 @@ const EmailVerificationCode = () => {
 
     return messageLines.length > 0 ? messageLines.join('\n') : null;
   }, [expiryCountdown, state, t]);
-  if (!state) {
+
+  if (!state || !state.phoneProvided || !state.emailVerified) {
     return null;
   }
 
-  const methodLabel = t('auth.common.resend.methods.email');
+  const methodLabel = t('auth.common.resend.methods.sms');
   const defaultResendLabel = t('auth.common.resend.withRemaining', {
-    values: { method: methodLabel, count: state.emailResendsRemaining },
+    values: { method: methodLabel, count: state.phoneResendsRemaining },
   });
 
   const resendLabel =
@@ -172,14 +177,14 @@ const EmailVerificationCode = () => {
   const isResendDisabled =
     isResending ||
     isSubmitting ||
-    state.emailVerified ||
-    state.emailResendsRemaining <= 0 ||
+    state.phoneVerified ||
+    state.phoneResendsRemaining <= 0 ||
     resendCountdown !== null;
 
   return (
     <VerificationCodeTemplate
-      contact={contactLabel}
-      resendMethod="Email"
+      contact={state.phoneNumber ?? ''}
+      resendMethod="SMS"
       onResendPress={handleResend}
       onSubmit={handleVerify}
       codeLength={6}
@@ -189,9 +194,9 @@ const EmailVerificationCode = () => {
       errorMessage={error}
       helperMessage={helperMessage}
       onClearError={() => setError(null)}
-      onBackPress={() => navigation.navigate('SignUpEmailPassword' as never)}
+      onBackPress={() => navigation.navigate('PhoneNumberEntry' as never)}
     />
   );
 };
 
-export default EmailVerificationCode;
+export default EmailPhoneVerificationCode;

@@ -901,6 +901,10 @@ const fr: TranslationDictionary = {
           passwordPlaceholder: 'Mot de passe',
           confirmLabel: 'Confirmez le mot de passe',
           confirmPlaceholder: 'Mot de passe',
+          errors: {
+            generic: 'Impossible de démarrer votre inscription. Veuillez réessayer.',
+            mismatch: 'Les mots de passe doivent correspondre.',
+          },
           prompt: {
             message: 'Vous avez déjà un compte ?',
             cta: 'Connectez-vous',
@@ -912,11 +916,23 @@ const fr: TranslationDictionary = {
         phone: {
           title: 'Quel est votre numéro de téléphone ?',
           placeholder: 'Saisissez votre numéro de téléphone',
+          errors: {
+            generic: 'Impossible d’enregistrer votre numéro de téléphone. Veuillez réessayer.',
+          },
         },
         name: {
           title: 'Comment vous appelez-vous ?',
           firstNamePlaceholder: 'Prénom',
           lastNamePlaceholder: 'Nom',
+          dobPlaceholder: 'AAAA-MM-JJ',
+          errors: {
+            generic: 'Impossible d’enregistrer vos informations. Veuillez réessayer.',
+          },
+        },
+        acceptTerms: {
+          errors: {
+            generic: 'Une erreur est survenue lors de la finalisation de votre inscription. Veuillez réessayer.',
+          },
         },
         notifications: {
           title: 'Restez informé(e) de l’état de vos commandes',
