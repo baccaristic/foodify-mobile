@@ -132,10 +132,10 @@ const FavoritesScreen = () => {
   const hasFavorites = favoriteRestaurants.length > 0 || favoriteMenuItems.length > 0;
 
   const customHeader = (
-    <View>
+    <View style={styles.header}>
       <HeaderWithBackButton
         title={t('profile.favorites.title')}
-        titleMarginLeft={s(70)}
+        titleMarginLeft={s(90)}
         onBack={() => navigation.goBack()}
       />
     </View>
@@ -271,8 +271,8 @@ const FavoritesScreen = () => {
       activeTab="Profile"
       enableHeaderCollapse={false}
       enforceResponsiveHeaderSize={false}
-      headerMaxHeight={vs(60)}
-      headerMinHeight={vs(40)}
+      headerMaxHeight={vs(70)}
+      headerMinHeight={vs(30)}
       customHeader={customHeader}
       mainContent={mainContent}
       onRefresh={refetch}
@@ -393,6 +393,7 @@ const styles = ScaledSheet.create({
     color: 'white',
     fontWeight: '600',
   },
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
   stateWrapper: {
     flex: 1,
     paddingHorizontal: '18@s',

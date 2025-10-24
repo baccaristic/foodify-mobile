@@ -32,9 +32,10 @@ const ProfileSettingsScreen = () => {
   const openOverlay = (type: string) => setVisibleOverlay(type);
   const closeOverlay = () => setVisibleOverlay(null);
 
+
   const customHeader = (
-    <View>
-      <HeaderWithBackButton title={t('profile.settings.title')} titleMarginLeft={s(80)} />
+    <View style={styles.header}>
+      <HeaderWithBackButton title={t('profile.settings.title')} titleMarginLeft={s(60)} />
     </View>
   );
 
@@ -164,13 +165,13 @@ const ProfileSettingsScreen = () => {
 };
 
 const styles = ScaledSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  scrollContent: { paddingHorizontal: '16@s', paddingVertical: '12@vs' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },  
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
+  scrollContent: { paddingHorizontal: '16@s' },
   profileCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: '12@ms',
     alignItems: 'center',
-    padding: '8@vs',
     marginBottom: '8@vs',
     shadowColor: '#000',
     shadowOpacity: 0.08,

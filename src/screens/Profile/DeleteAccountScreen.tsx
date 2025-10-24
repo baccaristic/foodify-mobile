@@ -26,7 +26,7 @@ export default function DeleteAccountScreen() {
     };
 
     const customHeader = (
-        <View>
+        <View style={styles.header}>
             <HeaderWithBackButton title={t('profile.deleteAccount.title')} titleMarginLeft={s(40)} />
         </View>
     );
@@ -138,7 +138,7 @@ export default function DeleteAccountScreen() {
             showFooter
             collapsedHeader={false}
             enableHeaderCollapse={false}
-            headerMaxHeight={vs(60)}
+            headerMaxHeight={vs(80)}
             headerMinHeight={vs(30)}
             activeTab="Profile"
             enforceResponsiveHeaderSize={false}
@@ -149,13 +149,9 @@ export default function DeleteAccountScreen() {
 }
 
 const styles = ScaledSheet.create({
+    header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
     container: {
         paddingHorizontal: '16@s',
-        paddingTop: '24@vs',
-         borderTopColor: '#F9FAFB',
-        borderColor:'#F9FAFB',
-        borderTopWidth: 2,
-        borderBottomWidth: 0,
     },
     warningBox: {
         backgroundColor: '#FDEAEA',

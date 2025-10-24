@@ -40,7 +40,9 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.overlayContainer}>
-        <HeaderWithBackButton title={t('profile.modals.phone.title')} onBack={onClose} />
+        <View style={styles.header}>
+          <HeaderWithBackButton title={t('profile.modals.phone.title')} onBack={onClose} />
+        </View>
         <View style={styles.innerContainer}>
           <Text allowFontScaling={false} style={styles.currentLabel}>
             {t('profile.modals.phone.currentLabel')}
@@ -76,6 +78,7 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
 };
 
 const styles = ScaledSheet.create({
+  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
   overlayContainer: {
     flex: 1,
     backgroundColor: '#fff',
