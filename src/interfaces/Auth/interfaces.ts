@@ -102,3 +102,45 @@ export interface CompletePhoneSignupResponse {
   refreshToken: string;
   user: User;
 }
+
+export type EmailSignupNextStep =
+  | 'VERIFY_EMAIL_CODE'
+  | 'PROVIDE_PHONE'
+  | 'VERIFY_PHONE_CODE'
+  | 'PROVIDE_PROFILE'
+  | 'ACCEPT_LEGAL_TERMS'
+  | 'COMPLETED';
+
+export interface EmailSignupStateResponse {
+  sessionId: string;
+  email: string;
+  emailVerified: boolean;
+  phoneProvided: boolean;
+  phoneVerified: boolean;
+  profileProvided: boolean;
+  termsAccepted: boolean;
+  completed: boolean;
+  nextStep: EmailSignupNextStep;
+  emailCodeExpiresAt: string | null;
+  emailResendAvailableAt: string | null;
+  emailAttemptsRemaining: number | null;
+  emailResendsRemaining: number;
+  phoneCodeExpiresAt: string | null;
+  phoneResendAvailableAt: string | null;
+  phoneAttemptsRemaining: number | null;
+  phoneResendsRemaining: number;
+  phoneNumber: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  dateOfBirth: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  user: User | null;
+}
+
+export interface CompleteEmailSignupResponse {
+  state: EmailSignupStateResponse;
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}

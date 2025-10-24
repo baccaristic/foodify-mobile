@@ -9,6 +9,8 @@ import {
   LogoutRequest,
   PhoneSignupStateResponse,
   CompletePhoneSignupResponse,
+  EmailSignupStateResponse,
+  CompleteEmailSignupResponse,
 } from '~/interfaces/Auth/interfaces';
 import client from './client';
 
@@ -108,5 +110,74 @@ export async function acceptPhoneSignupTerms(payload: {
 
 export async function getPhoneSignupState(sessionId: string): Promise<PhoneSignupStateResponse> {
   const { data } = await client.get<PhoneSignupStateResponse>(`/auth/phone/${sessionId}`);
+  return data;
+}
+
+export async function startEmailSignup(payload: {
+  email: string;
+  password: string;
+}): Promise<EmailSignupStateResponse> {
+  const { data } = await client.post<EmailSignupStateResponse>('/auth/email/start', payload);
+  return data;
+}
+
+export async function resendEmailSignupCode(payload: {
+  sessionId: string;
+}): Promise<EmailSignupStateResponse> {
+  const { data } = await client.post<EmailSignupStateResponse>('/auth/email/resend', payload);
+  return data;
+}
+
+export async function verifyEmailSignupCode(payload: {
+  sessionId: string;
+  code: string;
+}): Promise<EmailSignupStateResponse> {
+  const { data } = await client.post<EmailSignupStateResponse>('/auth/email/verify', payload);
+  return data;
+}
+
+export async function provideEmailSignupPhone(payload: {
+  sessionId: string;
+  phoneNumber: string;
+}): Promise<EmailSignupStateResponse> {
+  const { data } = await client.post<EmailSignupStateResponse>('/auth/email/phone', payload);
+  return data;
+}
+
+export async function resendEmailSignupPhoneCode(payload: {
+  sessionId: string;
+}): Promise<EmailSignupStateResponse> {
+  const { data } = await client.post<EmailSignupStateResponse>('/auth/email/phone/resend', payload);
+  return data;
+}
+
+export async function verifyEmailSignupPhoneCode(payload: {
+  sessionId: string;
+  code: string;
+}): Promise<EmailSignupStateResponse> {
+  const { data } = await client.post<EmailSignupStateResponse>('/auth/email/phone/verify', payload);
+  return data;
+}
+
+export async function provideEmailSignupProfile(payload: {
+  sessionId: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+}): Promise<EmailSignupStateResponse> {
+  const { data } = await client.post<EmailSignupStateResponse>('/auth/email/profile', payload);
+  return data;
+}
+
+export async function acceptEmailSignupTerms(payload: {
+  sessionId: string;
+  accepted: boolean;
+}): Promise<CompleteEmailSignupResponse> {
+  const { data } = await client.post<CompleteEmailSignupResponse>('/auth/email/accept', payload);
+  return data;
+}
+
+export async function getEmailSignupState(sessionId: string): Promise<EmailSignupStateResponse> {
+  const { data } = await client.get<EmailSignupStateResponse>(`/auth/email/${sessionId}`);
   return data;
 }

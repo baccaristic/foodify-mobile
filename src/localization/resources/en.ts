@@ -893,6 +893,10 @@ const en: TranslationDictionary = {
           passwordPlaceholder: 'Password',
           confirmLabel: 'Confirm password',
           confirmPlaceholder: 'Password',
+          errors: {
+            generic: 'We couldn’t start your signup. Please try again.',
+            mismatch: 'Passwords must match.',
+          },
           prompt: {
             message: 'You already have an account?',
             cta: 'Log in',
@@ -904,11 +908,23 @@ const en: TranslationDictionary = {
         phone: {
           title: "What's your phone number?",
           placeholder: 'Enter your phone number',
+          errors: {
+            generic: 'We couldn’t save your phone number. Please try again.',
+          },
         },
         name: {
           title: "What’s your name",
           firstNamePlaceholder: 'First Name',
           lastNamePlaceholder: 'Last Name',
+          dobPlaceholder: 'YYYY-MM-DD',
+          errors: {
+            generic: 'We couldn’t save your details. Please try again.',
+          },
+        },
+        acceptTerms: {
+          errors: {
+            generic: 'Something went wrong while completing your signup. Please try again.',
+          },
         },
         notifications: {
           title: 'Always know the status of your order',
