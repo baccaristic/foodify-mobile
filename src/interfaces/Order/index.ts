@@ -63,6 +63,7 @@ export interface OrderRequest {
   restaurantId: number;
   userId?: number;
   savedAddressId?: string;
+  couponCode?: string;
 }
 
 export interface RestaurantSummaryResponse {

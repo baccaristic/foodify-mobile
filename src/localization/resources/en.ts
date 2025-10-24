@@ -166,6 +166,12 @@ const en: TranslationDictionary = {
     subtitle: 'Add your coupon',
     placeholder: 'ABCDE123',
     checkCta: 'Check coupon code',
+    listTitle: 'Available coupons',
+    emptyList: 'No coupons available right now. Earn points or check back later.',
+    list: {
+      percent: '{{value}}% off',
+      freeDelivery: 'Free delivery',
+    },
     status: {
       success: 'Coupon code valid and applied',
       error: 'Coupon code not valid. Please try again.',
@@ -464,6 +470,7 @@ const en: TranslationDictionary = {
       collapsedHint: 'Tap options below',
       statusLabel: 'Superstar',
       pointsLabel: '{{points}} PTS',
+      pointsLoading: 'Loading points…',
       actions: {
         logout: 'Log out',
       },
@@ -480,6 +487,7 @@ const en: TranslationDictionary = {
           items: {
             methods: 'Payment methods',
             history: 'Order history',
+            loyalty: 'Loyalty & rewards',
             coupons: 'Coupon codes',
           },
         },
@@ -529,10 +537,64 @@ const en: TranslationDictionary = {
     },
     coupon: {
       title: 'Coupon code',
-      addLabel: 'Add promo code',
-      placeholder: 'Enter code',
+      subtitle: 'Track and redeem your Foodify coupons.',
       listTitle: 'Your coupon codes',
       emptyHint: 'New deals drop weekly! Follow us, order often, or check back soon — your wallet will thank you.',
+      redeemCta: 'Redeem points for a new coupon',
+      redeemHint: 'Use your loyalty points to unlock fresh rewards.',
+      assignedAt: 'Added {{date}}',
+      createdFromPoints: 'Redeemed with points',
+      status: {
+        active: 'Ready to use',
+        redeemed: 'Already used',
+        inactive: 'Inactive',
+      },
+      discount: {
+        percent: '{{value}}% off',
+        freeDelivery: 'Free delivery',
+      },
+    },
+    loyalty: {
+      title: 'Loyalty rewards',
+      subtitle: 'Earn 10% back in points on every delivered order.',
+      balanceLabel: 'Current balance',
+      lifetimeEarned: 'Lifetime earned',
+      lifetimeRedeemed: 'Lifetime redeemed',
+      redeemCta: 'Redeem points for coupons',
+      redeemHint: 'Turn your balance into free delivery or percentage discounts.',
+      transactionsTitle: 'Points history',
+      transactionsEmpty: 'No activity yet — place an order to start earning points.',
+      transactionTypes: {
+        earned: 'Points earned',
+        redeemed: 'Points spent',
+        adjustment: 'Adjustment',
+      },
+    },
+    redeem: {
+      title: 'Redeem points',
+      subtitle: 'Choose the reward you want to create with your loyalty points.',
+      options: {
+        freeDelivery: {
+          title: 'Free delivery coupon',
+          description: 'Costs 250 points and waives your delivery fee on the next order.',
+        },
+        percentage: {
+          title: 'Percentage coupon',
+          description: 'Costs 15 points per percent. Save between 5% and 50% on a future order.',
+        },
+      },
+      percentageLabel: 'Discount percentage',
+      percentageHint: 'Enter a value between {{min}}% and {{max}}%.',
+      errors: {
+        invalidNumber: 'Enter a valid percentage.',
+        outOfRange: 'Percentage must be between {{min}}% and {{max}}%.',
+      },
+      submitCta: 'Redeem coupon',
+      submitting: 'Redeeming…',
+      successTitle: 'Coupon created',
+      successMessage: 'Your new coupon is waiting in your wallet.',
+      errorTitle: 'Unable to redeem',
+      errorMessage: 'We could not redeem your points right now. Please try again later.',
     },
     notifications: {
       title: 'Notifications',

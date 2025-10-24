@@ -1,97 +1,173 @@
-import React from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
-import { ScaledSheet, s, vs } from 'react-native-size-matters';
-import MainLayout from '~/layouts/MainLayout';
-import HeaderWithBackButton from '~/components/HeaderWithBackButton';
+import React, { useMemo } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
+import { ArrowLeft, Gift, Sparkles } from 'lucide-react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { getLoyaltyCoupons } from '~/api/loyalty';
+import type { CouponDto } from '~/interfaces/Loyalty';
 import { useTranslation } from '~/localization';
 
-const palette = {
-  accent: '#CA251B',
-  accentDark: '#17213A',
-};
+const headerColor = '#17213A';
+const accentColor = '#CA251B';
+const borderColor = '#E8E9EC';
 
-const CouponCodeScreen = () => {
+const CouponCodeScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  const customHeader = (
-    <View style={styles.header}>
-      <HeaderWithBackButton title={t('profile.coupon.title')} titleMarginLeft={s(70)} />
-    </View>
+  const {
+    data: coupons = [],
+    isLoading,
+    isFetching,
+  } = useQuery({
+    queryKey: ['loyalty', 'coupons'],
+    queryFn: getLoyaltyCoupons,
+  });
+
+  const sortedCoupons = useMemo(
+    () =>
+      [...coupons].sort((a, b) => {
+        const left = a.assignedAt ? new Date(a.assignedAt).getTime() : 0;
+        const right = b.assignedAt ? new Date(b.assignedAt).getTime() : 0;
+        return right - left;
+      }),
+    [coupons],
   );
 
-  const mainContent = (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text allowFontScaling={false} style={styles.label}>{t('profile.coupon.addLabel')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('profile.coupon.placeholder')}
-        placeholderTextColor="#999"
-      />
+  const renderCoupon = ({ item }: { item: CouponDto }) => {
+    const statusKey = item.redeemed
+      ? 'redeemed'
+      : item.active
+      ? 'active'
+      : 'inactive';
 
-      <Text allowFontScaling={false} style={styles.subTitle}>{t('profile.coupon.listTitle')}</Text>
-      <View style={styles.divider} />
+    const statusLabel = t(`profile.coupon.status.${statusKey}`);
+    const statusColor = item.redeemed ? '#6B7280' : item.active ? '#16A34A' : accentColor;
+    const discountLabel =
+      item.type === 'PERCENTAGE_DISCOUNT'
+        ? t('profile.coupon.discount.percent', { values: { value: item.discountPercent ?? 0 } })
+        : t('profile.coupon.discount.freeDelivery');
+    const assignedDate = item.assignedAt
+      ? new Intl.DateTimeFormat(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(new Date(item.assignedAt))
+      : null;
 
-      <Text allowFontScaling={false} style={styles.infoText}>{t('profile.coupon.emptyHint')}</Text>
-    </ScrollView>
-  );
+    return (
+      <View className="mb-3 rounded-3xl border bg-white p-5" style={{ borderColor }}>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 pr-4">
+            <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: headerColor }}>
+              {item.code}
+            </Text>
+            <Text allowFontScaling={false} className="mt-1 text-sm" style={{ color: '#6B7280' }}>
+              {discountLabel}
+            </Text>
+            {assignedDate ? (
+              <Text allowFontScaling={false} className="mt-2 text-xs" style={{ color: '#9CA3AF' }}>
+                {t('profile.coupon.assignedAt', { values: { date: assignedDate } })}
+              </Text>
+            ) : null}
+            {item.createdFromPoints ? (
+              <View className="mt-3 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
+                <Text allowFontScaling={false} className="text-xs font-semibold" style={{ color: accentColor }}>
+                  {t('profile.coupon.createdFromPoints')}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          <View className="items-end">
+            <Gift size={24} color={accentColor} />
+            <Text allowFontScaling={false} className="mt-2 text-xs font-semibold" style={{ color: statusColor }}>
+              {statusLabel}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <MainLayout
-      showHeader
-      showFooter
-      collapsedHeader={false}
-      enableHeaderCollapse={false}
-      headerMaxHeight={vs(70)}
-      headerMinHeight={vs(30)}
-      activeTab="Profile"
-      enforceResponsiveHeaderSize={false}
-      customHeader={customHeader}
-      mainContent={mainContent}
-    />
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-row items-center px-4 pb-4 pt-2">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="mr-4 rounded-full border border-[#E4E6EB] p-2"
+        >
+          <ArrowLeft size={20} color={headerColor} />
+        </TouchableOpacity>
+        <Text allowFontScaling={false} className="flex-1 text-center text-xl font-bold" style={{ color: headerColor }}>
+          {t('profile.coupon.title')}
+        </Text>
+        <View className="w-10" />
+      </View>
+
+      <FlatList
+        data={sortedCoupons}
+        keyExtractor={(item) => item.code}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        ListHeaderComponent={
+          <View className="mb-4">
+            <Text allowFontScaling={false} className="text-sm" style={{ color: '#6B7280' }}>
+              {t('profile.coupon.subtitle')}
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('RedeemCoupon' as never)}
+              className="mt-4 flex-row items-center justify-between rounded-3xl bg-[#FDE7E5] px-5 py-4"
+            >
+              <View>
+                <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: accentColor }}>
+                  {t('profile.coupon.redeemCta')}
+                </Text>
+                <Text allowFontScaling={false} className="mt-1 text-xs" style={{ color: '#B91C1C' }}>
+                  {t('profile.coupon.redeemHint')}
+                </Text>
+              </View>
+              <Sparkles size={20} color={accentColor} />
+            </TouchableOpacity>
+
+            <Text allowFontScaling={false} className="mt-6 text-base font-bold" style={{ color: headerColor }}>
+              {t('profile.coupon.listTitle')}
+            </Text>
+          </View>
+        }
+        renderItem={renderCoupon}
+        ListEmptyComponent={() => (
+          <View className="mt-10 items-center">
+            {isLoading ? (
+              <ActivityIndicator color={accentColor} />
+            ) : (
+              <Text allowFontScaling={false} className="text-center text-sm" style={{ color: '#6B7280' }}>
+                {t('profile.coupon.emptyHint')}
+              </Text>
+            )}
+          </View>
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            colors={[accentColor]}
+            tintColor={accentColor}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['loyalty', 'coupons'] });
+            }}
+          />
+        }
+      />
+    </SafeAreaView>
   );
 };
-
-const styles = ScaledSheet.create({
-  header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: '16@s',
-  },
-  label: {
-    color: palette.accentDark,
-    fontWeight: '600',
-    fontSize: '16@ms',
-    marginBottom: '8@vs',
-  },
-  input: {
-    borderRadius: '6@ms',
-    backgroundColor: '#F2F2F2',
-    height: '45@vs',
-    marginBottom: '18@vs',
-    paddingHorizontal: '10@s',
-  },
-  subTitle: {
-    color: palette.accentDark,
-    fontWeight: '700',
-    fontSize: '15@ms',
-    marginBottom: '6@vs',
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E5E5E5',
-    marginBottom: '12@vs',
-  },
-  infoText: {
-    color: palette.accentDark,
-    fontSize: '14@ms',
-    lineHeight: '20@ms',
-  },
-});
 
 export default CouponCodeScreen;

@@ -53,6 +53,8 @@ import ProfileSettingsScreen from '~/screens/Profile/ProfilSettingsScreen';
 import CouponCodeScreen from '~/screens/Profile/CouponCodeScreen';
 import FavoritesScreen from '~/screens/Profile/FavoritesScreen';
 import LanguageSettingsScreen from '~/screens/Profile/LanguageSettingsScreen';
+import LoyaltyRewardsScreen from '~/screens/Profile/LoyaltyRewardsScreen';
+import RedeemCouponScreen from '~/screens/Profile/RedeemCouponScreen';
 import { LocalizationProvider } from '~/localization';
 
 const Stack = createNativeStackNavigator();
@@ -204,6 +206,8 @@ const RootNavigator = () => {
           <Stack.Screen name="FAQ" component={FAQScreen} />
           <Stack.Screen name="ManagePrivacy" component={PrivacyScreen} />
           <Stack.Screen name="CouponCodes" component={CouponCodeScreen} />
+          <Stack.Screen name="LoyaltyRewards" component={LoyaltyRewardsScreen} />
+          <Stack.Screen name="RedeemCoupon" component={RedeemCouponScreen} />
           <Stack.Screen name="ProfilSettings" component={ProfileSettingsScreen} />
           <Stack.Screen name="Favorites" component={FavoritesScreen} />
           <Stack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
