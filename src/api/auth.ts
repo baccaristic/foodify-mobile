@@ -45,7 +45,7 @@ export async function refreshToken(payload: RefreshTokenRequest): Promise<{ acce
 }
 
 export async function logout(payload: LogoutRequest): Promise<{ success: boolean }> {
-  const { data } = await client.post<{ success: boolean }>('/auth/logout', payload);
+  const { data } = await client.post<{ success: boolean }>('/auth/client/logout', {});
   return data;
 }
 
