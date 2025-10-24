@@ -32,7 +32,9 @@ const ProfileSettingsScreen = () => {
   const [visibleOverlay, setVisibleOverlay] = useState<string | null>(null);
 
   const openOverlay = (type: string) => setVisibleOverlay(type);
-  const closeOverlay = () => setVisibleOverlay(null);
+  const closeOverlay = () => {
+    setVisibleOverlay(null);
+  };
 
 
   const customHeader = (
@@ -164,21 +166,31 @@ const ProfileSettingsScreen = () => {
         mainContent={mainContent}
       />
 
-      <Modal visible={visibleOverlay === 'name'} animationType="slide" transparent>
-        <ModifyNameOverlay onClose={closeOverlay} />
-      </Modal>
-      <Modal visible={visibleOverlay === 'email'} animationType="slide" transparent>
-        <ModifyEmailOverlay onClose={closeOverlay} />
-      </Modal>
-      <Modal visible={visibleOverlay === 'phone'} animationType="slide" transparent>
-        <ModifyPhoneOverlay onClose={closeOverlay} />
-      </Modal>
-      <Modal visible={visibleOverlay === 'password'} animationType="slide" transparent>
-        <ModifyPasswordOverlay onClose={closeOverlay} />
-      </Modal>
-      <Modal visible={visibleOverlay === 'dob'} animationType="slide" transparent>
-        <ModifyDateOfBirthOverlay onClose={closeOverlay} />
-      </Modal>
+      {visibleOverlay === 'name' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyNameOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'email' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyEmailOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'phone' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyPhoneOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'password' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyPasswordOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'dob' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyDateOfBirthOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
     </>
   );
 };

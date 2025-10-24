@@ -29,10 +29,14 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
         contact={newNumber}
         resendMethod={t('profile.modals.phone.resendMethod')}
         onResendPress={() => console.log('Resent code via SMS')}
-        onSubmit={(code) => console.log('Phone verified:', code)}
+        onSubmit={(code) => {
+          console.log('Phone verified:', code);
+          onClose();
+        }}
         resendButtonLabel={t('profile.modals.phone.resendButton')}
         errorMessage={error}
         onClearError={() => setError(null)}
+        onBackPress={onClose}
       />
     );
   }
