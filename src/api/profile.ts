@@ -9,8 +9,12 @@ export interface UpdateClientProfileRequest {
   dateOfBirth?: string | null;
 }
 
+interface UpdateClientProfileResponse {
+  user: User;
+}
+
 export const updateClientProfile = async (payload: UpdateClientProfileRequest) => {
-  const { data } = await client.put<User>('/auth/client/profile', payload);
-  return data;
+  const { data } = await client.put<UpdateClientProfileResponse>('/auth/client/profile', payload);
+  return data.user;
 };
 
