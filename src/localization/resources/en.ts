@@ -779,6 +779,134 @@ const en: TranslationDictionary = {
       },
     },
   },
+  auth: {
+    landing: {
+      title: 'Enter your mobile number',
+      placeholder: 'Your number e.g. 98765432',
+      or: 'or',
+      googleCta: 'Continue with Google',
+      emailCta: 'Continue with e-mail',
+      errors: {
+        startSignup: 'We were unable to start verification. Please check your phone number and try again.',
+      },
+    },
+    common: {
+      defaults: {
+        email: 'your email',
+      },
+      errors: {
+        mustAcceptTerms: 'You must accept the terms to continue.',
+      },
+      helper: {
+        existingAccount: 'We found an existing Foodify account. Enter the code to sign in.',
+        attempts: 'Attempts remaining: {{count}}',
+        resends: 'Resends left: {{count}}',
+        expires: 'Code expires in {{seconds}}s',
+      },
+      resend: {
+        methods: {
+          email: 'Email',
+          sms: 'SMS',
+        },
+        default: 'Resend the code via {{method}}',
+        withRemaining: 'Resend the code via {{method}} ({{count}} left)',
+        countdown: 'Resend available in {{seconds}}s',
+      },
+      verification: {
+        prompt: 'Enter the {{count}} digit code sent to {{contact}}',
+        errors: {
+          invalidCode: 'The verification code is invalid or has expired.',
+          resendFailed: 'Unable to resend the code right now. Please try again later.',
+        },
+      },
+      terms: {
+        title: 'Accept Foodify’s Terms & Review privacy notice',
+        description:
+          'By selecting “I agree” below, I have reviewed and agree to the <terms> and acknowledge the <privacy>. I am at least 18 years of age.',
+        termsLabel: 'terms of use',
+        privacyLabel: 'privacy notice',
+        checkbox: 'I agree to the terms and privacy notice',
+        agreeCta: 'I Agree',
+      },
+      dateHint: 'Please enter a valid date in YYYY-MM-DD format.',
+    },
+    phone: {
+      emailEntry: {
+        title: "What's your e-mail address",
+        placeholder: 'Enter your email',
+        errors: {
+          generic: 'We could not save your email. Please try again.',
+        },
+      },
+      nameEntry: {
+        title: "What’s your name",
+        firstNamePlaceholder: 'First Name',
+        lastNamePlaceholder: 'Last Name',
+        dobPlaceholder: 'Date of Birth (YYYY-MM-DD)',
+        errors: {
+          generic: 'We could not save your name details. Please try again.',
+        },
+      },
+      acceptTerms: {
+        errors: {
+          generic: 'We could not complete your registration. Please try again.',
+        },
+      },
+    },
+    email: {
+      login: {
+        emailLabel: 'Enter your e-mail address',
+        emailPlaceholder: 'Your email e.g. yourmail@email.com',
+        passwordLabel: 'Enter your password',
+        passwordPlaceholder: 'Password',
+        errors: {
+          generic: 'Unable to sign in. Please check your credentials and try again.',
+        },
+        prompt: {
+          message: "You don't have an account?",
+          cta: 'Sign up',
+        },
+      },
+      signup: {
+        emailPassword: {
+          emailLabel: 'Enter your e-mail address',
+          emailPlaceholder: 'Enter your e-mail',
+          passwordLabel: 'Enter your password',
+          passwordPlaceholder: 'Password',
+          confirmLabel: 'Confirm password',
+          confirmPlaceholder: 'Password',
+          prompt: {
+            message: 'You already have an account?',
+            cta: 'Log in',
+          },
+        },
+        emailVerification: {
+          contactPlaceholder: 'your email',
+        },
+        phone: {
+          title: "What's your phone number?",
+          placeholder: 'Enter your phone number',
+        },
+        name: {
+          title: "What’s your name",
+          firstNamePlaceholder: 'First Name',
+          lastNamePlaceholder: 'Last Name',
+        },
+        notifications: {
+          title: 'Always know the status of your order',
+          description:
+            'Push notifications are used to provide updates on your order. You can change this in settings at any time.',
+          enableCta: 'Enable push notifications',
+          skipCta: 'Skip for now',
+          errors: {
+            physicalDevice: 'Push notifications are only supported on physical devices.',
+            settings: 'Enable notifications from your device settings to receive order updates.',
+            permission: 'We need permission to send you order status notifications.',
+          },
+        },
+      },
+    },
+  },
 };
 
 export default en;

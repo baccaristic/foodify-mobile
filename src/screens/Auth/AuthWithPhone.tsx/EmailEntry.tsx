@@ -4,6 +4,7 @@ import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/
 import EntryInfoTemplate from '~/components/EntryInfoTemplate';
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
+import { useTranslation } from '~/localization';
 import { getRouteForPhoneSignupStep } from './stepRoutes';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -11,6 +12,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PhoneEmailEntry = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { state, provideEmail } = usePhoneSignup();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +73,7 @@ const PhoneEmailEntry = () => {
         navigation.navigate(nextRoute as never);
       }
     } catch (err) {
-      const message = getErrorMessage(err, 'We could not save your email. Please try again.');
+      const message = getErrorMessage(err, t('auth.phone.emailEntry.errors.generic'));
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -84,8 +86,8 @@ const PhoneEmailEntry = () => {
 
   return (
     <EntryInfoTemplate
-      title="What's your e-mail address"
-      inputPlaceholder="Enter your email"
+      title={t('auth.phone.emailEntry.title')}
+      inputPlaceholder={t('auth.phone.emailEntry.placeholder')}
       keyboardType="email-address"
       inputValue={email}
       setInputValue={(value) => {

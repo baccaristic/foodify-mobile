@@ -5,6 +5,7 @@ import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
 import type { PhoneSignupNextStep } from '~/interfaces/Auth/interfaces';
+import { useTranslation } from '~/localization';
 import { getRouteForPhoneSignupStep } from './stepRoutes';
 
 const computeSecondsUntil = (timestamp: string | null) => {
@@ -22,6 +23,7 @@ const computeSecondsUntil = (timestamp: string | null) => {
 const PhoneVerificationCode = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { state, verifyCode, resendCode } = usePhoneSignup();
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -102,7 +104,7 @@ const PhoneVerificationCode = () => {
     try {
       await verifyCode(code);
     } catch (err) {
-      const message = getErrorMessage(err, 'The verification code is invalid or has expired.');
+      const message = getErrorMessage(err, t('auth.common.verification.errors.invalidCode'));
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -118,7 +120,7 @@ const PhoneVerificationCode = () => {
     try {
       await resendCode();
     } catch (err) {
-      const message = getErrorMessage(err, 'Unable to resend the code right now. Please try again later.');
+      const message = getErrorMessage(err, t('auth.common.verification.errors.resendFailed'));
       setError(message);
     } finally {
       setIsResending(false);
@@ -134,17 +136,23 @@ const PhoneVerificationCode = () => {
     const metaParts: string[] = [];
 
     if (state.loginAttempt) {
-      messageLines.push('We found an existing Foodify account. Enter the code to sign in.');
+      messageLines.push(t('auth.common.helper.existingAccount'));
     }
 
     if (typeof state.attemptsRemaining === 'number') {
-      metaParts.push(`Attempts remaining: ${state.attemptsRemaining}`);
+      metaParts.push(
+        t('auth.common.helper.attempts', { values: { count: state.attemptsRemaining } }),
+      );
     }
     if (typeof state.resendsRemaining === 'number') {
-      metaParts.push(`Resends left: ${state.resendsRemaining}`);
+      metaParts.push(
+        t('auth.common.helper.resends', { values: { count: state.resendsRemaining } }),
+      );
     }
     if (expiryCountdown !== null) {
-      metaParts.push(`Code expires in ${expiryCountdown}s`);
+      metaParts.push(
+        t('auth.common.helper.expires', { values: { seconds: expiryCountdown } }),
+      );
     }
 
     if (metaParts.length > 0) {
@@ -152,15 +160,24 @@ const PhoneVerificationCode = () => {
     }
 
     return messageLines.length > 0 ? messageLines.join('\n') : null;
-  }, [expiryCountdown, state]);
+  }, [expiryCountdown, state, t]);
 
   if (!state) {
     return null;
   }
 
-  const resendLabel = resendCountdown !== null
-    ? `Resend available in ${resendCountdown}s`
-    : `Resend the code via SMS${typeof state.resendsRemaining === 'number' ? ` (${state.resendsRemaining} left)` : ''}`;
+  const methodLabel = t('auth.common.resend.methods.sms');
+  const defaultResendLabel =
+    typeof state.resendsRemaining === 'number'
+      ? t('auth.common.resend.withRemaining', {
+          values: { method: methodLabel, count: state.resendsRemaining },
+        })
+      : t('auth.common.resend.default', { values: { method: methodLabel } });
+
+  const resendLabel =
+    resendCountdown !== null
+      ? t('auth.common.resend.countdown', { values: { seconds: resendCountdown } })
+      : defaultResendLabel;
 
   const isResendDisabled =
     isResending ||

@@ -1,8 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+
 import { requestPushNotificationPermissions } from '~/services/notifications';
 import AuthBackground from '~/components/AuthBackGround';
+import { useTranslation } from '~/localization';
 
 const NotifLogo = () => (
   <View className="w-36 h-36 bg-transparent mb-10">
@@ -23,6 +25,7 @@ const Notification = ({ onComplete, onSkip }: NotificationProps) => {
   const navigation = useNavigation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const NEXT_SCREEN = 'Home';
 
@@ -46,16 +49,16 @@ const Notification = ({ onComplete, onSkip }: NotificationProps) => {
       if (result.error) {
         setErrorMessage(result.error);
       } else if (!result.isDevice) {
-        setErrorMessage('Push notifications are only supported on physical devices.');
+        setErrorMessage(t('auth.email.signup.notifications.errors.physicalDevice'));
       } else if (!result.canAskAgain) {
-        setErrorMessage('Enable notifications from your device settings to receive order updates.');
+        setErrorMessage(t('auth.email.signup.notifications.errors.settings'));
       } else {
-        setErrorMessage('We need permission to send you order status notifications.');
+        setErrorMessage(t('auth.email.signup.notifications.errors.permission'));
       }
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, navigation, onComplete]);
+  }, [isProcessing, navigation, onComplete, t]);
 
   const handleSkip = () => {
     onSkip?.();
@@ -70,15 +73,14 @@ const Notification = ({ onComplete, onSkip }: NotificationProps) => {
           <NotifLogo />
 
           <Text allowFontScaling={false} className="text-3xl mb-4 text-black text-center">
-            Always know the status of your order
+            {t('auth.email.signup.notifications.title')}
           </Text>
 
           <Text
             allowFontScaling={false}
             className="text-base text-gray-700 leading-relaxed mb-12 text-center"
           >
-            Push notifications are used to provide updates on your order. You can change this in
-            settings at any time.
+            {t('auth.email.signup.notifications.description')}
           </Text>
 
           <TouchableOpacity
@@ -91,7 +93,7 @@ const Notification = ({ onComplete, onSkip }: NotificationProps) => {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-                Enable Push Notifications
+                {t('auth.email.signup.notifications.enableCta')}
               </Text>
             )}
           </TouchableOpacity>
@@ -108,7 +110,7 @@ const Notification = ({ onComplete, onSkip }: NotificationProps) => {
             disabled={isProcessing}
           >
             <Text allowFontScaling={false} className="text-gray-600 font-semibold text-lg">
-              Skip for now
+              {t('auth.email.signup.notifications.skipCta')}
             </Text>
           </TouchableOpacity>
         </View>

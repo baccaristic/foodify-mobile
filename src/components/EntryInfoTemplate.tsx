@@ -9,8 +9,10 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+
 import BackButtonHeader from './BackButtonHeader';
 import AuthBackground from './AuthBackGround';
+import { useTranslation } from '~/localization';
 
 interface EntryInfo {
     title: string;
@@ -45,6 +47,7 @@ const EntryInfoTemplate: React.FC<EntryInfo> = ({
 
 }) => {
     const navigation = useNavigation();
+    const { t } = useTranslation();
 
     const buttonBgClass = isFormValid && !isSubmitting ? 'bg-[#17213A]' : 'bg-gray-400';
 
@@ -93,7 +96,9 @@ const EntryInfoTemplate: React.FC<EntryInfo> = ({
                         {isSubmitting ? (
                             <ActivityIndicator color="#FFFFFF" />
                         ) : (
-                            <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
+                            <Text allowFontScaling={false} className="text-white font-semibold text-lg">
+                                {t('common.continue')}
+                            </Text>
                         )}
                     </TouchableOpacity>
 

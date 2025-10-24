@@ -5,13 +5,16 @@ import { FontAwesome } from '@expo/vector-icons'; // For Google icon
 import { Mail } from 'lucide-react-native'; // For email icon
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
+
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
+import { useTranslation } from '~/localization';
 
 
 const AuthScreen = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { startSignup, reset } = usePhoneSignup();
+  const { t } = useTranslation();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +48,7 @@ const AuthScreen = () => {
     } catch (err) {
       const message = getErrorMessage(
         err,
-        'We were unable to start verification. Please check your phone number and try again.',
+        t('auth.landing.errors.startSignup'),
       );
       setError(message);
     } finally {
@@ -68,13 +71,13 @@ const AuthScreen = () => {
 
           {/* Enter mobile number text */}
           <Text allowFontScaling={false} className="text-xl font-bold mb-6 text-gray-800">
-            Enter your mobile number
+            {t('auth.landing.title')}
           </Text>
 
           {/* Mobile number input */}
           <TextInput
             className="w-full h-12 bg-gray-200 rounded-lg px-4 mb-2 text-gray-800"
-            placeholder="Your Number eg.98765432"
+            placeholder={t('auth.landing.placeholder')}
             placeholderTextColor="gray"
             keyboardType="phone-pad"
             returnKeyType="done"
@@ -105,7 +108,7 @@ const AuthScreen = () => {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-                Continue
+                {t('common.continue')}
               </Text>
             )}
           </TouchableOpacity>
@@ -113,21 +116,21 @@ const AuthScreen = () => {
           {/* Or separator */}
           <View className="flex-row items-center w-full mb-4">
             <View className="flex-1 h-px bg-gray-300" />
-            <Text allowFontScaling={false} className="mx-4 text-gray-500">or</Text>
+            <Text allowFontScaling={false} className="mx-4 text-gray-500">{t('auth.landing.or')}</Text>
             <View className="flex-1 h-px bg-gray-300" />
           </View>
 
           {/* Continue with Google */}
           <TouchableOpacity className="w-full h-12 bg-red-600 rounded-lg flex-row justify-center items-center mb-4">
             <FontAwesome name="google" size={20} color="white" className="mr-2" />
-            <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue with Google</Text>
+            <Text allowFontScaling={false} className="text-white font-semibold text-lg">{t('auth.landing.googleCta')}</Text>
           </TouchableOpacity>
 
           {/* Continue with email */}
           <TouchableOpacity onPress={handleLogin}
             className="w-full h-12 bg-white border border-gray-400 rounded-lg flex-row justify-center items-center mb-6">
             <Mail size={20} color="gray" className="mr-2" />
-            <Text allowFontScaling={false} className="text-gray-800 font-semibold text-lg">Continue with e-mail</Text>
+            <Text allowFontScaling={false} className="text-gray-800 font-semibold text-lg">{t('auth.landing.emailCta')}</Text>
           </TouchableOpacity>
         </View>
 

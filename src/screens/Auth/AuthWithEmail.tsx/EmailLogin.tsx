@@ -5,14 +5,14 @@ import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/
 import axios from 'axios';
 import { Image } from 'expo-image';
 
-import { LinearGradient } from 'expo-linear-gradient';
-
 import useAuth from '~/hooks/useAuth';
 import AuthBackground from '~/components/AuthBackGround';
+import { useTranslation } from '~/localization';
 
 const EmailLogin = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { login } = useAuth();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +36,7 @@ const EmailLogin = () => {
       });
     } catch (err) {
       console.error('Login failed', err);
-      let message = 'Unable to sign in. Please check your credentials and try again.';
+      let message = t('auth.email.login.errors.generic');
       if (axios.isAxiosError(err)) {
         const data = err.response?.data as { message?: string; error?: string } | undefined;
         message = data?.message || data?.error || message;
@@ -65,12 +65,12 @@ const EmailLogin = () => {
 
         <View className="pt-6">
           <Text allowFontScaling={false} className="text-xl font-medium mb-2 text-black">
-            Enter your e-mail address
+            {t('auth.email.login.emailLabel')}
           </Text>
 
           <TextInput
             className="w-full h-14 bg-gray-100 rounded-lg px-4 mb-6 text-black border border-gray-200"
-            placeholder="Your email eg.yourmail@email.com"
+            placeholder={t('auth.email.login.emailPlaceholder')}
             placeholderTextColor="#a0a0a0"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -83,12 +83,12 @@ const EmailLogin = () => {
           />
 
           <Text allowFontScaling={false} className="text-xl font-medium mb-2 text-[#17213A]">
-            Enter your password
+            {t('auth.email.login.passwordLabel')}
           </Text>
 
           <TextInput
             className="w-full h-14 bg-gray-100 rounded-lg px-4 mb-4 text-[#17213A] border border-gray-200"
-            placeholder="password"
+            placeholder={t('auth.email.login.passwordPlaceholder')}
             placeholderTextColor="#a0a0a0"
             secureTextEntry
             keyboardType="default"
@@ -117,18 +117,18 @@ const EmailLogin = () => {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-                Continue
+                {t('common.continue')}
               </Text>
             )}
           </TouchableOpacity>
 
           <View className="flex-row items-center justify-center w-full">
             <Text allowFontScaling={false} className="text-base text-[#17213A] font-['Roboto']">
-              you don&apos;t have an account?
+              {t('auth.email.login.prompt.message')}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignUpEmailPassword')} disabled={isSubmitting}>
               <Text allowFontScaling={false} className="text-base font-semibold ml-1 text-[#CA251B]">
-                Sign up
+                {t('auth.email.login.prompt.cta')}
               </Text>
             </TouchableOpacity>
             

@@ -5,6 +5,7 @@ import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/
 import BackButtonHeader from '~/components/BackButtonHeader';
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
+import { useTranslation } from '~/localization';
 import { getRouteForPhoneSignupStep } from './stepRoutes';
 import AuthBackground from '~/components/AuthBackGround';
 
@@ -13,6 +14,7 @@ const DOB_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const PhoneNameEntry = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { state, provideName } = usePhoneSignup();
+  const { t } = useTranslation();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -93,7 +95,7 @@ const PhoneNameEntry = () => {
         navigation.navigate(nextRoute as never);
       }
     } catch (err) {
-      const message = getErrorMessage(err, 'We could not save your name details. Please try again.');
+      const message = getErrorMessage(err, t('auth.phone.nameEntry.errors.generic'));
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -114,12 +116,12 @@ const PhoneNameEntry = () => {
         <BackButtonHeader />
 
         <Text allowFontScaling={false} className="text-3xl font-bold mb-8 text-black">
-          What’s your name
+          {t('auth.phone.nameEntry.title')}
         </Text>
 
         <TextInput
           className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-4 text-black"
-          placeholder="First Name"
+          placeholder={t('auth.phone.nameEntry.firstNamePlaceholder')}
           placeholderTextColor="#666"
           autoCapitalize="words"
           value={firstName}
@@ -132,7 +134,7 @@ const PhoneNameEntry = () => {
 
         <TextInput
           className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-4 text-black"
-          placeholder="Last Name"
+          placeholder={t('auth.phone.nameEntry.lastNamePlaceholder')}
           placeholderTextColor="#666"
           autoCapitalize="words"
           value={lastName}
@@ -145,7 +147,7 @@ const PhoneNameEntry = () => {
 
         <TextInput
           className="w-full h-14 bg-gray-300 rounded-lg px-4 mb-2 text-black"
-          placeholder="Date of Birth (YYYY-MM-DD)"
+          placeholder={t('auth.phone.nameEntry.dobPlaceholder')}
           placeholderTextColor="#666"
           value={dateOfBirth}
           onChangeText={(value) => {
@@ -159,7 +161,7 @@ const PhoneNameEntry = () => {
 
         {showDateFormatHint ? (
           <Text allowFontScaling={false} className="text-sm text-red-500 mb-2">
-            Please enter a valid date in YYYY-MM-DD format.
+            {t('auth.common.dateHint')}
           </Text>
         ) : null}
 
@@ -179,7 +181,7 @@ const PhoneNameEntry = () => {
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-              Continue
+              {t('common.continue')}
             </Text>
           )}
         </TouchableOpacity>

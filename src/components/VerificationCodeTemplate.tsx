@@ -9,8 +9,10 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+
 import BackButtonHeader from './BackButtonHeader';
 import AuthBackground from './AuthBackGround';
+import { useTranslation } from '~/localization';
 
 interface VerificationCodeTemplateProps {
     contact: string;
@@ -42,6 +44,7 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
     onClearError,
 }) => {
     const navigation = useNavigation();
+    const { t } = useTranslation();
 
     const [code, setCode] = useState<string[]>(() => Array(codeLength).fill(''));
 
@@ -95,7 +98,24 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
         await onResendPress();
     };
 
-    const resolvedResendLabel = resendButtonLabel ?? `Resend the code via ${resendMethod}`;
+    const methodLabel = resendMethod === 'Email'
+        ? t('auth.common.resend.methods.email')
+        : t('auth.common.resend.methods.sms');
+
+    const verificationPrompt = useMemo(
+        () => t('auth.common.verification.prompt', {
+            values: { count: codeLength, contact: '<contact>' },
+        }),
+        [codeLength, t],
+    );
+
+    const [promptStart, promptEnd] = useMemo(() => {
+        const parts = verificationPrompt.split('<contact>');
+        return [parts[0] ?? '', parts[1] ?? ''];
+    }, [verificationPrompt]);
+
+    const resolvedResendLabel = resendButtonLabel
+        ?? t('auth.common.resend.default', { values: { method: methodLabel } });
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -106,8 +126,9 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
                     <BackButtonHeader />
 
                     <Text allowFontScaling={false} className="text-2xl font-semibold mb-10 text-black">
-                        Enter the {codeLength} digit code sent to you at
-                        <Text className="font-bold"> {contact}</Text>
+                        {promptStart}
+                        <Text className="font-bold">{contact}</Text>
+                        {promptEnd}
                     </Text>
 
                     <View className="flex-row justify-between mb-4 ">
@@ -148,7 +169,9 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
                         {isSubmitting ? (
                             <ActivityIndicator color="#FFFFFF" />
                         ) : (
-                            <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
+                            <Text allowFontScaling={false} className="text-white font-semibold text-lg">
+                                {t('common.continue')}
+                            </Text>
                         )}
                     </TouchableOpacity>
 

@@ -5,6 +5,7 @@ import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
 import type { PhoneSignupNextStep } from '~/interfaces/Auth/interfaces';
+import { useTranslation } from '~/localization';
 import { getRouteForPhoneSignupStep } from './stepRoutes';
 
 const computeSecondsUntil = (timestamp: string | null) => {
@@ -22,6 +23,7 @@ const computeSecondsUntil = (timestamp: string | null) => {
 const PhoneEmailVerificationCode = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { state, verifyEmailCode, resendEmailCode } = usePhoneSignup();
+  const { t } = useTranslation();
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +119,7 @@ const PhoneEmailVerificationCode = () => {
     try {
       await verifyEmailCode(code);
     } catch (err) {
-      const message = getErrorMessage(err, 'The verification code is invalid or has expired.');
+      const message = getErrorMessage(err, t('auth.common.verification.errors.invalidCode'));
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -133,7 +135,7 @@ const PhoneEmailVerificationCode = () => {
     try {
       await resendEmailCode();
     } catch (err) {
-      const message = getErrorMessage(err, 'Unable to resend the code right now. Please try again later.');
+      const message = getErrorMessage(err, t('auth.common.verification.errors.resendFailed'));
       setError(message);
     } finally {
       setIsResending(false);
@@ -149,17 +151,23 @@ const PhoneEmailVerificationCode = () => {
     const metaParts: string[] = [];
 
     if (state.loginAttempt) {
-      messageLines.push('We found an existing Foodify account. Enter the code to sign in.');
+      messageLines.push(t('auth.common.helper.existingAccount'));
     }
 
     if (typeof state.emailAttemptsRemaining === 'number') {
-      metaParts.push(`Attempts remaining: ${state.emailAttemptsRemaining}`);
+      metaParts.push(
+        t('auth.common.helper.attempts', { values: { count: state.emailAttemptsRemaining } }),
+      );
     }
     if (typeof state.emailResendsRemaining === 'number') {
-      metaParts.push(`Resends left: ${state.emailResendsRemaining}`);
+      metaParts.push(
+        t('auth.common.helper.resends', { values: { count: state.emailResendsRemaining } }),
+      );
     }
     if (expiryCountdown !== null) {
-      metaParts.push(`Code expires in ${expiryCountdown}s`);
+      metaParts.push(
+        t('auth.common.helper.expires', { values: { seconds: expiryCountdown } }),
+      );
     }
 
     if (metaParts.length > 0) {
@@ -167,17 +175,24 @@ const PhoneEmailVerificationCode = () => {
     }
 
     return messageLines.length > 0 ? messageLines.join('\n') : null;
-  }, [expiryCountdown, state]);
+  }, [expiryCountdown, state, t]);
 
   if (!state || !state.emailProvided) {
     return null;
   }
 
-  const resendLabel = resendCountdown !== null
-    ? `Resend available in ${resendCountdown}s`
-    : `Resend the code via Email${
-        typeof state.emailResendsRemaining === 'number' ? ` (${state.emailResendsRemaining} left)` : ''
-      }`;
+  const methodLabel = t('auth.common.resend.methods.email');
+  const defaultResendLabel =
+    typeof state.emailResendsRemaining === 'number'
+      ? t('auth.common.resend.withRemaining', {
+          values: { method: methodLabel, count: state.emailResendsRemaining },
+        })
+      : t('auth.common.resend.default', { values: { method: methodLabel } });
+
+  const resendLabel =
+    resendCountdown !== null
+      ? t('auth.common.resend.countdown', { values: { seconds: resendCountdown } })
+      : defaultResendLabel;
 
   const isResendDisabled =
     isResending ||
@@ -188,7 +203,7 @@ const PhoneEmailVerificationCode = () => {
 
   return (
     <VerificationCodeTemplate
-      contact={state.email ?? 'your email'}
+      contact={state.email ?? t('auth.common.defaults.email')}
       resendMethod="Email"
       onResendPress={handleResend}
       onSubmit={handleVerify}

@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+
 import LocationPermissionPrompt from '~/components/LocationPermissionPrompt';
 import { requestLocationAccess } from '~/services/locationAccess';
+import { useTranslation } from '~/localization';
 
 const LocationAccess = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -22,11 +25,11 @@ const LocationAccess = () => {
       navigation.navigate('Notification');
     } else {
       if (!result.permissionGranted && !result.canAskAgain) {
-        setErrorMessage('Please enable location permissions in Settings to continue.');
+        setErrorMessage(t('locationPermission.errors.disabled'));
       } else if (result.permissionGranted && !result.servicesEnabled) {
-        setErrorMessage('Turn on device location services to continue.');
+        setErrorMessage(t('locationPermission.errors.servicesDisabled'));
       } else {
-        setErrorMessage('We need your permission to show nearby restaurants.');
+        setErrorMessage(t('locationPermission.errors.generic'));
       }
     }
 
@@ -43,7 +46,6 @@ const LocationAccess = () => {
       onClose={handleClose}
       isProcessing={isProcessing}
       errorMessage={errorMessage}
-      description="This lets us show you which restaurants and stores you can order from."
     />
   );
 };

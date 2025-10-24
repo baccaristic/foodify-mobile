@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+
 import BackButtonHeader from '~/components/BackButtonHeader';
 import AuthBackground from '~/components/AuthBackGround';
+import { useTranslation } from '~/localization';
 
 const SignUpEmailPassword = () => {
     const navigation = useNavigation();
+    const { t } = useTranslation();
 
     const handleContinue = () => {
         if (!isFormValid) {
@@ -36,12 +40,12 @@ const SignUpEmailPassword = () => {
                     <BackButtonHeader />
 
                     <Text allowFontScaling={false} className="text-2xl font-semibold mb-8 text-black">
-                        Enter your e-mail adress
+                        {t('auth.email.signup.emailPassword.emailLabel')}
                     </Text>
 
                     <TextInput
                         className="w-full h-14 bg-gray-200 rounded-lg px-4 mb-6 text-black"
-                        placeholder="Enter your e-mail"
+                        placeholder={t('auth.email.signup.emailPassword.emailPlaceholder')}
                         placeholderTextColor="#999"
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -50,12 +54,12 @@ const SignUpEmailPassword = () => {
                     />
 
                     <Text allowFontScaling={false} className="text-2xl font-semibold mb-8 text-black">
-                        Enter your password
+                        {t('auth.email.signup.emailPassword.passwordLabel')}
                     </Text>
 
                     <TextInput
                         className="w-full h-14 bg-gray-200 rounded-lg px-4 mb-6 text-black"
-                        placeholder="Password"
+                        placeholder={t('auth.email.signup.emailPassword.passwordPlaceholder')}
                         placeholderTextColor="#999"
                         secureTextEntry={true}
                         onChangeText={setPassword}
@@ -63,12 +67,12 @@ const SignUpEmailPassword = () => {
                     />
 
                     <Text allowFontScaling={false} className="text-2xl font-semibold mb-8 text-black">
-                        Confirm password
+                        {t('auth.email.signup.emailPassword.confirmLabel')}
                     </Text>
 
                     <TextInput
                         className="w-full h-14 bg-gray-200 rounded-lg px-4 mb-10 text-black"
-                        placeholder="Password"
+                        placeholder={t('auth.email.signup.emailPassword.confirmPlaceholder')}
                         placeholderTextColor="#999"
                         secureTextEntry={true}
                         onChangeText={setConfirmPassword}
@@ -80,16 +84,16 @@ const SignUpEmailPassword = () => {
                         onPress={handleContinue}
                         disabled={!isFormValid}
                     >
-                        <Text allowFontScaling={false} className="text-white font-semibold text-lg">Continue</Text>
+                        <Text allowFontScaling={false} className="text-white font-semibold text-lg">{t('common.continue')}</Text>
                     </TouchableOpacity>
 
                     <View className="flex-row items-center justify-center w-full">
                         <Text allowFontScaling={false} className="text-base text-gray-600">
-                            you already have an account?
+                            {t('auth.email.signup.emailPassword.prompt.message')}
                         </Text>
                         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
                             <Text allowFontScaling={false} className="text-base font-semibold ml-1 text-[#CA251B]" >
-                                Log In
+                                {t('auth.email.signup.emailPassword.prompt.cta')}
                             </Text>
                         </TouchableOpacity>
                     </View>
