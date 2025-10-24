@@ -97,7 +97,7 @@ const CouponCode: React.FC = () => {
 
   const renderCoupon = ({ item }: { item: CouponDto }) => {
     const discountLabel =
-      item.type === 'PERCENTAGE'
+      item.type === 'PERCENTAGE_DISCOUNT'
         ? t('coupon.list.percent', { values: { value: item.discountPercent ?? 0 } })
         : t('coupon.list.freeDelivery');
 

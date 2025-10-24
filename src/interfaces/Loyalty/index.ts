@@ -16,7 +16,7 @@ export interface LoyaltyTransactionDto {
   createdAt: string;
 }
 
-export type CouponType = 'PERCENTAGE' | 'FREE_DELIVERY';
+export type CouponType = 'PERCENTAGE_DISCOUNT' | 'FREE_DELIVERY';
 
 export interface CouponDto {
   code: string;

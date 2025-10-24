@@ -40,7 +40,7 @@ const RedeemCouponScreen: React.FC = () => {
         title: t('profile.redeem.options.freeDelivery.title'),
         description: t('profile.redeem.options.freeDelivery.description'),
       },
-      PERCENTAGE: {
+      PERCENTAGE_DISCOUNT: {
         icon: BadgePercent,
         title: t('profile.redeem.options.percentage.title'),
         description: t('profile.redeem.options.percentage.description'),
@@ -68,7 +68,7 @@ const RedeemCouponScreen: React.FC = () => {
   });
 
   const handleSubmit = () => {
-    if (selectedType === 'PERCENTAGE') {
+    if (selectedType === 'PERCENTAGE_DISCOUNT') {
       const parsed = Number(percentValue);
       if (!Number.isFinite(parsed) || Number.isNaN(parsed)) {
         setError(t('profile.redeem.errors.invalidNumber'));
@@ -79,7 +79,7 @@ const RedeemCouponScreen: React.FC = () => {
         return;
       }
       setError(null);
-      mutation.mutate({ type: 'PERCENTAGE', discountPercent: parsed });
+      mutation.mutate({ type: 'PERCENTAGE_DISCOUNT', discountPercent: parsed });
       return;
     }
 
@@ -97,7 +97,7 @@ const RedeemCouponScreen: React.FC = () => {
         activeOpacity={0.85}
         onPress={() => {
           setSelectedType(type);
-          if (type !== 'PERCENTAGE') {
+          if (type !== 'PERCENTAGE_DISCOUNT') {
             setError(null);
           }
         }}
@@ -162,10 +162,10 @@ const RedeemCouponScreen: React.FC = () => {
 
             <View className="mt-5">
               <OptionCard type="FREE_DELIVERY" />
-              <OptionCard type="PERCENTAGE" />
+              <OptionCard type="PERCENTAGE_DISCOUNT" />
             </View>
 
-            {selectedType === 'PERCENTAGE' ? (
+            {selectedType === 'PERCENTAGE_DISCOUNT' ? (
               <View className="mt-4 rounded-3xl border px-4 py-4" style={{ borderColor }}>
                 <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: headerColor }}>
                   {t('profile.redeem.percentageLabel')}

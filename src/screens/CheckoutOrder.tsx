@@ -268,7 +268,7 @@ const CheckoutOrder: React.FC = () => {
 
     const params = route.params;
     if (params?.couponValid && params.couponCode) {
-      const couponType = params.couponType ?? 'PERCENTAGE';
+      const couponType = params.couponType ?? 'PERCENTAGE_DISCOUNT';
       setAppliedCoupon({
         code: params.couponCode,
         type: couponType as CouponType,

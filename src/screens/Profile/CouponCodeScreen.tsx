@@ -54,7 +54,7 @@ const CouponCodeScreen: React.FC = () => {
     const statusLabel = t(`profile.coupon.status.${statusKey}`);
     const statusColor = item.redeemed ? '#6B7280' : item.active ? '#16A34A' : accentColor;
     const discountLabel =
-      item.type === 'PERCENTAGE'
+      item.type === 'PERCENTAGE_DISCOUNT'
         ? t('profile.coupon.discount.percent', { values: { value: item.discountPercent ?? 0 } })
         : t('profile.coupon.discount.freeDelivery');
     const assignedDate = item.assignedAt
