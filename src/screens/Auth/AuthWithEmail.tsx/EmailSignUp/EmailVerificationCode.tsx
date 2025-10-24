@@ -1,20 +1,21 @@
-import { NavigationProp } from '@react-navigation/native';
-import { useNavigation } from 'node_modules/@react-navigation/core/lib/typescript/src/useNavigation';
-import { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+
 import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
+import { useTranslation } from '~/localization';
 
 const EmailVerificationCode = () => {
+    const { t } = useTranslation();
 
     const handleResend = () => {
-        console.log("Resending code via Email...");
+        console.log('Resending code via Email...');
     };
 
     const [error, setError] = useState<string | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmitting = false;
 
     return (
         <VerificationCodeTemplate
-            contact="flenfoulani@email.com"
+            contact={t('auth.email.signup.emailVerification.contactPlaceholder')}
             nextScreen="PhoneNumberEntry"
             resendMethod="Email"
             onResendPress={handleResend}

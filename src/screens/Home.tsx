@@ -170,6 +170,7 @@ export default function HomePage() {
 
   const { selectedAddress } = useSelectedAddress();
   const hasSelectedAddress = Boolean(selectedAddress?.coordinates);
+  const screenWidth = Dimensions.get('screen').width;
 
   const userLatitude = selectedAddress?.coordinates.latitude;
   const userLongitude = selectedAddress?.coordinates.longitude;
@@ -309,7 +310,7 @@ export default function HomePage() {
           fallbackImageUrl={restaurant.iconUrl}
           openingHours={restaurant.openingHours}
           closingHours={restaurant.closingHours}
-          width={options?.width}
+          width={screenWidth * 0.9}
           onPress={() =>
             navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
           }

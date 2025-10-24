@@ -17,6 +17,7 @@ import EmailVerificationCode from '~/screens/Auth/AuthWithEmail.tsx/EmailSignUp/
 import PhoneEmailEntry from '~/screens/Auth/AuthWithPhone.tsx/EmailEntry';
 import PhoneNameEntry from '~/screens/Auth/AuthWithPhone.tsx/NameEntry';
 import PhoneVerificationCode from '~/screens/Auth/AuthWithPhone.tsx/PhoneVerificationCode';
+import PhoneEmailVerificationCode from '~/screens/Auth/AuthWithPhone.tsx/EmailVerificationCode';
 import PhoneAcceptTerms from '~/screens/Auth/AuthWithPhone.tsx/AcceptTerms';
 import Cart from '~/screens/Cart';
 import CheckoutOrder from '~/screens/CheckoutOrder';
@@ -217,6 +218,10 @@ const RootNavigator = () => {
             <Stack.Screen name="AcceptTerms" component={AcceptTerms} />
             <Stack.Screen name="SignUpEmailPassword" component={SignUpEmailPassword} />
             <Stack.Screen name="PhoneEmailEntry" component={PhoneEmailEntry} />
+            <Stack.Screen
+              name="PhoneEmailVerificationCode"
+              component={PhoneEmailVerificationCode}
+            />
             <Stack.Screen name="PhoneNameEntry" component={PhoneNameEntry} />
             <Stack.Screen name="PhoneAcceptTerms" component={PhoneAcceptTerms} />
             <Stack.Screen name="EmailVerificationCode" component={EmailVerificationCode} />

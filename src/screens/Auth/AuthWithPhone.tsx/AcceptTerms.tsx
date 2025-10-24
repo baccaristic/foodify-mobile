@@ -6,10 +6,12 @@ import BackButtonHeader from '~/components/BackButtonHeader';
 import usePhoneSignup from '~/hooks/usePhoneSignup';
 import { getErrorMessage } from '~/helper/apiError';
 import AuthBackground from '~/components/AuthBackGround';
+import { useTranslation } from '~/localization';
 
 const PhoneAcceptTerms = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { state, acceptTerms } = usePhoneSignup();
+  const { t } = useTranslation();
 
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ const PhoneAcceptTerms = () => {
       return;
     }
     if (!accepted) {
-      setError('You must accept the terms to continue.');
+      setError(t('auth.common.errors.mustAcceptTerms'));
       return;
     }
 
@@ -69,7 +71,7 @@ const PhoneAcceptTerms = () => {
         routes: [{ name: 'Home' }],
       });
     } catch (err) {
-      const message = getErrorMessage(err, 'We could not complete your registration. Please try again.');
+      const message = getErrorMessage(err, t('auth.phone.acceptTerms.errors.generic'));
       setError(message);
       setIsSubmitting(false);
     }
@@ -86,12 +88,28 @@ const PhoneAcceptTerms = () => {
 
       <View className="mt-6 mb-10">
         <Text allowFontScaling={false} className="text-3xl font-bold text-black mb-4">
-          Accept Foodify’s Terms & Review privacy notice
+          {t('auth.common.terms.title')}
         </Text>
         <Text allowFontScaling={false} className="text-base text-gray-700 leading-relaxed">
-          By selecting “I agree” below, I have reviewed and agree to the
-          <Text className="text-[#CA251B]"> terms of use</Text> and acknowledge the
-          <Text className="text-[#CA251B]"> privacy notice</Text>. I am at least 18 years of age.
+          {t('auth.common.terms.description', { values: { terms: '<terms>', privacy: '<privacy>' } })
+            .split(/(<terms>|<privacy>)/)
+            .map((segment, index) => {
+              if (segment === '<terms>') {
+                return (
+                  <Text key={`terms-${index}`} className="text-[#CA251B]">
+                    {t('auth.common.terms.termsLabel')}
+                  </Text>
+                );
+              }
+              if (segment === '<privacy>') {
+                return (
+                  <Text key={`privacy-${index}`} className="text-[#CA251B]">
+                    {t('auth.common.terms.privacyLabel')}
+                  </Text>
+                );
+              }
+              return <Text key={`segment-${index}`}>{segment}</Text>;
+            })}
         </Text>
       </View>
 
@@ -109,7 +127,7 @@ const PhoneAcceptTerms = () => {
           className={`w-6 h-6 mr-3 rounded border-2 ${accepted ? 'bg-[#17213A] border-[#17213A]' : 'border-gray-400'}`}
         />
         <Text allowFontScaling={false} className="text-base text-black">
-          I agree to the terms and privacy notice
+          {t('auth.common.terms.checkbox')}
         </Text>
       </TouchableOpacity>
 
@@ -130,7 +148,7 @@ const PhoneAcceptTerms = () => {
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text allowFontScaling={false} className="text-white font-semibold text-lg">
-            I Agree
+            {t('auth.common.terms.agreeCta')}
           </Text>
         )}
       </TouchableOpacity>

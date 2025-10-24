@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
+
 import EntryInfoTemplate from '~/components/EntryInfoTemplate';
+import { useTranslation } from '~/localization';
 
 
 const PhoneNumberEntry = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
+    const { t } = useTranslation();
     const isFormValid = phoneNumber.trim().length > 0;
 
     return (
         <EntryInfoTemplate
-
-            title="What's your Phone Number "
-            inputPlaceholder="Enter your phone number"
+            title={t('auth.email.signup.phone.title')}
+            inputPlaceholder={t('auth.email.signup.phone.placeholder')}
             keyboardType="numeric"
             nextScreen="NameEntry"
             inputValue={phoneNumber}

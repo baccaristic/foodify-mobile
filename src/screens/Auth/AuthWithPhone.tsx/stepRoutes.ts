@@ -3,6 +3,7 @@ import type { PhoneSignupNextStep } from '~/interfaces/Auth/interfaces';
 const STEP_TO_ROUTE: Record<PhoneSignupNextStep, string | null> = {
   VERIFY_PHONE_CODE: 'PhoneVerificationCode',
   PROVIDE_EMAIL: 'PhoneEmailEntry',
+  VERIFY_EMAIL_CODE: 'PhoneEmailVerificationCode',
   PROVIDE_NAME: 'PhoneNameEntry',
   ACCEPT_LEGAL_TERMS: 'PhoneAcceptTerms',
   COMPLETED: null,

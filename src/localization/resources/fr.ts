@@ -787,6 +787,134 @@ const fr: TranslationDictionary = {
       },
     },
   },
+  auth: {
+    landing: {
+      title: 'Saisissez votre numéro de téléphone',
+      placeholder: 'Votre numéro ex. 98765432',
+      or: 'ou',
+      googleCta: 'Continuer avec Google',
+      emailCta: 'Continuer avec e-mail',
+      errors: {
+        startSignup: 'Impossible de lancer la vérification. Vérifiez votre numéro et réessayez.',
+      },
+    },
+    common: {
+      defaults: {
+        email: 'votre e-mail',
+      },
+      errors: {
+        mustAcceptTerms: 'Vous devez accepter les conditions pour continuer.',
+      },
+      helper: {
+        existingAccount: 'Nous avons trouvé un compte Foodify existant. Saisissez le code pour vous connecter.',
+        attempts: 'Tentatives restantes : {{count}}',
+        resends: 'Renvois restants : {{count}}',
+        expires: 'Le code expire dans {{seconds}} s',
+      },
+      resend: {
+        methods: {
+          email: 'E-mail',
+          sms: 'SMS',
+        },
+        default: 'Renvoyer le code par {{method}}',
+        withRemaining: 'Renvoyer le code par {{method}} ({{count}} restant)',
+        countdown: 'Nouveau renvoi disponible dans {{seconds}} s',
+      },
+      verification: {
+        prompt: 'Saisissez le code à {{count}} chiffres envoyé à {{contact}}',
+        errors: {
+          invalidCode: 'Le code de vérification est invalide ou expiré.',
+          resendFailed: 'Impossible de renvoyer le code pour le moment. Veuillez réessayer plus tard.',
+        },
+      },
+      terms: {
+        title: 'Acceptez les conditions Foodify et consultez l’avis de confidentialité',
+        description:
+          'En sélectionnant « J’accepte » ci-dessous, j’ai lu et j’accepte les <terms> et reconnais l’<privacy>. J’ai au moins 18 ans.',
+        termsLabel: 'conditions d’utilisation',
+        privacyLabel: 'avis de confidentialité',
+        checkbox: 'J’accepte les conditions et l’avis de confidentialité',
+        agreeCta: 'J’accepte',
+      },
+      dateHint: 'Veuillez saisir une date valide au format AAAA-MM-JJ.',
+    },
+    phone: {
+      emailEntry: {
+        title: 'Quelle est votre adresse e-mail ?',
+        placeholder: 'Saisissez votre e-mail',
+        errors: {
+          generic: 'Nous n’avons pas pu enregistrer votre e-mail. Veuillez réessayer.',
+        },
+      },
+      nameEntry: {
+        title: 'Comment vous appelez-vous ?',
+        firstNamePlaceholder: 'Prénom',
+        lastNamePlaceholder: 'Nom',
+        dobPlaceholder: 'Date de naissance (AAAA-MM-JJ)',
+        errors: {
+          generic: 'Nous n’avons pas pu enregistrer vos informations. Veuillez réessayer.',
+        },
+      },
+      acceptTerms: {
+        errors: {
+          generic: 'Nous n’avons pas pu finaliser votre inscription. Veuillez réessayer.',
+        },
+      },
+    },
+    email: {
+      login: {
+        emailLabel: 'Saisissez votre adresse e-mail',
+        emailPlaceholder: 'Votre e-mail ex. votremail@email.com',
+        passwordLabel: 'Saisissez votre mot de passe',
+        passwordPlaceholder: 'Mot de passe',
+        errors: {
+          generic: 'Connexion impossible. Vérifiez vos identifiants et réessayez.',
+        },
+        prompt: {
+          message: 'Vous n’avez pas de compte ?',
+          cta: 'Inscrivez-vous',
+        },
+      },
+      signup: {
+        emailPassword: {
+          emailLabel: 'Saisissez votre adresse e-mail',
+          emailPlaceholder: 'Saisissez votre e-mail',
+          passwordLabel: 'Saisissez votre mot de passe',
+          passwordPlaceholder: 'Mot de passe',
+          confirmLabel: 'Confirmez le mot de passe',
+          confirmPlaceholder: 'Mot de passe',
+          prompt: {
+            message: 'Vous avez déjà un compte ?',
+            cta: 'Connectez-vous',
+          },
+        },
+        emailVerification: {
+          contactPlaceholder: 'votre e-mail',
+        },
+        phone: {
+          title: 'Quel est votre numéro de téléphone ?',
+          placeholder: 'Saisissez votre numéro de téléphone',
+        },
+        name: {
+          title: 'Comment vous appelez-vous ?',
+          firstNamePlaceholder: 'Prénom',
+          lastNamePlaceholder: 'Nom',
+        },
+        notifications: {
+          title: 'Restez informé(e) de l’état de vos commandes',
+          description:
+            'Les notifications push vous permettent de suivre vos commandes. Vous pouvez modifier ce paramètre à tout moment dans les réglages.',
+          enableCta: 'Activer les notifications push',
+          skipCta: 'Plus tard',
+          errors: {
+            physicalDevice: 'Les notifications push sont disponibles uniquement sur appareil physique.',
+            settings: 'Activez les notifications dans les réglages de votre appareil pour recevoir les mises à jour.',
+            permission: 'Nous avons besoin de votre autorisation pour vous envoyer les notifications de suivi de commande.',
+          },
+        },
+      },
+    },
+  },
 };
 
 export default fr;
