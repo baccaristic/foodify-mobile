@@ -167,6 +167,12 @@ const fr: TranslationDictionary = {
     subtitle: 'Ajoutez votre code promo',
     placeholder: 'ABCDE123',
     checkCta: 'Vérifier le code promo',
+    listTitle: 'Vos coupons disponibles',
+    emptyList: 'Aucun coupon disponible pour le moment. Gagnez des points ou revenez bientôt.',
+    list: {
+      percent: '{{value}} % de réduction',
+      freeDelivery: 'Livraison gratuite',
+    },
     status: {
       success: 'Code promo appliqué avec succès',
       error: 'Ce code promo est invalide. Veuillez réessayer.',
@@ -472,6 +478,7 @@ const fr: TranslationDictionary = {
       collapsedHint: 'Touchez une option ci-dessous',
       statusLabel: 'Superstar',
       pointsLabel: '{{points}} PTS',
+      pointsLoading: 'Chargement des points…',
       actions: {
         logout: 'Se déconnecter',
       },
@@ -488,6 +495,7 @@ const fr: TranslationDictionary = {
           items: {
             methods: 'Modes de paiement',
             history: 'Historique des commandes',
+            loyalty: 'Fidélité & récompenses',
             coupons: 'Codes promo',
           },
         },
@@ -537,10 +545,64 @@ const fr: TranslationDictionary = {
     },
     coupon: {
       title: 'Code promo',
-      addLabel: 'Ajouter un code promo',
-      placeholder: 'Saisir le code',
+      subtitle: 'Gérez et utilisez vos coupons Foodify.',
       listTitle: 'Vos codes promo',
       emptyHint: 'De nouvelles offres arrivent chaque semaine ! Suivez-nous, commandez souvent ou revenez bientôt — votre portefeuille vous remerciera.',
+      redeemCta: 'Échanger des points contre un coupon',
+      redeemHint: 'Transformez vos points fidélité en réductions ou en livraisons gratuites.',
+      assignedAt: 'Ajouté le {{date}}',
+      createdFromPoints: 'Obtenu avec des points',
+      status: {
+        active: 'Prêt à être utilisé',
+        redeemed: 'Déjà utilisé',
+        inactive: 'Inactif',
+      },
+      discount: {
+        percent: '{{value}} % de réduction',
+        freeDelivery: 'Livraison gratuite',
+      },
+    },
+    loyalty: {
+      title: 'Récompenses fidélité',
+      subtitle: 'Gagnez 10 % de points sur chaque commande livrée.',
+      balanceLabel: 'Solde actuel',
+      lifetimeEarned: 'Total gagné',
+      lifetimeRedeemed: 'Total dépensé',
+      redeemCta: 'Échanger des points contre des coupons',
+      redeemHint: 'Convertissez votre solde en réductions ou livraisons gratuites.',
+      transactionsTitle: 'Historique des points',
+      transactionsEmpty: 'Aucune activité pour le moment — passez une commande pour commencer à gagner des points.',
+      transactionTypes: {
+        earned: 'Points gagnés',
+        redeemed: 'Points dépensés',
+        adjustment: 'Ajustement',
+      },
+    },
+    redeem: {
+      title: 'Échanger des points',
+      subtitle: 'Choisissez la récompense que vous souhaitez créer avec vos points fidélité.',
+      options: {
+        freeDelivery: {
+          title: 'Coupon livraison gratuite',
+          description: 'Coûte 250 points et annule les frais de livraison de votre prochaine commande.',
+        },
+        percentage: {
+          title: 'Coupon de réduction',
+          description: 'Coûte 15 points par pourcentage. Économisez entre 5 % et 50 % sur une commande.',
+        },
+      },
+      percentageLabel: 'Pourcentage de réduction',
+      percentageHint: 'Entrez une valeur entre {{min}} % et {{max}} %.',
+      errors: {
+        invalidNumber: 'Saisissez un pourcentage valide.',
+        outOfRange: 'Le pourcentage doit être compris entre {{min}} % et {{max}} %.',
+      },
+      submitCta: 'Créer le coupon',
+      submitting: 'Échange en cours…',
+      successTitle: 'Coupon créé',
+      successMessage: 'Votre nouveau coupon vous attend dans votre portefeuille.',
+      errorTitle: 'Impossible d’échanger',
+      errorMessage: 'Nous n’avons pas pu échanger vos points pour le moment. Veuillez réessayer plus tard.',
     },
     notifications: {
       title: 'Notifications',

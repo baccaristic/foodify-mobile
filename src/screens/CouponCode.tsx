@@ -1,8 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation, useRoute, NavigationProp, ParamListBase, RouteProp } from '@react-navigation/native';
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle2, Gift, XCircle } from 'lucide-react-native';
+import { useQuery } from '@tanstack/react-query';
+
+import { getLoyaltyCoupons } from '~/api/loyalty';
+import type { CouponDto } from '~/interfaces/Loyalty';
 import { useTranslation } from '~/localization';
 
 const sectionTitleColor = '#17213A';
@@ -24,6 +35,19 @@ const CouponCode: React.FC = () => {
   const [status, setStatus] = useState<CouponStatus>('idle');
   const { t } = useTranslation();
 
+  const {
+    data: coupons = [],
+    isLoading,
+  } = useQuery({
+    queryKey: ['loyalty', 'coupons'],
+    queryFn: getLoyaltyCoupons,
+  });
+
+  const availableCoupons = useMemo(
+    () => coupons.filter((coupon) => coupon.active && !coupon.redeemed),
+    [coupons],
+  );
+
   const helperText = useMemo(() => {
     if (status === 'success') {
       return t('coupon.status.success');
@@ -38,6 +62,19 @@ const CouponCode: React.FC = () => {
 
   const helperColor = status === 'success' ? '#22C55E' : status === 'error' ? accentColor : '#9CA3AF';
 
+  const applyCoupon = (coupon: CouponDto) => {
+    navigation.navigate({
+      name: 'CheckoutOrder',
+      params: {
+        couponCode: coupon.code,
+        couponValid: true,
+        couponType: coupon.type,
+        couponDiscountPercent: coupon.discountPercent ?? null,
+      },
+      merge: true,
+    });
+  };
+
   const handleCheckCoupon = () => {
     if (!couponCode.trim()) {
       setStatus('error');
@@ -47,21 +84,41 @@ const CouponCode: React.FC = () => {
     const normalizedCode = couponCode.trim().toUpperCase();
     setCouponCode(normalizedCode);
 
-    if (normalizedCode === 'ABCDE123') {
+    const match = coupons.find((coupon) => coupon.code.toUpperCase() === normalizedCode);
+
+    if (match && match.active && !match.redeemed) {
       setStatus('success');
-      navigation.navigate({
-        name: 'CheckoutOrder',
-        params: {
-          couponCode: normalizedCode,
-          discountAmount: 5,
-          couponValid: true,
-        },
-        merge: true,
-      });
+      applyCoupon(match);
       return;
     }
 
     setStatus('error');
+  };
+
+  const renderCoupon = ({ item }: { item: CouponDto }) => {
+    const discountLabel =
+      item.type === 'PERCENTAGE'
+        ? t('coupon.list.percent', { values: { value: item.discountPercent ?? 0 } })
+        : t('coupon.list.freeDelivery');
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => applyCoupon(item)}
+        className="mb-3 flex-row items-center justify-between rounded-3xl border bg-white p-4"
+        style={{ borderColor }}
+      >
+        <View className="flex-1 pr-4">
+          <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+            {item.code}
+          </Text>
+          <Text allowFontScaling={false} className="mt-1 text-sm" style={{ color: '#6B7280' }}>
+            {discountLabel}
+          </Text>
+        </View>
+        <Gift size={22} color={accentColor} />
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -69,17 +126,17 @@ const CouponCode: React.FC = () => {
       <View className="flex-row items-center px-4 pb-4 pt-2">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-        className="mr-4 rounded-full border border-[#E4E6EB] p-2"
-      >
-        <ArrowLeft size={20} color={sectionTitleColor} />
-      </TouchableOpacity>
+          className="mr-4 rounded-full border border-[#E4E6EB] p-2"
+        >
+          <ArrowLeft size={20} color={sectionTitleColor} />
+        </TouchableOpacity>
         <Text allowFontScaling={false} className="flex-1 text-center text-xl font-bold" style={{ color: sectionTitleColor }}>
           {t('coupon.title')}
         </Text>
         <View className="w-10" />
       </View>
 
-      <View className="flex-1 px-6">
+      <View className="px-6">
         <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: sectionTitleColor }}>
           {t('coupon.subtitle')}
         </Text>
@@ -113,7 +170,7 @@ const CouponCode: React.FC = () => {
         ) : null}
       </View>
 
-      <View className="px-6 pb-6">
+      <View className="px-6 pt-4">
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={handleCheckCoupon}
@@ -123,6 +180,28 @@ const CouponCode: React.FC = () => {
             {t('coupon.checkCta')}
           </Text>
         </TouchableOpacity>
+      </View>
+
+      <View className="mt-4 flex-1 px-6">
+        <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: sectionTitleColor }}>
+          {t('coupon.listTitle')}
+        </Text>
+        {isLoading ? (
+          <View className="mt-6 items-center">
+            <ActivityIndicator color={accentColor} />
+          </View>
+        ) : availableCoupons.length ? (
+          <FlatList
+            data={availableCoupons}
+            keyExtractor={(item) => item.code}
+            renderItem={renderCoupon}
+            contentContainerStyle={{ paddingVertical: 12 }}
+          />
+        ) : (
+          <Text allowFontScaling={false} className="mt-4 text-sm" style={{ color: '#6B7280' }}>
+            {t('coupon.emptyList')}
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );

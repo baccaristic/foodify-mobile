@@ -27,7 +27,8 @@ import { useCart } from '~/context/CartContext';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import { createOrder } from '~/api/orders';
-import type { MonetaryAmount } from '~/interfaces/Order';
+import type { MonetaryAmount, OrderRequest } from '~/interfaces/Order';
+import type { CouponType } from '~/interfaces/Loyalty';
 import type { OrderTrackingData } from './OrderTracking';
 import { useTranslation } from '~/localization';
 import { useCurrencyFormatter } from '~/localization/hooks';
@@ -191,6 +192,8 @@ type CheckoutRouteParams = {
   couponCode?: string;
   discountAmount?: number;
   couponValid?: boolean;
+  couponType?: CouponType;
+  couponDiscountPercent?: number | null;
   viewMode?: boolean;
   order?: OrderTrackingData | null;
 };
@@ -212,7 +215,10 @@ const CheckoutOrder: React.FC = () => {
   const [comment, setComment] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<
+    { code: string; type: CouponType; discountPercent: number | null }
+    | null
+  >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
@@ -262,8 +268,19 @@ const CheckoutOrder: React.FC = () => {
 
     const params = route.params;
     if (params?.couponValid && params.couponCode) {
-      setAppliedCoupon({ code: params.couponCode, discount: params.discountAmount ?? 0 });
-      navigation.setParams({ couponCode: undefined, discountAmount: undefined, couponValid: undefined });
+      const couponType = params.couponType ?? 'PERCENTAGE';
+      setAppliedCoupon({
+        code: params.couponCode,
+        type: couponType as CouponType,
+        discountPercent: params.couponDiscountPercent ?? null,
+      });
+      navigation.setParams({
+        couponCode: undefined,
+        discountAmount: undefined,
+        couponValid: undefined,
+        couponType: undefined,
+        couponDiscountPercent: undefined,
+      });
     }
   }, [route.params, navigation, isViewMode]);
 
@@ -393,7 +410,35 @@ const CheckoutOrder: React.FC = () => {
   );
   const deliveryFee = useMemo(() => (hasItems ? Math.max(2.5, subtotal * 0.08) : 0), [hasItems, subtotal]);
   const serviceFee = useMemo(() => (hasItems ? Math.max(1.5, subtotal * 0.05) : 0), [hasItems, subtotal]);
-  const discountValue = appliedCoupon?.discount ?? 0;
+  const calculateCouponDiscount = useCallback(
+    (type?: CouponType, discountPercent?: number | null) => {
+      if (!type) {
+        return 0;
+      }
+
+      const orderBase = subtotal + deliveryFee + serviceFee;
+      if (orderBase <= 0) {
+        return 0;
+      }
+
+      if (type === 'FREE_DELIVERY') {
+        return Math.min(deliveryFee, orderBase);
+      }
+
+      const percentValue = Number(discountPercent ?? 0);
+      if (!Number.isFinite(percentValue) || percentValue <= 0) {
+        return 0;
+      }
+
+      const discount = (orderBase * percentValue) / 100;
+      return Math.min(Math.max(discount, 0), orderBase);
+    },
+    [subtotal, deliveryFee, serviceFee],
+  );
+  const discountValue = useMemo(
+    () => (appliedCoupon ? calculateCouponDiscount(appliedCoupon.type, appliedCoupon.discountPercent) : 0),
+    [appliedCoupon, calculateCouponDiscount],
+  );
   const total = useMemo(
     () => Math.max(subtotal + deliveryFee + serviceFee - discountValue, 0),
     [subtotal, deliveryFee, serviceFee, discountValue],
@@ -979,7 +1024,11 @@ const CheckoutOrder: React.FC = () => {
         restaurantId: restaurant.id,
         userId: Number.isFinite(numericUserId) ? Number(numericUserId) : undefined,
         savedAddressId: selectedAddress.id,
-      };
+      } as OrderRequest;
+
+      if (appliedCoupon?.code) {
+        payload.couponCode = appliedCoupon.code;
+      }
 
       const response = await createOrder(payload);
       clearCart();
@@ -1022,6 +1071,7 @@ const CheckoutOrder: React.FC = () => {
     clearCart,
     navigation,
     t,
+    appliedCoupon?.code,
   ]);
 
   const canSubmit =

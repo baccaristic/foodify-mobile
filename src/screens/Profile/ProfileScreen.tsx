@@ -1,5 +1,14 @@
-import React, { useMemo, useCallback, useState} from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform, StyleSheet, InteractionManager,PixelRatio } from 'react-native';
+import React, { useMemo, useCallback, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  InteractionManager,
+  PixelRatio,
+} from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import {
   Heart,
@@ -11,13 +20,16 @@ import {
   ShieldCheck,
   Trash2,
   UserRound,
+  Medal,
 } from 'lucide-react-native';
 import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
+import { useQuery } from '@tanstack/react-query';
 
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
 import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
 import { useTranslation } from '~/localization';
+import { getLoyaltyBalance } from '~/api/loyalty';
 const palette = {
   accent: '#CA251B',
   accentDark: '#17213A',
@@ -43,6 +55,7 @@ type ProfileSection = {
 
 const useProfileSections = (
   t: (key: string, options?: Record<string, unknown>) => string,
+  loyaltySummary?: string | null,
 ): ProfileSection[] =>
   useMemo(
     () => [
@@ -61,6 +74,32 @@ const useProfileSections = (
         items: [
           { label: t('profile.home.sections.payment.items.methods'), icon: CreditCard, route: 'PaymentMethods' },
           { label: t('profile.home.sections.payment.items.history'), icon: History, route: 'OrderHistory' },
+          {
+            label: t('profile.home.sections.payment.items.loyalty'),
+            icon: Medal,
+            route: 'LoyaltyRewards',
+            extra: loyaltySummary ? (
+              <View
+                style={{
+                  backgroundColor: 'rgba(202, 37, 27, 0.08)',
+                  borderRadius: moderateScale(14),
+                  paddingHorizontal: moderateScale(10),
+                  paddingVertical: vs(4),
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    color: palette.accent,
+                    fontSize: moderateScale(11),
+                    fontWeight: '600',
+                  }}
+                >
+                  {loyaltySummary}
+                </Text>
+              </View>
+            ) : undefined,
+          },
           { label: t('profile.home.sections.payment.items.coupons'), icon: Gift, route: 'CouponCodes' },
         ],
       },
@@ -84,7 +123,7 @@ const useProfileSections = (
         ],
       },
     ],
-    [t],
+    [t, loyaltySummary],
   );
 
 const ProfileScreen = () => {
@@ -92,6 +131,35 @@ const ProfileScreen = () => {
   const { user, logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { t } = useTranslation();
+  const { data: loyaltyBalance, isLoading: isBalanceLoading } = useQuery({
+    queryKey: ['loyalty', 'balance'],
+    queryFn: getLoyaltyBalance,
+    staleTime: 60_000,
+  });
+
+  const normalizedPoints = (() => {
+    const value = loyaltyBalance?.balance ?? 0;
+    return Number.isFinite(value) ? value : 0;
+  })();
+
+  const fractionDigits = normalizedPoints % 1 === 0 ? 0 : 2;
+  const pointsFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: 2,
+      }),
+    [fractionDigits],
+  );
+
+  const pointsLabel = useMemo(() => {
+    if (isBalanceLoading && !loyaltyBalance) {
+      return t('profile.home.pointsLoading');
+    }
+
+    const formatted = pointsFormatter.format(normalizedPoints);
+    return t('profile.home.pointsLabel', { values: { points: formatted } });
+  }, [isBalanceLoading, loyaltyBalance, normalizedPoints, pointsFormatter, t]);
 
   const handleLogout = useCallback(async () => {
     if (isSigningOut) {
@@ -142,6 +210,9 @@ const ProfileScreen = () => {
       case 'CouponCodes':
         navigation.navigate('CouponCodes' as never);
         break;
+      case 'LoyaltyRewards':
+        navigation.navigate('LoyaltyRewards' as never);
+        break;
       case 'Favorites':
         navigation.navigate('Favorites' as never);
         break;
@@ -155,8 +226,12 @@ const ProfileScreen = () => {
 
   const displayName = user?.name ?? 'Guest User';
 
+  const loyaltySummary = useMemo(
+    () => (isBalanceLoading && !loyaltyBalance ? null : pointsLabel),
+    [isBalanceLoading, loyaltyBalance, pointsLabel],
+  );
 
-  const sections = useProfileSections(t);
+  const sections = useProfileSections(t, loyaltySummary);
 
   const heroHeader = (
     <View style={styles.headerContent}>
@@ -200,7 +275,7 @@ const ProfileScreen = () => {
         <View style={styles.pointsContainer}>
           <View style={styles.pointsBadge}>
             <Text allowFontScaling={false} style={styles.pointsValue}>
-              {t('profile.home.pointsLabel', { values: { points: 246 } })}
+              {pointsLabel}
             </Text>
           </View>
         </View>
