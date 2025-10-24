@@ -27,6 +27,7 @@ interface VerificationCodeTemplateProps {
     errorMessage?: string | null;
     helperMessage?: string | null;
     onClearError?: () => void;
+    onBackPress?: () => void;
 }
 
 const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
@@ -42,6 +43,7 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
     errorMessage,
     helperMessage,
     onClearError,
+    onBackPress,
 }) => {
     const navigation = useNavigation();
     const { t } = useTranslation();
@@ -123,7 +125,7 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
             <View className="flex-1 bg-white ">
                 <View className='p-6 flex1'>
 
-                    <BackButtonHeader />
+                    <BackButtonHeader onPress={onBackPress} />
 
                     <Text allowFontScaling={false} className="text-2xl font-semibold mb-10 text-black">
                         {promptStart}

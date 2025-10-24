@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
-import { User, Phone, Mail, Lock, Star, Languages, ChevronRight } from 'lucide-react-native';
+import { User, Phone, Mail, Lock, Star, Languages, ChevronRight, CalendarDays } from 'lucide-react-native';
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
@@ -11,6 +11,7 @@ import ModifyNameOverlay from '~/components/ProfilSettings/ModifyNameOverlay';
 import ModifyEmailOverlay from '~/components/ProfilSettings/ModifyEmailOverlay';
 import ModifyPhoneOverlay from '~/components/ProfilSettings/ModifyPhoneOverlay';
 import ModifyPasswordOverlay from '~/components/ProfilSettings/ModifyPasswordOverlay';
+import ModifyDateOfBirthOverlay from '~/components/ProfilSettings/ModifyDateOfBirthOverlay';
 import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
 import { useTranslation } from '~/localization';
 
@@ -26,11 +27,14 @@ const ProfileSettingsScreen = () => {
   const displayName = user?.name ?? 'Flen Foulani';
   const displayEmail = user?.email ?? 'flenfoulani@email.com';
   const displayPhone = user?.phone ?? '987654432';
+  const displayDob = user?.dateOfBirth ?? t('profile.modals.dob.emptyValue');
 
   const [visibleOverlay, setVisibleOverlay] = useState<string | null>(null);
 
   const openOverlay = (type: string) => setVisibleOverlay(type);
-  const closeOverlay = () => setVisibleOverlay(null);
+  const closeOverlay = () => {
+    setVisibleOverlay(null);
+  };
 
 
   const customHeader = (
@@ -56,6 +60,20 @@ const ProfileSettingsScreen = () => {
             <Text allowFontScaling={false} style={styles.infoText}>{displayName}</Text>
           </View>
           <TouchableOpacity style={styles.modifyButton} onPress={() => openOverlay('name')}>
+            <Text allowFontScaling={false} style={styles.modifyText}>
+              {t('profile.settings.actions.modify')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.infoRow}>
+          <View style={styles.infoLeft}>
+            <CalendarDays size={20} color={palette.accent} />
+            <Text allowFontScaling={false} style={styles.infoText}>{displayDob}</Text>
+          </View>
+          <TouchableOpacity style={styles.modifyButton} onPress={() => openOverlay('dob')}>
             <Text allowFontScaling={false} style={styles.modifyText}>
               {t('profile.settings.actions.modify')}
             </Text>
@@ -148,18 +166,31 @@ const ProfileSettingsScreen = () => {
         mainContent={mainContent}
       />
 
-      <Modal visible={visibleOverlay === 'name'} animationType="slide" transparent>
-        <ModifyNameOverlay onClose={closeOverlay} />
-      </Modal>
-      <Modal visible={visibleOverlay === 'email'} animationType="slide" transparent>
-        <ModifyEmailOverlay onClose={closeOverlay} />
-      </Modal>
-      <Modal visible={visibleOverlay === 'phone'} animationType="slide" transparent>
-        <ModifyPhoneOverlay onClose={closeOverlay} />
-      </Modal>
-      <Modal visible={visibleOverlay === 'password'} animationType="slide" transparent>
-        <ModifyPasswordOverlay onClose={closeOverlay} />
-      </Modal>
+      {visibleOverlay === 'name' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyNameOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'email' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyEmailOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'phone' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyPhoneOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'password' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyPasswordOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
+      {visibleOverlay === 'dob' && (
+        <Modal visible animationType="slide" transparent onRequestClose={closeOverlay}>
+          <ModifyDateOfBirthOverlay onClose={closeOverlay} />
+        </Modal>
+      )}
     </>
   );
 };

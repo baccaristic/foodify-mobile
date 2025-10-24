@@ -12,6 +12,7 @@ export interface AuthState {
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
   applyAuthResponse: (response: AuthResponse) => Promise<void>;
+  updateUser: (user: User) => Promise<void>;
   requiresAuth: boolean;
 }
 

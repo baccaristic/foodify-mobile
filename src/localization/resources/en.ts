@@ -732,6 +732,9 @@ const en: TranslationDictionary = {
     modals: {
       common: {
         continue: 'Continue',
+        errors: {
+          generic: 'We couldn’t update your profile. Please try again.',
+        },
       },
       name: {
         title: 'Modify name',
@@ -739,6 +742,9 @@ const en: TranslationDictionary = {
         prompt: 'Enter your new name',
         firstPlaceholder: 'First name',
         lastPlaceholder: 'Last name',
+        errors: {
+          required: 'Please enter both your first and last name.',
+        },
       },
       email: {
         title: 'Modify email address',
@@ -748,6 +754,7 @@ const en: TranslationDictionary = {
         emptyValue: 'Add email address',
         errors: {
           invalid: 'Please enter a valid email address.',
+          generic: 'We couldn’t update your email. Please try again.',
         },
         resendMethod: 'Email',
         resendButton: 'Resend the code via email',
@@ -775,6 +782,17 @@ const en: TranslationDictionary = {
         errors: {
           invalidCurrent: 'Wrong password. Please try again.',
           mismatch: 'Passwords do not match.',
+          generic: 'We couldn’t update your password. Please try again.',
+        },
+      },
+      dob: {
+        title: 'Update date of birth',
+        currentLabel: 'Current date of birth',
+        prompt: 'Enter your date of birth (optional)',
+        placeholder: 'YYYY-MM-DD',
+        emptyValue: 'Add date of birth',
+        errors: {
+          invalid: 'Please enter a valid date in YYYY-MM-DD format.',
         },
       },
     },
