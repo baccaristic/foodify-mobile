@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ActivityIndicator,
+} from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import { useTranslation } from '~/localization';
+import { useMutation } from '@tanstack/react-query';
+import { updateClientProfile } from '~/api/profile';
+import useAuth from '~/hooks/useAuth';
 
 const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
   const [currentPass, setCurrentPass] = useState('');
@@ -10,22 +21,45 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
   const [confirmPass, setConfirmPass] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
+  const { updateUser } = useAuth();
 
 
   const invalidError = t('profile.modals.password.errors.invalidCurrent');
   const mismatchError = t('profile.modals.password.errors.mismatch');
 
+  const mutation = useMutation({
+    mutationFn: updateClientProfile,
+    onSuccess: async (updatedUser) => {
+      await updateUser(updatedUser);
+      setError(null);
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+      onClose();
+    },
+    onError: () => {
+      setError(t('profile.modals.password.errors.generic'));
+    },
+  });
+
+  const isPending = mutation.isPending;
+
   const handleContinue = () => {
-    if (currentPass !== 'correctpassword') {
-      setError(invalidError);
-      return;
-    }
     if (newPass !== confirmPass) {
       setError(mismatchError);
       return;
     }
+    const trimmedCurrent = currentPass.trim();
+    const trimmedNew = newPass.trim();
+
+    if (!trimmedCurrent || !trimmedNew) {
+      setError(invalidError);
+      return;
+    }
+
     setError(null);
-    console.log('Password changed!');
+    Keyboard.dismiss();
+    mutation.mutate({ currentPassword: trimmedCurrent, newPassword: trimmedNew });
   };
 
   return (
@@ -79,12 +113,22 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
             }}
           />
 
-          {error === mismatchError && <Text style={styles.error}>{error}</Text>}
+          {(error === mismatchError || (error && error !== invalidError && error !== mismatchError)) && (
+            <Text style={styles.error}>{error}</Text>
+          )}
 
-          <TouchableOpacity style={styles.button} onPress={handleContinue}>
-            <Text allowFontScaling={false} style={styles.buttonText}>
-              {t('profile.modals.common.continue')}
-            </Text>
+          <TouchableOpacity
+            style={[styles.button, isPending && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text allowFontScaling={false} style={styles.buttonText}>
+                {t('profile.modals.common.continue')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -113,6 +157,9 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: '20@vs',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: { color: '#fff', fontSize: '16@ms', fontWeight: '600' },
   error: { color: '#CA251B', fontSize: '14@ms', marginVertical: '5@vs' },

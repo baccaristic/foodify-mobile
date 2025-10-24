@@ -740,6 +740,9 @@ const fr: TranslationDictionary = {
     modals: {
       common: {
         continue: 'Continuer',
+        errors: {
+          generic: 'Nous n\'avons pas pu mettre à jour votre profil. Veuillez réessayer.',
+        },
       },
       name: {
         title: 'Modifier le nom',
@@ -747,6 +750,9 @@ const fr: TranslationDictionary = {
         prompt: 'Saisissez votre nouveau nom',
         firstPlaceholder: 'Prénom',
         lastPlaceholder: 'Nom',
+        errors: {
+          required: 'Veuillez saisir votre prénom et votre nom.',
+        },
       },
       email: {
         title: 'Modifier l\'adresse e-mail',
@@ -756,6 +762,7 @@ const fr: TranslationDictionary = {
         emptyValue: 'Ajouter une adresse e-mail',
         errors: {
           invalid: 'Veuillez saisir une adresse e-mail valide.',
+          generic: 'Nous n\'avons pas pu mettre à jour votre e-mail. Veuillez réessayer.',
         },
         resendMethod: 'E-mail',
         resendButton: 'Renvoyer le code par e-mail',
@@ -783,6 +790,17 @@ const fr: TranslationDictionary = {
         errors: {
           invalidCurrent: 'Mot de passe incorrect. Veuillez réessayer.',
           mismatch: 'Les mots de passe ne correspondent pas.',
+          generic: 'Nous n\'avons pas pu mettre à jour votre mot de passe. Veuillez réessayer.',
+        },
+      },
+      dob: {
+        title: 'Mettre à jour la date de naissance',
+        currentLabel: 'Date de naissance actuelle',
+        prompt: 'Saisissez votre date de naissance (facultatif)',
+        placeholder: 'AAAA-MM-JJ',
+        emptyValue: 'Ajouter une date de naissance',
+        errors: {
+          invalid: 'Veuillez saisir une date valide au format AAAA-MM-JJ.',
         },
       },
     },

@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ActivityIndicator,
+} from 'react-native';
 import { ScaledSheet } from 'react-native-size-matters';
-import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
 import { useTranslation } from '~/localization';
+import { useMutation } from '@tanstack/react-query';
+import { updateClientProfile } from '~/api/profile';
 
 const palette = {
   accent: '#CA251B',
@@ -13,34 +22,41 @@ const palette = {
 
 const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
   const [newEmail, setNewEmail] = useState('');
-  const [stage, setStage] = useState<'form' | 'verify'>('form');
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { t } = useTranslation();
   const displayEmail = user?.email ?? t('profile.modals.email.emptyValue');
-  
+
+  const mutation = useMutation({
+    mutationFn: updateClientProfile,
+    onSuccess: async (updatedUser) => {
+      await updateUser(updatedUser);
+      onClose();
+    },
+    onError: () => {
+      setError(t('profile.modals.common.errors.generic'));
+    },
+  });
+
+  const isPending = mutation.isPending;
 
   const handleContinue = () => {
-    if (!newEmail.includes('@')) {
+    const trimmedEmail = newEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setError(t('profile.modals.email.errors.invalid'));
       return;
     }
-    setStage('verify');
-  };
 
-  if (stage === 'verify') {
-    return (
-      <VerificationCodeTemplate
-        contact={newEmail}
-        resendMethod={t('profile.modals.email.resendMethod')}
-        onResendPress={() => console.log('Resent code via email')}
-        onSubmit={(code) => console.log('Verified code:', code)}
-        errorMessage={error}
-        onClearError={() => setError(null)}
-        resendButtonLabel={t('profile.modals.email.resendButton')}
-      />
-    );
-  }
+    if (trimmedEmail === (user?.email ?? '').trim()) {
+      setError(null);
+      onClose();
+      return;
+    }
+
+    setError(null);
+    Keyboard.dismiss();
+    mutation.mutate({ email: trimmedEmail });
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -70,10 +86,18 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
 
           {error && <Text allowFontScaling={false} style={styles.errorText}>{error}</Text>}
 
-          <TouchableOpacity style={styles.button} onPress={handleContinue}>
-            <Text allowFontScaling={false} style={styles.buttonText}>
-              {t('profile.modals.common.continue')}
-            </Text>
+          <TouchableOpacity
+            style={[styles.button, isPending && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text allowFontScaling={false} style={styles.buttonText}>
+                {t('profile.modals.common.continue')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -129,6 +153,9 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: '24@vs',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',

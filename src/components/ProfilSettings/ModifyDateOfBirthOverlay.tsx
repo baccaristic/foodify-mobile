@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,21 +15,37 @@ import useAuth from '~/hooks/useAuth';
 import { useTranslation } from '~/localization';
 import { updateClientProfile } from '~/api/profile';
 
-const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [error, setError] = useState<string | null>(null);
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+const isValidDateString = (value: string) => {
+  if (!DATE_REGEX.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10));
+  if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00Z`);
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() + 1 === month &&
+    date.getUTCDate() === day
+  );
+};
+
+const ModifyDateOfBirthOverlay = ({ onClose }: { onClose: () => void }) => {
   const { user, updateUser } = useAuth();
   const { t } = useTranslation();
-  const displayName = user?.name ?? 'Guest User';
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.name) {
-      const parts = user.name.trim().split(/\s+/);
-      setFirstName(parts[0] ?? '');
-      setLastName(parts.slice(1).join(' '));
+    if (user?.dateOfBirth) {
+      setDateOfBirth(user.dateOfBirth);
     }
-  }, [user?.name]);
+  }, [user?.dateOfBirth]);
 
   const mutation = useMutation({
     mutationFn: updateClientProfile,
@@ -44,24 +60,14 @@ const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
 
   const isPending = mutation.isPending;
 
-  const buttonDisabled = useMemo(() => {
-    return (
-      isPending ||
-      !firstName.trim() ||
-      !lastName.trim() ||
-      `${firstName.trim()} ${lastName.trim()}`.trim() === (user?.name ?? '').trim()
-    );
-  }, [firstName, isPending, lastName, user?.name]);
-
   const handleSubmit = () => {
-    const trimmedFirst = firstName.trim();
-    const trimmedLast = lastName.trim();
-    if (!trimmedFirst || !trimmedLast) {
-      setError(t('profile.modals.name.errors.required'));
+    const trimmed = dateOfBirth.trim();
+    if (trimmed && !isValidDateString(trimmed)) {
+      setError(t('profile.modals.dob.errors.invalid'));
       return;
     }
 
-    if (`${trimmedFirst} ${trimmedLast}`.trim() === (user?.name ?? '').trim()) {
+    if (trimmed === (user?.dateOfBirth ?? '').trim()) {
       setError(null);
       onClose();
       return;
@@ -69,42 +75,34 @@ const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
 
     setError(null);
     Keyboard.dismiss();
-    mutation.mutate({ name: `${trimmedFirst} ${trimmedLast}`.trim() });
+    mutation.mutate(trimmed ? { dateOfBirth: trimmed } : { dateOfBirth: null });
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         <View style={styles.header}>
-
-          <HeaderWithBackButton title={t('profile.modals.name.title')} onBack={onClose} />
+          <HeaderWithBackButton title={t('profile.modals.dob.title')} onBack={onClose} />
         </View>
         <View style={styles.inner}>
           <Text allowFontScaling={false} style={styles.currentLabel}>
-            {t('profile.modals.name.currentLabel')}
+            {t('profile.modals.dob.currentLabel')}
           </Text>
-          <Text allowFontScaling={false} style={styles.currentValue}>{displayName}</Text>
+          <Text allowFontScaling={false} style={styles.currentValue}>
+            {user?.dateOfBirth ?? t('profile.modals.dob.emptyValue')}
+          </Text>
 
           <Text allowFontScaling={false} style={styles.label}>
-            {t('profile.modals.name.prompt')}
+            {t('profile.modals.dob.prompt')}
           </Text>
 
           <TextInput
-            placeholder={t('profile.modals.name.firstPlaceholder')}
+            placeholder={t('profile.modals.dob.placeholder')}
             style={styles.input}
-            value={firstName}
+            value={dateOfBirth}
             onChangeText={(text) => {
               setError(null);
-              setFirstName(text);
-            }}
-          />
-          <TextInput
-            placeholder={t('profile.modals.name.lastPlaceholder')}
-            style={styles.input}
-            value={lastName}
-            onChangeText={(text) => {
-              setError(null);
-              setLastName(text);
+              setDateOfBirth(text);
             }}
           />
 
@@ -115,9 +113,9 @@ const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
           )}
 
           <TouchableOpacity
-            style={[styles.button, buttonDisabled && styles.buttonDisabled]}
+            style={[styles.button, isPending && styles.buttonDisabled]}
             onPress={handleSubmit}
-            disabled={buttonDisabled}
+            disabled={isPending}
           >
             {isPending ? (
               <ActivityIndicator color="#fff" />
@@ -147,7 +145,6 @@ const styles = ScaledSheet.create({
     paddingVertical: '10@vs',
     fontSize: '15@ms',
     color: '#000',
-    marginBottom: '10@vs',
   },
   button: {
     backgroundColor: '#747C8C',
@@ -155,7 +152,7 @@ const styles = ScaledSheet.create({
     height: '46@vs',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: '20@vs',
+    marginTop: '24@vs',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -164,4 +161,5 @@ const styles = ScaledSheet.create({
   error: { color: '#CA251B', fontSize: '14@ms', marginTop: '8@vs' },
 });
 
-export default ModifyNameOverlay;
+export default ModifyDateOfBirthOverlay;
+

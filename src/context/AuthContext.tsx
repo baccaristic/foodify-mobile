@@ -32,6 +32,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
   }, []);
 
+  const persistUser = useCallback(async (nextUser: User | null) => {
+    if (nextUser) {
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(nextUser));
+    } else {
+      await SecureStore.deleteItemAsync(USER_KEY);
+    }
+  }, []);
+
   const clearPersistedSession = useCallback(async () => {
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
     await SecureStore.deleteItemAsync(USER_KEY);
@@ -114,6 +122,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [clearPersistedSession, syncClientToken]);
 
+  const updateUser = useCallback(
+    async (nextUser: User) => {
+      setUser(nextUser);
+      await persistUser(nextUser);
+    },
+    [persistUser],
+  );
+
   const value = useMemo<AuthState>(
     () => ({
       user,
@@ -123,9 +139,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout,
       restoreSession,
       applyAuthResponse,
+      updateUser,
       requiresAuth: Boolean(user && accessToken),
     }),
-    [user, accessToken, isLoading, login, logout, restoreSession, applyAuthResponse],
+    [user, accessToken, isLoading, login, logout, restoreSession, applyAuthResponse, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
