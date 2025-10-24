@@ -23,6 +23,7 @@ export interface User {
   role?: string;
   phoneVerified?: boolean | null;
   emailVerified?: boolean | null;
+  dateOfBirth?: string | null;
 }
 
 export interface LoginRequest {
@@ -61,6 +62,7 @@ export interface LogoutRequest {
 export type PhoneSignupNextStep =
   | 'VERIFY_PHONE_CODE'
   | 'PROVIDE_EMAIL'
+  | 'VERIFY_EMAIL_CODE'
   | 'PROVIDE_NAME'
   | 'ACCEPT_LEGAL_TERMS'
   | 'COMPLETED';
@@ -70,6 +72,7 @@ export interface PhoneSignupStateResponse {
   phoneNumber: string;
   phoneVerified: boolean;
   emailProvided: boolean;
+  emailVerified: boolean;
   nameProvided: boolean;
   termsAccepted: boolean;
   completed: boolean;
@@ -78,9 +81,14 @@ export interface PhoneSignupStateResponse {
   resendAvailableAt: string | null;
   attemptsRemaining: number | null;
   resendsRemaining: number;
+  emailCodeExpiresAt: string | null;
+  emailResendAvailableAt: string | null;
+  emailAttemptsRemaining: number | null;
+  emailResendsRemaining: number;
   email: string | null;
   firstName: string | null;
   lastName: string | null;
+  dateOfBirth: string | null;
   loginAttempt: boolean;
   accessToken: string | null;
   refreshToken: string | null;

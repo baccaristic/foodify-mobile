@@ -42,6 +42,19 @@ const PhoneEmailEntry = () => {
     setEmail(state.email ?? '');
   }, [navigation, state]);
 
+  useEffect(() => {
+    if (!state || hasAuthPayload || state.completed) {
+      return;
+    }
+
+    if (state.nextStep && state.nextStep !== 'PROVIDE_EMAIL') {
+      const nextRoute = getRouteForPhoneSignupStep(state.nextStep);
+      if (nextRoute && nextRoute !== 'PhoneEmailEntry') {
+        navigation.navigate(nextRoute as never);
+      }
+    }
+  }, [hasAuthPayload, navigation, state]);
+
   const isFormValid = useMemo(() => EMAIL_REGEX.test(email.trim().toLowerCase()), [email]);
 
   const handleSubmit = async () => {

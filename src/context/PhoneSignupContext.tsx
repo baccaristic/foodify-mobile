@@ -13,7 +13,9 @@ import {
   providePhoneSignupEmail,
   providePhoneSignupName,
   resendPhoneSignupCode,
+  resendPhoneSignupEmailCode,
   startPhoneSignup,
+  verifyPhoneSignupEmailCode,
   verifyPhoneSignupCode,
 } from '~/api/auth';
 import { useAuthContext } from '~/context/AuthContext';
@@ -25,8 +27,14 @@ interface PhoneSignupContextValue {
   startSignup: (phoneNumber: string) => Promise<PhoneSignupStateResponse>;
   verifyCode: (code: string) => Promise<PhoneSignupStateResponse>;
   resendCode: () => Promise<PhoneSignupStateResponse>;
+  verifyEmailCode: (code: string) => Promise<PhoneSignupStateResponse>;
+  resendEmailCode: () => Promise<PhoneSignupStateResponse>;
   provideEmail: (email: string) => Promise<PhoneSignupStateResponse>;
-  provideName: (firstName: string, lastName: string) => Promise<PhoneSignupStateResponse>;
+  provideName: (
+    firstName: string,
+    lastName: string,
+    dateOfBirth: string,
+  ) => Promise<PhoneSignupStateResponse>;
   acceptTerms: () => Promise<CompletePhoneSignupResponse>;
   loadSession: (sessionId: string) => Promise<PhoneSignupStateResponse>;
   reset: () => void;
@@ -125,12 +133,37 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
     [requireSessionId, updateState],
   );
 
-  const provideNameHandler = useCallback(
-    async (firstName: string, lastName: string) => {
+  const verifyEmailCodeHandler = useCallback(
+    async (code: string) => {
       const sessionId = requireSessionId();
       setIsLoading(true);
       try {
-        const response = await providePhoneSignupName({ sessionId, firstName, lastName });
+        const response = await verifyPhoneSignupEmailCode({ sessionId, code });
+        return await updateState(response);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [requireSessionId, updateState],
+  );
+
+  const resendEmailCodeHandler = useCallback(async () => {
+    const sessionId = requireSessionId();
+    setIsLoading(true);
+    try {
+      const response = await resendPhoneSignupEmailCode({ sessionId });
+      return await updateState(response);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [requireSessionId, updateState]);
+
+  const provideNameHandler = useCallback(
+    async (firstName: string, lastName: string, dateOfBirth: string) => {
+      const sessionId = requireSessionId();
+      setIsLoading(true);
+      try {
+        const response = await providePhoneSignupName({ sessionId, firstName, lastName, dateOfBirth });
         return await updateState(response);
       } finally {
         setIsLoading(false);
@@ -180,6 +213,8 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
       startSignup: startSignupHandler,
       verifyCode: verifyCodeHandler,
       resendCode: resendCodeHandler,
+      verifyEmailCode: verifyEmailCodeHandler,
+      resendEmailCode: resendEmailCodeHandler,
       provideEmail: provideEmailHandler,
       provideName: provideNameHandler,
       acceptTerms: acceptTermsHandler,
@@ -192,6 +227,8 @@ export const PhoneSignupProvider = ({ children }: { children: ReactNode }) => {
       startSignupHandler,
       verifyCodeHandler,
       resendCodeHandler,
+      verifyEmailCodeHandler,
+      resendEmailCodeHandler,
       provideEmailHandler,
       provideNameHandler,
       acceptTermsHandler,

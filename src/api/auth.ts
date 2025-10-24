@@ -77,8 +77,24 @@ export async function providePhoneSignupName(payload: {
   sessionId: string;
   firstName: string;
   lastName: string;
+  dateOfBirth: string;
 }): Promise<PhoneSignupStateResponse> {
   const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/name', payload);
+  return data;
+}
+
+export async function verifyPhoneSignupEmailCode(payload: {
+  sessionId: string;
+  code: string;
+}): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/email/verify', payload);
+  return data;
+}
+
+export async function resendPhoneSignupEmailCode(payload: {
+  sessionId: string;
+}): Promise<PhoneSignupStateResponse> {
+  const { data } = await client.post<PhoneSignupStateResponse>('/auth/phone/email/resend', payload);
   return data;
 }
 
