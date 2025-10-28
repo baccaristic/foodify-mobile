@@ -188,7 +188,11 @@ export default function HomePage() {
           <item.Icon size={s(28)} color={item.iconTintColor} />
         </View>
         <View style={styles.categoryTextContainer}>
-          <Text allowFontScaling={false} style={styles.categoryLabelFixed} numberOfLines={2}>
+          <Text
+            allowFontScaling={false}
+            style={[styles.categoryLabelFixed, item.isDiscount ? styles.discountCategoryLabel : null]}
+            numberOfLines={2}
+          >
             {item.label}
           </Text>
         </View>
@@ -1090,6 +1094,10 @@ const styles = ScaledSheet.create({
     color: '#FFFFFF',
     fontSize: '11@ms',
     textAlign: 'center',
+  },
+
+  discountCategoryLabel: {
+    fontWeight: '700',
   },
 
   categoryIconWrapper: {
