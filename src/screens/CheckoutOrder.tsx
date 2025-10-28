@@ -1006,6 +1006,8 @@ const CheckoutOrder: React.FC = () => {
       const numericUserId =
         typeof user?.id === 'number' ? user.id : Number(user?.id);
 
+      const paymentMethodPayload = selectedPaymentMethod === 'CASH' ? 'cash' : 'card';
+
       const payload = {
         deliveryAddress: selectedAddress.formattedAddress,
         items: items.map((item) => {
@@ -1021,7 +1023,7 @@ const CheckoutOrder: React.FC = () => {
           lat: latCandidate,
           lng: lngCandidate,
         },
-        paymentMethod: selectedPaymentMethod,
+        paymentMethod: paymentMethodPayload,
         restaurantId: restaurant.id,
         userId: Number.isFinite(numericUserId) ? Number(numericUserId) : undefined,
         savedAddressId: selectedAddress.id,
