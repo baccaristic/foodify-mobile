@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   GestureResponderEvent,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -1005,6 +1006,8 @@ const CheckoutOrder: React.FC = () => {
       const numericUserId =
         typeof user?.id === 'number' ? user.id : Number(user?.id);
 
+      const paymentMethodPayload = selectedPaymentMethod === 'CASH' ? 'cash' : 'card';
+
       const payload = {
         deliveryAddress: selectedAddress.formattedAddress,
         items: items.map((item) => {
@@ -1020,7 +1023,7 @@ const CheckoutOrder: React.FC = () => {
           lat: latCandidate,
           lng: lngCandidate,
         },
-        paymentMethod: selectedPaymentMethod,
+        paymentMethod: paymentMethodPayload,
         restaurantId: restaurant.id,
         userId: Number.isFinite(numericUserId) ? Number(numericUserId) : undefined,
         savedAddressId: selectedAddress.id,
@@ -1036,6 +1039,27 @@ const CheckoutOrder: React.FC = () => {
       setComment('');
       setAllergies('');
       navigation.navigate('OrderTracking', { order: response });
+
+      const paymentUrl =
+        typeof response?.payment?.paymentUrl === 'string'
+          ? response.payment.paymentUrl.trim()
+          : '';
+
+      if (paymentUrl) {
+        try {
+          const canOpen = await Linking.canOpenURL(paymentUrl);
+          if (!canOpen) {
+            throw new Error('UNSUPPORTED_URL');
+          }
+          await Linking.openURL(paymentUrl);
+        } catch (error) {
+          console.warn('Failed to open Konnect payment URL', error);
+          Alert.alert(
+            t('orderTracking.payment.openErrorTitle'),
+            t('orderTracking.payment.openErrorMessage'),
+          );
+        }
+      }
     } catch (error) {
       console.error('Failed to create order:', error);
       const message = (() => {

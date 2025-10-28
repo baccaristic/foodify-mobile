@@ -417,6 +417,23 @@ const fr: TranslationDictionary = {
       empty: 'Les articles apparaîtront une fois la commande confirmée.',
       detailsCta: 'Voir les détails',
     },
+    payment: {
+      title: 'Paiement en ligne',
+      pendingDescription: 'Finalisez le paiement Konnect pour confirmer votre commande.',
+      statusDescription: 'Nous mettrons cette page à jour dès que le statut du paiement changera.',
+      environmentLabel: 'Environnement : {{environment}}',
+      referenceLabel: 'Référence de paiement : {{reference}}',
+      resumeCta: 'Reprendre le paiement',
+      openErrorTitle: 'Impossible d’ouvrir le lien de paiement',
+      openErrorMessage:
+        'Nous n’avons pas pu ouvrir la page de paiement Konnect. Réessayez ou copiez le lien dans votre navigateur.',
+      statusNames: {
+        pending: 'En attente',
+        paid: 'Payé',
+        failed: 'Échoué',
+        expired: 'Expiré',
+      },
+    },
     courier: {
       pending: 'Livreur attribué bientôt',
       label: 'Livré par',
