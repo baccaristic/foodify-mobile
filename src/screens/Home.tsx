@@ -108,7 +108,7 @@ const toSectionLabel = (key: SectionKey, translate: (value: string) => string) =
 };
 
 const INITIAL_PAGE = 0;
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 5;
 
 export default function HomePage() {
   const navigation = useNavigation();
