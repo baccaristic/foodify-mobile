@@ -40,8 +40,14 @@ const FixedOrderBar: React.FC<FixedOrderBarProps> = ({
 
   return (
     <View
-      className="absolute left-0 right-0 z-50 flex-row items-center justify-between bg-white px-4 py-3 shadow-lg"
-      style={style}>
+      className="absolute left-0 right-0 z-50 flex-row items-center justify-between bg-white px-4 py-3 "
+      style={[
+      style,
+      {
+        borderTopWidth: 1,
+        borderTopColor: '#E8E9EC',
+      },
+    ]}>
       <Text allowFontScaling={false} className="text-base font-bold text-[#CA251B]">
         {orderSummary}
       </Text>

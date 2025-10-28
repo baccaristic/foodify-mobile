@@ -8,7 +8,7 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
+import { ScaledSheet, verticalScale } from 'react-native-size-matters';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import { useTranslation } from '~/localization';
 import { useMutation } from '@tanstack/react-query';
@@ -138,7 +138,7 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
 
 const styles = ScaledSheet.create({
   header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff',paddingVertical:verticalScale(5) },
   inner: { paddingHorizontal: '20@s', paddingVertical: '30@vs' },
   label: { color: '#000', fontSize: '16@ms', fontWeight: '600', marginBottom: '6@vs' },
   input: {

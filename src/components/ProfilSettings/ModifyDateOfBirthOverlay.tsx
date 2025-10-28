@@ -8,7 +8,7 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
+import { ScaledSheet, verticalScale } from 'react-native-size-matters';
 import { useMutation } from '@tanstack/react-query';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
@@ -133,7 +133,7 @@ const ModifyDateOfBirthOverlay = ({ onClose }: { onClose: () => void }) => {
 
 const styles = ScaledSheet.create({
   header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' ,paddingVertical:verticalScale(5)},
   inner: { paddingHorizontal: '20@s', paddingVertical: '30@vs' },
   currentLabel: { color: '#17213A', fontWeight: '700', fontSize: '17@ms' },
   currentValue: { color: '#17213A', fontWeight: '500', fontSize: '15@ms', marginBottom: '20@vs' },

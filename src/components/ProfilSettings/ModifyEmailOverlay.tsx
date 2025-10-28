@@ -8,7 +8,7 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
+import { ScaledSheet, verticalScale } from 'react-native-size-matters';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
 import { useTranslation } from '~/localization';
@@ -111,6 +111,7 @@ const styles = ScaledSheet.create({
   overlayContainer: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingVertical:verticalScale(5)
   },
   innerContainer: {
     paddingHorizontal: '20@s',

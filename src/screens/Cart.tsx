@@ -40,13 +40,13 @@ const CartItemRow: React.FC<{
   const handlePlus = () => onUpdateQuantity(item.id, item.quantity + 1);
 
   return (
-    <View className="mb-4 flex-row items-center rounded-3xl border border-gray-200 bg-white">
+    <View className="mb-4 flex-row items-center rounded-3xl border border-gray-100 bg-white shadow-md">
       <View className="relative mr-3 h-20 w-1/4 overflow-hidden rounded-3xl">
         <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         <TouchableOpacity
           className="absolute left-1 top-1 items-center justify-center rounded-full bg-white p-1 shadow-sm"
           onPress={() => onRemove(item.id)}>
-          <Trash2 size={12} color={primaryColor} />
+          <Trash2 size={16} color={primaryColor} />
         </TouchableOpacity>
       </View>
 
@@ -54,7 +54,7 @@ const CartItemRow: React.FC<{
         <Text allowFontScaling={false} className="pr-6 text-sm font-bold text-[#17213A]" numberOfLines={1}>
           {item.name}
         </Text>
-        <TouchableOpacity onPress={() => onModify(item)} className="mt-1 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
+        <TouchableOpacity onPress={() => onModify(item)} className="mt-1 self-start rounded-full bg-[#FDE7E5] px-3 py-2">
           <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
             {t('common.modify')}
           </Text>
@@ -89,7 +89,7 @@ const CartItemRow: React.FC<{
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={handleMinus}
-            className={`rounded-full border p-1 ${isMinQuantity ? 'border-gray-300 bg-[#CA251B]/20' : 'border-[#CA251B] bg-[#CA251B]'}`}
+            className={`rounded-full border p-1 ${isMinQuantity ? 'border-gray-100 bg-[#CA251B]/20' : 'border-[#CA251B] bg-[#CA251B]'}`}
             disabled={isMinQuantity}>
             <Minus size={16} color={isMinQuantity ? primaryColor : 'white'} />
           </TouchableOpacity>
@@ -98,7 +98,7 @@ const CartItemRow: React.FC<{
             {item.quantity}
           </Text>
 
-          <TouchableOpacity onPress={handlePlus} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-1">
+          <TouchableOpacity onPress={handlePlus} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-1 mr-2">
             <Plus size={16} color="white" />
           </TouchableOpacity>
         </View>

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
 import { Check, Languages } from 'lucide-react-native';
 import MainLayout from '~/layouts/MainLayout';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
@@ -58,7 +58,7 @@ const LanguageSettingsScreen = () => {
                   <Text allowFontScaling={false} style={styles.optionLabel}>
                     {t(`profile.language.options.${option.value}`, { defaultValue: option.label })}
                   </Text>
-                  <Text allowFontScaling={false} style={styles.optionHint}>
+                  <Text allowFontScaling={false} style={styles.optionHint} numberOfLines={2}>
                     {t(`profile.language.hints.${option.value}`, { defaultValue: option.label })}
                   </Text>
                 </View>
@@ -158,6 +158,7 @@ const styles = ScaledSheet.create({
     fontSize: '12@ms',
     color: palette.muted,
     marginTop: '2@vs',
+    maxWidth:moderateScale(208)
   },
   checkMark: {
     width: '28@s',

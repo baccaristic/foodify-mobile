@@ -73,7 +73,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
   return (
     <TouchableOpacity style={{ width: width / 2 - 24 }} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md" onPress={() => onOpenModal(item.id)}>
       <View className="relative">
-        <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="contain" />
+        <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="cover" />
         {promotionActive && item.promotionLabel ? (
           <View className="absolute left-2 top-2 rounded-full bg-[#CA251B]/90 px-2 py-1">
             <Text allowFontScaling={false} className="text-[10px] font-semibold uppercase text-white">
@@ -83,7 +83,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
         ) : null}
       </View>
 
-      <View className="flex flex-col gap-1 p-3">
+      <View className="flex flex-col p-3">
         <Text allowFontScaling={false} className="text-sm font-bold text-[#17213A]" numberOfLines={1}>
           {item.name}
         </Text>
@@ -96,16 +96,20 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
             <Text allowFontScaling={false} className="font-bold text-[#CA251B]">
               {displayPrice}
             </Text>
-            {promotionActive ? (
-              <Text allowFontScaling={false} className="text-xs font-semibold text-gray-400 line-through">
-                {formatCurrency(item.price)}
-              </Text>
-            ) : null}
+
           </View>
 
           <TouchableOpacity className="rounded-full bg-[#CA251B] p-1.5 text-white shadow-md" onPress={() => onOpenModal(item.id)}>
             <Plus size={18} color="white" />
           </TouchableOpacity>
+
+        </View>
+        <View >
+          {promotionActive ? (
+            <Text allowFontScaling={false} className="text-xs font-semibold text-gray-400 line-through">
+              {formatCurrency(item.price)}
+            </Text>
+          ) : null}
         </View>
       </View>
     </TouchableOpacity>
@@ -945,7 +949,7 @@ export default function RestaurantDetails() {
       ) : null}
 
       {hasCartItems && !isModalVisible && (
-        <FixedOrderBar onSeeCart={handleSeeCart} style={{ bottom:moderateScale(72) + insets.bottom }} />
+        <FixedOrderBar onSeeCart={handleSeeCart} style={{ bottom: moderateScale(72) + insets.bottom }} />
       )}
 
       {isModalVisible && selectedMenuItem && (

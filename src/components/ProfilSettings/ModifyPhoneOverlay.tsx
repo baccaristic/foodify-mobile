@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { ScaledSheet } from 'react-native-size-matters';
+import { ScaledSheet, verticalScale } from 'react-native-size-matters';
 import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
@@ -86,6 +86,7 @@ const styles = ScaledSheet.create({
   overlayContainer: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingVertical:verticalScale(5)
   },
   innerContainer: {
     paddingHorizontal: '20@s',

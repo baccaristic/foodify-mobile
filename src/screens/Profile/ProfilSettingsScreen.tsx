@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
-import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
 import { User, Phone, Mail, Lock, Star, Languages, ChevronRight, CalendarDays } from 'lucide-react-native';
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
@@ -69,12 +69,12 @@ const ProfileSettingsScreen = () => {
         <View style={styles.divider} />
 
         <View style={styles.infoRow}>
-          <View style={styles.infoLeft}>
+          <View style={styles.infoLeft} >
             <CalendarDays size={20} color={palette.accent} />
-            <Text allowFontScaling={false} style={styles.infoText}>{displayDob}</Text>
+            <Text allowFontScaling={false} style={styles.infoText}numberOfLines={2}>{displayDob}</Text>
           </View>
           <TouchableOpacity style={styles.modifyButton} onPress={() => openOverlay('dob')}>
-            <Text allowFontScaling={false} style={styles.modifyText}>
+            <Text allowFontScaling={false} style={styles.modifyText} numberOfLines={2}>
               {t('profile.settings.actions.modify')}
             </Text>
           </TouchableOpacity>
@@ -227,14 +227,14 @@ const styles = ScaledSheet.create({
     color: palette.accentDark,
     fontSize: '14@ms',
     fontWeight: '600',
-    maxWidth: '90%',
+    maxWidth:moderateScale(184),
   }, modifyButton: {
     backgroundColor: palette.accent,
     paddingVertical: '4@vs',
     paddingHorizontal: '16@s',
     borderRadius: '20@ms',
   },
-  modifyText: { color: '#FFFFFF', fontSize: '13@ms', fontWeight: '600' },
+  modifyText: { color: '#FFFFFF', fontSize: '13@ms', fontWeight: '600' ,},
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E5E5E5' },
   linkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: '12@vs' },
 });
