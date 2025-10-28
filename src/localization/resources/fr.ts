@@ -67,10 +67,10 @@ const fr: TranslationDictionary = {
   },
   home: {
     sections: {
-      topPicks: 'Nos meilleures suggestions pour vous',
-      orderAgain: 'Commander à nouveau',
-      promotions: 'Promotions',
-      others: 'Autres restaurants',
+      top: 'Nos meilleures suggestions pour vous',
+      favorites: 'Vos favoris à proximité',
+      orders: 'Commander à nouveau',
+      restaurants: 'Restaurants à proximité',
     },
     rating: {
       new: 'Nouveau',

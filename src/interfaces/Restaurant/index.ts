@@ -130,31 +130,29 @@ export interface RestaurantSummary {
   cuisineCategories?: RestaurantCategory[];
 }
 
-export interface NearbyRestaurantsParams {
-  lat: number;
-  lng: number;
-  radiusKm?: number;
-  category?: RestaurantCategory;
-  page?: number;
-  pageSize?: number;
+export interface RestaurantDisplayDto {
+  id: number;
+  name: string;
+  description?: string | null;
+  address?: string | null;
+  type?: string | null;
+  rating?: string | number | null;
+  deliveryFee?: number | null;
+  openingHours?: string | null;
+  closingHours?: string | null;
+  imageUrl?: string | null;
+  iconUrl?: string | null;
+  favorite?: boolean;
+  hasPromotion?: boolean;
+  promotionSummary?: string | null;
+  cuisineCategories?: RestaurantCategory[];
 }
 
-export interface RestaurantCategorySection {
-  displayType: string;
-  restaurants: RestaurantSummary[];
-}
-
-export interface PaginatedRestaurantCategorySection extends RestaurantCategorySection {
+export interface PageResponse<T> {
+  items: T[];
   page: number;
   pageSize: number;
-  totalElements: number;
-}
-
-export interface NearbyRestaurantsResponse {
-  topPicks?: RestaurantCategorySection;
-  orderAgain?: RestaurantCategorySection;
-  promotions?: RestaurantCategorySection;
-  others: PaginatedRestaurantCategorySection;
+  totalItems: number;
 }
 
 export type RestaurantSearchSort = "picked" | "popular" | "rating";
