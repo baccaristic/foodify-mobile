@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -226,6 +226,14 @@ export default function HomePage() {
   const showSystemStatusOverlay = Boolean(
     deliveryStatusData && deliveryStatusData.status !== 'AVAILABLE'
   );
+
+  const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!showSystemStatusOverlay) {
+      setSystemStatusDismissed(false);
+    }
+  }, [showSystemStatusOverlay]);
 
   useFocusEffect(
     useCallback(() => {
@@ -798,12 +806,14 @@ export default function HomePage() {
         }}
       />
       <SystemStatusOverlay
-        visible={showSystemStatusOverlay && !isDeliveryStatusError}
+        visible={
+          showSystemStatusOverlay &&
+          !isDeliveryStatusError &&
+          !isSystemStatusDismissed
+        }
         status={deliveryNetworkStatus}
         message={deliveryStatusMessage}
-        availableDrivers={deliveryStatusData?.availableDrivers}
-        waitingForAssignment={deliveryStatusData?.waitingForAssignment}
-        awaitingDriverResponse={deliveryStatusData?.awaitingDriverResponse}
+        onRequestClose={() => setSystemStatusDismissed(true)}
       />
       <Modal
         visible={isPromotionsVisible}
