@@ -106,6 +106,36 @@ export const getNearbyRestaurantsPage = async ({
   return data;
 };
 
+export const getNearbyPromotions = async ({
+  lat,
+  lng,
+  page,
+  pageSize,
+}: NearbyRestaurantsPageParams): Promise<PageResponse<RestaurantDisplayDto>> => {
+  const safePage =
+    typeof page === 'number' && Number.isFinite(page) && page >= 0
+      ? Math.floor(page)
+      : 0;
+  const safePageSize =
+    typeof pageSize === 'number' && Number.isFinite(pageSize) && pageSize > 0
+      ? Math.floor(pageSize)
+      : 20;
+
+  const { data } = await client.get<PageResponse<RestaurantDisplayDto>>(
+    '/client/nearby/promotions',
+    {
+      params: {
+        lat,
+        lng,
+        page: safePage,
+        pageSize: safePageSize,
+      },
+    }
+  );
+
+  return data;
+};
+
 export const getRestaurantDetails = async ({ id, lat, lng }: { id: number; lat: number; lng: number }): Promise<RestaurantDetailsResponse> => {
   const { data } = await client.get<RestaurantDetailsResponse>(`/client/restaurant/${id}`, {
     params: {

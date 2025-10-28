@@ -145,6 +145,16 @@ const fr: TranslationDictionary = {
     },
     defaultType: 'Restaurant',
   },
+  promotionsOverlay: {
+    title: 'Réductions près de vous',
+    addressPrompt: 'Sélectionnez une adresse pour découvrir les bonnes affaires à proximité.',
+    empty: {
+      title: 'Aucune promotion disponible autour de vous pour le moment.',
+    },
+    error: {
+      title: 'Impossible de charger les promotions à proximité.',
+    },
+  },
   cart: {
     title: 'Mon panier',
     defaultRestaurantName: 'Restaurant',

@@ -35,6 +35,7 @@ import {
   CakeSlice,
   Coffee,
   Sprout,
+  Percent,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
@@ -54,16 +55,30 @@ import {
 import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
+import PromotionsOverlay from '~/components/PromotionsOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
 import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 
-type QuickCategoryItem = {
-  category: RestaurantCategory;
+type QuickCategoryBase = {
+  key: string;
   label: string;
   Icon: LucideIcon;
+  iconColor: string;
+  iconBackgroundColor: string;
+  labelColor: string;
+  labelBackgroundColor?: string;
 };
+
+type QuickCategoryItem =
+  | (QuickCategoryBase & {
+      type: 'promotions';
+    })
+  | (QuickCategoryBase & {
+      type: 'category';
+      category: RestaurantCategory;
+    });
 
 const SECTION_LABEL_KEYS = {
   top: 'home.sections.top',
@@ -116,40 +131,88 @@ export default function HomePage() {
   const { t } = useTranslation();
 
   const [selectedCategory, setSelectedCategory] = useState<RestaurantCategory | null>(null);
+  const [promotionsVisible, setPromotionsVisible] = useState(false);
   const listRef = useRef<FlatList>(null);
 
-  const handleCategoryPress = useCallback((category: RestaurantCategory) => {
-    setSelectedCategory(category);
-  }, []);
+  const handleQuickCategoryPress = useCallback(
+    (item: QuickCategoryItem) => {
+      if (item.type === 'promotions') {
+        setPromotionsVisible(true);
+        return;
+      }
+
+      setSelectedCategory(item.category);
+    },
+    [setSelectedCategory, setPromotionsVisible]
+  );
 
   const quickCategories = useMemo<QuickCategoryItem[]>(() => {
-    return (Object.values(RestaurantCategory) as RestaurantCategory[]).map((category) => {
+    const discountItem: QuickCategoryItem = {
+      key: 'promotions',
+      type: 'promotions',
+      label: t('home.categories.discount'),
+      Icon: Percent,
+      iconColor: '#B45309',
+      iconBackgroundColor: '#FEF3C7',
+      labelColor: '#92400E',
+      labelBackgroundColor: '#FDE68A',
+    };
+
+    const categoryItems = (Object.values(RestaurantCategory) as RestaurantCategory[]).map((category) => {
       const labelKey = getCategoryLabelKey(category);
       const label = labelKey ? t(labelKey) : toCategoryDisplayName(category);
       const Icon = CATEGORY_ICON_MAP[category] ?? Utensils;
 
-      return { category, label, Icon };
+      return {
+        key: category,
+        type: 'category' as const,
+        category,
+        label,
+        Icon,
+        iconColor: '#CA251B',
+        iconBackgroundColor: '#FFFFFF',
+        labelColor: '#17213A',
+      };
     });
+
+    return [discountItem, ...categoryItems];
   }, [t]);
 
   const renderQuickCategoryItem = useCallback(({ item }: { item: QuickCategoryItem }) => {
     return (
       <TouchableOpacity
         style={styles.categoryEqualWidth}
-        onPress={() => handleCategoryPress(item.category)}
+        onPress={() => handleQuickCategoryPress(item)}
         activeOpacity={0.88}
       >
-        <View style={styles.categoryIconWrapper}>
-          <item.Icon size={s(28)} color="#CA251B" />
+        <View
+          style={[
+            styles.categoryIconWrapper,
+            { backgroundColor: item.iconBackgroundColor },
+            item.type === 'promotions' ? styles.promotionsIconWrapper : null,
+          ]}
+        >
+          <item.Icon size={s(28)} color={item.iconColor} />
         </View>
-        <View style={styles.categoryTextContainer}>
-          <Text allowFontScaling={false} style={styles.categoryLabelFixed} numberOfLines={2}>
+        <View
+          style={[
+            styles.categoryTextContainer,
+            item.labelBackgroundColor
+              ? [styles.categoryLabelPill, { backgroundColor: item.labelBackgroundColor }]
+              : null,
+          ]}
+        >
+          <Text
+            allowFontScaling={false}
+            style={[styles.categoryLabelFixed, { color: item.labelColor }]}
+            numberOfLines={2}
+          >
             {item.label}
           </Text>
         </View>
       </TouchableOpacity>
     );
-  }, [handleCategoryPress]);
+  }, [handleQuickCategoryPress]);
 
   const { selectedAddress } = useSelectedAddress();
   const screenWidth = Dimensions.get('screen').width;
@@ -584,7 +647,7 @@ export default function HomePage() {
           horizontal
           data={quickCategories}
           renderItem={renderQuickCategoryItem}
-          keyExtractor={(item) => item.category}
+          keyExtractor={(item) => item.key}
           showsHorizontalScrollIndicator={false}
           style={styles.categoryList}
         />
@@ -644,6 +707,12 @@ export default function HomePage() {
           visible
           category={selectedCategory}
           onClose={() => setSelectedCategory(null)}
+        />
+      )}
+      {promotionsVisible && (
+        <PromotionsOverlay
+          visible={promotionsVisible}
+          onClose={() => setPromotionsVisible(false)}
         />
       )}
     </>
@@ -882,7 +951,7 @@ const styles = ScaledSheet.create({
   },
 
   categoryLabelFixed: {
-    color: '#FFFFFF',
+    color: '#17213A',
     fontSize: '11@ms',
     textAlign: 'center',
   },
@@ -893,11 +962,21 @@ const styles = ScaledSheet.create({
     paddingVertical: '8@vs',
     paddingHorizontal: '8@s',
   },
+  promotionsIconWrapper: {
+    borderColor: '#FCD34D',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   categoryTextContainer: {
     marginTop: '6@vs',
     minHeight: '28@vs',
     justifyContent: 'center',
     paddingHorizontal: '4@s',
+    alignItems: 'center',
+  },
+  categoryLabelPill: {
+    borderRadius: '16@ms',
+    paddingHorizontal: '8@s',
+    paddingVertical: '4@vs',
   },
   centeredHeaderGroup: {
     flexDirection: "row",
