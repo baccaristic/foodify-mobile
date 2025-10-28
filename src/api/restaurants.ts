@@ -1,12 +1,12 @@
 import client from './client';
 import type {
-  NearbyRestaurantsParams,
-  NearbyRestaurantsResponse,
+  CategoryRestaurantsResponse,
+  PageResponse,
+  RestaurantCategory,
   RestaurantDetailsResponse,
+  RestaurantDisplayDto,
   RestaurantSearchParams,
   RestaurantSearchResponse,
-  CategoryRestaurantsResponse,
-  RestaurantCategory,
 } from '~/interfaces/Restaurant';
 
 interface CategoryRestaurantsParams {
@@ -18,24 +18,90 @@ interface CategoryRestaurantsParams {
   sort?: string;
 }
 
-export const getNearbyRestaurants = async ({
+interface NearbyCoordinatesParams {
+  lat: number;
+  lng: number;
+}
+
+interface NearbyRestaurantsPageParams extends NearbyCoordinatesParams {
+  page?: number;
+  pageSize?: number;
+}
+
+export const getNearbyTopRestaurants = async ({
   lat,
   lng,
-  radiusKm = 1,
-  category,
-  page,
-  pageSize,
-}: NearbyRestaurantsParams): Promise<NearbyRestaurantsResponse> => {
-  const { data } = await client.get<NearbyRestaurantsResponse>('/client/nearby', {
+}: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
+  const { data } = await client.get<RestaurantDisplayDto[]>('/client/nearby/top', {
     params: {
       lat,
       lng,
-      radiusKm,
-      category,
-      page,
-      pageSize,
     },
   });
+
+  return data;
+};
+
+export const getNearbyFavoriteRestaurants = async ({
+  lat,
+  lng,
+}: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
+  const { data } = await client.get<RestaurantDisplayDto[]>(
+    '/client/nearby/favorites',
+    {
+      params: {
+        lat,
+        lng,
+      },
+    }
+  );
+
+  return data;
+};
+
+export const getNearbyRecentOrderRestaurants = async ({
+  lat,
+  lng,
+}: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
+  const { data } = await client.get<RestaurantDisplayDto[]>(
+    '/client/nearby/orders',
+    {
+      params: {
+        lat,
+        lng,
+      },
+    }
+  );
+
+  return data;
+};
+
+export const getNearbyRestaurantsPage = async ({
+  lat,
+  lng,
+  page,
+  pageSize,
+}: NearbyRestaurantsPageParams): Promise<PageResponse<RestaurantDisplayDto>> => {
+  const safePage =
+    typeof page === 'number' && Number.isFinite(page) && page >= 0
+      ? Math.floor(page)
+      : 0;
+  const safePageSize =
+    typeof pageSize === 'number' && Number.isFinite(pageSize) && pageSize > 0
+      ? Math.floor(pageSize)
+      : 20;
+
+  const { data } = await client.get<PageResponse<RestaurantDisplayDto>>(
+    '/client/nearby/restaurants',
+    {
+      params: {
+        lat,
+        lng,
+        page: safePage,
+        pageSize: safePageSize,
+      },
+    }
+  );
 
   return data;
 };

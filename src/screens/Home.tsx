@@ -39,19 +39,19 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
-import { getNearbyRestaurants } from "~/api/restaurants";
 import {
-  NearbyRestaurantsResponse,
-  RestaurantCategorySection,
-  RestaurantSummary,
-  RestaurantCategory,
-} from "~/interfaces/Restaurant";
+  getNearbyFavoriteRestaurants,
+  getNearbyRecentOrderRestaurants,
+  getNearbyRestaurantsPage,
+  getNearbyTopRestaurants,
+} from "~/api/restaurants";
+import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
@@ -59,13 +59,20 @@ import useLocationOverlay from '~/hooks/useLocationOverlay';
 import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 
-type SectionLayout = 'carousel' | 'flatList';
-
 type QuickCategoryItem = {
   category: RestaurantCategory;
   label: string;
   Icon: LucideIcon;
 };
+
+const SECTION_LABEL_KEYS = {
+  top: 'home.sections.top',
+  favorites: 'home.sections.favorites',
+  orders: 'home.sections.orders',
+  restaurants: 'home.sections.restaurants',
+} as const;
+
+type SectionKey = keyof typeof SECTION_LABEL_KEYS;
 
 const CATEGORY_ICON_MAP: Partial<Record<RestaurantCategory, LucideIcon>> = {
   [RestaurantCategory.ASIAN]: Soup,
@@ -96,32 +103,8 @@ const CATEGORY_ICON_MAP: Partial<Record<RestaurantCategory, LucideIcon>> = {
   [RestaurantCategory.TURKISH]: ChefHat,
 };
 
-const SECTION_LABEL_KEYS: Record<string, string> = {
-  topPicks: 'home.sections.topPicks',
-  orderAgain: 'home.sections.orderAgain',
-  promotions: 'home.sections.promotions',
-  others: 'home.sections.others',
-};
-
-const toSectionLabel = (key: string, translate: (value: string) => string) => {
-  if (SECTION_LABEL_KEYS[key]) {
-    return translate(SECTION_LABEL_KEYS[key]);
-  }
-
-  const spaced = key
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .toLowerCase();
-
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-};
-
-const resolveLayout = (displayType?: string | null): SectionLayout => {
-  if (typeof displayType === 'string' && displayType.toLowerCase() === 'carousel') {
-    return 'carousel';
-  }
-
-  return 'flatList';
+const toSectionLabel = (key: SectionKey, translate: (value: string) => string) => {
+  return translate(SECTION_LABEL_KEYS[key]);
 };
 
 const INITIAL_PAGE = 0;
@@ -169,136 +152,197 @@ export default function HomePage() {
   }, [handleCategoryPress]);
 
   const { selectedAddress } = useSelectedAddress();
-  const hasSelectedAddress = Boolean(selectedAddress?.coordinates);
   const screenWidth = Dimensions.get('screen').width;
 
   const userLatitude = selectedAddress?.coordinates.latitude;
   const userLongitude = selectedAddress?.coordinates.longitude;
 
-  const radiusKm = 10;
+  const hasValidCoordinates =
+    typeof userLatitude === 'number' &&
+    Number.isFinite(userLatitude) &&
+    typeof userLongitude === 'number' &&
+    Number.isFinite(userLongitude);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isRefetching,
-  } = useInfiniteQuery<NearbyRestaurantsResponse>({
-    queryKey: ['nearby-restaurants', userLatitude, userLongitude, radiusKm],
+  const topQuery = useQuery<RestaurantDisplayDto[]>({
+    queryKey: ['nearby-restaurants', 'top', userLatitude, userLongitude],
+    queryFn: () =>
+      getNearbyTopRestaurants({
+        lat: userLatitude as number,
+        lng: userLongitude as number,
+      }),
+    enabled: hasValidCoordinates,
+    staleTime: 60_000,
+  });
+
+  const favoritesQuery = useQuery<RestaurantDisplayDto[]>({
+    queryKey: ['nearby-restaurants', 'favorites', userLatitude, userLongitude],
+    queryFn: () =>
+      getNearbyFavoriteRestaurants({
+        lat: userLatitude as number,
+        lng: userLongitude as number,
+      }),
+    enabled: hasValidCoordinates,
+    staleTime: 60_000,
+  });
+
+  const recentOrdersQuery = useQuery<RestaurantDisplayDto[]>({
+    queryKey: ['nearby-restaurants', 'orders', userLatitude, userLongitude],
+    queryFn: () =>
+      getNearbyRecentOrderRestaurants({
+        lat: userLatitude as number,
+        lng: userLongitude as number,
+      }),
+    enabled: hasValidCoordinates,
+    staleTime: 60_000,
+  });
+
+  const restaurantsQuery = useInfiniteQuery<PageResponse<RestaurantDisplayDto>>({
+    queryKey: ['nearby-restaurants', 'list', userLatitude, userLongitude],
     queryFn: ({ pageParam = INITIAL_PAGE }) =>
-      getNearbyRestaurants({
-        lat: userLatitude,
-        lng: userLongitude,
-        radiusKm,
+      getNearbyRestaurantsPage({
+        lat: userLatitude as number,
+        lng: userLongitude as number,
         page: pageParam,
         pageSize: PAGE_SIZE,
       }),
     getNextPageParam: (lastPage) => {
-      const { page, pageSize, totalElements } = lastPage.others;
-      const fetchedItems = (page + 1) * pageSize;
-
-      if (fetchedItems >= totalElements) {
+      if (!lastPage || lastPage.items.length === 0) {
         return undefined;
       }
 
-      return page + 1;
+      const fetchedItems = (lastPage.page + 1) * lastPage.pageSize;
+
+      if (fetchedItems >= lastPage.totalItems) {
+        return undefined;
+      }
+
+      return lastPage.page + 1;
     },
     initialPageParam: INITIAL_PAGE,
-    enabled: hasSelectedAddress,
+    enabled: hasValidCoordinates,
   });
+
+  const topRestaurants = useMemo(() => topQuery.data ?? [], [topQuery.data]);
+  const favoriteRestaurants = useMemo(
+    () => favoritesQuery.data ?? [],
+    [favoritesQuery.data]
+  );
+  const recentOrderRestaurants = useMemo(
+    () => recentOrdersQuery.data ?? [],
+    [recentOrdersQuery.data]
+  );
+  const otherRestaurants = useMemo(
+    () => restaurantsQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [restaurantsQuery.data]
+  );
 
   type NearbyListItem =
     | {
-      type: 'section';
-      key: string;
-      title: string;
-      layout: SectionLayout;
-      restaurants: RestaurantSummary[];
-    }
+        type: 'topSection';
+        key: string;
+        title: string;
+        restaurants: RestaurantDisplayDto[];
+      }
+    | { type: 'carouselSection'; key: string; title: string; restaurants: RestaurantDisplayDto[] }
     | { type: 'othersHeader'; key: string; title: string }
-    | { type: 'restaurant'; key: string; restaurant: RestaurantSummary };
-
-  const topSections = useMemo(() => {
-    const firstPage = data?.pages[0];
-    if (!firstPage) {
-      return [] as NearbyListItem[];
-    }
-
-    const sections: { key: string; section?: RestaurantCategorySection }[] = [
-      { key: 'topPicks', section: firstPage.topPicks },
-      { key: 'orderAgain', section: firstPage.orderAgain },
-      { key: 'promotions', section: firstPage.promotions },
-    ];
-
-    return sections
-      .filter((entry): entry is { key: string; section: RestaurantCategorySection } =>
-        Boolean(entry.section && entry.section.restaurants.length > 0)
-      )
-      .map((entry) => ({
-        type: 'section' as const,
-        key: entry.key,
-        title: toSectionLabel(entry.key, t),
-        layout: resolveLayout(entry.section.displayType),
-        restaurants: entry.section.restaurants,
-      }));
-  }, [data, t]);
-
-  const otherRestaurants = useMemo(
-    () => data?.pages.flatMap((page) => page.others.restaurants) ?? [],
-    [data]
-  );
-
-  const othersLayout = useMemo(
-    () => resolveLayout(data?.pages[0]?.others.displayType),
-    [data]
-  );
+    | { type: 'restaurant'; key: string; restaurant: RestaurantDisplayDto };
 
   const listData = useMemo(() => {
-    const items: NearbyListItem[] = [...topSections];
+    const items: NearbyListItem[] = [];
+
+    if (topRestaurants.length > 0) {
+      items.push({
+        type: 'topSection',
+        key: 'top',
+        title: toSectionLabel('top', t),
+        restaurants: topRestaurants,
+      });
+    }
+
+    if (favoriteRestaurants.length > 0) {
+      items.push({
+        type: 'topSection',
+        key: 'favorites',
+        title: toSectionLabel('favorites', t),
+        restaurants: favoriteRestaurants,
+      });
+    }
+
+    if (recentOrderRestaurants.length > 0) {
+      items.push({
+        type: 'carouselSection',
+        key: 'orders',
+        title: toSectionLabel('orders', t),
+        restaurants: recentOrderRestaurants,
+      });
+    }
 
     if (otherRestaurants.length > 0) {
-      if (othersLayout === 'carousel') {
+      items.push({
+        type: 'othersHeader',
+        key: 'restaurants-header',
+        title: toSectionLabel('restaurants', t),
+      });
+
+      otherRestaurants.forEach((restaurant, index) => {
         items.push({
-          type: 'section',
-          key: 'others-carousel',
-          title: toSectionLabel('others', t),
-          layout: 'carousel',
-          restaurants: otherRestaurants,
+          type: 'restaurant',
+          key: `restaurant-${restaurant.id}-${index}`,
+          restaurant,
         });
-      } else {
-        items.push({
-          type: 'othersHeader',
-          key: 'others-header',
-          title: toSectionLabel('others', t),
-        });
-        otherRestaurants.forEach((restaurant, index) => {
-          items.push({
-            type: 'restaurant',
-            key: `restaurant-${restaurant.id}-${index}`,
-            restaurant,
-          });
-        });
-      }
+      });
     }
 
     return items;
-  }, [otherRestaurants, othersLayout, t, topSections]);
+  }, [favoriteRestaurants, otherRestaurants, recentOrderRestaurants, t, topRestaurants]);
+
+  const isLoading =
+    topQuery.isLoading ||
+    favoritesQuery.isLoading ||
+    recentOrdersQuery.isLoading ||
+    restaurantsQuery.isLoading;
+
+  const isError =
+    topQuery.isError ||
+    favoritesQuery.isError ||
+    recentOrdersQuery.isError ||
+    restaurantsQuery.isError;
+
+  const isRefetching =
+    topQuery.isRefetching ||
+    favoritesQuery.isRefetching ||
+    recentOrdersQuery.isRefetching ||
+    restaurantsQuery.isRefetching;
+
+  const isFetchingNextPage = restaurantsQuery.isFetchingNextPage;
 
   const handleEndReached = useCallback(() => {
-    if (!hasSelectedAddress) {
+    if (!hasValidCoordinates) {
       return;
     }
 
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+    if (restaurantsQuery.hasNextPage && !restaurantsQuery.isFetchingNextPage) {
+      restaurantsQuery.fetchNextPage();
     }
-  }, [fetchNextPage, hasNextPage, hasSelectedAddress, isFetchingNextPage]);
+  }, [hasValidCoordinates, restaurantsQuery]);
+
+  const refetchAll = useCallback(() => {
+    if (!hasValidCoordinates) {
+      return Promise.resolve();
+    }
+
+    return Promise.all([
+      topQuery.refetch(),
+      favoritesQuery.refetch(),
+      recentOrdersQuery.refetch(),
+      restaurantsQuery.refetch(),
+    ]);
+  }, [favoritesQuery, hasValidCoordinates, recentOrdersQuery, restaurantsQuery, topQuery]);
 
   const renderRestaurantCard = useCallback(
-    (restaurant: RestaurantSummary, options?: { width?: number | string }) => {
+    (restaurant: RestaurantDisplayDto, options?: { width?: number | string }) => {
+      const cardWidth = options?.width ?? screenWidth * 0.9;
+
       return (
         <RestaurantShowcaseCard
           name={restaurant.name}
@@ -310,23 +354,29 @@ export default function HomePage() {
           fallbackImageUrl={restaurant.iconUrl}
           openingHours={restaurant.openingHours}
           closingHours={restaurant.closingHours}
-          width={screenWidth * 0.9}
+          width={cardWidth}
           onPress={() =>
-            navigation.navigate('RestaurantDetails' as never, { restaurantId: restaurant.id } as never)
+            navigation.navigate('RestaurantDetails' as never, {
+              restaurantId: restaurant.id,
+            } as never)
           }
         />
       );
     },
-    [navigation]
+    [navigation, screenWidth]
   );
 
   const compactRestaurantCardWidth = useMemo(() => s(240), []);
 
   const renderTopPickCard = useCallback(
-    (restaurant: RestaurantSummary) => {
+    (restaurant: RestaurantDisplayDto) => {
+      const deliveryFee =
+        typeof restaurant.deliveryFee === 'number' && Number.isFinite(restaurant.deliveryFee)
+          ? restaurant.deliveryFee
+          : 0;
       const deliveryLabel =
-        restaurant.deliveryFee > 0
-          ? `${restaurant.deliveryFee.toFixed(3).replace('.', ',')} DT`
+        deliveryFee > 0
+          ? `${deliveryFee.toFixed(3).replace('.', ',')} DT`
           : t('home.delivery.free');
 
       const topPickImagePath = restaurant.iconUrl || restaurant.imageUrl;
@@ -372,49 +422,44 @@ export default function HomePage() {
 
   const renderItem = useCallback(
     ({ item }: { item: NearbyListItem }) => {
-      if (item.type === 'section') {
-        const isTopPicks = item.key === 'topPicks';
+      if (item.type === 'topSection') {
         return (
           <View style={styles.mainWrapper}>
             <View style={styles.sectionHeader}>
               <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
             </View>
-            {item.layout === 'carousel' ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.carouselList}
-              >
-                {item.restaurants.map((restaurant) => (
-                  <View
-                    key={restaurant.id}
-                    style={
-                      isTopPicks ? styles.topPickCarouselItem : styles.carouselCardContainer
-                    }
-                  >
-                    {isTopPicks
-                      ? renderTopPickCard(restaurant)
-                      : renderRestaurantCard(restaurant, { width: compactRestaurantCardWidth })}
-                  </View>
-                ))}
-              </ScrollView>
-            ) : isTopPicks ? (
-              <View style={styles.topPickGrid}>
-                {item.restaurants.map((restaurant) => (
-                  <View key={restaurant.id} style={styles.topPickGridItem}>
-                    {renderTopPickCard(restaurant)}
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View>
-                {item.restaurants.map((restaurant) => (
-                  <View key={restaurant.id} style={styles.cardContainer}>
-                    {renderRestaurantCard(restaurant)}
-                  </View>
-                ))}
-              </View>
-            )}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselList}
+            >
+              {item.restaurants.map((restaurant) => (
+                <View key={restaurant.id} style={styles.topPickCarouselItem}>
+                  {renderTopPickCard(restaurant)}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        );
+      }
+
+      if (item.type === 'carouselSection') {
+        return (
+          <View style={styles.mainWrapper}>
+            <View style={styles.sectionHeader}>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselList}
+            >
+              {item.restaurants.map((restaurant) => (
+                <View key={restaurant.id} style={styles.carouselCardContainer}>
+                  {renderRestaurantCard(restaurant, { width: compactRestaurantCardWidth })}
+                </View>
+              ))}
+            </ScrollView>
           </View>
         );
       }
@@ -441,7 +486,7 @@ export default function HomePage() {
   );
 
   const renderListEmpty = useCallback(() => {
-    if (!hasSelectedAddress) {
+    if (!hasValidCoordinates) {
       return (
         <View style={styles.mainWrapper}>
           <View style={styles.addressPrompt}>
@@ -482,7 +527,7 @@ export default function HomePage() {
             <Text allowFontScaling={false} style={styles.errorTitle}>
               {t('home.error.title')}
             </Text>
-            <TouchableOpacity activeOpacity={0.8} style={styles.retryButton} onPress={() => refetch()}>
+            <TouchableOpacity activeOpacity={0.8} style={styles.retryButton} onPress={() => refetchAll()}>
               <Text allowFontScaling={false} style={styles.retryLabel}>{t('home.error.action')}</Text>
             </TouchableOpacity>
           </View>
@@ -502,7 +547,7 @@ export default function HomePage() {
         </View>
       </View>
     );
-  }, [hasSelectedAddress, isError, isLoading, openLocationOverlay, refetch, t]);
+  }, [hasValidCoordinates, isError, isLoading, openLocationOverlay, refetchAll, t]);
 
   const renderListFooter = useCallback(() => {
     if (!isFetchingNextPage) {
@@ -578,9 +623,7 @@ export default function HomePage() {
         headerMinHeight={vs(120)}
         customHeader={customHeader}
         collapsedHeader={collapsedHeader}
-        onRefresh={() => {
-          refetch();
-        }}
+        onRefresh={refetchAll}
         isRefreshing={isRefetching}
         mainContent={mainContent}
         virtualizedListProps={{
