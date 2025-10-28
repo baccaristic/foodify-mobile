@@ -15,7 +15,17 @@ import {
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Bike, Check, Clock, MapPin, MessageCircle, Phone, Star } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Bike,
+  Check,
+  ChevronDown,
+  Clock,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Star,
+} from 'lucide-react-native';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 
@@ -111,6 +121,7 @@ const OrderTrackingScreen: React.FC = () => {
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
+  const [isPaymentDetailsExpanded, setIsPaymentDetailsExpanded] = useState(false);
   const { order: ongoingOrder } = useOngoingOrder();
   const { t } = useTranslation();
   const formatCurrency = useCurrencyFormatter();
@@ -222,6 +233,12 @@ const OrderTrackingScreen: React.FC = () => {
 
   const shouldShowPaymentCard = Boolean(paymentDetails);
   const shouldShowResumePayment = Boolean(paymentDetails?.paymentUrl) && isPaymentPending;
+
+  useEffect(() => {
+    if (!shouldShowPaymentCard) {
+      setIsPaymentDetailsExpanded(false);
+    }
+  }, [shouldShowPaymentCard]);
 
   const supportPhoneNumber = '+1 (800) 555-0199';
   const helpSheetTranslateY = useMemo(
@@ -1154,59 +1171,77 @@ const OrderTrackingScreen: React.FC = () => {
       <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
         {shouldShowPaymentCard ? (
           <View style={styles.paymentCard}>
-            <View style={styles.paymentHeaderRow}>
-              <Text style={styles.paymentTitle}>{t('orderTracking.payment.title')}</Text>
-              {paymentStatusLabel ? (
-                <View
-                  style={[
-                    styles.paymentStatusPill,
-                    isPaymentPending && styles.paymentStatusPillPending,
-                  ]}
-                >
-                  <Text
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setIsPaymentDetailsExpanded((previous) => !previous)}
+              style={styles.paymentAccordionHeader}
+            >
+              <View style={styles.paymentHeaderRow}>
+                <Text style={styles.paymentTitle}>{t('orderTracking.payment.title')}</Text>
+                {paymentStatusLabel ? (
+                  <View
                     style={[
-                      styles.paymentStatusText,
-                      isPaymentPending && styles.paymentStatusTextPending,
+                      styles.paymentStatusPill,
+                      isPaymentPending && styles.paymentStatusPillPending,
                     ]}
                   >
-                    {paymentStatusLabel}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+                    <Text
+                      style={[
+                        styles.paymentStatusText,
+                        isPaymentPending && styles.paymentStatusTextPending,
+                      ]}
+                    >
+                      {paymentStatusLabel}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              <ChevronDown
+                size={18}
+                color={textSecondary}
+                style={[
+                  styles.paymentAccordionCaret,
+                  isPaymentDetailsExpanded && styles.paymentAccordionCaretExpanded,
+                ]}
+              />
+            </TouchableOpacity>
 
-            <Text style={styles.paymentDescription}>
-              {isPaymentPending
-                ? t('orderTracking.payment.pendingDescription')
-                : t('orderTracking.payment.statusDescription')}
-            </Text>
-
-            {paymentEnvironmentLabel ? (
-              <Text style={styles.paymentMeta}>
-                {t('orderTracking.payment.environmentLabel', {
-                  values: { environment: paymentEnvironmentLabel },
-                })}
-              </Text>
-            ) : null}
-
-            {paymentDetails?.paymentReference ? (
-              <Text style={styles.paymentMeta}>
-                {t('orderTracking.payment.referenceLabel', {
-                  values: { reference: paymentDetails.paymentReference },
-                })}
-              </Text>
-            ) : null}
-
-            {shouldShowResumePayment ? (
-              <TouchableOpacity
-                onPress={handleResumePayment}
-                activeOpacity={0.85}
-                style={styles.paymentButton}
-              >
-                <Text style={styles.paymentButtonText}>
-                  {t('orderTracking.payment.resumeCta')}
+            {isPaymentDetailsExpanded ? (
+              <View style={styles.paymentAccordionContent}>
+                <Text style={styles.paymentDescription}>
+                  {isPaymentPending
+                    ? t('orderTracking.payment.pendingDescription')
+                    : t('orderTracking.payment.statusDescription')}
                 </Text>
-              </TouchableOpacity>
+
+                {paymentEnvironmentLabel ? (
+                  <Text style={styles.paymentMeta}>
+                    {t('orderTracking.payment.environmentLabel', {
+                      values: { environment: paymentEnvironmentLabel },
+                    })}
+                  </Text>
+                ) : null}
+
+                {paymentDetails?.paymentReference ? (
+                  <Text style={styles.paymentMeta}>
+                    {t('orderTracking.payment.referenceLabel', {
+                      values: { reference: paymentDetails.paymentReference },
+                    })}
+                  </Text>
+                ) : null}
+
+                {shouldShowResumePayment ? (
+                  <TouchableOpacity
+                    onPress={handleResumePayment}
+                    activeOpacity={0.85}
+                    style={styles.paymentButton}
+                  >
+                    <Text style={styles.paymentButtonText}>
+                      {t('orderTracking.payment.resumeCta')}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             ) : null}
           </View>
         ) : null}
@@ -1868,16 +1903,29 @@ const styles = StyleSheet.create({
   paymentCard: {
     backgroundColor: '#FFF6F5',
     borderRadius: 24,
-    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(216,58,46,0.18)',
     marginBottom: 16,
+    overflow: 'hidden',
+  },
+  paymentAccordionHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   paymentHeaderRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+  },
+  paymentAccordionCaret: {
+    marginLeft: 12,
+    transform: [{ rotate: '0deg' }],
+  },
+  paymentAccordionCaretExpanded: {
+    transform: [{ rotate: '180deg' }],
   },
   paymentTitle: {
     fontSize: 16,
@@ -1906,6 +1954,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: textSecondary,
+    marginTop: 4,
     marginBottom: 8,
   },
   paymentMeta: {
@@ -1913,6 +1962,13 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: textSecondary,
     marginTop: 4,
+  },
+  paymentAccordionContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(216,58,46,0.12)',
   },
   paymentButton: {
     marginTop: 16,
