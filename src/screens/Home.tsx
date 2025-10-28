@@ -41,7 +41,15 @@ import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
@@ -79,6 +87,106 @@ type QuickCategoryItem =
       type: 'category';
       category: RestaurantCategory;
     });
+
+type PromotionsQuickCategoryItem = Extract<QuickCategoryItem, { type: 'promotions' }>;
+
+const PromotionsCategoryButton = React.memo(
+  ({
+    item,
+    onPress,
+  }: {
+    item: PromotionsQuickCategoryItem;
+    onPress: (item: QuickCategoryItem) => void;
+  }) => {
+    const pulse = useSharedValue(1);
+    const float = useSharedValue(0);
+    const glow = useSharedValue(0.45);
+
+    React.useEffect(() => {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(1.08, { duration: 1200, easing: Easing.out(Easing.quad) }),
+          withTiming(0.98, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1.02, { duration: 900, easing: Easing.out(Easing.quad) })
+        ),
+        -1,
+        false
+      );
+
+      float.value = withRepeat(
+        withSequence(
+          withTiming(-4, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1.5, { duration: 950, easing: Easing.out(Easing.quad) }),
+          withTiming(0, { duration: 850, easing: Easing.inOut(Easing.quad) })
+        ),
+        -1,
+        false
+      );
+
+      glow.value = withRepeat(
+        withSequence(
+          withTiming(0.68, { duration: 1100, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0.32, { duration: 1100, easing: Easing.inOut(Easing.quad) })
+        ),
+        -1,
+        true
+      );
+    }, [float, glow, pulse]);
+
+    const iconWrapperStyle = useAnimatedStyle(() => ({
+      transform: [
+        { translateY: float.value },
+        { scale: pulse.value },
+      ],
+    }));
+
+    const glowStyle = useAnimatedStyle(() => ({
+      opacity: glow.value,
+      transform: [{ scale: pulse.value * 1.4 }],
+    }));
+
+    return (
+      <TouchableOpacity
+        style={styles.categoryEqualWidth}
+        onPress={() => onPress(item)}
+        activeOpacity={0.88}
+      >
+        <View style={styles.promotionsIconContainer}>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.promotionsGlow, glowStyle]}
+          />
+          <Animated.View
+            style={[
+              styles.categoryIconWrapper,
+              styles.promotionsIconWrapper,
+              styles.promotionsIconFloating,
+              iconWrapperStyle,
+            ]}
+          >
+            <item.Icon size={s(28)} color={item.iconColor} />
+          </Animated.View>
+        </View>
+        <View
+          style={[
+            styles.categoryTextContainer,
+            item.labelBackgroundColor
+              ? [styles.categoryLabelPill, { backgroundColor: item.labelBackgroundColor }]
+              : null,
+          ]}
+        >
+          <Text
+            allowFontScaling={false}
+            style={[styles.categoryLabelFixed, { color: item.labelColor }]}
+            numberOfLines={2}
+          >
+            {item.label}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+);
 
 const SECTION_LABEL_KEYS = {
   top: 'home.sections.top',
@@ -179,6 +287,10 @@ export default function HomePage() {
   }, [t]);
 
   const renderQuickCategoryItem = useCallback(({ item }: { item: QuickCategoryItem }) => {
+    if (item.type === 'promotions') {
+      return <PromotionsCategoryButton item={item} onPress={handleQuickCategoryPress} />;
+    }
+
     return (
       <TouchableOpacity
         style={styles.categoryEqualWidth}
@@ -189,7 +301,6 @@ export default function HomePage() {
           style={[
             styles.categoryIconWrapper,
             { backgroundColor: item.iconBackgroundColor },
-            item.type === 'promotions' ? styles.promotionsIconWrapper : null,
           ]}
         >
           <item.Icon size={s(28)} color={item.iconColor} />
@@ -965,6 +1076,27 @@ const styles = ScaledSheet.create({
   promotionsIconWrapper: {
     borderColor: '#FCD34D',
     borderWidth: StyleSheet.hairlineWidth,
+    zIndex: 1,
+  },
+  promotionsIconFloating: {
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  promotionsIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '72@s',
+    height: '72@s',
+  },
+  promotionsGlow: {
+    position: 'absolute',
+    width: '62@s',
+    height: '62@s',
+    borderRadius: '32@ms',
+    backgroundColor: '#FDE047',
   },
   categoryTextContainer: {
     marginTop: '6@vs',
