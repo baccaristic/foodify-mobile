@@ -9,6 +9,7 @@ import {
   ImageBackground,
   FlatList,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import {
   Pizza,
@@ -35,6 +36,8 @@ import {
   CakeSlice,
   Coffee,
   Sprout,
+  Percent,
+  X,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
@@ -47,6 +50,7 @@ import Header from "~/components/Header";
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
 import {
   getNearbyFavoriteRestaurants,
+  getNearbyPromotionsPage,
   getNearbyRecentOrderRestaurants,
   getNearbyRestaurantsPage,
   getNearbyTopRestaurants,
@@ -60,9 +64,13 @@ import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 
 type QuickCategoryItem = {
-  category: RestaurantCategory;
+  key: string;
   label: string;
   Icon: LucideIcon;
+  onPress: () => void;
+  iconBackgroundColor: string;
+  iconTintColor: string;
+  isDiscount?: boolean;
 };
 
 const SECTION_LABEL_KEYS = {
@@ -116,40 +124,81 @@ export default function HomePage() {
   const { t } = useTranslation();
 
   const [selectedCategory, setSelectedCategory] = useState<RestaurantCategory | null>(null);
+  const [isPromotionsVisible, setPromotionsVisible] = useState(false);
   const listRef = useRef<FlatList>(null);
 
   const handleCategoryPress = useCallback((category: RestaurantCategory) => {
     setSelectedCategory(category);
   }, []);
 
+  const handleDiscountPress = useCallback(() => {
+    setPromotionsVisible(true);
+  }, []);
+
+  const closePromotionsOverlay = useCallback(() => {
+    setPromotionsVisible(false);
+  }, []);
+
+  const discountLabel = useMemo(() => t('home.categories.discount'), [t]);
+  const discountLabelLower = useMemo(() => discountLabel.toLowerCase(), [discountLabel]);
+
   const quickCategories = useMemo<QuickCategoryItem[]>(() => {
-    return (Object.values(RestaurantCategory) as RestaurantCategory[]).map((category) => {
+    const discountItem: QuickCategoryItem = {
+      key: 'promotions',
+      label: discountLabel,
+      Icon: Percent,
+      onPress: handleDiscountPress,
+      iconBackgroundColor: '#FACC15',
+      iconTintColor: '#FFFFFF',
+      isDiscount: true,
+    };
+
+    const categoryItems = (Object.values(RestaurantCategory) as RestaurantCategory[]).map((category) => {
       const labelKey = getCategoryLabelKey(category);
       const label = labelKey ? t(labelKey) : toCategoryDisplayName(category);
       const Icon = CATEGORY_ICON_MAP[category] ?? Utensils;
 
-      return { category, label, Icon };
+      return {
+        key: category,
+        label,
+        Icon,
+        onPress: () => handleCategoryPress(category),
+        iconBackgroundColor: '#FFFFFF',
+        iconTintColor: '#CA251B',
+      } satisfies QuickCategoryItem;
     });
-  }, [t]);
+
+    return [discountItem, ...categoryItems];
+  }, [discountLabel, handleCategoryPress, handleDiscountPress, t]);
 
   const renderQuickCategoryItem = useCallback(({ item }: { item: QuickCategoryItem }) => {
     return (
       <TouchableOpacity
         style={styles.categoryEqualWidth}
-        onPress={() => handleCategoryPress(item.category)}
+        onPress={item.onPress}
         activeOpacity={0.88}
       >
-        <View style={styles.categoryIconWrapper}>
-          <item.Icon size={s(28)} color="#CA251B" />
+        <View
+          style={[
+            styles.categoryIconWrapper,
+            { backgroundColor: item.iconBackgroundColor },
+            item.isDiscount ? styles.discountIconWrapper : null,
+          ]}
+        >
+          <item.Icon size={s(28)} color={item.iconTintColor} />
         </View>
         <View style={styles.categoryTextContainer}>
-          <Text allowFontScaling={false} style={styles.categoryLabelFixed} numberOfLines={2}>
+          <Text
+            allowFontScaling={false}
+            style={[styles.categoryLabelFixed, item.isDiscount ? styles.discountCategoryLabel : null]}
+            numberOfLines={2}
+          >
             {item.label}
           </Text>
         </View>
       </TouchableOpacity>
     );
-  }, [handleCategoryPress]);
+  }, []);
 
   const { selectedAddress } = useSelectedAddress();
   const screenWidth = Dimensions.get('screen').width;
@@ -222,6 +271,43 @@ export default function HomePage() {
     enabled: hasValidCoordinates,
   });
 
+  const promotionsQuery = useInfiniteQuery<PageResponse<RestaurantDisplayDto>>({
+    queryKey: ['nearby-promotions', userLatitude, userLongitude],
+    queryFn: ({ pageParam = INITIAL_PAGE }) =>
+      getNearbyPromotionsPage({
+        lat: userLatitude as number,
+        lng: userLongitude as number,
+        page: pageParam,
+        pageSize: PAGE_SIZE,
+      }),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || !lastPage.items || lastPage.items.length === 0) {
+        return undefined;
+      }
+
+      const nextPageIndex = lastPage.page + 1;
+      const estimatedFetchedItems = nextPageIndex * lastPage.pageSize;
+
+      if (estimatedFetchedItems >= lastPage.totalItems) {
+        return undefined;
+      }
+
+      return nextPageIndex;
+    },
+    initialPageParam: INITIAL_PAGE,
+    enabled: isPromotionsVisible && hasValidCoordinates,
+  });
+
+  const {
+    fetchNextPage: fetchNextPromotionsPage,
+    hasNextPage: promotionsHasNextPage,
+    isFetchingNextPage: promotionsIsFetchingNextPage,
+    isLoading: promotionsIsLoading,
+    isError: promotionsIsError,
+    refetch: refetchPromotions,
+    isRefetching: promotionsIsRefetching,
+  } = promotionsQuery;
+
   const topRestaurants = useMemo(() => topQuery.data ?? [], [topQuery.data]);
   const favoriteRestaurants = useMemo(
     () => favoritesQuery.data ?? [],
@@ -235,6 +321,16 @@ export default function HomePage() {
     () => restaurantsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [restaurantsQuery.data]
   );
+
+  const promotionRestaurants = useMemo(
+    () => promotionsQuery.data?.pages.flatMap((page) => page.items ?? []) ?? [],
+    [promotionsQuery.data]
+  );
+
+  const showPromotionsLoading = promotionsIsLoading && promotionRestaurants.length === 0;
+  const showPromotionsError = promotionsIsError && promotionRestaurants.length === 0;
+  const showPromotionsEmpty =
+    !promotionsIsLoading && !promotionsIsError && promotionRestaurants.length === 0;
 
   type NearbyListItem =
     | {
@@ -365,6 +461,39 @@ export default function HomePage() {
     },
     [navigation, screenWidth]
   );
+
+  const renderPromotionItem = useCallback(
+    ({ item }: { item: RestaurantDisplayDto }) => {
+      return (
+        <View style={styles.promotionsCardWrapper}>
+          {renderRestaurantCard(item)}
+        </View>
+      );
+    },
+    [renderRestaurantCard]
+  );
+
+  const handlePromotionsEndReached = useCallback(() => {
+    if (!hasValidCoordinates) {
+      return;
+    }
+
+    if (promotionsHasNextPage && !promotionsIsFetchingNextPage) {
+      fetchNextPromotionsPage();
+    }
+  }, [fetchNextPromotionsPage, hasValidCoordinates, promotionsHasNextPage, promotionsIsFetchingNextPage]);
+
+  const renderPromotionsFooter = useCallback(() => {
+    if (!promotionsIsFetchingNextPage) {
+      return null;
+    }
+
+    return (
+      <View style={styles.promotionsFooterLoader}>
+        <ActivityIndicator size="small" color="#CA251B" />
+      </View>
+    );
+  }, [promotionsIsFetchingNextPage]);
 
   const compactRestaurantCardWidth = useMemo(() => s(240), []);
 
@@ -584,7 +713,7 @@ export default function HomePage() {
           horizontal
           data={quickCategories}
           renderItem={renderQuickCategoryItem}
-          keyExtractor={(item) => item.category}
+          keyExtractor={(item) => item.key}
           showsHorizontalScrollIndicator={false}
           style={styles.categoryList}
         />
@@ -639,6 +768,86 @@ export default function HomePage() {
           contentContainerStyle: styles.listContent,
         }}
       />
+      <Modal
+        visible={isPromotionsVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={closePromotionsOverlay}
+      >
+        <View style={styles.promotionsBackdrop}>
+          <View style={styles.promotionsContainer}>
+            <View style={styles.promotionsHeader}>
+              <Text allowFontScaling={false} style={styles.promotionsTitle}>
+                {discountLabel}
+              </Text>
+              <TouchableOpacity
+                onPress={closePromotionsOverlay}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={styles.promotionsCloseButton}
+              >
+                <X size={s(20)} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+            {!hasValidCoordinates ? (
+              <View style={styles.promotionsStateWrapper}>
+                <Text allowFontScaling={false} style={styles.promotionsStateTitle}>
+                  {t('categoryOverlay.addressPrompt')}
+                </Text>
+                <TouchableOpacity
+                  style={styles.promotionsPrimaryButton}
+                  onPress={() => {
+                    closePromotionsOverlay();
+                    openLocationOverlay();
+                  }}
+                >
+                  <Text allowFontScaling={false} style={styles.promotionsPrimaryButtonLabel}>
+                    {t('home.addressPrompt.cta')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : showPromotionsLoading ? (
+              <View style={styles.promotionsStateWrapper}>
+                <ActivityIndicator size="large" color="#CA251B" />
+              </View>
+            ) : showPromotionsError ? (
+              <View style={styles.promotionsStateWrapper}>
+                <Text allowFontScaling={false} style={styles.promotionsStateTitle}>
+                  {t('categoryOverlay.error.title', { category: discountLabelLower })}
+                </Text>
+                <TouchableOpacity
+                  style={styles.promotionsPrimaryButton}
+                  onPress={refetchPromotions}
+                >
+                  <Text allowFontScaling={false} style={styles.promotionsPrimaryButtonLabel}>
+                    {t('home.error.action')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : showPromotionsEmpty ? (
+              <View style={styles.promotionsStateWrapper}>
+                <Text allowFontScaling={false} style={styles.promotionsStateTitle}>
+                  {t('categoryOverlay.empty.title', { category: discountLabelLower })}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={promotionRestaurants}
+                renderItem={renderPromotionItem}
+                keyExtractor={(item) => `${item.id}`}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.promotionsListContent}
+                onEndReached={handlePromotionsEndReached}
+                onEndReachedThreshold={0.5}
+                refreshing={promotionsIsRefetching}
+                onRefresh={refetchPromotions}
+                ListFooterComponent={renderPromotionsFooter}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
       {selectedCategory && (
         <CategoryOverlay
           visible
@@ -887,17 +1096,97 @@ const styles = ScaledSheet.create({
     textAlign: 'center',
   },
 
+  discountCategoryLabel: {
+    fontWeight: '700',
+  },
+
   categoryIconWrapper: {
     backgroundColor: '#FFFFFF',
     borderRadius: '36@ms',
     paddingVertical: '8@vs',
     paddingHorizontal: '8@s',
   },
+  discountIconWrapper: {
+    shadowColor: '#FACC15',
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
   categoryTextContainer: {
     marginTop: '6@vs',
     minHeight: '28@vs',
     justifyContent: 'center',
     paddingHorizontal: '4@s',
+  },
+  promotionsBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  promotionsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: '24@ms',
+    borderTopRightRadius: '24@ms',
+    paddingTop: '20@vs',
+    paddingHorizontal: '20@s',
+    paddingBottom: '12@vs',
+    maxHeight: '80%',
+    width: '100%',
+  },
+  promotionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '12@vs',
+  },
+  promotionsTitle: {
+    fontSize: '18@ms',
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  promotionsCloseButton: {
+    width: '36@s',
+    height: '36@vs',
+    borderRadius: '18@ms',
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promotionsStateWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: '40@vs',
+    paddingHorizontal: '16@s',
+    gap: '16@vs',
+  },
+  promotionsStateTitle: {
+    fontSize: '15@ms',
+    textAlign: 'center',
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+  promotionsPrimaryButton: {
+    backgroundColor: '#CA251B',
+    paddingHorizontal: '24@s',
+    paddingVertical: '10@vs',
+    borderRadius: '22@ms',
+  },
+  promotionsPrimaryButtonLabel: {
+    color: '#FFFFFF',
+    fontSize: '13@ms',
+    fontWeight: '600',
+  },
+  promotionsListContent: {
+    paddingBottom: '20@vs',
+  },
+  promotionsCardWrapper: {
+    marginBottom: '16@vs',
+  },
+  promotionsFooterLoader: {
+    paddingVertical: '14@vs',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   centeredHeaderGroup: {
     flexDirection: "row",
