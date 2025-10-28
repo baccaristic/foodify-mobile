@@ -413,6 +413,23 @@ const en: TranslationDictionary = {
       empty: 'Items will appear once your order is confirmed.',
       detailsCta: 'See details',
     },
+    payment: {
+      title: 'Online payment',
+      pendingDescription: 'Complete the Konnect checkout to confirm your order.',
+      statusDescription: 'We will update this page as soon as the payment status changes.',
+      environmentLabel: 'Environment: {{environment}}',
+      referenceLabel: 'Payment reference: {{reference}}',
+      resumeCta: 'Resume payment',
+      openErrorTitle: 'Unable to open payment link',
+      openErrorMessage:
+        'We could not open the Konnect payment page. Please try again or copy the link in your browser.',
+      statusNames: {
+        pending: 'Pending',
+        paid: 'Paid',
+        failed: 'Failed',
+        expired: 'Expired',
+      },
+    },
     courier: {
       pending: 'Courier assigned soon',
       label: 'Delivered by',

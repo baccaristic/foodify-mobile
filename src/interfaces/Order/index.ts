@@ -114,13 +114,23 @@ export interface DeliverySummaryDto {
   [key: string]: unknown;
 }
 
-export interface PaymentSummaryResponse {
+export type OnlinePaymentStatus = 'pending' | 'paid' | 'failed' | 'expired' | string;
+
+export interface OnlinePaymentMetadata {
+  status?: OnlinePaymentStatus | null;
+  paymentUrl?: string | null;
+  paymentReference?: string | null;
+  environment?: string | null;
+}
+
+export interface PaymentSummaryResponse extends OnlinePaymentMetadata {
   method: string;
   subtotal: MonetaryAmount;
   extrasTotal: MonetaryAmount;
   total: MonetaryAmount;
   itemsSubtotal?: MonetaryAmount;
   promotionDiscount?: MonetaryAmount;
+  couponDiscount?: MonetaryAmount;
   itemsTotal?: MonetaryAmount;
   deliveryFee?: MonetaryAmount;
   [key: string]: unknown;

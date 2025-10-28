@@ -19,7 +19,12 @@ import { ArrowLeft, Bike, Check, Clock, MapPin, MessageCircle, Phone, Star } fro
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 
-import type { CreateOrderResponse, MonetaryAmount, OrderStatusHistoryDto } from '~/interfaces/Order';
+import type {
+  CreateOrderResponse,
+  MonetaryAmount,
+  OrderStatusHistoryDto,
+  PaymentSummaryResponse,
+} from '~/interfaces/Order';
 import { ms, vs } from 'react-native-size-matters';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import type { OngoingOrderData } from '~/context/OngoingOrderContext';
@@ -50,6 +55,13 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   CANCELLED: 'orderTracking.status.cancelled',
 };
 
+const PAYMENT_STATUS_LABEL_KEYS: Record<string, string> = {
+  PENDING: 'orderTracking.payment.statusNames.pending',
+  PAID: 'orderTracking.payment.statusNames.paid',
+  FAILED: 'orderTracking.payment.statusNames.failed',
+  EXPIRED: 'orderTracking.payment.statusNames.expired',
+};
+
 export type OrderTrackingData = (OngoingOrderData & Partial<CreateOrderResponse>) & {
   statusHistory?: OrderStatusHistoryDto[] | null;
 };
@@ -57,6 +69,14 @@ export type OrderTrackingData = (OngoingOrderData & Partial<CreateOrderResponse>
 type StatusChangeInfo = {
   title: string;
   description?: string | null;
+};
+
+type OnlinePaymentDetails = {
+  paymentUrl: string | null;
+  paymentReference: string | null;
+  environment: string | null;
+  status: string | null;
+  method: string | null;
 };
 
 const extractNumericAmount = (
@@ -124,6 +144,85 @@ const OrderTrackingScreen: React.FC = () => {
     () => (ongoingOrder ? (ongoingOrder as OrderTrackingData) : null),
     [ongoingOrder],
   );
+
+  const paymentDetails = useMemo<OnlinePaymentDetails | null>(() => {
+    const paymentRecord = (order?.payment ?? null) as PaymentSummaryResponse | null;
+    const methodCandidate = paymentRecord?.method ?? order?.paymentMethod ?? null;
+    const normalizedMethod = methodCandidate ? String(methodCandidate).toUpperCase() : null;
+
+    const paymentUrl =
+      typeof paymentRecord?.paymentUrl === 'string' && paymentRecord.paymentUrl.trim().length
+        ? paymentRecord.paymentUrl.trim()
+        : null;
+
+    const paymentReference =
+      typeof paymentRecord?.paymentReference === 'string' &&
+      paymentRecord.paymentReference.trim().length
+        ? paymentRecord.paymentReference.trim()
+        : null;
+
+    const environment =
+      typeof paymentRecord?.environment === 'string' && paymentRecord.environment.trim().length
+        ? paymentRecord.environment.trim()
+        : null;
+
+    const status = paymentRecord?.status != null ? String(paymentRecord.status) : null;
+
+    const isOnlineMethod =
+      Boolean(paymentUrl) ||
+      (normalizedMethod != null &&
+        (normalizedMethod.includes('CARD') ||
+          normalizedMethod.includes('ONLINE') ||
+          normalizedMethod.includes('WEB') ||
+          normalizedMethod.includes('PAY')));
+
+    if (!isOnlineMethod && !paymentReference && !environment && !status) {
+      return null;
+    }
+
+    return {
+      paymentUrl,
+      paymentReference,
+      environment,
+      status,
+      method: normalizedMethod,
+    } satisfies OnlinePaymentDetails;
+  }, [order]);
+
+  const paymentStatusNormalized = useMemo(
+    () => (paymentDetails?.status ? paymentDetails.status.toString().toUpperCase() : null),
+    [paymentDetails?.status],
+  );
+
+  const paymentStatusLabel = useMemo(() => {
+    if (!paymentStatusNormalized) {
+      return null;
+    }
+
+    const key = PAYMENT_STATUS_LABEL_KEYS[paymentStatusNormalized];
+    if (key) {
+      return t(key);
+    }
+
+    return (
+      formatOrderStatusLabel(paymentDetails?.status) ??
+      paymentStatusNormalized.replace(/_/g, ' ')
+    );
+  }, [paymentDetails?.status, paymentStatusNormalized, t]);
+
+  const isPaymentPending = !paymentStatusNormalized || paymentStatusNormalized === 'PENDING';
+
+  const paymentEnvironmentLabel = useMemo(() => {
+    if (!paymentDetails?.environment) {
+      return null;
+    }
+
+    return formatOrderStatusLabel(paymentDetails.environment) ?? paymentDetails.environment;
+  }, [paymentDetails?.environment]);
+
+  const shouldShowPaymentCard = Boolean(paymentDetails);
+  const shouldShowResumePayment = Boolean(paymentDetails?.paymentUrl) && isPaymentPending;
+
   const supportPhoneNumber = '+1 (800) 555-0199';
   const helpSheetTranslateY = useMemo(
     () =>
@@ -174,6 +273,27 @@ const OrderTrackingScreen: React.FC = () => {
     },
     [normalizedStatus],
   );
+
+  const handleResumePayment = useCallback(async () => {
+    if (!paymentDetails?.paymentUrl) {
+      return;
+    }
+
+    try {
+      const canOpen = await Linking.canOpenURL(paymentDetails.paymentUrl);
+      if (!canOpen) {
+        throw new Error('UNSUPPORTED_URL');
+      }
+
+      await Linking.openURL(paymentDetails.paymentUrl);
+    } catch (error) {
+      console.warn('Failed to open Konnect payment URL', error);
+      Alert.alert(
+        t('orderTracking.payment.openErrorTitle'),
+        t('orderTracking.payment.openErrorMessage'),
+      );
+    }
+  }, [paymentDetails?.paymentUrl, t]);
 
   const heroAnimationConfig = useMemo(() => {
     if (isPendingStatus) {
@@ -1032,6 +1152,65 @@ const OrderTrackingScreen: React.FC = () => {
       </Animated.ScrollView>
 
       <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
+        {shouldShowPaymentCard ? (
+          <View style={styles.paymentCard}>
+            <View style={styles.paymentHeaderRow}>
+              <Text style={styles.paymentTitle}>{t('orderTracking.payment.title')}</Text>
+              {paymentStatusLabel ? (
+                <View
+                  style={[
+                    styles.paymentStatusPill,
+                    isPaymentPending && styles.paymentStatusPillPending,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.paymentStatusText,
+                      isPaymentPending && styles.paymentStatusTextPending,
+                    ]}
+                  >
+                    {paymentStatusLabel}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            <Text style={styles.paymentDescription}>
+              {isPaymentPending
+                ? t('orderTracking.payment.pendingDescription')
+                : t('orderTracking.payment.statusDescription')}
+            </Text>
+
+            {paymentEnvironmentLabel ? (
+              <Text style={styles.paymentMeta}>
+                {t('orderTracking.payment.environmentLabel', {
+                  values: { environment: paymentEnvironmentLabel },
+                })}
+              </Text>
+            ) : null}
+
+            {paymentDetails?.paymentReference ? (
+              <Text style={styles.paymentMeta}>
+                {t('orderTracking.payment.referenceLabel', {
+                  values: { reference: paymentDetails.paymentReference },
+                })}
+              </Text>
+            ) : null}
+
+            {shouldShowResumePayment ? (
+              <TouchableOpacity
+                onPress={handleResumePayment}
+                activeOpacity={0.85}
+                style={styles.paymentButton}
+              >
+                <Text style={styles.paymentButtonText}>
+                  {t('orderTracking.payment.resumeCta')}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <View style={styles.summaryHeaderLeft}>
@@ -1684,6 +1863,68 @@ const styles = StyleSheet.create({
   summaryDetailsText: {
     color: 'white',
     fontSize: 11,
+    fontWeight: '600',
+  },
+  paymentCard: {
+    backgroundColor: '#FFF6F5',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(216,58,46,0.18)',
+    marginBottom: 16,
+  },
+  paymentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  paymentTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: textPrimary,
+  },
+  paymentStatusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15,23,42,0.08)',
+  },
+  paymentStatusPillPending: {
+    backgroundColor: 'rgba(216,58,46,0.12)',
+  },
+  paymentStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: textPrimary,
+    textTransform: 'uppercase',
+  },
+  paymentStatusTextPending: {
+    color: accentColor,
+  },
+  paymentDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: textSecondary,
+    marginBottom: 8,
+  },
+  paymentMeta: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: textSecondary,
+    marginTop: 4,
+  },
+  paymentButton: {
+    marginTop: 16,
+    backgroundColor: accentColor,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentButtonText: {
+    color: 'white',
+    fontSize: 14,
     fontWeight: '600',
   },
   bottomSheet: {
