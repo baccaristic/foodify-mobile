@@ -145,16 +145,6 @@ const en: TranslationDictionary = {
     },
     defaultType: 'Restaurant',
   },
-  promotionsOverlay: {
-    title: 'Discounts near you',
-    addressPrompt: 'Select an address to discover nearby deals.',
-    empty: {
-      title: 'No promotions available around you right now.',
-    },
-    error: {
-      title: 'Could not load nearby promotions.',
-    },
-  },
   cart: {
     title: 'My cart',
     defaultRestaurantName: 'Restaurant',

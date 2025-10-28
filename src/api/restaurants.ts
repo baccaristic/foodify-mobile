@@ -106,16 +106,14 @@ export const getNearbyRestaurantsPage = async ({
   return data;
 };
 
-export const getNearbyPromotions = async ({
+export const getNearbyPromotionsPage = async ({
   lat,
   lng,
   page,
   pageSize,
 }: NearbyRestaurantsPageParams): Promise<PageResponse<RestaurantDisplayDto>> => {
   const safePage =
-    typeof page === 'number' && Number.isFinite(page) && page >= 0
-      ? Math.floor(page)
-      : 0;
+    typeof page === 'number' && Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
   const safePageSize =
     typeof pageSize === 'number' && Number.isFinite(pageSize) && pageSize > 0
       ? Math.floor(pageSize)
