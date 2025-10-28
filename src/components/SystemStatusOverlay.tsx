@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Modal, View, Text, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Image } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { X } from 'lucide-react-native';
 import type { DeliveryNetworkStatus } from '~/interfaces/DeliveryStatus';
@@ -38,6 +38,25 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
     return STATUS_MESSAGES[status] ?? '';
   }, [message, status]);
 
+  const { primaryMessage, emphasisMessage } = useMemo(() => {
+    if (!subtitle) {
+      return { primaryMessage: '', emphasisMessage: '' };
+    }
+
+    const trimmed = subtitle.trim();
+    const emphasisSentence = 'We appreciate your patience.';
+
+    if (trimmed.includes(emphasisSentence)) {
+      const primary = trimmed.replace(emphasisSentence, '').trim();
+      return {
+        primaryMessage: primary,
+        emphasisMessage: emphasisSentence,
+      };
+    }
+
+    return { primaryMessage: trimmed, emphasisMessage: '' };
+  }, [subtitle]);
+
   return (
     <Modal
       visible={visible}
@@ -65,14 +84,29 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
               <X size={s(18)} color="#0F172A" />
             </TouchableOpacity>
           </View>
-          <Text allowFontScaling={false} style={styles.title}>
-            {STATUS_TITLES[status]}
-          </Text>
-          {subtitle ? (
-            <Text allowFontScaling={false} style={styles.subtitle}>
-              {subtitle}
+          <View style={styles.content}>
+            <Text allowFontScaling={false} style={styles.title}>
+              {STATUS_TITLES[status]}
             </Text>
-          ) : null}
+            {primaryMessage ? (
+              <Text allowFontScaling={false} style={styles.subtitle}>
+                {primaryMessage}
+              </Text>
+            ) : null}
+            {emphasisMessage ? (
+              <Text allowFontScaling={false} style={styles.emphasis}>
+                {emphasisMessage}
+              </Text>
+            ) : null}
+            <Image
+              source={require('../../assets/system-info.png')}
+              style={styles.illustration}
+              resizeMode="contain"
+              accessible
+              accessibilityIgnoresInvertColors
+              accessibilityLabel="Illustration of delivery riders"
+            />
+          </View>
         </View>
       </View>
     </Modal>
@@ -96,21 +130,19 @@ const styles = ScaledSheet.create({
     borderTopRightRadius: s(24),
     paddingVertical: vs(24),
     paddingHorizontal: s(24),
-    alignItems: 'flex-start',
     justifyContent: 'flex-start',
-    gap: vs(12),
   },
   title: {
     fontSize: s(20),
     fontWeight: '700',
-    color: '#0F172A',
-    textAlign: 'left',
+    color: '#D92D20',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: s(14),
     lineHeight: vs(20),
-    color: '#475569',
-    textAlign: 'left',
+    color: '#0F172A',
+    textAlign: 'center',
   },
   closeButtonWrapper: {
     width: '100%',
@@ -123,6 +155,24 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F1F5F9',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: vs(12),
+  },
+  emphasis: {
+    fontSize: s(14),
+    lineHeight: vs(20),
+    color: '#0F172A',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  illustration: {
+    marginTop: vs(12),
+    width: '100%',
+    height: vs(160),
   },
 });
 
