@@ -41,13 +41,14 @@ import {
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
+import SystemStatusOverlay from '~/components/SystemStatusOverlay';
 import {
   getNearbyFavoriteRestaurants,
   getNearbyPromotionsPage,
@@ -55,7 +56,9 @@ import {
   getNearbyRestaurantsPage,
   getNearbyTopRestaurants,
 } from "~/api/restaurants";
+import { getDeliveryNetworkStatus } from '~/api/delivery';
 import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
+import type { DeliveryNetworkStatusResponse } from '~/interfaces/DeliveryStatus';
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
@@ -205,6 +208,32 @@ export default function HomePage() {
 
   const userLatitude = selectedAddress?.coordinates.latitude;
   const userLongitude = selectedAddress?.coordinates.longitude;
+
+  const {
+    data: deliveryStatusData,
+    refetch: refetchDeliveryStatus,
+    isFetched: isDeliveryStatusFetched,
+    isError: isDeliveryStatusError,
+  } = useQuery<DeliveryNetworkStatusResponse>({
+    queryKey: ['delivery-network-status'],
+    queryFn: getDeliveryNetworkStatus,
+    staleTime: 60_000,
+    refetchOnMount: 'always',
+  });
+
+  const deliveryNetworkStatus = deliveryStatusData?.status ?? 'AVAILABLE';
+  const deliveryStatusMessage = deliveryStatusData?.message ?? null;
+  const showSystemStatusOverlay = Boolean(
+    deliveryStatusData && deliveryStatusData.status !== 'AVAILABLE'
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isDeliveryStatusFetched) {
+        refetchDeliveryStatus();
+      }
+    }, [isDeliveryStatusFetched, refetchDeliveryStatus])
+  );
 
   const hasValidCoordinates =
     typeof userLatitude === 'number' &&
@@ -767,6 +796,14 @@ export default function HomePage() {
           showsVerticalScrollIndicator: false,
           contentContainerStyle: styles.listContent,
         }}
+      />
+      <SystemStatusOverlay
+        visible={showSystemStatusOverlay && !isDeliveryStatusError}
+        status={deliveryNetworkStatus}
+        message={deliveryStatusMessage}
+        availableDrivers={deliveryStatusData?.availableDrivers}
+        waitingForAssignment={deliveryStatusData?.waitingForAssignment}
+        awaitingDriverResponse={deliveryStatusData?.awaitingDriverResponse}
       />
       <Modal
         visible={isPromotionsVisible}
