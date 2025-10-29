@@ -80,6 +80,8 @@ const en: TranslationDictionary = {
       professionalism: 'Rider professionalism',
       overall: 'Overall experience',
     },
+    commentPrompt: 'Anything more to share?',
+    commentPlaceholder: 'Add a comment about your delivery…',
     actions: {
       submit: 'Send',
       update: 'Update rating',
@@ -87,6 +89,26 @@ const en: TranslationDictionary = {
     errors: {
       load: 'We could not fetch your previous rating.',
       submit: 'We could not save your rating. Please try again.',
+    },
+  },
+  restaurantRating: {
+    headline: 'Rate your Delivery',
+    question: 'How was the food?',
+    options: {
+      thumbsUp: 'Good',
+      thumbsDown: 'Not so good',
+      or: 'or',
+    },
+    commentPrompt: 'Anything more to say?',
+    commentPlaceholder: 'Type your comment…',
+    actions: {
+      submit: 'Send',
+      update: 'Update feedback',
+    },
+    errors: {
+      load: 'We could not fetch your restaurant rating.',
+      submit: 'We could not save your feedback. Please try again.',
+      selection: 'Please choose a thumbs up or thumbs down.',
     },
   },
   home: {

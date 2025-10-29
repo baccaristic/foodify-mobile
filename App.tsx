@@ -41,8 +41,10 @@ import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 import { WebSocketProvider } from '~/context/WebSocketContext';
 import { OngoingOrderProvider } from '~/context/OngoingOrderContext';
 import { DeliveryRatingOverlayProvider } from '~/context/DeliveryRatingOverlayContext';
+import { RestaurantRatingOverlayProvider } from '~/context/RestaurantRatingOverlayContext';
 import DeliveredCelebrationOverlay from '~/components/DeliveredCelebrationOverlay';
 import DeliveryRatingOverlay from '~/components/DeliveryRatingOverlay';
+import RestaurantRatingOverlay from '~/components/RestaurantRatingOverlay';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
@@ -244,6 +246,7 @@ const RootNavigator = () => {
       </Stack.Navigator>
       <DeliveredCelebrationOverlay />
       <DeliveryRatingOverlay />
+      <RestaurantRatingOverlay />
     </>
   );
 };
@@ -258,17 +261,19 @@ export default function App() {
               <EmailSignupProvider>
                 <OngoingOrderProvider>
                   <DeliveryRatingOverlayProvider>
-                    <WebSocketProvider>
-                      <PhoneSignupProvider>
-                        <SelectedAddressProvider>
-                          <CartProvider>
-                            <LocationOverlayProvider>
-                              <RootNavigator />
-                            </LocationOverlayProvider>
-                          </CartProvider>
-                        </SelectedAddressProvider>
-                      </PhoneSignupProvider>
-                    </WebSocketProvider>
+                    <RestaurantRatingOverlayProvider>
+                      <WebSocketProvider>
+                        <PhoneSignupProvider>
+                          <SelectedAddressProvider>
+                            <CartProvider>
+                              <LocationOverlayProvider>
+                                <RootNavigator />
+                              </LocationOverlayProvider>
+                            </CartProvider>
+                          </SelectedAddressProvider>
+                        </PhoneSignupProvider>
+                      </WebSocketProvider>
+                    </RestaurantRatingOverlayProvider>
                   </DeliveryRatingOverlayProvider>
                 </OngoingOrderProvider>
               </EmailSignupProvider>

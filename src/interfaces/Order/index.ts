@@ -1,4 +1,5 @@
 import type { DeliveryRatingSummary } from '~/interfaces/DeliveryRating';
+import type { RestaurantRatingResponse } from '~/interfaces/RestaurantRating';
 
 export type OrderStatus =
   | 'PENDING'
@@ -190,6 +191,7 @@ export interface OrderNotificationDto {
   delivery?: DeliverySummaryDto | null;
   statusHistory?: OrderStatusHistoryDto[];
   rating?: DeliveryRatingSummary | null;
+  restaurantRating?: RestaurantRatingResponse | null;
   [key: string]: unknown;
 }
 
@@ -216,6 +218,7 @@ export interface OrderDto {
   estimatedPickUpTime?: number | null;
   estimatedDeliveryTime?: number | null;
   rating?: DeliveryRatingSummary | null;
+  restaurantRating?: RestaurantRatingResponse | null;
 }
 
 export interface CreateOrderResponse {
