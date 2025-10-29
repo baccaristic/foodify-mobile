@@ -1137,7 +1137,7 @@ const OrderTrackingScreen: React.FC = () => {
                 loop
                 style={[styles.statusAnimation, responsiveStyles.statusAnimation]}
               />
-              <Text style={[styles.statusMessage, responsiveStyles.statusMessage]}>
+              <Text allowFontScaling={false} style={[styles.statusMessage, responsiveStyles.statusMessage]}>
                 {heroAnimationConfig!.message}
               </Text>
             </View>
@@ -1154,10 +1154,10 @@ const OrderTrackingScreen: React.FC = () => {
                 ]}
               />
               <View style={styles.statusTextWrapper}>
-                <Text style={[styles.statusHeading, responsiveStyles.statusHeading]}>
+                <Text allowFontScaling={false} style={[styles.statusHeading, responsiveStyles.statusHeading]}>
                   {formattedStatus ?? t('orderTracking.hero.waitingTitle')}
                 </Text>
-                <Text style={[styles.statusSubheading, responsiveStyles.statusSubheading]}>
+                <Text allowFontScaling={false} style={[styles.statusSubheading, responsiveStyles.statusSubheading]}>
                   {hasAssignedCourier
                     ? t('orderTracking.hero.driverEnRoute')
                     : t('orderTracking.hero.driverUnassigned')}
@@ -1204,10 +1204,10 @@ const OrderTrackingScreen: React.FC = () => {
   const renderSteps = () => (
     <View style={[styles.stepsCard, responsiveStyles.stepsCard]}>
       <View style={[styles.stepsHeader, responsiveStyles.stepsHeader]}>
-        <Text style={styles.stepsTitle}>{t('orderTracking.history.title')}</Text>
+        <Text allowFontScaling={false} style={styles.stepsTitle}>{t('orderTracking.history.title')}</Text>
         {formattedStatus ? (
           <View style={[styles.stepsStatusBadge, responsiveStyles.stepsStatusBadge]}>
-            <Text style={styles.stepsStatusText}>{formattedStatus}</Text>
+            <Text allowFontScaling={false} style={styles.stepsStatusText}>{formattedStatus}</Text>
           </View>
         ) : null}
       </View>
@@ -1224,16 +1224,16 @@ const OrderTrackingScreen: React.FC = () => {
             },
           ]}
         >
-          <Text style={styles.statusAnnouncementTitle}>{statusChangeInfo.title}</Text>
+          <Text allowFontScaling={false} style={styles.statusAnnouncementTitle}>{statusChangeInfo.title}</Text>
           {statusChangeInfo.description ? (
-            <Text style={styles.statusAnnouncementDescription}>
+            <Text allowFontScaling={false} style={styles.statusAnnouncementDescription}>
               {statusChangeInfo.description}
             </Text>
           ) : null}
         </Animated.View>
       ) : null}
       {statusHistory.length === 0 ? (
-        <Text style={styles.stepsEmptyText}>
+        <Text allowFontScaling={false} style={styles.stepsEmptyText}>
           {t('orderTracking.history.empty')}
         </Text>
       ) : (
@@ -1319,6 +1319,7 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
               <View style={styles.stepTexts}>
                 <Text
+                allowFontScaling={false}
                   style={[
                     styles.stepTitle,
                     (isCompleted || isActive) && styles.stepTitleActive,
@@ -1328,6 +1329,7 @@ const OrderTrackingScreen: React.FC = () => {
                   {title}
                 </Text>
                 <Text
+                allowFontScaling={false}
                   style={[
                     styles.stepDescription,
                     isPending && styles.stepDescriptionPending,
@@ -1344,6 +1346,7 @@ const OrderTrackingScreen: React.FC = () => {
                   ]}
                 >
                   <Text
+                  allowFontScaling={false}
                     style={[
                       styles.stepEtaText,
                       isPending && styles.stepEtaTextPending,
@@ -1403,7 +1406,7 @@ const OrderTrackingScreen: React.FC = () => {
                 style={[styles.paymentAccordionHeader, responsiveStyles.paymentAccordionHeader]}
               >
               <View style={styles.paymentHeaderRow}>
-                <Text style={styles.paymentTitle}>{t('orderTracking.payment.title')}</Text>
+                <Text allowFontScaling={false} style={styles.paymentTitle}>{t('orderTracking.payment.title')}</Text>
                 {paymentStatusLabel ? (
                   <View
                     style={[
@@ -1412,6 +1415,7 @@ const OrderTrackingScreen: React.FC = () => {
                     ]}
                   >
                     <Text
+                    allowFontScaling={false}
                       style={[
                         styles.paymentStatusText,
                         isPaymentPending && styles.paymentStatusTextPending,
@@ -1434,14 +1438,14 @@ const OrderTrackingScreen: React.FC = () => {
 
             {isPaymentDetailsExpanded ? (
               <View style={[styles.paymentAccordionContent, responsiveStyles.paymentAccordionContent]}>
-                <Text style={[styles.paymentDescription, responsiveStyles.paymentDescription]}>
+                <Text allowFontScaling={false} style={[styles.paymentDescription, responsiveStyles.paymentDescription]}>
                   {isPaymentPending
                     ? t('orderTracking.payment.pendingDescription')
                     : t('orderTracking.payment.statusDescription')}
                 </Text>
 
                 {paymentEnvironmentLabel ? (
-                  <Text style={styles.paymentMeta}>
+                  <Text allowFontScaling={false} style={styles.paymentMeta}>
                     {t('orderTracking.payment.environmentLabel', {
                       values: { environment: paymentEnvironmentLabel },
                     })}
@@ -1449,7 +1453,7 @@ const OrderTrackingScreen: React.FC = () => {
                 ) : null}
 
                 {paymentDetails?.paymentReference ? (
-                  <Text style={styles.paymentMeta}>
+                  <Text allowFontScaling={false} style={styles.paymentMeta}>
                     {t('orderTracking.payment.referenceLabel', {
                       values: { reference: paymentDetails.paymentReference },
                     })}
@@ -1462,7 +1466,7 @@ const OrderTrackingScreen: React.FC = () => {
                     activeOpacity={0.85}
                     style={styles.paymentButton}
                   >
-                    <Text style={styles.paymentButtonText}>
+                    <Text allowFontScaling={false} style={styles.paymentButtonText}>
                       {t('orderTracking.payment.resumeCta')}
                     </Text>
                   </TouchableOpacity>
@@ -1485,10 +1489,10 @@ const OrderTrackingScreen: React.FC = () => {
                   <MapPin size={18} color="white" />
                 </View>
               )}
-              <Text style={styles.summaryTitle}>{orderIdentifier}</Text>
+              <Text allowFontScaling={false} style={styles.summaryTitle}>{orderIdentifier}</Text>
             </View>
             <View style={[styles.summaryBadge, responsiveStyles.summaryBadge]}>
-              <Text style={styles.summaryBadgeText}>
+              <Text allowFontScaling={false} style={styles.summaryBadgeText}>
                 {restaurantName}
               </Text>
             </View>
@@ -1579,32 +1583,32 @@ const OrderTrackingScreen: React.FC = () => {
                   >
                     <View style={styles.summaryItemInfo}>
                       <View style={styles.summaryItemPrimaryRow}>
-                        <Text style={styles.summaryItemQuantity}>{quantity}x</Text>
-                        <Text style={styles.summaryItemName} numberOfLines={1}>
+                        <Text allowFontScaling={false} style={styles.summaryItemQuantity}>{quantity}x</Text>
+                        <Text allowFontScaling={false} style={styles.summaryItemName} numberOfLines={1}>
                           {displayName}
                         </Text>
                       </View>
                       {extrasLabel ? (
-                        <Text style={styles.summaryItemExtras} numberOfLines={1}>
+                        <Text allowFontScaling={false} style={styles.summaryItemExtras} numberOfLines={1}>
                           {extrasLabel}
                         </Text>
                       ) : null}
                     </View>
-                    <Text style={[styles.summaryItemPrice, responsiveStyles.summaryItemPrice]}>
+                    <Text allowFontScaling={false} style={[styles.summaryItemPrice, responsiveStyles.summaryItemPrice]}>
                       {totalDisplay ?? '—'}
                     </Text>
                   </View>
                 );
               })
             ) : (
-              <Text style={styles.summaryEmptyText}>
+              <Text allowFontScaling={false} style={styles.summaryEmptyText}>
                 {t('orderTracking.summary.empty')}
               </Text>
             )}
           </View>
 
           <View style={[styles.summaryFooter, responsiveStyles.summaryFooter]}>
-            <Text style={styles.summaryTotal}>{orderTotalDisplay}</Text>
+            <Text allowFontScaling={false} style={styles.summaryTotal}>{orderTotalDisplay}</Text>
             <TouchableOpacity
               onPress={handleSeeDetails}
               disabled={!canViewDetails}
@@ -1614,7 +1618,7 @@ const OrderTrackingScreen: React.FC = () => {
                 !canViewDetails && styles.summaryDetailsButtonDisabled,
               ]}
             >
-              <Text style={styles.summaryDetailsText}>{t('orderTracking.summary.detailsCta')}</Text>
+              <Text allowFontScaling={false} style={styles.summaryDetailsText}>{t('orderTracking.summary.detailsCta')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1629,11 +1633,11 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
             )}
             <View>
-              <Text style={styles.courierStickyLabel}>{t('orderTracking.courier.label')}</Text>
-              <Text style={styles.courierStickyName}>{courierName}</Text>
+              <Text allowFontScaling={false} style={styles.courierStickyLabel}>{t('orderTracking.courier.label')}</Text>
+              <Text allowFontScaling={false} style={styles.courierStickyName}>{courierName}</Text>
               <View style={styles.courierStickyRating}>
                 <Star size={14} color={accentColor} fill={accentColor} />
-                <Text style={styles.courierStickyRatingText}>
+                <Text allowFontScaling={false} style={styles.courierStickyRatingText}>
                   {courierRatingText}
                   {courierDeliveriesText}
                 </Text>
@@ -1686,8 +1690,8 @@ const OrderTrackingScreen: React.FC = () => {
               ]}
             >
               <View style={styles.helpHandle} />
-              <Text style={styles.helpTitle}>{t('orderTracking.help.title')}</Text>
-              <Text style={styles.helpDescription}>
+              <Text allowFontScaling={false} style={styles.helpTitle}>{t('orderTracking.help.title')}</Text>
+              <Text allowFontScaling={false} style={styles.helpDescription}>
                 {t('orderTracking.help.description')}
               </Text>
               <TouchableOpacity
@@ -1699,10 +1703,10 @@ const OrderTrackingScreen: React.FC = () => {
                   <Phone size={20} color="white" />
                 </View>
                 <View style={[styles.helpOptionContent, responsiveStyles.helpOptionContent]}>
-                  <Text style={styles.helpOptionTitle}>
+                  <Text allowFontScaling={false} style={styles.helpOptionTitle}>
                     {t('orderTracking.help.callSupport')}
                   </Text>
-                  <Text style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
+                  <Text allowFontScaling={false} style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1711,7 +1715,7 @@ const OrderTrackingScreen: React.FC = () => {
                 onPress={handleRequestLiveChat}
               >
                 <MessageCircle size={18} color="white" />
-                <Text style={[styles.helpChatButtonText, responsiveStyles.helpChatButtonText]}>
+                <Text allowFontScaling={false} style={[styles.helpChatButtonText, responsiveStyles.helpChatButtonText]}>
                   {t('orderTracking.help.liveChatCta')}
                 </Text>
               </TouchableOpacity>
