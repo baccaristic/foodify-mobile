@@ -12,7 +12,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThumbsDown, ThumbsUp, X } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -176,154 +176,160 @@ const RestaurantRatingOverlay = () => {
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={handleClose}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.overlay}>
-          <TouchableOpacity
-            style={styles.backdrop}
-            activeOpacity={1}
-            onPress={() => {
-              Keyboard.dismiss();
-              handleClose();
-            }}
-          />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={insets.top + 24}
-            style={styles.keyboardAvoider}
-          >
-            <View style={[styles.card, { paddingTop: insets.top + 32 }]}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  handleClose();
-                }}
-              >
-                <X size={22} color={headingColor} />
-              </TouchableOpacity>
-              <View style={styles.headerIllustrationWrapper}>
-                <Image
-                  source={require('../../assets/baguette.png')}
-                  style={StyleSheet.absoluteFillObject}
-                  contentFit="contain"
-                />
-              </View>
-              <Text allowFontScaling={false} style={styles.headline}>
-                {t('restaurantRating.headline')}
-              </Text>
-              <Text allowFontScaling={false} style={styles.question}>
-                {t('restaurantRating.question')}
-              </Text>
-              {restaurantName ? (
-                <Text allowFontScaling={false} style={styles.restaurantName}>
-                  {restaurantName}
-                </Text>
-              ) : null}
-              {ratingQuery.isFetching && !mergedRating ? (
-                <View style={styles.loadingIndicator}>
-                  <ActivityIndicator size="small" color={accentColor} />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.overlay}>
+            <TouchableOpacity
+              style={styles.backdrop}
+              activeOpacity={1}
+              onPress={() => {
+                Keyboard.dismiss();
+                handleClose();
+              }}
+            />
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={insets.top + 24}
+              style={styles.keyboardAvoider}
+            >
+              <View style={styles.card}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    handleClose();
+                  }}
+                >
+                  <X size={22} color={headingColor} />
+                </TouchableOpacity>
+                <View style={styles.headerIllustrationWrapper}>
+                  <Image
+                    source={require('../../assets/baguette.png')}
+                    style={StyleSheet.absoluteFillObject}
+                    contentFit="contain"
+                  />
                 </View>
-              ) : null}
-              <View style={styles.choiceRow}>
-                <View style={styles.choiceColumn}>
-                  <TouchableOpacity
-                    style={[
-                      styles.choiceButton,
-                      thumbsUp === true ? styles.choiceButtonPositiveActive : null,
-                    ]}
-                    onPress={() => handleSelect(true)}
-                    disabled={isBusy}
-                    activeOpacity={0.85}
-                  >
-                    <ThumbsUp
-                      size={36}
-                      color={positiveColor}
-                      strokeWidth={1.6}
-                      fill={thumbsUp === true ? positiveColor : 'none'}
-                    />
-                  </TouchableOpacity>
-                  <Text
+                <Text allowFontScaling={false} style={styles.headline}>
+                  {t('restaurantRating.headline')}
+                </Text>
+                <Text allowFontScaling={false} style={styles.question}>
+                  {t('restaurantRating.question')}
+                </Text>
+                {restaurantName ? (
+                  <Text allowFontScaling={false} style={styles.restaurantName}>
+                    {restaurantName}
+                  </Text>
+                ) : null}
+                {ratingQuery.isFetching && !mergedRating ? (
+                  <View style={styles.loadingIndicator}>
+                    <ActivityIndicator size="small" color={accentColor} />
+                  </View>
+                ) : null}
+                <View style={styles.choiceRow}>
+                  <View style={styles.choiceColumn}>
+                    <TouchableOpacity
+                      style={[
+                        styles.choiceButton,
+                        thumbsUp === true ? styles.choiceButtonPositiveActive : null,
+                      ]}
+                      onPress={() => handleSelect(true)}
+                      disabled={isBusy}
+                      activeOpacity={0.85}
+                    >
+                      <ThumbsUp
+                        size={36}
+                        color={positiveColor}
+                        strokeWidth={1.6}
+                        fill={thumbsUp === true ? positiveColor : 'none'}
+                      />
+                    </TouchableOpacity>
+                    <Text
+                      allowFontScaling={false}
+                      style={[styles.choiceLabel, styles.choiceLabelPositive]}
+                    >
+                      {t('restaurantRating.options.thumbsUp')}
+                    </Text>
+                  </View>
+                  <View style={styles.choiceColumn}>
+                    <TouchableOpacity
+                      style={[
+                        styles.choiceButton,
+                        thumbsUp === false ? styles.choiceButtonNegativeActive : null,
+                      ]}
+                      onPress={() => handleSelect(false)}
+                      disabled={isBusy}
+                      activeOpacity={0.85}
+                    >
+                      <ThumbsDown
+                        size={36}
+                        color={accentColor}
+                        strokeWidth={1.6}
+                        fill={thumbsUp === false ? accentColor : 'none'}
+                      />
+                    </TouchableOpacity>
+                    <Text
+                      allowFontScaling={false}
+                      style={[styles.choiceLabel, styles.choiceLabelNegative]}
+                    >
+                      {t('restaurantRating.options.thumbsDown')}
+                    </Text>
+                  </View>
+                </View>
+                <Text allowFontScaling={false} style={styles.orLabel}>
+                  {t('restaurantRating.options.or')}
+                </Text>
+                <View style={styles.commentSection}>
+                  <Text allowFontScaling={false} style={styles.commentLabel}>
+                    {t('restaurantRating.commentPrompt')}
+                  </Text>
+                  <TextInput
                     allowFontScaling={false}
-                    style={[styles.choiceLabel, styles.choiceLabelPositive]}
-                  >
-                    {t('restaurantRating.options.thumbsUp')}
-                  </Text>
+                    style={styles.commentInput}
+                    placeholder={t('restaurantRating.commentPlaceholder')}
+                    placeholderTextColor={placeholderColor}
+                    multiline
+                    maxLength={1024}
+                    value={comments}
+                    editable={!isBusy}
+                    onChangeText={setComments}
+                    textAlignVertical="top"
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
+                  />
                 </View>
-                <View style={styles.choiceColumn}>
-                  <TouchableOpacity
-                    style={[
-                      styles.choiceButton,
-                      thumbsUp === false ? styles.choiceButtonNegativeActive : null,
-                    ]}
-                    onPress={() => handleSelect(false)}
-                    disabled={isBusy}
-                    activeOpacity={0.85}
-                  >
-                    <ThumbsDown
-                      size={36}
-                      color={accentColor}
-                      strokeWidth={1.6}
-                      fill={thumbsUp === false ? accentColor : 'none'}
-                    />
-                  </TouchableOpacity>
-                  <Text
-                    allowFontScaling={false}
-                    style={[styles.choiceLabel, styles.choiceLabelNegative]}
-                  >
-                    {t('restaurantRating.options.thumbsDown')}
+                {errorMessage ? (
+                  <Text allowFontScaling={false} style={styles.errorText}>
+                    {errorMessage}
                   </Text>
-                </View>
+                ) : null}
+                <TouchableOpacity
+                  style={[styles.submitButton, isBusy ? styles.submitButtonDisabled : null]}
+                  activeOpacity={0.85}
+                  onPress={handleSubmit}
+                  disabled={isBusy}
+                >
+                  {isBusy ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text allowFontScaling={false} style={styles.submitLabel}>
+                      {submitLabel}
+                    </Text>
+                  )}
+                </TouchableOpacity>
               </View>
-              <Text allowFontScaling={false} style={styles.orLabel}>
-                {t('restaurantRating.options.or')}
-              </Text>
-              <View style={styles.commentSection}>
-                <Text allowFontScaling={false} style={styles.commentLabel}>
-                  {t('restaurantRating.commentPrompt')}
-                </Text>
-                <TextInput
-                  allowFontScaling={false}
-                  style={styles.commentInput}
-                  placeholder={t('restaurantRating.commentPlaceholder')}
-                  placeholderTextColor={placeholderColor}
-                  multiline
-                  maxLength={1024}
-                  value={comments}
-                  editable={!isBusy}
-                  onChangeText={setComments}
-                  textAlignVertical="top"
-                  returnKeyType="done"
-                  onSubmitEditing={Keyboard.dismiss}
-                />
-              </View>
-              {errorMessage ? (
-                <Text allowFontScaling={false} style={styles.errorText}>
-                  {errorMessage}
-                </Text>
-              ) : null}
-              <TouchableOpacity
-                style={[styles.submitButton, isBusy ? styles.submitButtonDisabled : null]}
-                activeOpacity={0.85}
-                onPress={handleSubmit}
-                disabled={isBusy}
-              >
-                {isBusy ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text allowFontScaling={false} style={styles.submitLabel}>
-                    {submitLabel}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor,
+  },
   overlay: {
     flex: 1,
     backgroundColor,
@@ -343,6 +349,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: cardColor,
     borderRadius: 32,
+    paddingTop: 32,
     paddingHorizontal: 28,
     paddingBottom: 32,
     alignItems: 'center',
