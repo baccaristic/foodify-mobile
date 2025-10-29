@@ -8,6 +8,9 @@ module.exports = defineConfig([
     ignores: ['dist/*'],
   },
   {
+    settings: {
+      'import/core-modules': ['@env', '@fidme/react-native-wheel-of-fortune'],
+    },
     rules: {
       'react/display-name': 'off',
     },

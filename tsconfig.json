@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "types": ["./env.d.ts"],
+    "types": ["./env.d.ts", "./src/types/wheel-of-fortune"],
     "baseUrl": ".",
     "paths": {
       "~/*": ["src/*"]

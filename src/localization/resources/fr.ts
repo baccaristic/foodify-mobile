@@ -541,6 +541,7 @@ const fr: TranslationDictionary = {
             methods: 'Modes de paiement',
             history: 'Historique des commandes',
             loyalty: 'Fidélité & récompenses',
+            luckyWheel: 'Roue chanceuse',
             coupons: 'Codes promo',
           },
         },
@@ -621,6 +622,34 @@ const fr: TranslationDictionary = {
         earned: 'Points gagnés',
         redeemed: 'Points dépensés',
         adjustment: 'Ajustement',
+      },
+    },
+    luckyWheel: {
+      title: 'Roue chanceuse',
+      location: 'Région de San Francisco',
+      header: {
+        tagline: 'Faites tourner la roue',
+        title: 'Lucky Wheel',
+        subtitle: 'Jouez pour gagner, c’est le moment !',
+        helperCta: 'Comment ça marche ?'
+      },
+      cardTitle: 'Tournez pour gagner',
+      wheelCenterTitle: 'Spin',
+      wheelCenterSubtitle: 'and win',
+      slices: {
+        percentOff: '{{value}} %',
+        freeDelivery: 'Livraison gratuite',
+        tryAgain: 'À la prochaine',
+      },
+      actions: {
+        spin: 'Tourner et gagner',
+      },
+      modal: {
+        title: 'Vous avez gagné !',
+        subtitle: 'Code promo sur votre prochaine commande',
+        primaryAction: 'Utiliser le coupon',
+        secondaryAction: 'Garder pour plus tard',
+        placeholderReward: '10 %',
       },
     },
     redeem: {

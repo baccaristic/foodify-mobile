@@ -21,6 +21,7 @@ import {
   Trash2,
   UserRound,
   Medal,
+  Sparkles,
 } from 'lucide-react-native';
 import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
 import { useQuery } from '@tanstack/react-query';
@@ -100,6 +101,7 @@ const useProfileSections = (
               </View>
             ) : undefined,
           },
+          { label: t('profile.home.sections.payment.items.luckyWheel'), icon: Sparkles, route: 'LuckyWheel' },
           { label: t('profile.home.sections.payment.items.coupons'), icon: Gift, route: 'CouponCodes' },
         ],
       },
@@ -212,6 +214,9 @@ const ProfileScreen = () => {
         break;
       case 'LoyaltyRewards':
         navigation.navigate('LoyaltyRewards' as never);
+        break;
+      case 'LuckyWheel':
+        navigation.navigate('LuckyWheel' as never);
         break;
       case 'Favorites':
         navigation.navigate('Favorites' as never);

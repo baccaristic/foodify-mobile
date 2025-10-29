@@ -533,6 +533,7 @@ const en: TranslationDictionary = {
             methods: 'Payment methods',
             history: 'Order history',
             loyalty: 'Loyalty & rewards',
+            luckyWheel: 'Lucky wheel',
             coupons: 'Coupon codes',
           },
         },
@@ -613,6 +614,34 @@ const en: TranslationDictionary = {
         earned: 'Points earned',
         redeemed: 'Points spent',
         adjustment: 'Adjustment',
+      },
+    },
+    luckyWheel: {
+      title: 'Lucky wheel',
+      location: 'San Francisco Bay Area',
+      header: {
+        tagline: 'Spin the wheel',
+        title: 'Lucky Wheel',
+        subtitle: "Play the game to earn the gain, it's the moment !",
+        helperCta: 'How does it work ?',
+      },
+      cardTitle: 'Spin to win',
+      wheelCenterTitle: 'Spin',
+      wheelCenterSubtitle: 'and win',
+      slices: {
+        percentOff: '{{value}}%',
+        freeDelivery: 'Free Delivery',
+        tryAgain: 'Next Time',
+      },
+      actions: {
+        spin: 'Spin and win',
+      },
+      modal: {
+        title: 'You won !',
+        subtitle: 'Coupon code on your next order',
+        primaryAction: 'Use the coupon',
+        secondaryAction: 'Save for later',
+        placeholderReward: '10%',
       },
     },
     redeem: {
