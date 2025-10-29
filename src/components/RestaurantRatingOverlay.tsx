@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ThumbsDown, ThumbsUp, X } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ms } from 'react-native-size-matters';
 
 import { getRestaurantRating, submitRestaurantRating } from '~/api/restaurantRatings';
 import { useRestaurantRatingOverlay } from '~/context/RestaurantRatingOverlayContext';
@@ -189,7 +190,7 @@ const RestaurantRatingOverlay = () => {
             />
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={insets.top + 24}
+              keyboardVerticalOffset={insets.top + ms(24)}
               style={styles.keyboardAvoider}
             >
               <View style={styles.card}>
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     backgroundColor,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: ms(24),
   },
   keyboardAvoider: {
     flex: 1,
@@ -348,57 +349,57 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     backgroundColor: cardColor,
-    borderRadius: 32,
-    paddingTop: 32,
-    paddingHorizontal: 28,
-    paddingBottom: 32,
+    borderRadius: ms(32),
+    paddingTop: ms(32),
+    paddingHorizontal: ms(28),
+    paddingBottom: ms(32),
     alignItems: 'center',
     shadowColor: '#0F172A',
     shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOffset: { width: 0, height: ms(12) },
+    shadowRadius: ms(24),
+    elevation: ms(12),
   },
   closeButton: {
     position: 'absolute',
-    left: 24,
-    top: 24,
-    padding: 8,
+    left: ms(24),
+    top: ms(24),
+    padding: ms(8),
   },
   headerIllustrationWrapper: {
-    width: 160,
-    height: 110,
-    marginBottom: 16,
+    width: ms(160),
+    height: ms(110),
+    marginBottom: ms(16),
   },
   headline: {
-    fontSize: 24,
+    fontSize: ms(24),
     fontWeight: '700',
     color: headingColor,
     textAlign: 'center',
   },
   question: {
-    marginTop: 8,
-    fontSize: 18,
+    marginTop: ms(8),
+    fontSize: ms(18),
     color: bodyColor,
     textAlign: 'center',
   },
   restaurantName: {
-    marginTop: 4,
-    fontSize: 16,
+    marginTop: ms(4),
+    fontSize: ms(16),
     fontWeight: '600',
     color: accentColor,
     textAlign: 'center',
   },
   loadingIndicator: {
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: ms(16),
+    marginBottom: ms(8),
   },
   choiceRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'center',
-    marginTop: 24,
-    gap: 16,
+    marginTop: ms(24),
+    gap: ms(16),
     width: '100%',
   },
   choiceColumn: {
@@ -406,11 +407,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   choiceButton: {
-    borderWidth: 2,
+    borderWidth: ms(2),
     borderColor: borderColor,
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: ms(96),
+    height: ms(96),
+    borderRadius: ms(48),
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -424,10 +425,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(202, 37, 27, 0.08)',
   },
   choiceLabel: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: ms(12),
   },
   choiceLabelPositive: {
     color: positiveColor,
@@ -436,54 +437,54 @@ const styles = StyleSheet.create({
     color: accentColor,
   },
   orLabel: {
-    fontSize: 15,
+    fontSize: ms(15),
     color: bodyColor,
     fontWeight: '500',
-    marginTop: 12,
-    marginBottom: 20,
+    marginTop: ms(12),
+    marginBottom: ms(20),
     textAlign: 'center',
   },
   commentSection: {
     width: '100%',
   },
   commentLabel: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
     color: headingColor,
-    marginBottom: 12,
+    marginBottom: ms(12),
     alignSelf: 'flex-start',
   },
   commentInput: {
     width: '100%',
-    minHeight: 120,
-    borderWidth: 1,
+    minHeight: ms(120),
+    borderWidth: ms(1),
     borderColor,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
+    borderRadius: ms(16),
+    paddingHorizontal: ms(16),
+    paddingVertical: ms(14),
+    fontSize: ms(15),
     color: headingColor,
     backgroundColor: '#F8FAFC',
   },
   errorText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: accentColor,
-    marginTop: 12,
+    marginTop: ms(12),
     textAlign: 'center',
   },
   submitButton: {
     width: '100%',
     backgroundColor: accentColor,
-    borderRadius: 28,
-    paddingVertical: 14,
+    borderRadius: ms(28),
+    paddingVertical: ms(14),
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: ms(24),
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitLabel: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '700',
     color: '#FFFFFF',
   },

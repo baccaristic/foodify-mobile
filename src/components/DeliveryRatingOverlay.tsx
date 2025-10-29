@@ -15,6 +15,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Star, X } from 'lucide-react-native';
+import { ms } from 'react-native-size-matters';
 
 import { getDeliveryRating, submitDeliveryRating } from '~/api/deliveryRatings';
 import { useDeliveryRatingOverlay } from '~/context/DeliveryRatingOverlayContext';
@@ -220,7 +221,7 @@ const DeliveryRatingOverlay = () => {
             />
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={insets.top + 24}
+              keyboardVerticalOffset={insets.top + ms(24)}
               style={styles.keyboardAvoider}
             >
               <View style={styles.card}>
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
     backgroundColor,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: ms(24),
   },
   keyboardAvoider: {
     flex: 1,
@@ -355,47 +356,47 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     backgroundColor: cardColor,
-    borderRadius: 32,
-    paddingTop: 32,
-    paddingHorizontal: 28,
-    paddingBottom: 32,
+    borderRadius: ms(32),
+    paddingTop: ms(32),
+    paddingHorizontal: ms(28),
+    paddingBottom: ms(32),
     alignItems: 'center',
     shadowColor: '#0F172A',
     shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOffset: { width: 0, height: ms(12) },
+    shadowRadius: ms(24),
+    elevation: ms(12),
   },
   closeButton: {
     position: 'absolute',
-    left: 24,
-    top: 24,
-    padding: 8,
+    left: ms(24),
+    top: ms(24),
+    padding: ms(8),
   },
   headerIconWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: ms(80),
+    height: ms(80),
+    borderRadius: ms(40),
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: ms(16),
   },
   title: {
-    fontSize: 24,
+    fontSize: ms(24),
     fontWeight: '700',
     color: headingColor,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: ms(16),
     color: bodyColor,
     textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: ms(8),
+    marginBottom: ms(24),
   },
   ratingList: {
     width: '100%',
-    gap: 16,
-    marginBottom: 24,
+    gap: ms(16),
+    marginBottom: ms(24),
   },
   ratingRow: {
     width: '100%',
@@ -405,61 +406,61 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     flexShrink: 1,
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
     color: headingColor,
-    marginRight: 12,
+    marginRight: ms(12),
   },
   starsRow: {
     flexDirection: 'row',
   },
   starButton: {
-    paddingHorizontal: 4,
+    paddingHorizontal: ms(4),
   },
   commentSection: {
     width: '100%',
-    marginBottom: 20,
+    marginBottom: ms(20),
   },
   commentLabel: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '600',
     color: headingColor,
-    marginBottom: 12,
+    marginBottom: ms(12),
     alignSelf: 'flex-start',
   },
   commentInput: {
     width: '100%',
-    minHeight: 112,
-    borderWidth: 1,
+    minHeight: ms(112),
+    borderWidth: ms(1),
     borderColor: '#E5E7EB',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
+    borderRadius: ms(16),
+    paddingHorizontal: ms(16),
+    paddingVertical: ms(14),
+    fontSize: ms(15),
     color: headingColor,
     backgroundColor: '#F8FAFC',
   },
   errorText: {
-    fontSize: 14,
+    fontSize: ms(14),
     color: accentColor,
-    marginBottom: 12,
+    marginBottom: ms(12),
     textAlign: 'center',
   },
   loadingIndicator: {
-    marginBottom: 16,
+    marginBottom: ms(16),
   },
   submitButton: {
     width: '100%',
     backgroundColor: accentColor,
-    borderRadius: 28,
-    paddingVertical: 14,
+    borderRadius: ms(28),
+    paddingVertical: ms(14),
     alignItems: 'center',
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitLabel: {
-    fontSize: 16,
+    fontSize: ms(16),
     fontWeight: '700',
     color: '#FFFFFF',
   },
