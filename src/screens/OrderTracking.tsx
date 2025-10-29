@@ -12,6 +12,7 @@ import {
   Modal,
   Alert,
   Linking,
+  LayoutChangeEvent,
   useWindowDimensions,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
@@ -141,7 +142,11 @@ const OrderTrackingScreen: React.FC = () => {
   const heroPulseSize = heroAnimationSize + (isTablet ? 96 : isCompactWidth ? 36 : 56);
   const statusMessageFontSize = Math.max(12, Math.min(isTablet ? 16 : 14, width * 0.04));
   const statusMessageLineHeight = Math.round(statusMessageFontSize * 1.3);
-  const scrollPaddingBottom = vs(isLandscape ? 140 : 180);
+  const [bottomSheetHeight, setBottomSheetHeight] = useState(0);
+  const scrollPaddingBottom = useMemo(
+    () => bottomSheetHeight + vs(isLandscape ? 140 : 180),
+    [bottomSheetHeight, isLandscape],
+  );
   const bottomSheetExtraPadding = isCompactWidth || isLandscape ? 16 : 20;
   const helpSheetHiddenOffset = useMemo(
     () => Math.min(Math.max(height * 0.45, 320), Math.max(height - insets.bottom - 80, 360)),
@@ -992,6 +997,15 @@ const OrderTrackingScreen: React.FC = () => {
     });
   };
 
+  const handleBottomSheetLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = event?.nativeEvent?.layout?.height ?? 0;
+    if (!Number.isFinite(nextHeight)) {
+      return;
+    }
+
+    setBottomSheetHeight((current) => (Math.abs(current - nextHeight) > 2 ? nextHeight : current));
+  }, []);
+
   const headerMinHeight = useMemo(
     () => Math.max(HEADER_MIN_HEIGHT, insets.top + 56),
     [insets.top],
@@ -1378,6 +1392,7 @@ const OrderTrackingScreen: React.FC = () => {
           responsiveStyles.bottomSheet,
           { paddingBottom: insets.bottom + bottomSheetExtraPadding },
         ]}
+        onLayout={handleBottomSheetLayout}
       >
         <View style={responsiveStyles.bottomSheetInner}>
           {shouldShowPaymentCard ? (
