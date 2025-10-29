@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Modal,
@@ -11,7 +11,11 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, ChevronDown, Info, Sparkles } from 'lucide-react-native';
-import WheelOfFortune, { type WheelOfFortuneRef } from '@fidme/react-native-wheel-of-fortune';
+import WheelOfFortune, {
+  type WheelOfFortuneRef,
+  type WheelOfFortuneReward,
+} from '@fidme/react-native-wheel-of-fortune';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTranslation } from '~/localization';
 
@@ -27,12 +31,15 @@ const palette = {
 type LuckyWheelSlice = {
   id: string;
   label: string;
-  subLabel?: string;
+  wheelLabel: string;
   backgroundColor: string;
   textColor: string;
 };
 
 type LuckyWheelReward = LuckyWheelSlice;
+
+const SPIN_DURATION_MS = 6000;
+const STATIC_REWARD_INDEX = 0;
 
 const LuckyWheelScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -40,81 +47,72 @@ const LuckyWheelScreen: React.FC = () => {
   const wheelRef = useRef<WheelOfFortuneRef | null>(null);
   const [isResultVisible, setIsResultVisible] = useState(false);
   const [selectedReward, setSelectedReward] = useState<LuckyWheelReward | null>(null);
+  const [isSpinning, setIsSpinning] = useState(false);
 
   const slices = useMemo<LuckyWheelSlice[]>(
-    () => [
-      {
-        id: 'coupon-10',
-        label: t('profile.luckyWheel.slices.percentOff', { values: { value: '10' } }),
-        backgroundColor: '#CA251B',
-        textColor: '#FFFFFF',
-      },
-      {
-        id: 'try-again-1',
-        label: t('profile.luckyWheel.slices.tryAgain'),
-        backgroundColor: '#FDE7E5',
-        textColor: palette.accent,
-      },
-      {
-        id: 'coupon-20',
-        label: t('profile.luckyWheel.slices.percentOff', { values: { value: '20' } }),
-        backgroundColor: '#F6F7FB',
-        textColor: palette.accentDark,
-      },
-      {
-        id: 'free-delivery-1',
-        label: t('profile.luckyWheel.slices.freeDelivery'),
-        backgroundColor: '#CA251B',
-        textColor: '#FFFFFF',
-      },
-      {
-        id: 'coupon-40',
-        label: t('profile.luckyWheel.slices.percentOff', { values: { value: '40' } }),
-        backgroundColor: '#FDE7E5',
-        textColor: palette.accent,
-      },
-      {
-        id: 'try-again-2',
-        label: t('profile.luckyWheel.slices.tryAgain'),
-        backgroundColor: '#F6F7FB',
-        textColor: palette.accentDark,
-      },
-      {
-        id: 'free-delivery-2',
-        label: t('profile.luckyWheel.slices.freeDelivery'),
-        backgroundColor: '#CA251B',
-        textColor: '#FFFFFF',
-      },
-      {
-        id: 'coupon-10-2',
-        label: t('profile.luckyWheel.slices.percentOff', { values: { value: '10' } }),
-        backgroundColor: '#FDE7E5',
-        textColor: palette.accent,
-      },
-    ],
+    () => {
+      const createPercentSlice = (id: string, value: string, backgroundColor: string, textColor: string) => {
+        const label = t('profile.luckyWheel.slices.percentOff', { values: { value } });
+        return {
+          id,
+          label,
+          wheelLabel: label.toUpperCase().replace('%', ' %'),
+          backgroundColor,
+          textColor,
+        };
+      };
+
+      const createStaticSlice = (
+        id: string,
+        key: 'freeDelivery' | 'tryAgain',
+        backgroundColor: string,
+        textColor: string,
+      ) => {
+        const translationKey =
+          key === 'freeDelivery'
+            ? 'profile.luckyWheel.slices.freeDelivery'
+            : 'profile.luckyWheel.slices.tryAgain';
+        const label = t(translationKey);
+        return {
+          id,
+          label,
+          wheelLabel: label.toUpperCase(),
+          backgroundColor,
+          textColor,
+        };
+      };
+
+      return [
+        createPercentSlice('coupon-10', '10', '#CA251B', '#FFFFFF'),
+        createStaticSlice('try-again-1', 'tryAgain', '#FDE7E5', palette.accent),
+        createPercentSlice('coupon-20', '20', '#F6F7FB', palette.accentDark),
+        createStaticSlice('free-delivery-1', 'freeDelivery', '#CA251B', '#FFFFFF'),
+        createPercentSlice('coupon-40', '40', '#FDE7E5', palette.accent),
+        createStaticSlice('try-again-2', 'tryAgain', '#F6F7FB', palette.accentDark),
+        createStaticSlice('free-delivery-2', 'freeDelivery', '#CA251B', '#FFFFFF'),
+        createPercentSlice('coupon-10-2', '10', '#FDE7E5', palette.accent),
+      ];
+    },
     [t],
   );
 
+  const wheelLabels = useMemo(() => slices.map((slice) => slice.wheelLabel), [slices]);
+  const wheelColors = useMemo(() => slices.map((slice) => slice.backgroundColor), [slices]);
+  const wheelTextColors = useMemo(() => slices.map((slice) => slice.textColor), [slices]);
+
   const wheelOptions = useMemo(
     () => ({
-      rewards: slices.map((slice) => ({
-        value: slice.id,
-        label: slice.label,
-        style: {
-          backgroundColor: slice.backgroundColor,
-          textColor: slice.textColor,
-          labelFontSize: 16,
-          labelFontWeight: '700',
-          labelRadiusOffset: 36,
-          textAlign: 'center',
-        },
-      })),
+      rewards: wheelLabels,
+      rewardColors: wheelColors,
+      rewardTextColors: wheelTextColors,
+      textFontSize: 16,
+      textFontWeight: '700',
       knobSize: 18,
       knobColor: palette.accentDark,
       borderWidth: 14,
       borderColor: '#F3F4F6',
       innerRadius: 78,
-      spinDuration: 6000,
+      spinDuration: SPIN_DURATION_MS,
       backgroundColor: palette.surface,
       textAngle: 'horizontal',
       enableUserInteraction: false,
@@ -140,30 +138,66 @@ const LuckyWheelScreen: React.FC = () => {
         wheelRef.current = instance;
       },
     }),
-    [slices, t, wheelRef],
+    [wheelColors, wheelLabels, wheelTextColors, t],
   );
 
   const handleSpin = () => {
-    const reward = slices[0];
+    if (isSpinning) {
+      return;
+    }
+
+    const reward = slices[STATIC_REWARD_INDEX] ?? null;
     setSelectedReward(reward);
-    setIsResultVisible(true);
+    setIsResultVisible(false);
+    setIsSpinning(true);
 
     if (wheelRef.current?.spinToReward) {
-      wheelRef.current.spinToReward(0);
+      wheelRef.current.spinToReward(STATIC_REWARD_INDEX);
     } else if (wheelRef.current?.spin) {
       wheelRef.current.spin();
+    } else {
+      // No imperative API available, surface the reward immediately.
+      setIsSpinning(false);
+      setIsResultVisible(true);
     }
   };
 
   const handleCloseModal = () => {
     setIsResultVisible(false);
+    setIsSpinning(false);
   };
+
+  const handleWinner = (_reward: WheelOfFortuneReward, index: number) => {
+    const reward = slices[index] ?? selectedReward;
+    setSelectedReward(reward ?? null);
+    setIsSpinning(false);
+    setIsResultVisible(true);
+  };
+
+  useEffect(() => {
+    if (!isSpinning || wheelRef.current?.spinToReward) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setIsSpinning(false);
+      setIsResultVisible(true);
+    }, SPIN_DURATION_MS);
+
+    return () => clearTimeout(timeout);
+  }, [isSpinning]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" />
       <View style={styles.container}>
         <View style={styles.heroBlock}>
+          <LinearGradient
+            colors={['#E93A2E', '#CA251B']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          />
           <View style={styles.heroHeader}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -206,11 +240,18 @@ const LuckyWheelScreen: React.FC = () => {
               {t('profile.luckyWheel.cardTitle')}
             </Text>
           </View>
-          <WheelOfFortune options={wheelOptions} />
+          <View style={styles.wheelWrapper}>
+            <WheelOfFortune options={wheelOptions} getWinner={handleWinner} />
+          </View>
         </View>
 
         <View style={styles.ctaContainer}>
-          <TouchableOpacity style={styles.spinButton} activeOpacity={0.85} onPress={handleSpin}>
+          <TouchableOpacity
+            style={[styles.spinButton, isSpinning && styles.spinButtonDisabled]}
+            activeOpacity={0.85}
+            onPress={handleSpin}
+            disabled={isSpinning}
+          >
             <Text allowFontScaling={false} style={styles.spinButtonLabel}>
               {t('profile.luckyWheel.actions.spin')}
             </Text>
@@ -269,6 +310,10 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
+    overflow: 'hidden',
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
   heroHeader: {
     flexDirection: 'row',
@@ -351,6 +396,13 @@ const styles = StyleSheet.create({
     elevation: 12,
     alignItems: 'center',
   },
+  wheelWrapper: {
+    marginTop: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 280,
+    height: 280,
+  },
   wheelCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -375,6 +427,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 8,
+  },
+  spinButtonDisabled: {
+    opacity: 0.6,
   },
   spinButtonLabel: {
     color: '#FFFFFF',
