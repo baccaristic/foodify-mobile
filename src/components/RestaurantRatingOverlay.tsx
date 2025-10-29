@@ -10,6 +10,7 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  ScrollView,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -193,12 +194,19 @@ const RestaurantRatingOverlay = () => {
               keyboardVerticalOffset={insets.top + ms(24)}
               style={styles.keyboardAvoider}
             >
-              <View style={styles.card}>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    handleClose();
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.card}>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      handleClose();
                   }}
                 >
                   <X size={22} color={headingColor} />
@@ -303,21 +311,22 @@ const RestaurantRatingOverlay = () => {
                     {errorMessage}
                   </Text>
                 ) : null}
-                <TouchableOpacity
-                  style={[styles.submitButton, isBusy ? styles.submitButtonDisabled : null]}
-                  activeOpacity={0.85}
-                  onPress={handleSubmit}
-                  disabled={isBusy}
-                >
-                  {isBusy ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text allowFontScaling={false} style={styles.submitLabel}>
-                      {submitLabel}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[styles.submitButton, isBusy ? styles.submitButtonDisabled : null]}
+                    activeOpacity={0.85}
+                    onPress={handleSubmit}
+                    disabled={isBusy}
+                  >
+                    {isBusy ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text allowFontScaling={false} style={styles.submitLabel}>
+                        {submitLabel}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
@@ -342,6 +351,15 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: ms(24),
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
