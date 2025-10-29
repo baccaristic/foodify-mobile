@@ -19,6 +19,7 @@ import { useOngoingOrderContext } from '~/context/OngoingOrderContext';
 import { useTranslation } from '~/localization';
 
 const accentColor = '#CA251B';
+const positiveColor = '#111827';
 const backgroundColor = 'rgba(15, 23, 42, 0.65)';
 const cardColor = '#FFFFFF';
 const headingColor = '#17213A';
@@ -195,41 +196,53 @@ const RestaurantRatingOverlay = () => {
           ) : null}
           <View style={styles.choiceRow}>
             <TouchableOpacity
-              style={[styles.choiceButton, thumbsUp === true ? styles.choiceButtonActive : null]}
+              style={[
+                styles.choiceButton,
+                thumbsUp === true ? styles.choiceButtonPositiveActive : null,
+              ]}
               onPress={() => handleSelect(true)}
               disabled={isBusy}
             >
               <ThumbsUp
                 size={36}
-                color={thumbsUp === true ? '#FFFFFF' : accentColor}
-                strokeWidth={1.4}
-                fill={thumbsUp === true ? '#FFFFFF' : 'none'}
+                color={positiveColor}
+                strokeWidth={1.6}
+                fill={thumbsUp === true ? positiveColor : 'none'}
               />
               <Text
-                style={[styles.choiceLabel, thumbsUp === true ? styles.choiceLabelActive : null]}
+                style={[
+                  styles.choiceLabel,
+                  styles.choiceLabelPositive,
+                ]}
               >
                 {t('restaurantRating.options.thumbsUp')}
               </Text>
             </TouchableOpacity>
-            <Text style={styles.orLabel}>{t('restaurantRating.options.or')}</Text>
             <TouchableOpacity
-              style={[styles.choiceButton, thumbsUp === false ? styles.choiceButtonNegative : null]}
+              style={[
+                styles.choiceButton,
+                thumbsUp === false ? styles.choiceButtonNegativeActive : null,
+              ]}
               onPress={() => handleSelect(false)}
               disabled={isBusy}
             >
               <ThumbsDown
                 size={36}
-                color={thumbsUp === false ? '#FFFFFF' : accentColor}
-                strokeWidth={1.4}
-                fill={thumbsUp === false ? '#FFFFFF' : 'none'}
+                color={accentColor}
+                strokeWidth={1.6}
+                fill={thumbsUp === false ? accentColor : 'none'}
               />
               <Text
-                style={[styles.choiceLabel, thumbsUp === false ? styles.choiceLabelActive : null]}
+                style={[
+                  styles.choiceLabel,
+                  styles.choiceLabelNegative,
+                ]}
               >
                 {t('restaurantRating.options.thumbsDown')}
               </Text>
             </TouchableOpacity>
           </View>
+          <Text style={styles.orLabel}>{t('restaurantRating.options.or')}</Text>
           <View style={styles.commentSection}>
             <Text style={styles.commentLabel}>{t('restaurantRating.commentPrompt')}</Text>
             <TextInput
@@ -323,41 +336,49 @@ const styles = StyleSheet.create({
   },
   choiceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'center',
     marginTop: 24,
-    marginBottom: 24,
     gap: 16,
+    width: '100%',
   },
   choiceButton: {
+    flex: 1,
     borderWidth: 2,
-    borderColor: accentColor,
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    borderColor: borderColor,
+    borderRadius: 28,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 140,
     gap: 8,
+    minWidth: 0,
   },
-  choiceButtonActive: {
-    backgroundColor: accentColor,
+  choiceButtonPositiveActive: {
+    borderColor: positiveColor,
+    backgroundColor: 'rgba(17, 24, 39, 0.08)',
   },
-  choiceButtonNegative: {
-    backgroundColor: accentColor,
+  choiceButtonNegativeActive: {
+    borderColor: accentColor,
+    backgroundColor: 'rgba(202, 37, 27, 0.08)',
   },
   choiceLabel: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  choiceLabelPositive: {
+    color: positiveColor,
+  },
+  choiceLabelNegative: {
     color: accentColor,
   },
-  choiceLabelActive: {
-    color: '#FFFFFF',
-  },
   orLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: bodyColor,
     fontWeight: '500',
+    marginTop: 12,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   commentSection: {
     width: '100%',
