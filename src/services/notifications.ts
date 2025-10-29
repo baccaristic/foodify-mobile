@@ -1,7 +1,10 @@
 import { Platform } from 'react-native';
+import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+
+import { registerDevice } from '~/api/devices';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -69,6 +72,17 @@ async function evaluatePushNotificationPermissions(
           ? await Notifications.getExpoPushTokenAsync({ projectId })
           : await Notifications.getExpoPushTokenAsync();
         expoPushToken = response.data ?? null;
+
+        if (expoPushToken) {
+          try {
+            await registerDeviceWithBackend(expoPushToken);
+          } catch (registrationError) {
+            tokenError =
+              registrationError instanceof Error
+                ? registrationError.message
+                : 'Failed to register device for push notifications.';
+          }
+        }
       } catch (error) {
         expoPushToken = null;
         tokenError = error instanceof Error ? error.message : 'Failed to fetch push token.';
@@ -118,4 +132,49 @@ async function ensureAndroidChannel() {
     name: 'default',
     importance: Notifications.AndroidImportance.MAX,
   });
+}
+
+async function registerDeviceWithBackend(deviceToken: string) {
+  const platform = Platform.OS;
+  const deviceId = await resolveDeviceId();
+  const appVersion =
+    Application.nativeApplicationVersion ??
+    Constants?.expoConfig?.version ??
+    Constants?.expoConfig?.runtimeVersion ??
+    'unknown';
+
+  await registerDevice({
+    deviceToken,
+    platform,
+    deviceId,
+    appVersion,
+  });
+}
+
+async function resolveDeviceId(): Promise<string> {
+  try {
+    if (Platform.OS === 'android' && Application.getAndroidId) {
+      const androidId = Application.getAndroidId();
+      if (androidId) {
+        return androidId;
+      }
+    }
+
+    if (Platform.OS === 'ios' && Application.getIosIdForVendorAsync) {
+      const iosId = await Application.getIosIdForVendorAsync();
+      if (iosId) {
+        return iosId;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to retrieve native device identifier.', error);
+  }
+
+  return (
+    Device.osInternalBuildId ??
+    Device.osBuildId ??
+    Device.modelId ??
+    Device.deviceName ??
+    'unknown'
+  );
 }
