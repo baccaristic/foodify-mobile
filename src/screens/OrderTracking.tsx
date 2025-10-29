@@ -12,6 +12,8 @@ import {
   Modal,
   Alert,
   Linking,
+  LayoutChangeEvent,
+  useWindowDimensions,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -125,6 +127,197 @@ const OrderTrackingScreen: React.FC = () => {
   const { order: ongoingOrder } = useOngoingOrder();
   const { t } = useTranslation();
   const formatCurrency = useCurrencyFormatter();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isCompactWidth = width < 360;
+  const isTablet = width >= 768;
+  const horizontalPadding = isTablet ? 32 : isCompactWidth ? 16 : 20;
+  const cardHorizontalPadding = isTablet ? 32 : isCompactWidth ? 18 : 24;
+  const cardVerticalPadding = isTablet ? 36 : isCompactWidth ? 26 : 32;
+  const contentMaxWidth = isTablet ? Math.min(width * 0.75, 720) : undefined;
+  const heroAnimationSize = Math.min(
+    Math.max(width * (isTablet ? 0.3 : 0.65), 200),
+    isTablet ? 320 : 260,
+  );
+  const heroPulseSize = heroAnimationSize + (isTablet ? 96 : isCompactWidth ? 36 : 56);
+  const statusMessageFontSize = Math.max(12, Math.min(isTablet ? 16 : 14, width * 0.04));
+  const statusMessageLineHeight = Math.round(statusMessageFontSize * 1.3);
+  const [bottomSheetHeight, setBottomSheetHeight] = useState(0);
+  const scrollPaddingBottom = useMemo(
+    () => bottomSheetHeight + vs(isLandscape ? 140 : 180),
+    [bottomSheetHeight, isLandscape],
+  );
+  const bottomSheetExtraPadding = isCompactWidth || isLandscape ? 16 : 20;
+  const helpSheetHiddenOffset = useMemo(
+    () => Math.min(Math.max(height * 0.45, 320), Math.max(height - insets.bottom - 80, 360)),
+    [height, insets.bottom],
+  );
+  const responsiveStyles = useMemo(
+    () => {
+      const cardOuterWidthStyles = contentMaxWidth
+        ? { width: '100%' as const, maxWidth: contentMaxWidth, alignSelf: 'center' as const }
+        : { width: '100%' as const, alignSelf: 'center' as const };
+
+      return {
+        scrollContent: {
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: scrollPaddingBottom,
+          alignItems: 'stretch' as const,
+        },
+        mapTopBar: {
+          paddingHorizontal: horizontalPadding,
+          paddingTop: Math.max(insets.top + (isCompactWidth ? 6 : 12), insets.top + 6),
+        },
+        statusPlaceholder: {
+          paddingHorizontal: Math.max(horizontalPadding, isCompactWidth ? 16 : 24),
+          paddingVertical: isLandscape ? 24 : 32,
+        },
+        statusAnimation: {
+          width: heroAnimationSize,
+          height: heroAnimationSize,
+        },
+        statusPulse: {
+          width: heroPulseSize,
+          height: heroPulseSize,
+          borderRadius: heroPulseSize / 2,
+        },
+        statusMessage: {
+          fontSize: statusMessageFontSize,
+          lineHeight: statusMessageLineHeight,
+        },
+        statusHeading: {
+          fontSize: isTablet ? 22 : isCompactWidth ? 16 : 18,
+          marginBottom: isTablet ? 16 : 12,
+        },
+        statusSubheading: {
+          fontSize: isTablet ? 15 : isCompactWidth ? 12 : 13,
+          lineHeight: isTablet ? 22 : 20,
+          paddingHorizontal: isTablet ? 24 : 0,
+        },
+        stepsCard: {
+          ...cardOuterWidthStyles,
+          paddingHorizontal: cardHorizontalPadding,
+          paddingVertical: cardVerticalPadding,
+          marginBottom: isLandscape ? 28 : 40,
+        },
+        stepsHeader: {
+          flexWrap: 'wrap' as const,
+        },
+        stepsStatusBadge: {
+          marginTop: isCompactWidth ? 12 : 0,
+        },
+        stepRow: {
+          flexWrap: 'wrap' as const,
+        },
+        stepMeta: {
+          marginTop: isCompactWidth ? 12 : 0,
+        },
+        paymentCard: {
+          ...cardOuterWidthStyles,
+          marginBottom: isCompactWidth ? 12 : 16,
+        },
+        paymentAccordionHeader: {
+          paddingHorizontal: cardHorizontalPadding - 2,
+          paddingVertical: isCompactWidth ? 16 : 18,
+        },
+        paymentAccordionContent: {
+          paddingHorizontal: cardHorizontalPadding - 2,
+          paddingBottom: isCompactWidth ? 16 : 20,
+        },
+        paymentDescription: {
+          fontSize: isCompactWidth ? 12 : 13,
+          lineHeight: isCompactWidth ? 18 : 20,
+        },
+        summaryCard: {
+          ...cardOuterWidthStyles,
+          paddingHorizontal: cardHorizontalPadding - 6,
+          paddingVertical: isCompactWidth ? 12 : 16,
+        },
+        summaryHeader: {
+          flexWrap: 'wrap' as const,
+        },
+        summaryBadge: {
+          marginTop: isCompactWidth ? 8 : 0,
+        },
+        summaryItemRow: {
+          flexWrap: 'wrap' as const,
+        },
+        summaryItemPrice: {
+          marginTop: isCompactWidth ? 6 : 0,
+          textAlign: isCompactWidth ? 'left' : 'right',
+          width: isCompactWidth ? '100%' : undefined,
+        },
+        summaryFooter: {
+          flexWrap: 'wrap' as const,
+        },
+        bottomSheet: {
+          paddingHorizontal: horizontalPadding,
+          paddingTop: isCompactWidth || isLandscape ? 6 : 10,
+        },
+        bottomSheetInner: {
+          width: '100%' as const,
+          alignSelf: 'center' as const,
+          ...(contentMaxWidth ? { maxWidth: contentMaxWidth } : {}),
+        },
+        courierStickyCard: {
+          ...cardOuterWidthStyles,
+          flexDirection: isCompactWidth ? 'column' : 'row',
+          alignItems: isCompactWidth ? 'flex-start' : 'center',
+          paddingHorizontal: cardHorizontalPadding - 6,
+          paddingVertical: isCompactWidth ? 14 : 12,
+        },
+        courierStickyActions: {
+          marginTop: isCompactWidth ? 12 : 0,
+          alignSelf: isCompactWidth ? 'stretch' : 'auto',
+          justifyContent: isCompactWidth ? 'space-between' : 'center',
+        },
+        courierActionButtonSpacing: {
+          marginLeft: isCompactWidth ? 0 : 8,
+          marginTop: isCompactWidth ? 8 : 0,
+        },
+        helpSheet: {
+          paddingHorizontal: horizontalPadding,
+          paddingTop: isCompactWidth ? 18 : 24,
+        },
+        helpOption: {
+          flexDirection: isCompactWidth ? 'column' : 'row',
+          alignItems: isCompactWidth ? 'flex-start' : 'center',
+          paddingHorizontal: cardHorizontalPadding - 6,
+          paddingVertical: isCompactWidth ? 14 : 16,
+        },
+        helpOptionIcon: {
+          marginRight: isCompactWidth ? 0 : 16,
+          marginBottom: isCompactWidth ? 12 : 0,
+        },
+        helpOptionContent: {
+          width: '100%' as const,
+        },
+        helpChatButton: {
+          flexDirection: isCompactWidth ? 'column' : 'row',
+          paddingVertical: isCompactWidth ? 14 : 16,
+        },
+        helpChatButtonText: {
+          marginLeft: isCompactWidth ? 0 : 10,
+          marginTop: isCompactWidth ? 8 : 0,
+        },
+      } as const;
+    },
+    [
+      cardHorizontalPadding,
+      cardVerticalPadding,
+      contentMaxWidth,
+      heroAnimationSize,
+      heroPulseSize,
+      horizontalPadding,
+      insets.top,
+      isCompactWidth,
+      isLandscape,
+      isTablet,
+      scrollPaddingBottom,
+      statusMessageFontSize,
+      statusMessageLineHeight,
+    ],
+  );
   const formatMonetaryAmount = useCallback(
     (value: MonetaryAmount | null | undefined) => {
       const amount = extractNumericAmount(value);
@@ -245,9 +438,9 @@ const OrderTrackingScreen: React.FC = () => {
     () =>
       helpSheetAnimation.interpolate({
         inputRange: [0, 1],
-        outputRange: [360, 0],
+        outputRange: [helpSheetHiddenOffset, 0],
       }),
-    [helpSheetAnimation],
+    [helpSheetAnimation, helpSheetHiddenOffset],
   );
   const helpBackdropOpacity = useMemo(
     () =>
@@ -804,19 +997,35 @@ const OrderTrackingScreen: React.FC = () => {
     });
   };
 
+  const handleBottomSheetLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = event?.nativeEvent?.layout?.height ?? 0;
+    if (!Number.isFinite(nextHeight)) {
+      return;
+    }
+
+    setBottomSheetHeight((current) => (Math.abs(current - nextHeight) > 2 ? nextHeight : current));
+  }, []);
+
   const headerMinHeight = useMemo(
     () => Math.max(HEADER_MIN_HEIGHT, insets.top + 56),
     [insets.top],
   );
 
+  const headerMaxHeight = useMemo(() => {
+    const desiredHeight = Math.max(HEADER_MAX_HEIGHT, height * (isLandscape ? 0.5 : 0.42));
+    const cappedHeight = Math.min(desiredHeight, isTablet ? 440 : 360);
+    const availableHeight = Math.max(height - (isLandscape ? 96 : 140), headerMinHeight + 40);
+    return Math.min(Math.max(cappedHeight, headerMinHeight + 40), availableHeight);
+  }, [headerMinHeight, height, isLandscape, isTablet]);
+
   const headerScrollDistance = useMemo(
-    () => Math.max(HEADER_MAX_HEIGHT - headerMinHeight, 1),
-    [headerMinHeight],
+    () => Math.max(headerMaxHeight - headerMinHeight, 1),
+    [headerMaxHeight, headerMinHeight],
   );
 
   const headerHeight = scrollY.interpolate({
     inputRange: [0, headerScrollDistance],
-    outputRange: [HEADER_MAX_HEIGHT, headerMinHeight],
+    outputRange: [headerMaxHeight, headerMinHeight],
     extrapolate: 'clamp',
   });
 
@@ -826,15 +1035,20 @@ const OrderTrackingScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
 
+  const mapCollapseDistance = useMemo(
+    () => Math.min(140, Math.max(90, headerMaxHeight * 0.35)),
+    [headerMaxHeight],
+  );
+
   const mapTranslateY = scrollY.interpolate({
     inputRange: [0, headerScrollDistance],
-    outputRange: [0, -140],
+    outputRange: [0, -mapCollapseDistance],
     extrapolate: 'clamp',
   });
 
   const contentSpacerHeight = scrollY.interpolate({
     inputRange: [0, headerScrollDistance],
-    outputRange: [HEADER_MAX_HEIGHT + 24, headerMinHeight + 12],
+    outputRange: [headerMaxHeight + (isTablet ? 32 : 24), headerMinHeight + 12],
     extrapolate: 'clamp',
   });
 
@@ -916,20 +1130,23 @@ const OrderTrackingScreen: React.FC = () => {
               ) : null}
             </MapView>
           ) : showStatusAnimation ? (
-            <View style={styles.statusPlaceholder}>
+            <View style={[styles.statusPlaceholder, responsiveStyles.statusPlaceholder]}>
               <LottieView
                 source={heroAnimationConfig!.source}
                 autoPlay
                 loop
-                style={styles.statusAnimation}
+                style={[styles.statusAnimation, responsiveStyles.statusAnimation]}
               />
-              <Text style={styles.statusMessage}>{heroAnimationConfig!.message}</Text>
+              <Text allowFontScaling={false} style={[styles.statusMessage, responsiveStyles.statusMessage]}>
+                {heroAnimationConfig!.message}
+              </Text>
             </View>
           ) : (
-            <View style={styles.statusPlaceholder}>
+            <View style={[styles.statusPlaceholder, responsiveStyles.statusPlaceholder]}>
               <Animated.View
                 style={[
                   styles.statusPulse,
+                  responsiveStyles.statusPulse,
                   {
                     opacity: statusPulseOpacity,
                     transform: [{ scale: statusPulseScale }],
@@ -937,10 +1154,10 @@ const OrderTrackingScreen: React.FC = () => {
                 ]}
               />
               <View style={styles.statusTextWrapper}>
-                <Text style={styles.statusHeading}>
+                <Text allowFontScaling={false} style={[styles.statusHeading, responsiveStyles.statusHeading]}>
                   {formattedStatus ?? t('orderTracking.hero.waitingTitle')}
                 </Text>
-                <Text style={styles.statusSubheading}>
+                <Text allowFontScaling={false} style={[styles.statusSubheading, responsiveStyles.statusSubheading]}>
                   {hasAssignedCourier
                     ? t('orderTracking.hero.driverEnRoute')
                     : t('orderTracking.hero.driverUnassigned')}
@@ -950,7 +1167,7 @@ const OrderTrackingScreen: React.FC = () => {
           )}
         </Animated.View>
 
-        <View style={[styles.mapTopBar, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.mapTopBar, responsiveStyles.mapTopBar]}>
           <TouchableOpacity
             onPress={handleGoBack}
             activeOpacity={0.85}
@@ -985,12 +1202,12 @@ const OrderTrackingScreen: React.FC = () => {
   );
 
   const renderSteps = () => (
-    <View style={styles.stepsCard}>
-      <View style={styles.stepsHeader}>
-        <Text style={styles.stepsTitle}>{t('orderTracking.history.title')}</Text>
+    <View style={[styles.stepsCard, responsiveStyles.stepsCard]}>
+      <View style={[styles.stepsHeader, responsiveStyles.stepsHeader]}>
+        <Text allowFontScaling={false} style={styles.stepsTitle}>{t('orderTracking.history.title')}</Text>
         {formattedStatus ? (
-          <View style={styles.stepsStatusBadge}>
-            <Text style={styles.stepsStatusText}>{formattedStatus}</Text>
+          <View style={[styles.stepsStatusBadge, responsiveStyles.stepsStatusBadge]}>
+            <Text allowFontScaling={false} style={styles.stepsStatusText}>{formattedStatus}</Text>
           </View>
         ) : null}
       </View>
@@ -1007,16 +1224,16 @@ const OrderTrackingScreen: React.FC = () => {
             },
           ]}
         >
-          <Text style={styles.statusAnnouncementTitle}>{statusChangeInfo.title}</Text>
+          <Text allowFontScaling={false} style={styles.statusAnnouncementTitle}>{statusChangeInfo.title}</Text>
           {statusChangeInfo.description ? (
-            <Text style={styles.statusAnnouncementDescription}>
+            <Text allowFontScaling={false} style={styles.statusAnnouncementDescription}>
               {statusChangeInfo.description}
             </Text>
           ) : null}
         </Animated.View>
       ) : null}
       {statusHistory.length === 0 ? (
-        <Text style={styles.stepsEmptyText}>
+        <Text allowFontScaling={false} style={styles.stepsEmptyText}>
           {t('orderTracking.history.empty')}
         </Text>
       ) : (
@@ -1053,6 +1270,7 @@ const OrderTrackingScreen: React.FC = () => {
               key={`${highlightKey}-${index}`}
               style={[
                 styles.stepRow,
+                responsiveStyles.stepRow,
                 !isLast && styles.stepRowDivider,
                 isHighlighted && styles.stepRowHighlighted,
                 isHighlighted
@@ -1101,6 +1319,7 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
               <View style={styles.stepTexts}>
                 <Text
+                allowFontScaling={false}
                   style={[
                     styles.stepTitle,
                     (isCompleted || isActive) && styles.stepTitleActive,
@@ -1110,6 +1329,7 @@ const OrderTrackingScreen: React.FC = () => {
                   {title}
                 </Text>
                 <Text
+                allowFontScaling={false}
                   style={[
                     styles.stepDescription,
                     isPending && styles.stepDescriptionPending,
@@ -1118,7 +1338,7 @@ const OrderTrackingScreen: React.FC = () => {
                   {description}
                 </Text>
               </View>
-              <View style={styles.stepMeta}>
+              <View style={[styles.stepMeta, responsiveStyles.stepMeta]}>
                 <View
                   style={[
                     styles.stepEtaBadge,
@@ -1126,6 +1346,7 @@ const OrderTrackingScreen: React.FC = () => {
                   ]}
                 >
                   <Text
+                  allowFontScaling={false}
                     style={[
                       styles.stepEtaText,
                       isPending && styles.stepEtaTextPending,
@@ -1159,7 +1380,7 @@ const OrderTrackingScreen: React.FC = () => {
 
       <Animated.ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: vs(180) }]}
+        contentContainerStyle={[styles.scrollContent, responsiveStyles.scrollContent]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -1168,16 +1389,24 @@ const OrderTrackingScreen: React.FC = () => {
         {renderSteps()}
       </Animated.ScrollView>
 
-      <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 12 }]}>
-        {shouldShowPaymentCard ? (
-          <View style={styles.paymentCard}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => setIsPaymentDetailsExpanded((previous) => !previous)}
-              style={styles.paymentAccordionHeader}
-            >
+      <View
+        style={[
+          styles.bottomSheet,
+          responsiveStyles.bottomSheet,
+          { paddingBottom: insets.bottom + bottomSheetExtraPadding },
+        ]}
+        onLayout={handleBottomSheetLayout}
+      >
+        <View style={responsiveStyles.bottomSheetInner}>
+          {shouldShowPaymentCard ? (
+            <View style={[styles.paymentCard, responsiveStyles.paymentCard]}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setIsPaymentDetailsExpanded((previous) => !previous)}
+                style={[styles.paymentAccordionHeader, responsiveStyles.paymentAccordionHeader]}
+              >
               <View style={styles.paymentHeaderRow}>
-                <Text style={styles.paymentTitle}>{t('orderTracking.payment.title')}</Text>
+                <Text allowFontScaling={false} style={styles.paymentTitle}>{t('orderTracking.payment.title')}</Text>
                 {paymentStatusLabel ? (
                   <View
                     style={[
@@ -1186,6 +1415,7 @@ const OrderTrackingScreen: React.FC = () => {
                     ]}
                   >
                     <Text
+                    allowFontScaling={false}
                       style={[
                         styles.paymentStatusText,
                         isPaymentPending && styles.paymentStatusTextPending,
@@ -1207,15 +1437,15 @@ const OrderTrackingScreen: React.FC = () => {
             </TouchableOpacity>
 
             {isPaymentDetailsExpanded ? (
-              <View style={styles.paymentAccordionContent}>
-                <Text style={styles.paymentDescription}>
+              <View style={[styles.paymentAccordionContent, responsiveStyles.paymentAccordionContent]}>
+                <Text allowFontScaling={false} style={[styles.paymentDescription, responsiveStyles.paymentDescription]}>
                   {isPaymentPending
                     ? t('orderTracking.payment.pendingDescription')
                     : t('orderTracking.payment.statusDescription')}
                 </Text>
 
                 {paymentEnvironmentLabel ? (
-                  <Text style={styles.paymentMeta}>
+                  <Text allowFontScaling={false} style={styles.paymentMeta}>
                     {t('orderTracking.payment.environmentLabel', {
                       values: { environment: paymentEnvironmentLabel },
                     })}
@@ -1223,7 +1453,7 @@ const OrderTrackingScreen: React.FC = () => {
                 ) : null}
 
                 {paymentDetails?.paymentReference ? (
-                  <Text style={styles.paymentMeta}>
+                  <Text allowFontScaling={false} style={styles.paymentMeta}>
                     {t('orderTracking.payment.referenceLabel', {
                       values: { reference: paymentDetails.paymentReference },
                     })}
@@ -1236,7 +1466,7 @@ const OrderTrackingScreen: React.FC = () => {
                     activeOpacity={0.85}
                     style={styles.paymentButton}
                   >
-                    <Text style={styles.paymentButtonText}>
+                    <Text allowFontScaling={false} style={styles.paymentButtonText}>
                       {t('orderTracking.payment.resumeCta')}
                     </Text>
                   </TouchableOpacity>
@@ -1246,8 +1476,8 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         ) : null}
 
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
+        <View style={[styles.summaryCard, responsiveStyles.summaryCard]}>
+          <View style={[styles.summaryHeader, responsiveStyles.summaryHeader]}>
             <View style={styles.summaryHeaderLeft}>
               {restaurantAvatarUri ? (
                 <Image
@@ -1259,10 +1489,10 @@ const OrderTrackingScreen: React.FC = () => {
                   <MapPin size={18} color="white" />
                 </View>
               )}
-              <Text style={styles.summaryTitle}>{orderIdentifier}</Text>
+              <Text allowFontScaling={false} style={styles.summaryTitle}>{orderIdentifier}</Text>
             </View>
-            <View style={styles.summaryBadge}>
-              <Text style={styles.summaryBadgeText}>
+            <View style={[styles.summaryBadge, responsiveStyles.summaryBadge]}>
+              <Text allowFontScaling={false} style={styles.summaryBadgeText}>
                 {restaurantName}
               </Text>
             </View>
@@ -1345,34 +1575,40 @@ const OrderTrackingScreen: React.FC = () => {
                 return (
                   <View
                     key={`${item?.menuItemId ?? index}-${index}`}
-                    style={[styles.summaryItemRow, !isLast && styles.summaryItemRowSpacing]}
+                    style={[
+                      styles.summaryItemRow,
+                      responsiveStyles.summaryItemRow,
+                      !isLast && styles.summaryItemRowSpacing,
+                    ]}
                   >
                     <View style={styles.summaryItemInfo}>
                       <View style={styles.summaryItemPrimaryRow}>
-                        <Text style={styles.summaryItemQuantity}>{quantity}x</Text>
-                        <Text style={styles.summaryItemName} numberOfLines={1}>
+                        <Text allowFontScaling={false} style={styles.summaryItemQuantity}>{quantity}x</Text>
+                        <Text allowFontScaling={false} style={styles.summaryItemName} numberOfLines={1}>
                           {displayName}
                         </Text>
                       </View>
                       {extrasLabel ? (
-                        <Text style={styles.summaryItemExtras} numberOfLines={1}>
+                        <Text allowFontScaling={false} style={styles.summaryItemExtras} numberOfLines={1}>
                           {extrasLabel}
                         </Text>
                       ) : null}
                     </View>
-                    <Text style={styles.summaryItemPrice}>{totalDisplay ?? '—'}</Text>
+                    <Text allowFontScaling={false} style={[styles.summaryItemPrice, responsiveStyles.summaryItemPrice]}>
+                      {totalDisplay ?? '—'}
+                    </Text>
                   </View>
                 );
               })
             ) : (
-              <Text style={styles.summaryEmptyText}>
+              <Text allowFontScaling={false} style={styles.summaryEmptyText}>
                 {t('orderTracking.summary.empty')}
               </Text>
             )}
           </View>
 
-          <View style={styles.summaryFooter}>
-            <Text style={styles.summaryTotal}>{orderTotalDisplay}</Text>
+          <View style={[styles.summaryFooter, responsiveStyles.summaryFooter]}>
+            <Text allowFontScaling={false} style={styles.summaryTotal}>{orderTotalDisplay}</Text>
             <TouchableOpacity
               onPress={handleSeeDetails}
               disabled={!canViewDetails}
@@ -1382,12 +1618,12 @@ const OrderTrackingScreen: React.FC = () => {
                 !canViewDetails && styles.summaryDetailsButtonDisabled,
               ]}
             >
-              <Text style={styles.summaryDetailsText}>{t('orderTracking.summary.detailsCta')}</Text>
+              <Text allowFontScaling={false} style={styles.summaryDetailsText}>{t('orderTracking.summary.detailsCta')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.courierStickyCard}>
+        <View style={[styles.courierStickyCard, responsiveStyles.courierStickyCard]}>
           <View style={styles.courierInfo}>
             {courierAvatarUri ? (
               <Image source={{ uri: courierAvatarUri }} style={styles.courierAvatar} />
@@ -1397,18 +1633,18 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
             )}
             <View>
-              <Text style={styles.courierStickyLabel}>{t('orderTracking.courier.label')}</Text>
-              <Text style={styles.courierStickyName}>{courierName}</Text>
+              <Text allowFontScaling={false} style={styles.courierStickyLabel}>{t('orderTracking.courier.label')}</Text>
+              <Text allowFontScaling={false} style={styles.courierStickyName}>{courierName}</Text>
               <View style={styles.courierStickyRating}>
                 <Star size={14} color={accentColor} fill={accentColor} />
-                <Text style={styles.courierStickyRatingText}>
+                <Text allowFontScaling={false} style={styles.courierStickyRatingText}>
                   {courierRatingText}
                   {courierDeliveriesText}
                 </Text>
               </View>
             </View>
           </View>
-          <View style={styles.courierStickyActions}>
+          <View style={[styles.courierStickyActions, responsiveStyles.courierStickyActions]}>
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.courierActionButton}
@@ -1418,11 +1654,17 @@ const OrderTrackingScreen: React.FC = () => {
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.courierActionButton, styles.courierActionButtonSpacing]}
+              style={[
+                styles.courierActionButton,
+                styles.courierActionButtonSpacing,
+                responsiveStyles.courierActionButtonSpacing,
+              ]}
+              onPress={handleRequestLiveChat}
             >
               <MessageCircle size={18} color={accentColor} />
             </TouchableOpacity>
           </View>
+        </View>
         </View>
       </View>
 
@@ -1442,37 +1684,38 @@ const OrderTrackingScreen: React.FC = () => {
             <Animated.View
               style={[
                 styles.helpSheet,
+                responsiveStyles.helpSheet,
                 helpSheetPadding,
                 { transform: [{ translateY: helpSheetTranslateY }] },
               ]}
             >
               <View style={styles.helpHandle} />
-              <Text style={styles.helpTitle}>{t('orderTracking.help.title')}</Text>
-              <Text style={styles.helpDescription}>
+              <Text allowFontScaling={false} style={styles.helpTitle}>{t('orderTracking.help.title')}</Text>
+              <Text allowFontScaling={false} style={styles.helpDescription}>
                 {t('orderTracking.help.description')}
               </Text>
               <TouchableOpacity
-                style={styles.helpOption}
+                style={[styles.helpOption, responsiveStyles.helpOption]}
                 activeOpacity={0.85}
                 onPress={handleCallSupport}
               >
-                <View style={styles.helpOptionIcon}>
+                <View style={[styles.helpOptionIcon, responsiveStyles.helpOptionIcon]}>
                   <Phone size={20} color="white" />
                 </View>
-                <View style={styles.helpOptionContent}>
-                  <Text style={styles.helpOptionTitle}>
+                <View style={[styles.helpOptionContent, responsiveStyles.helpOptionContent]}>
+                  <Text allowFontScaling={false} style={styles.helpOptionTitle}>
                     {t('orderTracking.help.callSupport')}
                   </Text>
-                  <Text style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
+                  <Text allowFontScaling={false} style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.helpChatButton}
+                style={[styles.helpChatButton, responsiveStyles.helpChatButton]}
                 activeOpacity={0.9}
                 onPress={handleRequestLiveChat}
               >
                 <MessageCircle size={18} color="white" />
-                <Text style={styles.helpChatButtonText}>
+                <Text allowFontScaling={false} style={[styles.helpChatButtonText, responsiveStyles.helpChatButtonText]}>
                   {t('orderTracking.help.liveChatCta')}
                 </Text>
               </TouchableOpacity>
