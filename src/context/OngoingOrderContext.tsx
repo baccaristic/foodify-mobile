@@ -4,14 +4,18 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
 import { getOngoingOrder } from '~/api/orders';
 import useAuth from '~/hooks/useAuth';
 import type { OrderNotificationDto } from '~/interfaces/Order';
+import { ensureOngoingOrderNotificationChannel, ONGOING_ORDER_NOTIFICATION_CHANNEL_ID } from '~/services/notifications';
 import { mergeOrderLikeData } from '~/utils/order';
 
 const TERMINAL_STATUSES = new Set(['DELIVERED', 'CANCELED', 'REJECTED']);
@@ -58,6 +62,18 @@ const resolveLatestStatus = (order: OngoingOrderData | null | undefined) => {
   return normalizeStatus(order.status);
 };
 
+const formatStatusForDisplay = (status: string | null) => {
+  if (!status) {
+    return null;
+  }
+
+  return status
+    .toLowerCase()
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+};
+
 const sanitizeOrder = (order: OngoingOrderData | null | undefined) => {
   if (!order) {
     return null;
@@ -81,6 +97,8 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
   const [order, setOrder] = useState<OngoingOrderData | null>(null);
   const [deliveredCelebration, setDeliveredCelebration] =
     useState<OngoingOrderData | null>(null);
+  const ongoingNotificationIdRef = useRef<string | null>(null);
+  const lastNotificationKeyRef = useRef<string | null>(null);
 
   const queryResult = useQuery<OngoingOrderData | null>({
     queryKey: ['orders', 'ongoing'],
@@ -174,6 +192,123 @@ export const OngoingOrderProvider = ({ children }: { children: ReactNode }) => {
   const clearOrder = useCallback(() => {
     setOrder(null);
     setDeliveredCelebration(null);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      return;
+    }
+
+    let isMounted = true;
+
+    const syncOngoingNotification = async () => {
+      const currentOrder = order ?? null;
+
+      if (!currentOrder) {
+        lastNotificationKeyRef.current = null;
+        const existingId = ongoingNotificationIdRef.current;
+        if (existingId) {
+          try {
+            await Notifications.dismissNotificationAsync(existingId);
+          } catch (error) {
+            console.warn('Failed to dismiss ongoing order notification', error);
+          } finally {
+            ongoingNotificationIdRef.current = null;
+          }
+        }
+        return;
+      }
+
+      if (Platform.OS === 'android') {
+        try {
+          await ensureOngoingOrderNotificationChannel();
+        } catch (error) {
+          console.warn('Failed to ensure ongoing order notification channel', error);
+        }
+      }
+
+      const latestStatus = resolveLatestStatus(currentOrder);
+      const formattedStatus = formatStatusForDisplay(latestStatus);
+      const normalizedOrderId =
+        currentOrder.orderId != null ? String(currentOrder.orderId) : null;
+
+      const notificationKey = `${normalizedOrderId ?? 'unknown'}|${formattedStatus ?? ''}`;
+
+      if (notificationKey === lastNotificationKeyRef.current && ongoingNotificationIdRef.current) {
+        return;
+      }
+
+      lastNotificationKeyRef.current = notificationKey;
+
+      const title = normalizedOrderId ? `Order #${normalizedOrderId}` : 'Your order';
+      const body = formattedStatus
+        ? `Current status: ${formattedStatus}`
+        : 'Your order is still in progress.';
+
+      const notificationContent: Notifications.NotificationContentInput = {
+        title,
+        body,
+        data: {
+          orderId: normalizedOrderId,
+          status: latestStatus ?? null,
+          type: 'ongoing-order',
+        },
+        sticky: true,
+        autoDismiss: false,
+      };
+
+      if (Platform.OS === 'android') {
+        notificationContent.channelId = ONGOING_ORDER_NOTIFICATION_CHANNEL_ID;
+        notificationContent.priority = Notifications.AndroidNotificationPriority.MAX;
+      }
+
+      const existingId = ongoingNotificationIdRef.current;
+      if (existingId) {
+        try {
+          await Notifications.dismissNotificationAsync(existingId);
+        } catch (error) {
+          console.warn('Failed to dismiss previous ongoing order notification', error);
+        }
+      }
+
+      try {
+        const identifier = await Notifications.scheduleNotificationAsync({
+          content: notificationContent,
+          trigger: null,
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        ongoingNotificationIdRef.current = identifier;
+      } catch (error) {
+        console.warn('Failed to update ongoing order notification', error);
+      }
+    };
+
+    void syncOngoingNotification();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [order]);
+
+  useEffect(() => {
+    return () => {
+      if (Platform.OS === 'web') {
+        return;
+      }
+
+      const existingId = ongoingNotificationIdRef.current;
+      if (!existingId) {
+        return;
+      }
+
+      void Notifications.dismissNotificationAsync(existingId).catch((error) => {
+        console.warn('Failed to dismiss ongoing order notification on cleanup', error);
+      });
+    };
   }, []);
 
   useEffect(() => {

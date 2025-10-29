@@ -65,6 +65,7 @@ async function evaluatePushNotificationPermissions(
 
     if (granted) {
       await ensureAndroidChannel();
+      await ensureOngoingOrderNotificationChannel();
 
       try {
         const projectId = getProjectId();
@@ -131,6 +132,22 @@ async function ensureAndroidChannel() {
   await Notifications.setNotificationChannelAsync('default', {
     name: 'default',
     importance: Notifications.AndroidImportance.MAX,
+  });
+}
+
+export const ONGOING_ORDER_NOTIFICATION_CHANNEL_ID = 'ongoing-order-status';
+
+export async function ensureOngoingOrderNotificationChannel() {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
+  await Notifications.setNotificationChannelAsync(ONGOING_ORDER_NOTIFICATION_CHANNEL_ID, {
+    name: 'Ongoing orders',
+    importance: Notifications.AndroidImportance.MAX,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    enableVibrate: true,
+    bypassDnd: false,
   });
 }
 
