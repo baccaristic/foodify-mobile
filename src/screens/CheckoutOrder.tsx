@@ -28,6 +28,7 @@ import { useCart } from '~/context/CartContext';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import { createOrder } from '~/api/orders';
+import { getRestaurantDeliveryFee } from '~/api/restaurants';
 import type { MonetaryAmount, OrderRequest } from '~/interfaces/Order';
 import type { CouponType } from '~/interfaces/Loyalty';
 import type { OrderTrackingData } from './OrderTracking';
@@ -126,6 +127,8 @@ const PAYMENT_OPTION_CONFIG: PaymentOptionConfig[] = [
   { id: 'CASH', labelKey: 'checkout.payment.options.cash', Icon: Wallet },
 ];
 
+type DeliveryQuoteError = 'INVALID_COORDINATES' | 'REQUEST_FAILED';
+
 const PaymentModal: React.FC<{
   visible: boolean;
   onClose: () => void;
@@ -222,6 +225,16 @@ const CheckoutOrder: React.FC = () => {
   >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [deliveryQuote, setDeliveryQuote] = useState<
+    | {
+        available: boolean;
+        fee: number | null;
+        distanceKm: number | null;
+      }
+    | null
+  >(null);
+  const [isDeliveryQuoteLoading, setIsDeliveryQuoteLoading] = useState(false);
+  const [deliveryQuoteError, setDeliveryQuoteError] = useState<DeliveryQuoteError | null>(null);
 
   const paymentOptions = useMemo(
     () =>
@@ -284,6 +297,85 @@ const CheckoutOrder: React.FC = () => {
       });
     }
   }, [route.params, navigation, isViewMode]);
+
+  useEffect(() => {
+    if (isViewMode) {
+      return;
+    }
+
+    if (!restaurant?.id || !selectedAddress) {
+      setDeliveryQuote(null);
+      setDeliveryQuoteError(null);
+      setIsDeliveryQuoteLoading(false);
+      return;
+    }
+
+    const latCandidate = Number(selectedAddress.coordinates?.latitude);
+    const lngCandidate = Number(selectedAddress.coordinates?.longitude);
+
+    if (!Number.isFinite(latCandidate) || !Number.isFinite(lngCandidate)) {
+      setDeliveryQuote(null);
+      setDeliveryQuoteError('INVALID_COORDINATES');
+      setIsDeliveryQuoteLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsDeliveryQuoteLoading(true);
+    setDeliveryQuoteError(null);
+
+    getRestaurantDeliveryFee({
+      restaurantId: restaurant.id,
+      lat: latCandidate,
+      lng: lngCandidate,
+    })
+      .then((response) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const normalizedFee = Number(response.deliveryFee);
+        const normalizedDistance = Number(response.distanceKm);
+        const fee =
+          Number.isFinite(normalizedFee) && normalizedFee >= 0 ? normalizedFee : null;
+        const distance =
+          Number.isFinite(normalizedDistance) && normalizedDistance >= 0
+            ? normalizedDistance
+            : null;
+
+        setDeliveryQuote({
+          available: Boolean(response.available),
+          fee: response.available ? fee : null,
+          distanceKm: distance,
+        });
+        setDeliveryQuoteError(null);
+      })
+      .catch((error) => {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error('Failed to fetch delivery fee quote:', error);
+        setDeliveryQuote(null);
+        setDeliveryQuoteError('REQUEST_FAILED');
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsDeliveryQuoteLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    isViewMode,
+    restaurant?.id,
+    selectedAddress,
+    selectedAddress?.id,
+    selectedAddress?.coordinates?.latitude,
+    selectedAddress?.coordinates?.longitude,
+  ]);
 
   type ViewModeAggregates = {
     lineSubtotal: number;
@@ -409,7 +501,25 @@ const CheckoutOrder: React.FC = () => {
     () => items.reduce((sum, item) => sum + item.basePrice * item.quantity, 0),
     [items],
   );
-  const deliveryFee = useMemo(() => (hasItems ? Math.max(2.5, subtotal * 0.08) : 0), [hasItems, subtotal]);
+  const deliveryFee = useMemo(() => {
+    if (isViewMode) {
+      const breakdownFee = paymentBreakdown?.deliveryFee;
+      if (typeof breakdownFee === 'number' && Number.isFinite(breakdownFee)) {
+        return Math.max(breakdownFee, 0);
+      }
+      return 0;
+    }
+
+    if (!hasItems) {
+      return 0;
+    }
+
+    if (deliveryQuote?.available && typeof deliveryQuote.fee === 'number') {
+      return Math.max(deliveryQuote.fee, 0);
+    }
+
+    return 0;
+  }, [isViewMode, paymentBreakdown, hasItems, deliveryQuote]);
   const serviceFee = useMemo(() => (hasItems ? Math.max(1.5, subtotal * 0.05) : 0), [hasItems, subtotal]);
   const calculateCouponDiscount = useCallback(
     (type?: CouponType, discountPercent?: number | null) => {
@@ -772,6 +882,39 @@ const CheckoutOrder: React.FC = () => {
     displayPromotionDiscount,
   ]);
 
+  const deliveryStatusMessage = useMemo(() => {
+    if (isViewMode) {
+      return null;
+    }
+
+    if (isDeliveryQuoteLoading) {
+      return t('checkout.summary.checkingDelivery');
+    }
+
+    if (deliveryQuote?.available === false) {
+      return t('checkout.errors.deliveryUnavailable');
+    }
+
+    if (deliveryQuoteError === 'INVALID_COORDINATES') {
+      return t('checkout.errors.missingCoordinates');
+    }
+
+    if (deliveryQuoteError === 'REQUEST_FAILED') {
+      return t('checkout.errors.deliveryQuoteFailed');
+    }
+
+    return null;
+  }, [
+    isViewMode,
+    isDeliveryQuoteLoading,
+    deliveryQuote?.available,
+    deliveryQuoteError,
+    t,
+  ]);
+
+  const deliveryStatusColor =
+    deliveryQuote?.available === false || deliveryQuoteError ? '#CA251B' : '#6B7280';
+
   const deliveryAddressValue = useMemo(() => {
     if (!isViewMode || !viewOrder) {
       return selectedAddress?.formattedAddress ?? '';
@@ -999,6 +1142,26 @@ const CheckoutOrder: React.FC = () => {
       return;
     }
 
+    if (isDeliveryQuoteLoading) {
+      setSubmissionError(t('checkout.errors.deliveryFeePending'));
+      return;
+    }
+
+    if (deliveryQuote?.available === false) {
+      setSubmissionError(t('checkout.errors.deliveryUnavailable'));
+      return;
+    }
+
+    if (deliveryQuoteError === 'INVALID_COORDINATES') {
+      setSubmissionError(t('checkout.errors.missingCoordinates'));
+      return;
+    }
+
+    if (deliveryQuoteError) {
+      setSubmissionError(t('checkout.errors.deliveryQuoteFailed'));
+      return;
+    }
+
     setSubmissionError(null);
     setIsSubmitting(true);
 
@@ -1096,10 +1259,22 @@ const CheckoutOrder: React.FC = () => {
     navigation,
     t,
     appliedCoupon?.code,
+    isDeliveryQuoteLoading,
+    deliveryQuote?.available,
+    deliveryQuoteError,
   ]);
 
+  const isDeliveryQuoteBlocking =
+    !isViewMode &&
+    (isDeliveryQuoteLoading || deliveryQuote?.available === false || Boolean(deliveryQuoteError));
+
   const canSubmit =
-    !isViewMode && hasItems && Boolean(selectedAddress) && Boolean(selectedPaymentMethod) && !isSubmitting;
+    !isViewMode &&
+    hasItems &&
+    Boolean(selectedAddress) &&
+    Boolean(selectedPaymentMethod) &&
+    !isSubmitting &&
+    !isDeliveryQuoteBlocking;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -1395,10 +1570,25 @@ const CheckoutOrder: React.FC = () => {
                   <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
                     {t('checkout.summary.delivery')}
                   </Text>
-                  <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
-                    {formatCurrency(deliveryFee)}
-                  </Text>
+                  <View className="flex-row items-center">
+                    {isDeliveryQuoteLoading ? (
+                      <ActivityIndicator size="small" color={sectionTitleColor} />
+                    ) : (
+                      <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                        {formatCurrency(deliveryFee)}
+                      </Text>
+                    )}
+                  </View>
                 </View>
+                {deliveryStatusMessage ? (
+                  <Text
+                    allowFontScaling={false}
+                    className="mt-2 text-xs"
+                    style={{ color: deliveryStatusColor }}
+                  >
+                    {deliveryStatusMessage}
+                  </Text>
+                ) : null}
                 <View className="mt-3 flex-row items-center justify-between">
                   <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
                     {t('checkout.summary.service')}
@@ -1488,6 +1678,15 @@ const CheckoutOrder: React.FC = () => {
 
       {!isViewMode ? (
         <View className="px-4 pb-6">
+          {deliveryStatusMessage ? (
+            <Text
+              allowFontScaling={false}
+              className="mb-2 text-center text-sm"
+              style={{ color: deliveryStatusColor }}
+            >
+              {deliveryStatusMessage}
+            </Text>
+          ) : null}
           {submissionError ? (
             <Text allowFontScaling={false} className="mb-3 text-center text-sm text-[#CA251B]">
               {submissionError}
