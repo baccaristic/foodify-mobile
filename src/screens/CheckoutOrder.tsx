@@ -1220,9 +1220,9 @@ const CheckoutOrder: React.FC = () => {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={handleOpenLocationSelection}
-                  className="rounded-full bg-[#FDE7E5] px-3 py-1"
+                  className="rounded-full bg-[#FDE7E5] px-6 py-3"
                 >
-                  <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
+                  <Text allowFontScaling={false} className=" font-semibold text-[#CA251B]">
                     {t('checkout.address.changeCta')}
                   </Text>
                 </TouchableOpacity>
