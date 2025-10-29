@@ -80,6 +80,8 @@ const en: TranslationDictionary = {
       professionalism: 'Rider professionalism',
       overall: 'Overall experience',
     },
+    commentPrompt: 'Anything more to share?',
+    commentPlaceholder: 'Add a comment about your delivery…',
     actions: {
       submit: 'Send',
       update: 'Update rating',

@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -52,6 +57,7 @@ const DeliveryRatingOverlay = () => {
     professionalism: 0,
     overall: 0,
   });
+  const [comments, setComments] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const hasInitialRating = useMemo(() => {
@@ -91,6 +97,7 @@ const DeliveryRatingOverlay = () => {
   useEffect(() => {
     if (!isVisible) {
       setRatingValues({ timing: 0, foodCondition: 0, professionalism: 0, overall: 0 });
+      setComments('');
       setErrorMessage(null);
       return;
     }
@@ -102,8 +109,10 @@ const DeliveryRatingOverlay = () => {
         professionalism: mergedRating.professionalism ?? 0,
         overall: mergedRating.overall ?? 0,
       });
+      setComments(mergedRating.comments ?? '');
     } else {
       setRatingValues({ timing: 0, foodCondition: 0, professionalism: 0, overall: 0 });
+      setComments('');
     }
   }, [isVisible, mergedRating]);
 
@@ -131,12 +140,14 @@ const DeliveryRatingOverlay = () => {
         throw new Error('Missing order id');
       }
 
+      const trimmedComments = comments.trim();
+
       const payload = {
         timing: ratingValues.timing,
         foodCondition: ratingValues.foodCondition,
         professionalism: ratingValues.professionalism,
         overall: ratingValues.overall,
-        comments: mergedRating?.comments ?? null,
+        comments: trimmedComments.length > 0 ? trimmedComments : null,
       };
 
       return submitDeliveryRating(orderId, payload);
@@ -144,6 +155,7 @@ const DeliveryRatingOverlay = () => {
     onSuccess: (response) => {
       setErrorMessage(null);
       setRating(response);
+      setComments(response.comments ?? '');
       updateOrder({ orderId: response.orderId, rating: response });
       queryClient.invalidateQueries({ queryKey: ['client', 'my-orders'] }).catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ['orders', 'ongoing'] }).catch(() => undefined);
@@ -161,6 +173,7 @@ const DeliveryRatingOverlay = () => {
   const isBusy = mutation.isPending || ratingQuery.isFetching;
 
   const handleClose = () => {
+    Keyboard.dismiss();
     if (mutation.isPending) {
       return;
     }
@@ -194,68 +207,125 @@ const DeliveryRatingOverlay = () => {
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={handleClose}>
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-        <View style={[styles.card, { paddingTop: insets.top + 32 }]}> 
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <X size={22} color={headingColor} />
-          </TouchableOpacity>
-          <View style={styles.headerIconWrapper}>
-            <Image source={require('../../assets/biker.png')} style={StyleSheet.absoluteFillObject} contentFit="fill" />
-          </View>
-          <Text style={styles.title}>{t('deliveryRating.title')}</Text>
-          <Text style={styles.subtitle}>{t('deliveryRating.subtitle')}</Text>
-          {ratingQuery.isFetching && !mergedRating ? (
-            <View style={styles.loadingIndicator}>
-              <ActivityIndicator size="small" color={accentColor} />
-            </View>
-          ) : null}
-          <View style={styles.ratingList}>
-            {ratingFields.map((field) => {
-              const value = ratingValues[field.key] ?? 0;
-              return (
-                <View key={field.key} style={styles.ratingRow}>
-                  <Text style={styles.ratingLabel}>{t(field.translationKey)}</Text>
-                  <View style={styles.starsRow}>
-                    {Array.from({ length: MAX_RATING }, (_, index) => {
-                      const starValue = index + 1;
-                      const filled = value >= starValue;
-                      return (
-                        <TouchableOpacity
-                          key={starValue}
-                          style={styles.starButton}
-                          onPress={() => handleSelect(field.key, starValue)}
-                          disabled={isBusy}
-                        >
-                          <Star
-                            size={28}
-                            strokeWidth={1.2}
-                            color={filled ? accentColor : starInactive}
-                            fill={filled ? accentColor : 'transparent'}
-                          />
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.overlay}>
           <TouchableOpacity
-            style={[styles.submitButton, !isFormValid || isBusy ? styles.submitButtonDisabled : null]}
-            activeOpacity={0.85}
-            onPress={() => mutation.mutate()}
-            disabled={!isFormValid || isBusy}
+            style={styles.backdrop}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              handleClose();
+            }}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={insets.top + 24}
+            style={styles.keyboardAvoider}
           >
-            {isBusy ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.submitLabel}>{submitLabel}</Text>
-            )}
-          </TouchableOpacity>
+            <View style={[styles.card, { paddingTop: insets.top + 32 }]}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  handleClose();
+                }}
+              >
+                <X size={22} color={headingColor} />
+              </TouchableOpacity>
+              <View style={styles.headerIconWrapper}>
+                <Image
+                  source={require('../../assets/biker.png')}
+                  style={StyleSheet.absoluteFillObject}
+                  contentFit="fill"
+                />
+              </View>
+              <Text allowFontScaling={false} style={styles.title}>
+                {t('deliveryRating.title')}
+              </Text>
+              <Text allowFontScaling={false} style={styles.subtitle}>
+                {t('deliveryRating.subtitle')}
+              </Text>
+              {ratingQuery.isFetching && !mergedRating ? (
+                <View style={styles.loadingIndicator}>
+                  <ActivityIndicator size="small" color={accentColor} />
+                </View>
+              ) : null}
+              <View style={styles.ratingList}>
+                {ratingFields.map((field) => {
+                  const value = ratingValues[field.key] ?? 0;
+                  return (
+                    <View key={field.key} style={styles.ratingRow}>
+                      <Text allowFontScaling={false} style={styles.ratingLabel}>
+                        {t(field.translationKey)}
+                      </Text>
+                      <View style={styles.starsRow}>
+                        {Array.from({ length: MAX_RATING }, (_, index) => {
+                          const starValue = index + 1;
+                          const filled = value >= starValue;
+                          return (
+                            <TouchableOpacity
+                              key={starValue}
+                              style={styles.starButton}
+                              onPress={() => handleSelect(field.key, starValue)}
+                              disabled={isBusy}
+                              activeOpacity={0.85}
+                            >
+                              <Star
+                                size={28}
+                                strokeWidth={1.2}
+                                color={filled ? accentColor : starInactive}
+                                fill={filled ? accentColor : 'transparent'}
+                              />
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+              <View style={styles.commentSection}>
+                <Text allowFontScaling={false} style={styles.commentLabel}>
+                  {t('deliveryRating.commentPrompt')}
+                </Text>
+                <TextInput
+                  allowFontScaling={false}
+                  style={styles.commentInput}
+                  placeholder={t('deliveryRating.commentPlaceholder')}
+                  placeholderTextColor="#94A3B8"
+                  multiline
+                  maxLength={1024}
+                  value={comments}
+                  editable={!isBusy}
+                  onChangeText={setComments}
+                  textAlignVertical="top"
+                  returnKeyType="done"
+                  onSubmitEditing={Keyboard.dismiss}
+                />
+              </View>
+              {errorMessage ? (
+                <Text allowFontScaling={false} style={styles.errorText}>
+                  {errorMessage}
+                </Text>
+              ) : null}
+              <TouchableOpacity
+                style={[styles.submitButton, !isFormValid || isBusy ? styles.submitButtonDisabled : null]}
+                activeOpacity={0.85}
+                onPress={() => mutation.mutate()}
+                disabled={!isFormValid || isBusy}
+              >
+                {isBusy ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text allowFontScaling={false} style={styles.submitLabel}>
+                    {submitLabel}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -267,6 +337,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  keyboardAvoider: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -333,6 +408,29 @@ const styles = StyleSheet.create({
   },
   starButton: {
     paddingHorizontal: 4,
+  },
+  commentSection: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  commentLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: headingColor,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  commentInput: {
+    width: '100%',
+    minHeight: 112,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: headingColor,
+    backgroundColor: '#F8FAFC',
   },
   errorText: {
     fontSize: 14,

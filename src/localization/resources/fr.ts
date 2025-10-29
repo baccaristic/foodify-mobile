@@ -80,6 +80,8 @@ const fr: TranslationDictionary = {
       professionalism: 'Professionnalisme du livreur',
       overall: 'Expérience globale',
     },
+    commentPrompt: 'Un mot sur la livraison ?',
+    commentPlaceholder: 'Ajoutez un commentaire sur votre livraison…',
     actions: {
       submit: 'Envoyer',
       update: 'Mettre à jour la note',
