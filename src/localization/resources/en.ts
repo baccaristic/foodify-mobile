@@ -40,6 +40,12 @@ const en: TranslationDictionary = {
       statusHeading: 'Status',
       trackingFallback: 'Tracking…',
       seeDetails: 'See details',
+      deliveredCelebration: {
+        title: 'Enjoy your food',
+        subtitle: 'Your delivery has arrived. Bon appétit!',
+        rateDelivery: 'Rate your delivery',
+        close: 'Close',
+      },
     },
   },
   filters: {
@@ -64,6 +70,24 @@ const en: TranslationDictionary = {
     orderWithCount: 'Order ({{count}})',
     orderSummary: '{{order}} : {{total}}',
     seeCart: 'See my cart',
+  },
+  deliveryRating: {
+    title: 'Rate your Delivery',
+    subtitle: 'Tell us more about the delivery',
+    fields: {
+      timing: 'The timing of the delivery',
+      foodCondition: 'The food condition',
+      professionalism: 'Rider professionalism',
+      overall: 'Overall experience',
+    },
+    actions: {
+      submit: 'Send',
+      update: 'Update rating',
+    },
+    errors: {
+      load: 'We could not fetch your previous rating.',
+      submit: 'We could not save your rating. Please try again.',
+    },
   },
   home: {
     sections: {
@@ -793,6 +817,8 @@ const en: TranslationDictionary = {
         startOrdering: 'Start ordering',
         continueOrdering: 'Continue ordering',
         reorder: 'Reorder',
+        rateDelivery: 'Rate delivery',
+        updateRating: 'Update rating',
       },
     },
     deleteAccount: {
