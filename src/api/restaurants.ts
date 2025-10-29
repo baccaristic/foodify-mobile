@@ -3,6 +3,7 @@ import type {
   CategoryRestaurantsResponse,
   PageResponse,
   RestaurantCategory,
+  RestaurantDeliveryFeeResponse,
   RestaurantDetailsResponse,
   RestaurantDisplayDto,
   RestaurantSearchParams,
@@ -179,6 +180,28 @@ export const getCategoryRestaurants = async ({
       sort,
     },
   });
+
+  return data;
+};
+
+export const getRestaurantDeliveryFee = async ({
+  restaurantId,
+  lat,
+  lng,
+}: {
+  restaurantId: number;
+  lat: number;
+  lng: number;
+}): Promise<RestaurantDeliveryFeeResponse> => {
+  const { data } = await client.get<RestaurantDeliveryFeeResponse>(
+    `/client/restaurants/${restaurantId}/delivery-fee`,
+    {
+      params: {
+        lat,
+        lng,
+      },
+    },
+  );
 
   return data;
 };

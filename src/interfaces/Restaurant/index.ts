@@ -32,6 +32,12 @@ export interface RestaurantBadge {
   value: string;
 }
 
+export interface RestaurantDeliveryFeeResponse {
+  available: boolean;
+  distanceKm?: number | null;
+  deliveryFee?: number | null;
+}
+
 export interface RestaurantMenuItemExtra {
   id: number;
   name: string;

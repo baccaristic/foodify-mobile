@@ -353,6 +353,7 @@ const en: TranslationDictionary = {
       extras: 'Extras',
       delivery: 'Delivery',
       service: 'Service',
+      checkingDelivery: 'Checking delivery availability…',
       fees: 'Fees & delivery',
       coupon: 'Coupon ({{code}})',
       promotion: 'Promotion',
@@ -372,6 +373,9 @@ const en: TranslationDictionary = {
       missingAddress: 'Please choose a delivery address.',
       missingCoordinates: 'The selected address is missing coordinates. Please update it and try again.',
       missingPayment: 'Select a payment method to continue.',
+      deliveryUnavailable: 'Delivery is not available to this address for this restaurant.',
+      deliveryQuoteFailed: 'We could not verify delivery availability. Please try again.',
+      deliveryFeePending: 'Please wait while we verify delivery availability.',
       generic: 'We could not place your order. Please try again.',
     },
     alerts: {

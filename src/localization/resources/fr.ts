@@ -357,6 +357,7 @@ const fr: TranslationDictionary = {
       extras: 'Suppléments',
       delivery: 'Livraison',
       service: 'Service',
+      checkingDelivery: 'Vérification de la disponibilité de la livraison…',
       fees: 'Frais et livraison',
       coupon: 'Code promo ({{code}})',
       promotion: 'Promotion',
@@ -376,6 +377,9 @@ const fr: TranslationDictionary = {
       missingAddress: 'Veuillez choisir une adresse de livraison.',
       missingCoordinates: 'L\'adresse sélectionnée ne comporte pas de coordonnées. Veuillez la mettre à jour puis réessayer.',
       missingPayment: 'Sélectionnez un mode de paiement pour continuer.',
+      deliveryUnavailable: 'La livraison n’est pas disponible pour cette adresse avec ce restaurant.',
+      deliveryQuoteFailed: 'Nous n’avons pas pu vérifier la disponibilité de la livraison. Veuillez réessayer.',
+      deliveryFeePending: 'Veuillez patienter pendant la vérification de la disponibilité de la livraison.',
       generic: 'Nous n\'avons pas pu passer votre commande. Veuillez réessayer.',
     },
     alerts: {
