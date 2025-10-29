@@ -639,7 +639,7 @@ const fr: TranslationDictionary = {
       slices: {
         percentOff: '{{value}} %',
         freeDelivery: 'Livraison gratuite',
-        tryAgain: 'À la prochaine',
+        waitTime: 'Temps d’attente',
       },
       actions: {
         spin: 'Tourner et gagner',

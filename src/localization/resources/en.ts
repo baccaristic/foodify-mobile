@@ -631,7 +631,7 @@ const en: TranslationDictionary = {
       slices: {
         percentOff: '{{value}}%',
         freeDelivery: 'Free Delivery',
-        tryAgain: 'Next Time',
+        waitTime: 'Wait Time',
       },
       actions: {
         spin: 'Spin and win',

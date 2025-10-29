@@ -26,6 +26,16 @@ const palette = {
   neutral: '#6B7280',
   surface: '#FFFFFF',
   backdrop: 'rgba(23, 33, 58, 0.55)',
+  slices: {
+    orange: '#F97316',
+    violet: '#7C3AED',
+    teal: '#0EA5E9',
+    pink: '#F472B6',
+    green: '#22C55E',
+    yellow: '#FACC15',
+    blue: '#3B82F6',
+    coral: '#FB7185',
+  },
 };
 
 type LuckyWheelSlice = {
@@ -64,14 +74,14 @@ const LuckyWheelScreen: React.FC = () => {
 
       const createStaticSlice = (
         id: string,
-        key: 'freeDelivery' | 'tryAgain',
+        key: 'freeDelivery' | 'waitTime',
         backgroundColor: string,
         textColor: string,
       ) => {
         const translationKey =
           key === 'freeDelivery'
             ? 'profile.luckyWheel.slices.freeDelivery'
-            : 'profile.luckyWheel.slices.tryAgain';
+            : 'profile.luckyWheel.slices.waitTime';
         const label = t(translationKey);
         return {
           id,
@@ -83,14 +93,14 @@ const LuckyWheelScreen: React.FC = () => {
       };
 
       return [
-        createPercentSlice('coupon-10', '10', '#CA251B', '#FFFFFF'),
-        createStaticSlice('try-again-1', 'tryAgain', '#FDE7E5', palette.accent),
-        createPercentSlice('coupon-20', '20', '#F6F7FB', palette.accentDark),
-        createStaticSlice('free-delivery-1', 'freeDelivery', '#CA251B', '#FFFFFF'),
-        createPercentSlice('coupon-40', '40', '#FDE7E5', palette.accent),
-        createStaticSlice('try-again-2', 'tryAgain', '#F6F7FB', palette.accentDark),
-        createStaticSlice('free-delivery-2', 'freeDelivery', '#CA251B', '#FFFFFF'),
-        createPercentSlice('coupon-10-2', '10', '#FDE7E5', palette.accent),
+        createPercentSlice('coupon-10', '10', palette.slices.orange, '#FFFFFF'),
+        createStaticSlice('wait-time-1', 'waitTime', palette.slices.violet, '#FFFFFF'),
+        createPercentSlice('coupon-20', '20', palette.slices.teal, '#FFFFFF'),
+        createStaticSlice('wait-time-2', 'waitTime', palette.slices.pink, '#FFFFFF'),
+        createPercentSlice('coupon-40', '40', palette.slices.green, '#FFFFFF'),
+        createStaticSlice('free-delivery-1', 'freeDelivery', palette.slices.yellow, palette.accentDark),
+        createPercentSlice('coupon-10-2', '10', palette.slices.blue, '#FFFFFF'),
+        createStaticSlice('free-delivery-2', 'freeDelivery', palette.slices.coral, '#FFFFFF'),
       ];
     },
     [t],
@@ -134,9 +144,6 @@ const LuckyWheelScreen: React.FC = () => {
         subTextColor: palette.neutral,
         subTextFontSize: 10,
       },
-      onRef: (instance: WheelOfFortuneRef | null) => {
-        wheelRef.current = instance;
-      },
     }),
     [wheelColors, wheelLabels, wheelTextColors, t],
   );
@@ -151,14 +158,13 @@ const LuckyWheelScreen: React.FC = () => {
     setIsResultVisible(false);
     setIsSpinning(true);
 
-    if (wheelRef.current?.spinToReward) {
-      wheelRef.current.spinToReward(STATIC_REWARD_INDEX);
-    } else if (wheelRef.current?.spin) {
-      wheelRef.current.spin();
-    } else {
-      // No imperative API available, surface the reward immediately.
-      setIsSpinning(false);
-      setIsResultVisible(true);
+    const hasSpinToReward = typeof wheelRef.current?.spinToReward === 'function';
+    const hasSpin = typeof wheelRef.current?.spin === 'function';
+
+    if (hasSpinToReward) {
+      wheelRef.current?.spinToReward?.(STATIC_REWARD_INDEX);
+    } else if (hasSpin) {
+      wheelRef.current?.spin?.();
     }
   };
 
@@ -175,8 +181,11 @@ const LuckyWheelScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isSpinning || wheelRef.current?.spinToReward) {
-      return;
+    const hasImperativeSpin =
+      typeof wheelRef.current?.spinToReward === 'function' || typeof wheelRef.current?.spin === 'function';
+
+    if (!isSpinning || hasImperativeSpin) {
+      return undefined;
     }
 
     const timeout = setTimeout(() => {
@@ -241,7 +250,13 @@ const LuckyWheelScreen: React.FC = () => {
             </Text>
           </View>
           <View style={styles.wheelWrapper}>
-            <WheelOfFortune options={wheelOptions} getWinner={handleWinner} />
+            <WheelOfFortune
+              options={wheelOptions}
+              getWinner={handleWinner}
+              onRef={(instance: WheelOfFortuneRef | null) => {
+                wheelRef.current = instance;
+              }}
+            />
           </View>
         </View>
 
