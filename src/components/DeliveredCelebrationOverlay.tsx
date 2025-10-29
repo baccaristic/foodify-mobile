@@ -171,8 +171,8 @@ const DeliveredCelebrationOverlay = () => {
             loop={true}
             style={styles.animation}
           />
-          <Text style={styles.heading}>{t('ongoingOrder.deliveredCelebration.title')}</Text>
-          <Text style={styles.message}>{t('ongoingOrder.deliveredCelebration.subtitle')}</Text>
+          <Text style={styles.heading}>{t('layout.ongoingOrder.deliveredCelebration.title')}</Text>
+          <Text style={styles.message}>{t('layout.ongoingOrder.deliveredCelebration.subtitle')}</Text>
           <View style={styles.actionsContainer}>
             <TouchableOpacity
               style={styles.primaryButton}
@@ -191,7 +191,7 @@ const DeliveredCelebrationOverlay = () => {
               }}
             >
               <Text style={styles.primaryButtonText}>
-                {t('ongoingOrder.deliveredCelebration.rateDelivery')}
+                {t('layout.ongoingOrder.deliveredCelebration.rateDelivery')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -200,7 +200,7 @@ const DeliveredCelebrationOverlay = () => {
               onPress={() => hideOverlay()}
             >
               <Text style={styles.secondaryButtonText}>
-                {t('ongoingOrder.deliveredCelebration.close')}
+                {t('layout.ongoingOrder.deliveredCelebration.close')}
               </Text>
             </TouchableOpacity>
           </View>

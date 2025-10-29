@@ -16,6 +16,7 @@ import { useDeliveryRatingOverlay } from '~/context/DeliveryRatingOverlayContext
 import { useOngoingOrderContext } from '~/context/OngoingOrderContext';
 import type { DeliveryRatingSummary } from '~/interfaces/DeliveryRating';
 import { useTranslation } from '~/localization';
+import { Image } from 'expo-image';
 
 const accentColor = '#CA251B';
 const backgroundColor = 'rgba(15, 23, 42, 0.65)';
@@ -194,7 +195,7 @@ const DeliveryRatingOverlay = () => {
             <X size={22} color={headingColor} />
           </TouchableOpacity>
           <View style={styles.headerIconWrapper}>
-            <Bike size={48} color={accentColor} />
+            <Image source={require('../../assets/biker.png')} style={StyleSheet.absoluteFillObject} contentFit="fill" />
           </View>
           <Text style={styles.title}>{t('deliveryRating.title')}</Text>
           <Text style={styles.subtitle}>{t('deliveryRating.subtitle')}</Text>
@@ -287,8 +288,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FDE8E6',
-    alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
