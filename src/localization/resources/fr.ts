@@ -89,6 +89,26 @@ const fr: TranslationDictionary = {
       submit: 'Impossible d’enregistrer votre note. Veuillez réessayer.',
     },
   },
+  restaurantRating: {
+    headline: 'Notez votre livraison',
+    question: 'Comment était la nourriture ?',
+    options: {
+      thumbsUp: 'Bien',
+      thumbsDown: 'Pas top',
+      or: 'ou',
+    },
+    commentPrompt: 'Quelque chose à ajouter ?',
+    commentPlaceholder: 'Écrivez votre commentaire…',
+    actions: {
+      submit: 'Envoyer',
+      update: 'Mettre à jour le retour',
+    },
+    errors: {
+      load: 'Impossible de récupérer votre avis sur le restaurant.',
+      submit: 'Impossible d’enregistrer votre avis. Veuillez réessayer.',
+      selection: 'Veuillez choisir un pouce levé ou baissé.',
+    },
+  },
   home: {
     sections: {
       top: 'Nos meilleures suggestions pour vous',

@@ -89,6 +89,26 @@ const en: TranslationDictionary = {
       submit: 'We could not save your rating. Please try again.',
     },
   },
+  restaurantRating: {
+    headline: 'Rate your Delivery',
+    question: 'How was the food?',
+    options: {
+      thumbsUp: 'Good',
+      thumbsDown: 'Not so good',
+      or: 'or',
+    },
+    commentPrompt: 'Anything more to say?',
+    commentPlaceholder: 'Type your comment…',
+    actions: {
+      submit: 'Send',
+      update: 'Update feedback',
+    },
+    errors: {
+      load: 'We could not fetch your restaurant rating.',
+      submit: 'We could not save your feedback. Please try again.',
+      selection: 'Please choose a thumbs up or thumbs down.',
+    },
+  },
   home: {
     sections: {
       top: 'Top restaurants',

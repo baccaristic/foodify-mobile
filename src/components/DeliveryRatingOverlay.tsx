@@ -9,10 +9,11 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bike, Star, X } from 'lucide-react-native';
+import { Star, X } from 'lucide-react-native';
 
 import { getDeliveryRating, submitDeliveryRating } from '~/api/deliveryRatings';
 import { useDeliveryRatingOverlay } from '~/context/DeliveryRatingOverlayContext';
+import { useRestaurantRatingOverlay } from '~/context/RestaurantRatingOverlayContext';
 import { useOngoingOrderContext } from '~/context/OngoingOrderContext';
 import type { DeliveryRatingSummary } from '~/interfaces/DeliveryRating';
 import { useTranslation } from '~/localization';
@@ -38,6 +39,7 @@ const MAX_RATING = 5;
 
 const DeliveryRatingOverlay = () => {
   const { state, close, setRating } = useDeliveryRatingOverlay();
+  const { open: openRestaurantRating } = useRestaurantRatingOverlay();
   const { orderId, rating: initialRating, isVisible } = state;
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -146,6 +148,10 @@ const DeliveryRatingOverlay = () => {
       queryClient.invalidateQueries({ queryKey: ['client', 'my-orders'] }).catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ['orders', 'ongoing'] }).catch(() => undefined);
       close();
+      openRestaurantRating({
+        orderId: response.orderId,
+        restaurantName: state.metadata?.restaurantName ?? null,
+      });
     },
     onError: () => {
       setErrorMessage(t('deliveryRating.errors.submit'));

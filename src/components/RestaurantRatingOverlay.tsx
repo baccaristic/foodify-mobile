@@ -1,0 +1,408 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ThumbsDown, ThumbsUp, X } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { getRestaurantRating, submitRestaurantRating } from '~/api/restaurantRatings';
+import { useRestaurantRatingOverlay } from '~/context/RestaurantRatingOverlayContext';
+import { useOngoingOrderContext } from '~/context/OngoingOrderContext';
+import { useTranslation } from '~/localization';
+
+const accentColor = '#CA251B';
+const backgroundColor = 'rgba(15, 23, 42, 0.65)';
+const cardColor = '#FFFFFF';
+const headingColor = '#17213A';
+const bodyColor = '#4B5563';
+const borderColor = '#E5E7EB';
+const placeholderColor = '#94A3B8';
+
+const RestaurantRatingOverlay = () => {
+  const { state, close, setRating } = useRestaurantRatingOverlay();
+  const { orderId, rating: initialRating, isVisible, metadata } = state;
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { updateOrder } = useOngoingOrderContext();
+
+  const [thumbsUp, setThumbsUp] = useState<boolean | null>(null);
+  const [comments, setComments] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const enabled = isVisible && Number.isFinite(orderId ?? NaN) && (orderId ?? 0) > 0;
+
+  const ratingQuery = useQuery({
+    queryKey: ['restaurant', 'ratings', orderId],
+    queryFn: async () => {
+      if (!orderId) {
+        return null;
+      }
+      return getRestaurantRating(orderId);
+    },
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+    retry: 1,
+  });
+
+  const mergedRating = useMemo(() => {
+    if (ratingQuery.data) {
+      return ratingQuery.data;
+    }
+    return initialRating ?? null;
+  }, [initialRating, ratingQuery.data]);
+
+  const restaurantName = useMemo(() => {
+    const name = metadata?.restaurantName;
+    if (!name) {
+      return null;
+    }
+    const trimmed = name.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }, [metadata?.restaurantName]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      setThumbsUp(null);
+      setComments('');
+      setErrorMessage(null);
+      return;
+    }
+
+    if (mergedRating) {
+      setThumbsUp(mergedRating.thumbsUp);
+      setComments(mergedRating.comments ?? '');
+    } else {
+      setThumbsUp(null);
+      setComments('');
+    }
+    setErrorMessage(null);
+  }, [isVisible, mergedRating]);
+
+  useEffect(() => {
+    if (ratingQuery.isSuccess) {
+      setRating(ratingQuery.data ?? null);
+    }
+  }, [ratingQuery.data, ratingQuery.isSuccess, setRating]);
+
+  useEffect(() => {
+    if (ratingQuery.isError) {
+      setErrorMessage(t('restaurantRating.errors.load'));
+    }
+  }, [ratingQuery.isError, t]);
+
+  useEffect(() => {
+    if (ratingQuery.isFetching) {
+      setErrorMessage(null);
+    }
+  }, [ratingQuery.isFetching]);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!orderId) {
+        throw new Error('Missing order id');
+      }
+
+      if (thumbsUp == null) {
+        throw new Error('Missing selection');
+      }
+
+      const trimmedComments = comments.trim();
+
+      return submitRestaurantRating(orderId, {
+        thumbsUp,
+        comments: trimmedComments.length > 0 ? trimmedComments : null,
+      });
+    },
+    onSuccess: (response) => {
+      setErrorMessage(null);
+      setRating(response);
+      updateOrder({ orderId: response.orderId, restaurantRating: response });
+      queryClient.invalidateQueries({ queryKey: ['client', 'my-orders'] }).catch(() => undefined);
+      queryClient.invalidateQueries({ queryKey: ['orders', 'ongoing'] }).catch(() => undefined);
+      close();
+    },
+    onError: () => {
+      setErrorMessage((previous) => previous ?? t('restaurantRating.errors.submit'));
+    },
+  });
+
+  const isBusy = mutation.isPending || ratingQuery.isFetching;
+
+  const handleClose = () => {
+    if (mutation.isPending) {
+      return;
+    }
+    close();
+  };
+
+  const handleSelect = (value: boolean) => {
+    setThumbsUp(value);
+    setErrorMessage(null);
+  };
+
+  const handleSubmit = () => {
+    if (thumbsUp == null) {
+      setErrorMessage(t('restaurantRating.errors.selection'));
+      return;
+    }
+
+    mutation.mutate();
+  };
+
+  if (!isVisible) {
+    return null;
+  }
+
+  const hasExistingRating = mergedRating != null;
+  const submitLabel = hasExistingRating
+    ? t('restaurantRating.actions.update')
+    : t('restaurantRating.actions.submit');
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={handleClose}>
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
+        <View style={[styles.card, { paddingTop: insets.top + 32 }]}>
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+            <X size={22} color={headingColor} />
+          </TouchableOpacity>
+          <View style={styles.headerIllustrationWrapper}>
+            <Image
+              source={require('../../assets/baguette.png')}
+              style={StyleSheet.absoluteFillObject}
+              contentFit="contain"
+            />
+          </View>
+          <Text style={styles.headline}>{t('restaurantRating.headline')}</Text>
+          <Text style={styles.question}>{t('restaurantRating.question')}</Text>
+          {restaurantName ? (
+            <Text style={styles.restaurantName}>{restaurantName}</Text>
+          ) : null}
+          {ratingQuery.isFetching && !mergedRating ? (
+            <View style={styles.loadingIndicator}>
+              <ActivityIndicator size="small" color={accentColor} />
+            </View>
+          ) : null}
+          <View style={styles.choiceRow}>
+            <TouchableOpacity
+              style={[styles.choiceButton, thumbsUp === true ? styles.choiceButtonActive : null]}
+              onPress={() => handleSelect(true)}
+              disabled={isBusy}
+            >
+              <ThumbsUp
+                size={36}
+                color={thumbsUp === true ? '#FFFFFF' : accentColor}
+                strokeWidth={1.4}
+                fill={thumbsUp === true ? '#FFFFFF' : 'none'}
+              />
+              <Text
+                style={[styles.choiceLabel, thumbsUp === true ? styles.choiceLabelActive : null]}
+              >
+                {t('restaurantRating.options.thumbsUp')}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.orLabel}>{t('restaurantRating.options.or')}</Text>
+            <TouchableOpacity
+              style={[styles.choiceButton, thumbsUp === false ? styles.choiceButtonNegative : null]}
+              onPress={() => handleSelect(false)}
+              disabled={isBusy}
+            >
+              <ThumbsDown
+                size={36}
+                color={thumbsUp === false ? '#FFFFFF' : accentColor}
+                strokeWidth={1.4}
+                fill={thumbsUp === false ? '#FFFFFF' : 'none'}
+              />
+              <Text
+                style={[styles.choiceLabel, thumbsUp === false ? styles.choiceLabelActive : null]}
+              >
+                {t('restaurantRating.options.thumbsDown')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.commentSection}>
+            <Text style={styles.commentLabel}>{t('restaurantRating.commentPrompt')}</Text>
+            <TextInput
+              style={styles.commentInput}
+              placeholder={t('restaurantRating.commentPlaceholder')}
+              placeholderTextColor={placeholderColor}
+              multiline
+              maxLength={1024}
+              value={comments}
+              editable={!isBusy}
+              onChangeText={setComments}
+              textAlignVertical="top"
+            />
+          </View>
+          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+          <TouchableOpacity
+            style={[styles.submitButton, isBusy ? styles.submitButtonDisabled : null]}
+            activeOpacity={0.85}
+            onPress={handleSubmit}
+            disabled={isBusy}
+          >
+            {isBusy ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.submitLabel}>{submitLabel}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: cardColor,
+    borderRadius: 32,
+    paddingHorizontal: 28,
+    paddingBottom: 32,
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 24,
+    top: 24,
+    padding: 8,
+  },
+  headerIllustrationWrapper: {
+    width: 160,
+    height: 110,
+    marginBottom: 16,
+  },
+  headline: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: headingColor,
+    textAlign: 'center',
+  },
+  question: {
+    marginTop: 8,
+    fontSize: 18,
+    color: bodyColor,
+    textAlign: 'center',
+  },
+  restaurantName: {
+    marginTop: 4,
+    fontSize: 16,
+    fontWeight: '600',
+    color: accentColor,
+    textAlign: 'center',
+  },
+  loadingIndicator: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  choiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    marginBottom: 24,
+    gap: 16,
+  },
+  choiceButton: {
+    borderWidth: 2,
+    borderColor: accentColor,
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 140,
+    gap: 8,
+  },
+  choiceButtonActive: {
+    backgroundColor: accentColor,
+  },
+  choiceButtonNegative: {
+    backgroundColor: accentColor,
+  },
+  choiceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: accentColor,
+  },
+  choiceLabelActive: {
+    color: '#FFFFFF',
+  },
+  orLabel: {
+    fontSize: 16,
+    color: bodyColor,
+    fontWeight: '500',
+  },
+  commentSection: {
+    width: '100%',
+  },
+  commentLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: headingColor,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  commentInput: {
+    width: '100%',
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: headingColor,
+    backgroundColor: '#F8FAFC',
+  },
+  errorText: {
+    fontSize: 14,
+    color: accentColor,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  submitButton: {
+    width: '100%',
+    backgroundColor: accentColor,
+    borderRadius: 28,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+  submitLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+});
+
+export default RestaurantRatingOverlay;
