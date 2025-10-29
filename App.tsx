@@ -40,7 +40,9 @@ import { PhoneSignupProvider } from '~/context/PhoneSignupContext';
 import { SelectedAddressProvider } from '~/context/SelectedAddressContext';
 import { WebSocketProvider } from '~/context/WebSocketContext';
 import { OngoingOrderProvider } from '~/context/OngoingOrderContext';
+import { DeliveryRatingOverlayProvider } from '~/context/DeliveryRatingOverlayContext';
 import DeliveredCelebrationOverlay from '~/components/DeliveredCelebrationOverlay';
+import DeliveryRatingOverlay from '~/components/DeliveryRatingOverlay';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
@@ -241,6 +243,7 @@ const RootNavigator = () => {
       )}
       </Stack.Navigator>
       <DeliveredCelebrationOverlay />
+      <DeliveryRatingOverlay />
     </>
   );
 };
@@ -254,17 +257,19 @@ export default function App() {
             <AuthProvider>
               <EmailSignupProvider>
                 <OngoingOrderProvider>
-                  <WebSocketProvider>
-                    <PhoneSignupProvider>
-                      <SelectedAddressProvider>
-                        <CartProvider>
-                          <LocationOverlayProvider>
-                            <RootNavigator />
-                          </LocationOverlayProvider>
-                        </CartProvider>
-                      </SelectedAddressProvider>
-                    </PhoneSignupProvider>
-                  </WebSocketProvider>
+                  <DeliveryRatingOverlayProvider>
+                    <WebSocketProvider>
+                      <PhoneSignupProvider>
+                        <SelectedAddressProvider>
+                          <CartProvider>
+                            <LocationOverlayProvider>
+                              <RootNavigator />
+                            </LocationOverlayProvider>
+                          </CartProvider>
+                        </SelectedAddressProvider>
+                      </PhoneSignupProvider>
+                    </WebSocketProvider>
+                  </DeliveryRatingOverlayProvider>
                 </OngoingOrderProvider>
               </EmailSignupProvider>
             </AuthProvider>

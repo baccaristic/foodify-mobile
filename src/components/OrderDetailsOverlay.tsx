@@ -19,8 +19,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { moderateScale } from "react-native-size-matters";
 import { useCart } from "~/context/CartContext";
+import { useDeliveryRatingOverlay } from "~/context/DeliveryRatingOverlayContext";
 import type { OrderDto, OrderItemDto } from "~/interfaces/Order";
 import { BASE_API_URL } from "@env";
+import { useTranslation } from "~/localization";
 
 interface Props {
   visible: boolean;
@@ -36,6 +38,8 @@ const borderColor = "#E8E9EC";
 const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
   const navigation = useNavigation<any>();
   const { addItem } = useCart();
+  const { open: openDeliveryRating } = useDeliveryRatingOverlay();
+  const { t } = useTranslation();
   if (!order) return null;
 
   const formatCurrency = (val: number | string | null | undefined): string => {
@@ -95,6 +99,11 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
         minute: "2-digit",
       })
     : "";
+  const ratingSummary = order.rating ?? null;
+  const isDelivered = status === "DELIVERED";
+  const orderId = order.id;
+  const driverName = order.driverName ?? null;
+  const restaurantNameForRating = order.restaurantName ?? null;
 
   const handleReorder = () => {
     if (!order || !restaurant?.id) return;
@@ -114,6 +123,21 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
     });
     onClose();
     navigation.navigate("CheckoutOrder");
+  };
+
+  const handleOpenRating = () => {
+    if (!orderId) {
+      return;
+    }
+
+    openDeliveryRating({
+      orderId,
+      rating: ratingSummary,
+      driverName,
+      restaurantName: restaurantNameForRating,
+    });
+
+    onClose();
   };
 
   return (
@@ -271,8 +295,19 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
               </Text>
             </View>
 
+            {isDelivered ? (
+              <TouchableOpacity style={styles.rateButton} onPress={handleOpenRating}>
+                <Text style={styles.rateButtonText}>
+                  {ratingSummary
+                    ? t('profile.orderHistory.actions.updateRating')
+                    : t('profile.orderHistory.actions.rateDelivery')}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity style={styles.reorderBtn} onPress={handleReorder}>
-              <Text style={styles.reorderText}>Reorder</Text>
+              <Text style={styles.reorderText}>
+                {t('profile.orderHistory.actions.reorder').toUpperCase()}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -395,11 +430,22 @@ const styles = StyleSheet.create({
     paddingLeft:moderateScale(24),
   },
   paymentText: { color: accentColor, fontWeight: "400",fontSize:16 },
+  rateButton: {
+    borderRadius: 25,
+    marginHorizontal: 16,
+    marginTop: 20,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: accentColor,
+    backgroundColor: "#fff",
+  },
+  rateButtonText: { color: accentColor, fontWeight: "700", fontSize: 16 },
   reorderBtn: {
     backgroundColor: accentColor,
     borderRadius: 25,
     marginHorizontal: 16,
-    marginTop: 20,
+    marginTop: 12,
     paddingVertical: 14,
     alignItems: "center",
   },

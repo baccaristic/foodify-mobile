@@ -40,6 +40,12 @@ const fr: TranslationDictionary = {
       statusHeading: 'Statut',
       trackingFallback: 'Suivi…',
       seeDetails: 'Voir les détails',
+      deliveredCelebration: {
+        title: 'Bon appétit',
+        subtitle: 'Votre livraison est arrivée. Bon appétit !',
+        rateDelivery: 'Noter la livraison',
+        close: 'Fermer',
+      },
     },
   },
   filters: {
@@ -64,6 +70,24 @@ const fr: TranslationDictionary = {
     orderWithCount: 'Commander ({{count}})',
     orderSummary: '{{order}} : {{total}}',
     seeCart: 'Voir mon panier',
+  },
+  deliveryRating: {
+    title: 'Notez votre livraison',
+    subtitle: 'Parlez-nous de votre expérience de livraison',
+    fields: {
+      timing: 'Le timing de la livraison',
+      foodCondition: 'L’état de la nourriture',
+      professionalism: 'Professionnalisme du livreur',
+      overall: 'Expérience globale',
+    },
+    actions: {
+      submit: 'Envoyer',
+      update: 'Mettre à jour la note',
+    },
+    errors: {
+      load: 'Impossible de récupérer votre note précédente.',
+      submit: 'Impossible d’enregistrer votre note. Veuillez réessayer.',
+    },
   },
   home: {
     sections: {
@@ -801,6 +825,8 @@ const fr: TranslationDictionary = {
         startOrdering: 'Commencer à commander',
         continueOrdering: 'Continuer à commander',
         reorder: 'Recommander',
+        rateDelivery: 'Noter la livraison',
+        updateRating: 'Mettre à jour la note',
       },
     },
     deleteAccount: {

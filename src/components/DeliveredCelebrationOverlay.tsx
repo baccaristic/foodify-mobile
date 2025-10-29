@@ -5,6 +5,8 @@ import { useNavigation, type NavigationProp, type ParamListBase } from '@react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useOngoingOrderContext } from '~/context/OngoingOrderContext';
+import { useDeliveryRatingOverlay } from '~/context/DeliveryRatingOverlayContext';
+import { useTranslation } from '~/localization';
 
 const accentColor = '#D83A2E';
 const softSurface = '#FFFFFF';
@@ -15,10 +17,12 @@ const screenHeight = Dimensions.get('window').height;
 
 const DeliveredCelebrationOverlay = () => {
   const { deliveredCelebration, dismissDeliveredCelebration } = useOngoingOrderContext();
+  const { open: openDeliveryRating } = useDeliveryRatingOverlay();
   const [isVisible, setIsVisible] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(deliveredCelebration);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const { t } = useTranslation();
 
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslate = useRef(new Animated.Value(1)).current;
@@ -167,15 +171,39 @@ const DeliveredCelebrationOverlay = () => {
             loop={true}
             style={styles.animation}
           />
-          <Text style={styles.heading}>Enjoy your food</Text>
-          <Text style={styles.message}>Your delivery has arrived. Bon appétit!</Text>
-          <TouchableOpacity
-            style={styles.button}
-            activeOpacity={0.9}
-            onPress={() => hideOverlay()}
-          >
-            <Text style={styles.buttonText}>Close</Text>
-          </TouchableOpacity>
+          <Text style={styles.heading}>{t('layout.ongoingOrder.deliveredCelebration.title')}</Text>
+          <Text style={styles.message}>{t('layout.ongoingOrder.deliveredCelebration.subtitle')}</Text>
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              activeOpacity={0.9}
+              onPress={() => {
+                const celebrationOrderId = activeCelebration?.orderId;
+                if (celebrationOrderId != null) {
+                  openDeliveryRating({
+                    orderId: celebrationOrderId,
+                    rating: activeCelebration?.rating ?? null,
+                    driverName: activeCelebration?.delivery?.driver?.name ?? null,
+                    restaurantName: activeCelebration?.restaurant?.name ?? null,
+                  });
+                }
+                hideOverlay({ navigateHome: false });
+              }}
+            >
+              <Text style={styles.primaryButtonText}>
+                {t('layout.ongoingOrder.deliveredCelebration.rateDelivery')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              activeOpacity={0.9}
+              onPress={() => hideOverlay()}
+            >
+              <Text style={styles.secondaryButtonText}>
+                {t('layout.ongoingOrder.deliveredCelebration.close')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       </View>
     </View>
@@ -219,19 +247,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 12,
   },
-  button: {
+  actionsContainer: {
     marginTop: 24,
     width: '100%',
+    gap: 12,
+  },
+  primaryButton: {
     borderRadius: 999,
     backgroundColor: accentColor,
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonText: {
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  secondaryButton: {
+    borderRadius: 999,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: accentColor,
+    backgroundColor: softSurface,
+  },
+  secondaryButtonText: {
+    color: accentColor,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
