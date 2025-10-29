@@ -213,7 +213,7 @@ const RestaurantRatingOverlay = () => {
                 </TouchableOpacity>
                 <View style={styles.headerIllustrationWrapper}>
                   <Image
-                    source={require('../../assets/baguette.png')}
+                    source={require('../../assets/rate-restaurant.png')}
                     style={StyleSheet.absoluteFillObject}
                     contentFit="contain"
                   />
