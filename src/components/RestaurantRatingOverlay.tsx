@@ -184,10 +184,16 @@ const RestaurantRatingOverlay = () => {
               contentFit="contain"
             />
           </View>
-          <Text style={styles.headline}>{t('restaurantRating.headline')}</Text>
-          <Text style={styles.question}>{t('restaurantRating.question')}</Text>
+          <Text allowFontScaling={false} style={styles.headline}>
+            {t('restaurantRating.headline')}
+          </Text>
+          <Text allowFontScaling={false} style={styles.question}>
+            {t('restaurantRating.question')}
+          </Text>
           {restaurantName ? (
-            <Text style={styles.restaurantName}>{restaurantName}</Text>
+            <Text allowFontScaling={false} style={styles.restaurantName}>
+              {restaurantName}
+            </Text>
           ) : null}
           {ratingQuery.isFetching && !mergedRating ? (
             <View style={styles.loadingIndicator}>
@@ -195,21 +201,25 @@ const RestaurantRatingOverlay = () => {
             </View>
           ) : null}
           <View style={styles.choiceRow}>
-            <TouchableOpacity
-              style={[
-                styles.choiceButton,
-                thumbsUp === true ? styles.choiceButtonPositiveActive : null,
-              ]}
-              onPress={() => handleSelect(true)}
-              disabled={isBusy}
-            >
-              <ThumbsUp
-                size={36}
-                color={positiveColor}
-                strokeWidth={1.6}
-                fill={thumbsUp === true ? positiveColor : 'none'}
-              />
+            <View style={styles.choiceColumn}>
+              <TouchableOpacity
+                style={[
+                  styles.choiceButton,
+                  thumbsUp === true ? styles.choiceButtonPositiveActive : null,
+                ]}
+                onPress={() => handleSelect(true)}
+                disabled={isBusy}
+                activeOpacity={0.85}
+              >
+                <ThumbsUp
+                  size={36}
+                  color={positiveColor}
+                  strokeWidth={1.6}
+                  fill={thumbsUp === true ? positiveColor : 'none'}
+                />
+              </TouchableOpacity>
               <Text
+                allowFontScaling={false}
                 style={[
                   styles.choiceLabel,
                   styles.choiceLabelPositive,
@@ -217,22 +227,26 @@ const RestaurantRatingOverlay = () => {
               >
                 {t('restaurantRating.options.thumbsUp')}
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.choiceButton,
-                thumbsUp === false ? styles.choiceButtonNegativeActive : null,
-              ]}
-              onPress={() => handleSelect(false)}
-              disabled={isBusy}
-            >
-              <ThumbsDown
-                size={36}
-                color={accentColor}
-                strokeWidth={1.6}
-                fill={thumbsUp === false ? accentColor : 'none'}
-              />
+            </View>
+            <View style={styles.choiceColumn}>
+              <TouchableOpacity
+                style={[
+                  styles.choiceButton,
+                  thumbsUp === false ? styles.choiceButtonNegativeActive : null,
+                ]}
+                onPress={() => handleSelect(false)}
+                disabled={isBusy}
+                activeOpacity={0.85}
+              >
+                <ThumbsDown
+                  size={36}
+                  color={accentColor}
+                  strokeWidth={1.6}
+                  fill={thumbsUp === false ? accentColor : 'none'}
+                />
+              </TouchableOpacity>
               <Text
+                allowFontScaling={false}
                 style={[
                   styles.choiceLabel,
                   styles.choiceLabelNegative,
@@ -240,11 +254,15 @@ const RestaurantRatingOverlay = () => {
               >
                 {t('restaurantRating.options.thumbsDown')}
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.orLabel}>{t('restaurantRating.options.or')}</Text>
+          <Text allowFontScaling={false} style={styles.orLabel}>
+            {t('restaurantRating.options.or')}
+          </Text>
           <View style={styles.commentSection}>
-            <Text style={styles.commentLabel}>{t('restaurantRating.commentPrompt')}</Text>
+            <Text allowFontScaling={false} style={styles.commentLabel}>
+              {t('restaurantRating.commentPrompt')}
+            </Text>
             <TextInput
               style={styles.commentInput}
               placeholder={t('restaurantRating.commentPlaceholder')}
@@ -257,7 +275,11 @@ const RestaurantRatingOverlay = () => {
               textAlignVertical="top"
             />
           </View>
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+          {errorMessage ? (
+            <Text allowFontScaling={false} style={styles.errorText}>
+              {errorMessage}
+            </Text>
+          ) : null}
           <TouchableOpacity
             style={[styles.submitButton, isBusy ? styles.submitButtonDisabled : null]}
             activeOpacity={0.85}
@@ -267,7 +289,9 @@ const RestaurantRatingOverlay = () => {
             {isBusy ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.submitLabel}>{submitLabel}</Text>
+              <Text allowFontScaling={false} style={styles.submitLabel}>
+                {submitLabel}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -336,23 +360,25 @@ const styles = StyleSheet.create({
   },
   choiceRow: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'flex-start',
     justifyContent: 'center',
     marginTop: 24,
     gap: 16,
     width: '100%',
   },
-  choiceButton: {
+  choiceColumn: {
     flex: 1,
+    alignItems: 'center',
+  },
+  choiceButton: {
     borderWidth: 2,
     borderColor: borderColor,
-    borderRadius: 28,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    minWidth: 0,
+    backgroundColor: '#FFFFFF',
   },
   choiceButtonPositiveActive: {
     borderColor: positiveColor,
@@ -365,6 +391,8 @@ const styles = StyleSheet.create({
   choiceLabel: {
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 12,
   },
   choiceLabelPositive: {
     color: positiveColor,
