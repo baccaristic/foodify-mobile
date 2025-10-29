@@ -136,8 +136,11 @@ const LuckyWheelScreen: React.FC = () => {
         subTextColor: palette.neutral,
         subTextFontSize: 10,
       },
+      onRef: (instance: WheelOfFortuneRef | null) => {
+        wheelRef.current = instance;
+      },
     }),
-    [slices, t],
+    [slices, t, wheelRef],
   );
 
   const handleSpin = () => {
@@ -203,12 +206,7 @@ const LuckyWheelScreen: React.FC = () => {
               {t('profile.luckyWheel.cardTitle')}
             </Text>
           </View>
-          <WheelOfFortune
-            ref={(instance) => {
-              wheelRef.current = instance;
-            }}
-            options={wheelOptions}
-          />
+          <WheelOfFortune options={wheelOptions} />
         </View>
 
         <View style={styles.ctaContainer}>
