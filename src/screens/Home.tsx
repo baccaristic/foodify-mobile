@@ -38,6 +38,7 @@ import {
   Sprout,
   Percent,
   X,
+  ArrowUp,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
@@ -760,13 +761,9 @@ export default function HomePage() {
 
   const collapsedHeader = (
     <View style={styles.collapsedHeader}>
-      <ImageBackground
-        source={require("../../assets/pattern1.png")}
-        imageStyle={{ borderRadius: s(50) }}
-        style={styles.backgroundImage}
-      />
+      
       <TouchableOpacity style={styles.collapsedUp} onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} >
-        <MoveUp size={s(22)} color="gray" />
+        <ArrowUp size={s(16)} color="#17213A" />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.collapsedSearch}
@@ -1089,32 +1086,31 @@ const styles = ScaledSheet.create({
     marginTop: '10@vs',
   },
 
-  collapsedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: '16@s', flex: 1, },
+ collapsedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: '24@s', flex: 1,backgroundColor:'#F2F0EF', },
   collapsedSearch: {
-    flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "white", borderRadius: "16@ms", paddingHorizontal: "12@s", paddingVertical: "6@vs", borderWidth: 2,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 3,
-  },
+  flex: 1, 
+  flexDirection: "row", 
+  alignItems: "center", 
+  justifyContent: "space-between", 
+  backgroundColor: "white", 
+  borderRadius: "16@ms", 
+  paddingHorizontal: "12@s", 
+  paddingVertical: "6@vs", 
+  borderWidth: 2,
+  borderColor: "#E5E7EB",
+},
   collapsedUp: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "white",
     borderRadius: "16@ms",
-    paddingVertical: "6@vs",
+    paddingVertical: "8@ms",
     paddingHorizontal: "6@vs",
     marginRight: moderateScale(10),
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#17213A",
   },
+
   collapsedPlaceholder: { color: "gray", fontSize: "13@ms" },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
