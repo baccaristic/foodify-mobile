@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { ListRenderItem } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
@@ -11,14 +12,17 @@ import type { OrderDto, OrderItemDto } from '~/interfaces/Order';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import OrderDetailsOverlay from '~/components/OrderDetailsOverlay';
 import { useCart } from '~/context/CartContext';
-import { BASE_API_URL } from '@env';
 import { useTranslation } from '~/localization';
+import OrderHistorySkeleton from '~/components/skeletons/OrderHistorySkeleton';
+import RemoteImageWithSkeleton from '~/components/RemoteImageWithSkeleton';
 
 const accentColor = '#CA251B';
 const primaryColor = '#17213A';
 const PAGE_SIZE = 10;
 const emptyIllustration = require('../../../assets/emptyHistory.png');
-const orderPlaceholder = require('../../../assets/baguette.png');
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+const MAX_CARD_STAGGER = 8;
 
 const formatOrderTotal = (total: OrderDto['total']) => {
   if (total == null) return '--';
@@ -114,6 +118,7 @@ const OrderHistoryScreen = () => {
   }, [data]);
 
   const hasOrders = orders.length > 0;
+  const isInitialLoading = isLoading && !data?.pages?.length;
   const isRefreshing = isFetching && !isLoading && !isFetchingNextPage;
   const handleRefresh = useCallback(() => refetch(), [refetch]);
   const handleEndReached = useCallback(() => {
@@ -132,12 +137,32 @@ const OrderHistoryScreen = () => {
   }, [isFetchingNextPage]);
 
   const renderOrderItem = useCallback<ListRenderItem<OrderDto>>(
-    ({ item }) => {
+    ({ item, index = 0 }) => {
       const isDelivered = item.status?.toUpperCase() === 'DELIVERED';
       const isCanceled = item.status?.toUpperCase() === 'CANCELED';
+      const entranceDelay = Math.min(index ?? 0, MAX_CARD_STAGGER) * 80;
+      const enteringAnimation = FadeInDown.springify()
+        .damping(18)
+        .stiffness(220)
+        .mass(0.85)
+        .withInitialValues({
+          opacity: 0,
+          transform: [{ translateY: -18 }, { scale: 0.94 }],
+        })
+        .delay(entranceDelay);
+
       return (
-        <TouchableOpacity activeOpacity={0.9} style={styles.orderCard} onPress={() => openOverlay(item)}>
-          <Image source={{ uri: `${BASE_API_URL}/auth/image/${(item as any)?.restaurantImage}` }} style={styles.orderImage} contentFit="cover" />
+        <AnimatedTouchableOpacity
+          entering={enteringAnimation}
+          activeOpacity={0.9}
+          style={styles.orderCard}
+          onPress={() => openOverlay(item)}
+        >
+          <RemoteImageWithSkeleton
+            imagePath={(item as { restaurantImage?: string | null }).restaurantImage}
+            containerStyle={styles.orderImageContainer}
+            skeletonStyle={styles.orderImageSkeleton}
+          />
           <View style={styles.orderContent}>
             <Text allowFontScaling={false} style={styles.orderName} numberOfLines={1}>
               {item.restaurantName}
@@ -171,7 +196,7 @@ const OrderHistoryScreen = () => {
               </Text>
             </Text>
           </View>
-        </TouchableOpacity>
+        </AnimatedTouchableOpacity>
       );
     },
     [openOverlay, handleReorder, t],
@@ -180,15 +205,9 @@ const OrderHistoryScreen = () => {
   const renderSeparator = useCallback(() => <View style={styles.orderSeparator} />, []);
 
   const renderEmptyState = useCallback(() => {
-    if (isLoading)
-      return (
-        <View style={styles.stateWrapper}>
-          <ActivityIndicator size="large" color={accentColor} />
-          <Text allowFontScaling={false} style={styles.stateTitle}>
-            {t('profile.orderHistory.states.loadingTitle')}
-          </Text>
-        </View>
-      );
+    if (isInitialLoading) {
+      return <OrderHistorySkeleton />;
+    }
     if (isError)
       return (
         <View style={styles.stateWrapper}>
@@ -225,7 +244,7 @@ const OrderHistoryScreen = () => {
         </TouchableOpacity>
       </View>
     );
-  }, [isLoading, isError, navigation, refetch, t]);
+  }, [isInitialLoading, isError, navigation, refetch, t]);
 
   const mainContent = <></>;
 
@@ -298,7 +317,8 @@ const styles = ScaledSheet.create({
     elevation: 4,
     minHeight: vs(90),
   },
-  orderImage: { width: '90@s', height: '100%' },
+  orderImageContainer: { width: '90@s', height: '100%', alignSelf: 'stretch' },
+  orderImageSkeleton: { borderRadius: 0 },
   orderContent: { flex: 1, padding: '10@s', justifyContent: 'center' },
   orderName: { fontSize: '15@ms', fontWeight: '700', color: primaryColor },
   summaryRow: {
