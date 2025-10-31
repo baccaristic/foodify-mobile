@@ -449,6 +449,7 @@ const fr: TranslationDictionary = {
       pending: 'Le restaurant a reçu votre commande.',
       accepted: 'Le restaurant a accepté votre commande et cherche un livreur…',
       preparing: 'Le restaurant prépare votre commande.',
+      estimatedReadyAt: 'Préparation estimée vers {{time}}.',
       readyForPickup: 'Votre commande est prête, le livreur la récupère.',
       waitingTitle: 'En attente du restaurant',
       driverEnRoute: 'Le livreur se prépare — localisation disponible bientôt.',
