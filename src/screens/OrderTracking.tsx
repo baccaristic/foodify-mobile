@@ -615,33 +615,6 @@ const OrderTrackingScreen: React.FC = () => {
     }, 0);
   }, [helpSheetAnimation]);
 
-  const handleCallSupport = useCallback(() => {
-    const sanitizedNumber = supportPhoneNumber.replace(/[^0-9+]/g, '');
-    const telUrl = `tel:${sanitizedNumber}`;
-
-    Linking.openURL(telUrl).catch(() => {
-      Alert.alert(
-        t('orderTracking.help.callErrorTitle'),
-        t('orderTracking.help.callErrorMessage', { values: { phone: supportPhoneNumber } }),
-      );
-    });
-    handleCloseSupport();
-  }, [handleCloseSupport, supportPhoneNumber, t]);
-
-  const handleRequestLiveChat = useCallback(() => {
-    handleCloseSupport();
-    setTimeout(() => {
-      navigation.navigate(
-        'LiveChat' as never,
-        {
-          orderId: order?.orderId ?? null,
-          topic: t('orderTracking.help.liveChatTopic'),
-          from: 'OrderTracking',
-        } as never,
-      );
-    }, 260);
-  }, [handleCloseSupport, navigation, order?.orderId, t]);
-
   useEffect(() => {
     previousStatusRef.current = null;
     setStatusChangeInfo(null);
@@ -1697,26 +1670,6 @@ const OrderTrackingScreen: React.FC = () => {
               </View>
             </View>
           </View>
-          <View style={[styles.courierStickyActions, responsiveStyles.courierStickyActions]}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.courierActionButton}
-              onPress={handleCallCourier}
-            >
-              <Phone size={18} color={accentColor} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[
-                styles.courierActionButton,
-                styles.courierActionButtonSpacing,
-                responsiveStyles.courierActionButtonSpacing,
-              ]}
-              onPress={handleRequestLiveChat}
-            >
-              <MessageCircle size={18} color={accentColor} />
-            </TouchableOpacity>
-          </View>
         </View>
         </View>
       </View>
@@ -1747,31 +1700,7 @@ const OrderTrackingScreen: React.FC = () => {
               <Text allowFontScaling={false} style={styles.helpDescription}>
                 {t('orderTracking.help.description')}
               </Text>
-              <TouchableOpacity
-                style={[styles.helpOption, responsiveStyles.helpOption]}
-                activeOpacity={0.85}
-                onPress={handleCallSupport}
-              >
-                <View style={[styles.helpOptionIcon, responsiveStyles.helpOptionIcon]}>
-                  <Phone size={20} color="white" />
-                </View>
-                <View style={[styles.helpOptionContent, responsiveStyles.helpOptionContent]}>
-                  <Text allowFontScaling={false} style={styles.helpOptionTitle}>
-                    {t('orderTracking.help.callSupport')}
-                  </Text>
-                  <Text allowFontScaling={false} style={styles.helpOptionSubtitle}>{supportPhoneNumber}</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.helpChatButton, responsiveStyles.helpChatButton]}
-                activeOpacity={0.9}
-                onPress={handleRequestLiveChat}
-              >
-                <MessageCircle size={18} color="white" />
-                <Text allowFontScaling={false} style={[styles.helpChatButtonText, responsiveStyles.helpChatButtonText]}>
-                  {t('orderTracking.help.liveChatCta')}
-                </Text>
-              </TouchableOpacity>
+              
             </Animated.View>
           </View>
         </Modal>
