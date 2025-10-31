@@ -69,6 +69,10 @@ import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
 import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
+import {
+  getCachedDeliveryStatus,
+  setCachedDeliveryStatus,
+} from '~/storage/deliveryNetworkStatusCache';
 
 type QuickCategoryItem = {
   key: string;
@@ -124,6 +128,12 @@ const toSectionLabel = (key: SectionKey, translate: (value: string) => string) =
 
 const INITIAL_PAGE = 0;
 const PAGE_SIZE = 5;
+
+const DELIVERY_STATUS_SEVERITY: Record<DeliveryNetworkStatus, number> = {
+  AVAILABLE: 0,
+  BUSY: 1,
+  NO_DRIVERS_AVAILABLE: 2,
+};
 
 export default function HomePage() {
   const navigation = useNavigation();
@@ -230,31 +240,60 @@ export default function HomePage() {
 
   const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
   const [shouldShowSystemStatusOverlay, setShouldShowSystemStatusOverlay] = useState(false);
+  const [hasHydratedStatusCache, setHasHydratedStatusCache] = useState(false);
   const previousDeliveryStatusRef = useRef<DeliveryNetworkStatus | null>(null);
 
   useEffect(() => {
-    if (!deliveryStatusData || isDeliveryStatusError) {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const cachedStatus = await getCachedDeliveryStatus();
+
+        if (isMounted && cachedStatus) {
+          previousDeliveryStatusRef.current = cachedStatus;
+        }
+      } finally {
+        if (isMounted) {
+          setHasHydratedStatusCache(true);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!deliveryStatusData || isDeliveryStatusError || !hasHydratedStatusCache) {
       return;
     }
 
     const currentStatus = deliveryStatusData.status;
     const previousStatus = previousDeliveryStatusRef.current;
 
-    let nextShouldShow = false;
+    const currentSeverity = DELIVERY_STATUS_SEVERITY[currentStatus] ?? 0;
+    const previousSeverity = previousStatus
+      ? DELIVERY_STATUS_SEVERITY[previousStatus] ?? 0
+      : 0;
+
+    let nextShouldShow = shouldShowSystemStatusOverlay;
     let shouldResetDismissed = false;
 
     if (currentStatus === 'AVAILABLE') {
       nextShouldShow = false;
-    } else if (currentStatus === 'NO_DRIVERS_AVAILABLE') {
-      if (previousStatus !== 'NO_DRIVERS_AVAILABLE') {
+      shouldResetDismissed = true;
+    } else if (!previousStatus) {
+      if (currentStatus !== 'AVAILABLE') {
         nextShouldShow = true;
         shouldResetDismissed = true;
       }
-    } else {
+    } else if (currentSeverity > previousSeverity) {
       nextShouldShow = true;
-      if (previousStatus !== currentStatus) {
-        shouldResetDismissed = true;
-      }
+      shouldResetDismissed = true;
+    } else if (currentSeverity < previousSeverity) {
+      nextShouldShow = false;
     }
 
     if (shouldResetDismissed) {
@@ -263,7 +302,13 @@ export default function HomePage() {
 
     setShouldShowSystemStatusOverlay(nextShouldShow);
     previousDeliveryStatusRef.current = currentStatus;
-  }, [deliveryStatusData, isDeliveryStatusError]);
+    setCachedDeliveryStatus(currentStatus).catch(() => undefined);
+  }, [
+    deliveryStatusData,
+    hasHydratedStatusCache,
+    isDeliveryStatusError,
+    shouldShowSystemStatusOverlay,
+  ]);
 
   useEffect(() => {
     if (!shouldShowSystemStatusOverlay) {

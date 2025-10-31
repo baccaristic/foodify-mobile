@@ -3,25 +3,26 @@ import { Modal, View, Text, TouchableOpacity, Image } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { X } from 'lucide-react-native';
 import type { DeliveryNetworkStatus } from '~/interfaces/DeliveryStatus';
+import { useTranslation } from '~/localization';
 
 interface SystemStatusOverlayProps {
   visible: boolean;
   status: DeliveryNetworkStatus;
   message?: string | null;
   onRequestClose?: () => void;
+  primaryActionLabel?: string;
+  onPrimaryAction?: () => void;
 }
 
-const STATUS_TITLES: Record<DeliveryNetworkStatus, string> = {
-  AVAILABLE: 'Deliveries are running smoothly',
-  BUSY: 'Riders are busy right now',
-  NO_DRIVERS_AVAILABLE: 'No drivers available',
+const STATUS_TITLE_KEYS: Record<DeliveryNetworkStatus, string> = {
+  AVAILABLE: 'common.systemStatusOverlay.titles.available',
+  BUSY: 'common.systemStatusOverlay.titles.busy',
+  NO_DRIVERS_AVAILABLE: 'common.systemStatusOverlay.titles.unavailable',
 };
 
-const STATUS_MESSAGES: Partial<Record<DeliveryNetworkStatus, string>> = {
-  BUSY:
-    'You can still place your order, but delivery times may be longer than usual. We appreciate your patience.',
-  NO_DRIVERS_AVAILABLE:
-    "We're temporarily unable to accept new delivery orders. Please check back again in a little while.",
+const STATUS_MESSAGE_KEYS: Partial<Record<DeliveryNetworkStatus, string>> = {
+  BUSY: 'common.systemStatusOverlay.messages.busy',
+  NO_DRIVERS_AVAILABLE: 'common.systemStatusOverlay.messages.unavailable',
 };
 
 const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
@@ -29,14 +30,24 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
   status,
   message,
   onRequestClose,
+  primaryActionLabel,
+  onPrimaryAction,
 }) => {
+  const { t } = useTranslation();
+
   const subtitle = useMemo(() => {
     if (message && message.trim().length > 0) {
       return message;
     }
 
-    return STATUS_MESSAGES[status] ?? '';
-  }, [message, status]);
+    const fallbackKey = STATUS_MESSAGE_KEYS[status];
+
+    return fallbackKey ? t(fallbackKey) : '';
+  }, [message, status, t]);
+
+  const title = useMemo(() => {
+    return t(STATUS_TITLE_KEYS[status]);
+  }, [status, t]);
 
   const { primaryMessage, emphasisMessage } = useMemo(() => {
     if (!subtitle) {
@@ -86,7 +97,7 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
           </View>
           <View style={styles.content}>
             <Text allowFontScaling={false} style={styles.title}>
-              {STATUS_TITLES[status]}
+              {title}
             </Text>
             {primaryMessage ? (
               <Text allowFontScaling={false} style={styles.subtitle}>
@@ -106,6 +117,18 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
               accessibilityIgnoresInvertColors
               accessibilityLabel="Illustration of delivery riders"
             />
+            {primaryActionLabel && onPrimaryAction ? (
+              <TouchableOpacity
+                onPress={onPrimaryAction}
+                style={styles.primaryActionButton}
+                accessibilityRole="button"
+                accessibilityLabel={primaryActionLabel}
+              >
+                <Text allowFontScaling={false} style={styles.primaryActionLabel}>
+                  {primaryActionLabel}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
       </View>
@@ -173,6 +196,19 @@ const styles = ScaledSheet.create({
     marginTop: vs(12),
     width: '100%',
     height: vs(160),
+  },
+  primaryActionButton: {
+    marginTop: vs(8),
+    paddingVertical: vs(12),
+    paddingHorizontal: s(32),
+    borderRadius: s(20),
+    backgroundColor: '#CA251B',
+  },
+  primaryActionLabel: {
+    fontSize: s(14),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });
 

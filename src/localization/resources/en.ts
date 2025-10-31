@@ -19,6 +19,19 @@ const en: TranslationDictionary = {
     loading: 'Loading…',
     error: 'Something went wrong',
     currency: '{{amount}} DT',
+    systemStatusOverlay: {
+      titles: {
+        available: 'Deliveries are running smoothly',
+        busy: 'Riders are busy right now',
+        unavailable: 'No drivers available',
+      },
+      messages: {
+        busy:
+          'You can still place your order, but delivery times may be longer than usual. We appreciate your patience.',
+        unavailable:
+          "We're temporarily unable to accept new delivery orders. Please check back again in a little while.",
+      },
+    },
   },
   header: {
     chooseAddress: 'Choose delivery address',

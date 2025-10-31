@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Trash2, Minus, Plus } from 'lucide-react-native';
-import { Alert, View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import MainLayout from '~/layouts/MainLayout';
 import { Image } from 'expo-image';
@@ -15,6 +15,8 @@ import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
 import { getDeliveryNetworkStatus } from '~/api/delivery';
 import type { CartItem } from '~/context/CartContext';
+import SystemStatusOverlay from '~/components/SystemStatusOverlay';
+import type { DeliveryNetworkStatus } from '~/interfaces/DeliveryStatus';
 
 const primaryColor = '#CA251B';
 const FALLBACK_IMAGE = require('../../assets/baguette.png');
@@ -113,6 +115,11 @@ export default function Cart() {
   const { items, restaurant, subtotal, itemCount, updateItemQuantity, removeItem, clearCart } = useCart();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const [checkoutStatusOverlay, setCheckoutStatusOverlay] = useState<{
+    status: DeliveryNetworkStatus;
+    message?: string | null;
+    canContinue: boolean;
+  } | null>(null);
 
   const hasItems = items.length > 0;
   const restaurantName = restaurant?.name ?? t('cart.defaultRestaurantName');
@@ -155,6 +162,15 @@ export default function Cart() {
     }
     navigation.navigate('Home');
   };
+
+  const closeCheckoutOverlay = useCallback(() => {
+    setCheckoutStatusOverlay(null);
+  }, []);
+
+  const continueToCheckout = useCallback(() => {
+    setCheckoutStatusOverlay(null);
+    navigation.navigate('CheckoutOrder');
+  }, [navigation]);
 
   const cartContent = (
     <View className="px-4">
@@ -246,25 +262,20 @@ export default function Cart() {
       const statusResponse = await getDeliveryNetworkStatus();
 
       if (statusResponse.status === 'NO_DRIVERS_AVAILABLE') {
-        Alert.alert(
-          t('cart.systemStatus.unavailableTitle'),
-          t('cart.systemStatus.unavailableMessage')
-        );
+        setCheckoutStatusOverlay({
+          status: statusResponse.status,
+          message: statusResponse.message ?? t('cart.systemStatus.unavailableMessage'),
+          canContinue: false,
+        });
         return;
       }
 
       if (statusResponse.status === 'BUSY') {
-        Alert.alert(
-          t('cart.systemStatus.busyTitle'),
-          t('cart.systemStatus.busyMessage'),
-          [
-            { text: t('common.cancel'), style: 'cancel' },
-            {
-              text: t('cart.systemStatus.continueCta'),
-              onPress: () => navigation.navigate('CheckoutOrder'),
-            },
-          ]
-        );
+        setCheckoutStatusOverlay({
+          status: statusResponse.status,
+          message: statusResponse.message ?? t('cart.systemStatus.busyMessage'),
+          canContinue: true,
+        });
         return;
       }
     } catch {
@@ -288,14 +299,26 @@ export default function Cart() {
         mainContent={cartContent}
         showOnGoingOrder={false}
       />
-      {hasItems && (<FixedOrderBar
-        total={totalOrderPrice}
-        itemCount={totalItems}
-        onSeeCart={handleProceedToCheckout}
-        buttonLabel={t('common.checkout')}
-        style={{ bottom:moderateScale(72)  + insets.bottom }}
-        disabled={!hasItems}
-      />)}
+      {hasItems && (
+        <FixedOrderBar
+          total={totalOrderPrice}
+          itemCount={totalItems}
+          onSeeCart={handleProceedToCheckout}
+          buttonLabel={t('common.checkout')}
+          style={{ bottom: moderateScale(72) + insets.bottom }}
+          disabled={!hasItems}
+        />
+      )}
+      <SystemStatusOverlay
+        visible={Boolean(checkoutStatusOverlay)}
+        status={checkoutStatusOverlay?.status ?? 'AVAILABLE'}
+        message={checkoutStatusOverlay?.message}
+        onRequestClose={closeCheckoutOverlay}
+        primaryActionLabel={
+          checkoutStatusOverlay?.canContinue ? t('cart.systemStatus.continueCta') : undefined
+        }
+        onPrimaryAction={checkoutStatusOverlay?.canContinue ? continueToCheckout : undefined}
+      />
     </View>
   );
 }

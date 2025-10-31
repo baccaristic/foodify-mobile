@@ -19,6 +19,19 @@ const fr: TranslationDictionary = {
     loading: 'Chargement…',
     error: 'Une erreur est survenue',
     currency: '{{amount}} DT',
+    systemStatusOverlay: {
+      titles: {
+        available: 'Les livraisons se déroulent bien',
+        busy: 'Nos livreurs sont très sollicités',
+        unavailable: 'Aucun livreur disponible',
+      },
+      messages: {
+        busy:
+          'Vous pouvez toujours passer votre commande, mais la livraison pourrait être plus longue que d’habitude. Merci pour votre patience.',
+        unavailable:
+          'Nous ne pouvons pas accepter de nouvelles commandes pour le moment car aucun livreur n’est disponible. Merci de réessayer un peu plus tard.',
+      },
+    },
   },
   header: {
     chooseAddress: 'Choisir une adresse de livraison',
