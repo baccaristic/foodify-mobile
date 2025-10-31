@@ -1,16 +1,6 @@
 import { ArrowLeft, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  StyleProp,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-  ImageStyle,
-} from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
 import Animated, {
   FadeIn,
@@ -21,8 +11,6 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Image } from 'expo-image';
-import type { ImageProps } from 'expo-image';
 import { NavigationProp, ParamListBase, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +19,7 @@ import MainLayout from '~/layouts/MainLayout';
 import FixedOrderBar from '~/components/FixedOrderBar';
 import MenuDetail from './MenuDetail';
 import RestaurantDetailsSkeleton from '~/components/skeletons/RestaurantDetailsSkeleton';
-import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
+import RemoteImageWithSkeleton from '~/components/RemoteImageWithSkeleton';
 import { getRestaurantDetails } from '~/api/restaurants';
 import { favoriteMenuItem, favoriteRestaurant, unfavoriteMenuItem, unfavoriteRestaurant } from '~/api/favorites';
 import type {
@@ -40,7 +28,6 @@ import type {
   RestaurantMenuItemDetails,
   RestaurantMenuItemSummary,
 } from '~/interfaces/Restaurant';
-import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
 import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 import { moderateScale, vs } from 'react-native-size-matters';
@@ -104,50 +91,6 @@ type RestaurantDetailsRouteProp = RouteProp<RestaurantDetailsRouteParams, 'Resta
 type MenuCardItem = RestaurantMenuItemDetails | RestaurantMenuItemSummary;
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
-
-interface RemoteImageWithSkeletonProps {
-  imagePath?: string | null;
-  containerStyle?: StyleProp<ViewStyle>;
-  imageStyle?: StyleProp<ImageStyle>;
-  skeletonStyle?: StyleProp<ViewStyle>;
-  contentFit?: ImageProps['contentFit'];
-}
-
-const RemoteImageWithSkeleton: React.FC<RemoteImageWithSkeletonProps> = ({
-  imagePath,
-  containerStyle,
-  imageStyle,
-  skeletonStyle,
-  contentFit = 'cover',
-}) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    setIsLoaded(false);
-    setHasError(false);
-  }, [imagePath]);
-
-  const hasImage = Boolean(imagePath);
-  const shouldShowSkeleton = !hasImage || !isLoaded || hasError;
-
-  return (
-    <View style={[styles.imageContainerBase, containerStyle]}>
-      {shouldShowSkeleton ? (
-        <SkeletonPulse style={[StyleSheet.absoluteFillObject, skeletonStyle]} />
-      ) : null}
-      {hasImage && !hasError ? (
-        <Image
-          source={{ uri: `${BASE_API_URL}/auth/image/${imagePath}` }}
-          style={[StyleSheet.absoluteFillObject, imageStyle]}
-          contentFit={contentFit}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
-        />
-      ) : null}
-    </View>
-  );
-};
 
 const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({ item, onOpenModal }) => {
   const promotionActive = hasActivePromotion(item);
@@ -1193,10 +1136,6 @@ export default function RestaurantDetails() {
 }
 
 const styles = StyleSheet.create({
-  imageContainerBase: {
-    position: 'relative',
-    overflow: 'hidden',
-  },
   heroIconContainer: {
     width: moderateScale(64),
     height: moderateScale(64),
