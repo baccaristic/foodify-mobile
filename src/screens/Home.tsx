@@ -57,10 +57,7 @@ import {
 } from "~/api/restaurants";
 import { getDeliveryNetworkStatus } from '~/api/delivery';
 import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
-import type {
-  DeliveryNetworkStatus,
-  DeliveryNetworkStatusResponse,
-} from '~/interfaces/DeliveryStatus';
+import type { DeliveryNetworkStatusResponse } from '~/interfaces/DeliveryStatus';
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
@@ -69,12 +66,6 @@ import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
 import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
-import {
-  getAcknowledgedDeliveryStatus,
-  getCachedDeliveryStatus,
-  setAcknowledgedDeliveryStatus,
-  setCachedDeliveryStatus,
-} from '~/storage/deliveryNetworkStatusCache';
 
 type QuickCategoryItem = {
   key: string;
@@ -130,12 +121,6 @@ const toSectionLabel = (key: SectionKey, translate: (value: string) => string) =
 
 const INITIAL_PAGE = 0;
 const PAGE_SIZE = 5;
-
-const DELIVERY_STATUS_SEVERITY: Record<DeliveryNetworkStatus, number> = {
-  AVAILABLE: 0,
-  BUSY: 1,
-  NO_DRIVERS_AVAILABLE: 2,
-};
 
 export default function HomePage() {
   const navigation = useNavigation();
@@ -241,89 +226,19 @@ export default function HomePage() {
   const deliveryStatusMessage = deliveryStatusData?.message ?? null;
 
   const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
-  const [shouldShowSystemStatusOverlay, setShouldShowSystemStatusOverlay] = useState(false);
-  const [hasHydratedStatusCache, setHasHydratedStatusCache] = useState(false);
-  const acknowledgedDeliveryStatusRef = useRef<DeliveryNetworkStatus | null>(null);
+  const showSystemStatusOverlay = Boolean(
+    deliveryStatusData && deliveryStatusData.status !== 'AVAILABLE'
+  );
 
   useEffect(() => {
-    let isMounted = true;
-
-    (async () => {
-      try {
-        const [cachedStatus, acknowledgedStatus] = await Promise.all([
-          getCachedDeliveryStatus(),
-          getAcknowledgedDeliveryStatus(),
-        ]);
-
-        if (isMounted) {
-          if (acknowledgedStatus) {
-            acknowledgedDeliveryStatusRef.current = acknowledgedStatus;
-          } else if (cachedStatus) {
-            acknowledgedDeliveryStatusRef.current = cachedStatus;
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setHasHydratedStatusCache(true);
-        }
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!deliveryStatusData || isDeliveryStatusError || !hasHydratedStatusCache) {
-      return;
-    }
-
-    const currentStatus = deliveryStatusData.status;
-    const currentSeverity = DELIVERY_STATUS_SEVERITY[currentStatus] ?? 0;
-    const acknowledgedStatus = acknowledgedDeliveryStatusRef.current;
-
-    let acknowledgedSeverity = acknowledgedStatus
-      ? DELIVERY_STATUS_SEVERITY[acknowledgedStatus] ?? 0
-      : -1;
-
-    if (acknowledgedStatus && currentSeverity < acknowledgedSeverity) {
-      acknowledgedDeliveryStatusRef.current = currentStatus;
-      acknowledgedSeverity = currentSeverity;
-      setAcknowledgedDeliveryStatus(currentStatus).catch(() => undefined);
-    }
-
-    const shouldShowOverlay =
-      currentStatus !== 'AVAILABLE' && currentSeverity > acknowledgedSeverity;
-
-    if (currentStatus === 'AVAILABLE' && acknowledgedStatus !== 'AVAILABLE') {
-      acknowledgedDeliveryStatusRef.current = 'AVAILABLE';
-      setAcknowledgedDeliveryStatus('AVAILABLE').catch(() => undefined);
-    }
-
-    if (shouldShowOverlay) {
+    if (!showSystemStatusOverlay) {
       setSystemStatusDismissed(false);
     }
-
-    setShouldShowSystemStatusOverlay(shouldShowOverlay);
-    setCachedDeliveryStatus(currentStatus).catch(() => undefined);
-  }, [
-    deliveryStatusData,
-    hasHydratedStatusCache,
-    isDeliveryStatusError,
-  ]);
-
-  useEffect(() => {
-    if (!shouldShowSystemStatusOverlay) {
-      setSystemStatusDismissed(false);
-    }
-  }, [shouldShowSystemStatusOverlay]);
+  }, [showSystemStatusOverlay]);
 
   const handleDismissSystemStatusOverlay = useCallback(() => {
-    acknowledgedDeliveryStatusRef.current = deliveryNetworkStatus;
-    setAcknowledgedDeliveryStatus(deliveryNetworkStatus).catch(() => undefined);
     setSystemStatusDismissed(true);
-  }, [deliveryNetworkStatus]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -900,7 +815,7 @@ export default function HomePage() {
       />
       <SystemStatusOverlay
         visible={
-          shouldShowSystemStatusOverlay &&
+          showSystemStatusOverlay &&
           !isDeliveryStatusError &&
           !isSystemStatusDismissed
         }

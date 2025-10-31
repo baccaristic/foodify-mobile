@@ -1,30 +1,27 @@
 import React, { useMemo } from 'react';
-import { Modal, View, Text, TouchableOpacity, Image } from 'react-native';
+import { Modal, View, Text, TouchableOpacity } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { X } from 'lucide-react-native';
 import type { DeliveryNetworkStatus } from '~/interfaces/DeliveryStatus';
-import { useTranslation } from '~/localization';
 
 interface SystemStatusOverlayProps {
   visible: boolean;
   status: DeliveryNetworkStatus;
   message?: string | null;
   onRequestClose?: () => void;
-  primaryActionLabel?: string;
-  onPrimaryAction?: () => void;
-  titleOverride?: string;
-  subtitleOverride?: string;
 }
 
-const STATUS_TITLE_KEYS: Record<DeliveryNetworkStatus, string> = {
-  AVAILABLE: 'common.systemStatusOverlay.titles.available',
-  BUSY: 'common.systemStatusOverlay.titles.busy',
-  NO_DRIVERS_AVAILABLE: 'common.systemStatusOverlay.titles.unavailable',
+const STATUS_TITLES: Record<DeliveryNetworkStatus, string> = {
+  AVAILABLE: 'Deliveries are running smoothly',
+  BUSY: 'Riders are busy right now',
+  NO_DRIVERS_AVAILABLE: 'No drivers available',
 };
 
-const STATUS_MESSAGE_KEYS: Partial<Record<DeliveryNetworkStatus, string>> = {
-  BUSY: 'common.systemStatusOverlay.messages.busy',
-  NO_DRIVERS_AVAILABLE: 'common.systemStatusOverlay.messages.unavailable',
+const STATUS_MESSAGES: Partial<Record<DeliveryNetworkStatus, string>> = {
+  BUSY:
+    'You can still place your order, but delivery times may be longer than usual. We appreciate your patience.',
+  NO_DRIVERS_AVAILABLE:
+    "We're temporarily unable to accept new delivery orders. Please check back again in a little while.",
 };
 
 const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
@@ -32,53 +29,14 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
   status,
   message,
   onRequestClose,
-  primaryActionLabel,
-  onPrimaryAction,
-  titleOverride,
-  subtitleOverride,
 }) => {
-  const { t } = useTranslation();
-
   const subtitle = useMemo(() => {
-    if (subtitleOverride) {
-      return subtitleOverride;
-    }
-
     if (message && message.trim().length > 0) {
       return message;
     }
 
-    const fallbackKey = STATUS_MESSAGE_KEYS[status];
-
-    return fallbackKey ? t(fallbackKey) : '';
-  }, [message, status, subtitleOverride, t]);
-
-  const title = useMemo(() => {
-    if (titleOverride) {
-      return titleOverride;
-    }
-
-    return t(STATUS_TITLE_KEYS[status]);
-  }, [status, t, titleOverride]);
-
-  const { primaryMessage, emphasisMessage } = useMemo(() => {
-    if (!subtitle) {
-      return { primaryMessage: '', emphasisMessage: '' };
-    }
-
-    const trimmed = subtitle.trim();
-    const emphasisSentence = 'We appreciate your patience.';
-
-    if (trimmed.includes(emphasisSentence)) {
-      const primary = trimmed.replace(emphasisSentence, '').trim();
-      return {
-        primaryMessage: primary,
-        emphasisMessage: emphasisSentence,
-      };
-    }
-
-    return { primaryMessage: trimmed, emphasisMessage: '' };
-  }, [subtitle]);
+    return STATUS_MESSAGES[status] ?? '';
+  }, [message, status]);
 
   return (
     <Modal
@@ -107,41 +65,14 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
               <X size={s(18)} color="#0F172A" />
             </TouchableOpacity>
           </View>
-          <View style={styles.content}>
-            <Text allowFontScaling={false} style={styles.title}>
-              {title}
+          <Text allowFontScaling={false} style={styles.title}>
+            {STATUS_TITLES[status]}
+          </Text>
+          {subtitle ? (
+            <Text allowFontScaling={false} style={styles.subtitle}>
+              {subtitle}
             </Text>
-            {primaryMessage ? (
-              <Text allowFontScaling={false} style={styles.subtitle}>
-                {primaryMessage}
-              </Text>
-            ) : null}
-            {emphasisMessage ? (
-              <Text allowFontScaling={false} style={styles.emphasis}>
-                {emphasisMessage}
-              </Text>
-            ) : null}
-            <Image
-              source={require('../../assets/system-info.png')}
-              style={styles.illustration}
-              resizeMode="contain"
-              accessible
-              accessibilityIgnoresInvertColors
-              accessibilityLabel="Illustration of delivery riders"
-            />
-            {primaryActionLabel && onPrimaryAction ? (
-              <TouchableOpacity
-                onPress={onPrimaryAction}
-                style={styles.primaryActionButton}
-                accessibilityRole="button"
-                accessibilityLabel={primaryActionLabel}
-              >
-                <Text allowFontScaling={false} style={styles.primaryActionLabel}>
-                  {primaryActionLabel}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -165,19 +96,21 @@ const styles = ScaledSheet.create({
     borderTopRightRadius: s(24),
     paddingVertical: vs(24),
     paddingHorizontal: s(24),
+    alignItems: 'flex-start',
     justifyContent: 'flex-start',
+    gap: vs(12),
   },
   title: {
     fontSize: s(20),
     fontWeight: '700',
-    color: '#D92D20',
-    textAlign: 'center',
+    color: '#0F172A',
+    textAlign: 'left',
   },
   subtitle: {
     fontSize: s(14),
     lineHeight: vs(20),
-    color: '#0F172A',
-    textAlign: 'center',
+    color: '#475569',
+    textAlign: 'left',
   },
   closeButtonWrapper: {
     width: '100%',
@@ -190,37 +123,6 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F1F5F9',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: vs(12),
-  },
-  emphasis: {
-    fontSize: s(14),
-    lineHeight: vs(20),
-    color: '#0F172A',
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  illustration: {
-    marginTop: vs(12),
-    width: '100%',
-    height: vs(160),
-  },
-  primaryActionButton: {
-    marginTop: vs(8),
-    paddingVertical: vs(12),
-    paddingHorizontal: s(32),
-    borderRadius: s(20),
-    backgroundColor: '#CA251B',
-  },
-  primaryActionLabel: {
-    fontSize: s(14),
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
   },
 });
 
