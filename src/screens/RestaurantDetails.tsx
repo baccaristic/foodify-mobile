@@ -68,9 +68,6 @@ const createMenuCardEntrance = (index: number) =>
       opacity: 0,
       transform: [{ translateY: 40 }, { scale: 0.92 }],
     })
-    .withTargetValues({
-      transform: [{ translateY: 0 }, { scale: 1 }],
-    })
     .delay(Math.min(index, MAX_CARD_STAGGER) * 70);
 
 const createSectionHeaderEntrance = (index: number) =>
@@ -80,9 +77,6 @@ const createSectionHeaderEntrance = (index: number) =>
     .withInitialValues({
       opacity: 0,
       transform: [{ translateX: -24 }],
-    })
-    .withTargetValues({
-      transform: [{ translateX: 0 }],
     })
     .delay(index * 80);
 
@@ -845,8 +839,7 @@ export default function RestaurantDetails() {
                 .stiffness(160)
                 .damping(18)
                 .delay(80)
-                .withInitialValues({ opacity: 0, transform: [{ scale: 0.85 }] })
-                .withTargetValues({ transform: [{ scale: 1 }] })}
+                .withInitialValues({ opacity: 0, transform: [{ scale: 0.85 }] })}
             >
               <RemoteImageWithSkeleton
                 imagePath={restaurant.iconUrl ?? restaurant.imageUrl}
