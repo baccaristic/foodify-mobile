@@ -445,6 +445,7 @@ const en: TranslationDictionary = {
       pending: 'Restaurant has received your order.',
       accepted: 'Restaurant accepted your order and is finding a driver…',
       preparing: 'Restaurant is preparing your order.',
+      estimatedReadyAt: 'Estimated ready by {{time}}.',
       readyForPickup: 'Your order is ready, the driver is picking it up.',
       waitingTitle: 'Waiting for restaurant',
       driverEnRoute: 'Driver is getting ready — location coming soon.',

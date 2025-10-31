@@ -182,6 +182,7 @@ export interface OrderNotificationDto {
   paymentMethod?: string | null;
   payment?: PaymentSummaryResponse | null;
   date?: string | null;
+  estimatedReadyAt?: string | null;
   items: OrderItemDto[];
   savedAddress?: SavedAddressSummaryDto | null;
   client?: ClientSummaryDto | null;
@@ -211,6 +212,7 @@ export interface OrderDto {
   total: MonetaryAmount;
   status: OrderStatus;
   createdAt: string;
+  estimatedReadyAt?: string | null;
   items: OrderItemDto[];
   driverId?: number | null;
   driverName?: string | null;

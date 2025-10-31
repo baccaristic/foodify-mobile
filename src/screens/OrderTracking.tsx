@@ -194,6 +194,10 @@ const OrderTrackingScreen: React.FC = () => {
           lineHeight: isTablet ? 22 : 20,
           paddingHorizontal: isTablet ? 24 : 0,
         },
+        statusEta: {
+          fontSize: isTablet ? 15 : isCompactWidth ? 12 : 13,
+          lineHeight: isTablet ? 22 : 20,
+        },
         stepsCard: {
           ...cardOuterWidthStyles,
           paddingHorizontal: cardHorizontalPadding,
@@ -542,6 +546,47 @@ const OrderTrackingScreen: React.FC = () => {
     isReadyForPickupStatus,
     t,
   ]);
+
+  const estimatedReadyAtLabel = useMemo(() => {
+    const rawValue = order?.estimatedReadyAt;
+    if (!rawValue) {
+      return null;
+    }
+
+    let parsed: Date | null = null;
+    if (rawValue instanceof Date) {
+      parsed = rawValue;
+    } else if (typeof rawValue === 'string' || typeof rawValue === 'number') {
+      const candidate = new Date(rawValue);
+      if (!Number.isNaN(candidate.getTime())) {
+        parsed = candidate;
+      }
+    }
+
+    if (!parsed) {
+      return null;
+    }
+
+    const formatLabel = (timeString: string) =>
+      t('orderTracking.hero.estimatedReadyAt', {
+        values: { time: timeString },
+        defaultValue: `Estimated ready at ${timeString}`,
+      });
+
+    try {
+      const formatter = new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+      return formatLabel(formatter.format(parsed));
+    } catch {
+      const fallback = parsed.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      return formatLabel(fallback);
+    }
+  }, [order?.estimatedReadyAt, t]);
 
   const handleCloseSupport = useCallback(() => {
     Animated.timing(helpSheetAnimation, {
@@ -1140,6 +1185,14 @@ const OrderTrackingScreen: React.FC = () => {
               <Text allowFontScaling={false} style={[styles.statusMessage, responsiveStyles.statusMessage]}>
                 {heroAnimationConfig!.message}
               </Text>
+              {isPreparingStatus && estimatedReadyAtLabel ? (
+                <Text
+                  allowFontScaling={false}
+                  style={[styles.statusEtaText, responsiveStyles.statusEta]}
+                >
+                  {estimatedReadyAtLabel}
+                </Text>
+              ) : null}
             </View>
           ) : (
             <View style={[styles.statusPlaceholder, responsiveStyles.statusPlaceholder]}>
@@ -1808,6 +1861,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     color: textSecondary,
+  },
+  statusEtaText: {
+    marginTop: 8,
+    textAlign: 'center',
+    color: textSecondary,
+    fontWeight: '500',
+    fontSize: 13,
+    lineHeight: 20,
   },
   mapTopBar: {
     position: 'absolute',
