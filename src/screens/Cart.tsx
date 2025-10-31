@@ -119,6 +119,8 @@ export default function Cart() {
     status: DeliveryNetworkStatus;
     message?: string | null;
     canContinue: boolean;
+    title?: string;
+    subtitle?: string;
   } | null>(null);
 
   const hasItems = items.length > 0;
@@ -164,8 +166,14 @@ export default function Cart() {
   };
 
   const closeCheckoutOverlay = useCallback(() => {
-    setCheckoutStatusOverlay(null);
-  }, []);
+    setCheckoutStatusOverlay((current) => {
+      if (current?.canContinue) {
+        navigation.navigate('CheckoutOrder');
+      }
+
+      return null;
+    });
+  }, [navigation]);
 
   const continueToCheckout = useCallback(() => {
     setCheckoutStatusOverlay(null);
@@ -264,7 +272,10 @@ export default function Cart() {
       if (statusResponse.status === 'NO_DRIVERS_AVAILABLE') {
         setCheckoutStatusOverlay({
           status: statusResponse.status,
-          message: statusResponse.message ?? t('cart.systemStatus.unavailableMessage'),
+          message: statusResponse.message ?? undefined,
+          title: t('cart.systemStatus.unavailableTitle'),
+          subtitle:
+            statusResponse.message ?? t('cart.systemStatus.unavailableMessage'),
           canContinue: false,
         });
         return;
@@ -273,7 +284,10 @@ export default function Cart() {
       if (statusResponse.status === 'BUSY') {
         setCheckoutStatusOverlay({
           status: statusResponse.status,
-          message: statusResponse.message ?? t('cart.systemStatus.busyMessage'),
+          message: statusResponse.message ?? undefined,
+          title: t('cart.systemStatus.busyTitle'),
+          subtitle:
+            statusResponse.message ?? t('cart.systemStatus.busyMessage'),
           canContinue: true,
         });
         return;
@@ -313,6 +327,8 @@ export default function Cart() {
         visible={Boolean(checkoutStatusOverlay)}
         status={checkoutStatusOverlay?.status ?? 'AVAILABLE'}
         message={checkoutStatusOverlay?.message}
+        titleOverride={checkoutStatusOverlay?.title}
+        subtitleOverride={checkoutStatusOverlay?.subtitle}
         onRequestClose={closeCheckoutOverlay}
         primaryActionLabel={
           checkoutStatusOverlay?.canContinue ? t('cart.systemStatus.continueCta') : undefined

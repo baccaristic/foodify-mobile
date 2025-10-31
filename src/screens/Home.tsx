@@ -70,7 +70,9 @@ import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categ
 import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
 import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
 import {
+  getAcknowledgedDeliveryStatus,
   getCachedDeliveryStatus,
+  setAcknowledgedDeliveryStatus,
   setCachedDeliveryStatus,
 } from '~/storage/deliveryNetworkStatusCache';
 
@@ -241,17 +243,24 @@ export default function HomePage() {
   const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
   const [shouldShowSystemStatusOverlay, setShouldShowSystemStatusOverlay] = useState(false);
   const [hasHydratedStatusCache, setHasHydratedStatusCache] = useState(false);
-  const previousDeliveryStatusRef = useRef<DeliveryNetworkStatus | null>(null);
+  const acknowledgedDeliveryStatusRef = useRef<DeliveryNetworkStatus | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     (async () => {
       try {
-        const cachedStatus = await getCachedDeliveryStatus();
+        const [cachedStatus, acknowledgedStatus] = await Promise.all([
+          getCachedDeliveryStatus(),
+          getAcknowledgedDeliveryStatus(),
+        ]);
 
-        if (isMounted && cachedStatus) {
-          previousDeliveryStatusRef.current = cachedStatus;
+        if (isMounted) {
+          if (acknowledgedStatus) {
+            acknowledgedDeliveryStatusRef.current = acknowledgedStatus;
+          } else if (cachedStatus) {
+            acknowledgedDeliveryStatusRef.current = cachedStatus;
+          }
         }
       } finally {
         if (isMounted) {
@@ -271,43 +280,37 @@ export default function HomePage() {
     }
 
     const currentStatus = deliveryStatusData.status;
-    const previousStatus = previousDeliveryStatusRef.current;
-
     const currentSeverity = DELIVERY_STATUS_SEVERITY[currentStatus] ?? 0;
-    const previousSeverity = previousStatus
-      ? DELIVERY_STATUS_SEVERITY[previousStatus] ?? 0
-      : 0;
+    const acknowledgedStatus = acknowledgedDeliveryStatusRef.current;
 
-    let nextShouldShow = shouldShowSystemStatusOverlay;
-    let shouldResetDismissed = false;
+    let acknowledgedSeverity = acknowledgedStatus
+      ? DELIVERY_STATUS_SEVERITY[acknowledgedStatus] ?? 0
+      : -1;
 
-    if (currentStatus === 'AVAILABLE') {
-      nextShouldShow = false;
-      shouldResetDismissed = true;
-    } else if (!previousStatus) {
-      if (currentStatus !== 'AVAILABLE') {
-        nextShouldShow = true;
-        shouldResetDismissed = true;
-      }
-    } else if (currentSeverity > previousSeverity) {
-      nextShouldShow = true;
-      shouldResetDismissed = true;
-    } else if (currentSeverity < previousSeverity) {
-      nextShouldShow = false;
+    if (acknowledgedStatus && currentSeverity < acknowledgedSeverity) {
+      acknowledgedDeliveryStatusRef.current = currentStatus;
+      acknowledgedSeverity = currentSeverity;
+      setAcknowledgedDeliveryStatus(currentStatus).catch(() => undefined);
     }
 
-    if (shouldResetDismissed) {
+    const shouldShowOverlay =
+      currentStatus !== 'AVAILABLE' && currentSeverity > acknowledgedSeverity;
+
+    if (currentStatus === 'AVAILABLE' && acknowledgedStatus !== 'AVAILABLE') {
+      acknowledgedDeliveryStatusRef.current = 'AVAILABLE';
+      setAcknowledgedDeliveryStatus('AVAILABLE').catch(() => undefined);
+    }
+
+    if (shouldShowOverlay) {
       setSystemStatusDismissed(false);
     }
 
-    setShouldShowSystemStatusOverlay(nextShouldShow);
-    previousDeliveryStatusRef.current = currentStatus;
+    setShouldShowSystemStatusOverlay(shouldShowOverlay);
     setCachedDeliveryStatus(currentStatus).catch(() => undefined);
   }, [
     deliveryStatusData,
     hasHydratedStatusCache,
     isDeliveryStatusError,
-    shouldShowSystemStatusOverlay,
   ]);
 
   useEffect(() => {
@@ -315,6 +318,12 @@ export default function HomePage() {
       setSystemStatusDismissed(false);
     }
   }, [shouldShowSystemStatusOverlay]);
+
+  const handleDismissSystemStatusOverlay = useCallback(() => {
+    acknowledgedDeliveryStatusRef.current = deliveryNetworkStatus;
+    setAcknowledgedDeliveryStatus(deliveryNetworkStatus).catch(() => undefined);
+    setSystemStatusDismissed(true);
+  }, [deliveryNetworkStatus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -897,7 +906,7 @@ export default function HomePage() {
         }
         status={deliveryNetworkStatus}
         message={deliveryStatusMessage}
-        onRequestClose={() => setSystemStatusDismissed(true)}
+        onRequestClose={handleDismissSystemStatusOverlay}
       />
       <Modal
         visible={isPromotionsVisible}

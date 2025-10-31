@@ -12,6 +12,8 @@ interface SystemStatusOverlayProps {
   onRequestClose?: () => void;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
+  titleOverride?: string;
+  subtitleOverride?: string;
 }
 
 const STATUS_TITLE_KEYS: Record<DeliveryNetworkStatus, string> = {
@@ -32,10 +34,16 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
   onRequestClose,
   primaryActionLabel,
   onPrimaryAction,
+  titleOverride,
+  subtitleOverride,
 }) => {
   const { t } = useTranslation();
 
   const subtitle = useMemo(() => {
+    if (subtitleOverride) {
+      return subtitleOverride;
+    }
+
     if (message && message.trim().length > 0) {
       return message;
     }
@@ -43,11 +51,15 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
     const fallbackKey = STATUS_MESSAGE_KEYS[status];
 
     return fallbackKey ? t(fallbackKey) : '';
-  }, [message, status, t]);
+  }, [message, status, subtitleOverride, t]);
 
   const title = useMemo(() => {
+    if (titleOverride) {
+      return titleOverride;
+    }
+
     return t(STATUS_TITLE_KEYS[status]);
-  }, [status, t]);
+  }, [status, t, titleOverride]);
 
   const { primaryMessage, emphasisMessage } = useMemo(() => {
     if (!subtitle) {

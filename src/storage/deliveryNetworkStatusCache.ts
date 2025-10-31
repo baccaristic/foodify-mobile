@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import type { DeliveryNetworkStatus } from '~/interfaces/DeliveryStatus';
 
 const CACHE_KEY = 'delivery-network-status:last-known';
+const ACKNOWLEDGED_KEY = 'delivery-network-status:last-acknowledged';
 
 type CachedStatusPayload = {
   status: DeliveryNetworkStatus;
@@ -59,7 +60,36 @@ export const setCachedDeliveryStatus = async (
 
 export const clearCachedDeliveryStatus = async (): Promise<void> => {
   try {
-    await SecureStore.deleteItemAsync(CACHE_KEY);
+    await Promise.all([
+      SecureStore.deleteItemAsync(CACHE_KEY),
+      SecureStore.deleteItemAsync(ACKNOWLEDGED_KEY),
+    ]);
+  } catch {
+    // ignore storage errors
+  }
+};
+
+export const getAcknowledgedDeliveryStatus = async (): Promise<DeliveryNetworkStatus | null> => {
+  try {
+    const rawValue = await SecureStore.getItemAsync(ACKNOWLEDGED_KEY);
+    const payload = deserializePayload(rawValue);
+
+    return payload?.status ?? null;
+  } catch {
+    return null;
+  }
+};
+
+export const setAcknowledgedDeliveryStatus = async (
+  status: DeliveryNetworkStatus,
+): Promise<void> => {
+  try {
+    const payload: CachedStatusPayload = {
+      status,
+      updatedAt: Date.now(),
+    };
+
+    await SecureStore.setItemAsync(ACKNOWLEDGED_KEY, serializePayload(payload));
   } catch {
     // ignore storage errors
   }
