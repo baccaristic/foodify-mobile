@@ -4,6 +4,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  ListRenderItem,
   Platform,
   ScrollView,
   Text,
@@ -15,7 +16,13 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { NavigationProp, ParamListBase, useNavigation } from "@react-navigation/native";
 import { ScaledSheet, s, vs } from "react-native-size-matters";
 import { Search, SlidersHorizontal, Star } from "lucide-react-native";
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import MainLayout from "~/layouts/MainLayout";
 import Header from "~/components/Header";
 import FiltersOverlay from "~/components/FiltersOverlay";
@@ -41,6 +48,7 @@ import { BASE_API_URL } from "@env";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
 import useLocationOverlay from "~/hooks/useLocationOverlay";
 import { useTranslation } from "~/localization";
+import SearchSkeleton from "~/components/skeletons/SearchSkeleton";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
 const FALLBACK_MENU_IMAGE = require("../../assets/TEST.png");
@@ -212,33 +220,56 @@ const PromotedMenuItemCard = ({
 
 const RestaurantResult = ({
   restaurant,
+  index,
   onRestaurantPress,
   onPromotedItemPress,
 }: {
   restaurant: RestaurantSearchItem;
+  index: number;
   onRestaurantPress: (restaurantId: number) => void;
   onPromotedItemPress: (restaurant: RestaurantSearchItem, item: MenuItemPromotion) => void;
 }) => {
   const promotions = restaurant.promotedMenuItems ?? [];
   const { t } = useTranslation();
+  const baseDelay = Math.min(index, 6) * 70;
+  const enteringAnimation = FadeInDown.springify()
+    .damping(20)
+    .stiffness(240)
+    .mass(0.9)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 24 }, { scale: 0.94 }],
+    })
+    .delay(baseDelay);
 
   return (
-    <View style={styles.restaurantResult}>
+    <Animated.View entering={enteringAnimation} style={styles.restaurantResult}>
       <RestaurantCard data={restaurant} onPress={() => onRestaurantPress(restaurant.id)} />
       {promotions.length > 0 && (
         <View style={styles.promotedMenuList}>
           <Text style={styles.promotedMenuHeading}>{t("search.promoted.heading")}</Text>
-          {promotions.map((item) => (
-            <PromotedMenuItemCard
+          {promotions.map((item, promoIndex) => (
+            <Animated.View
               key={`promotion-${restaurant.id}-${item.id}`}
-              item={item}
-              restaurantName={restaurant.name}
-              onPress={() => onPromotedItemPress(restaurant, item)}
-            />
+              entering={FadeInDown.springify()
+                .damping(20)
+                .stiffness(260)
+                .withInitialValues({
+                  opacity: 0,
+                  transform: [{ translateY: 16 }, { scale: 0.95 }],
+                })
+                .delay(baseDelay + (promoIndex + 1) * 70)}
+            >
+              <PromotedMenuItemCard
+                item={item}
+                restaurantName={restaurant.name}
+                onPress={() => onPromotedItemPress(restaurant, item)}
+              />
+            </Animated.View>
           ))}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -590,10 +621,11 @@ export default function SearchScreen() {
     }
   }, [fetchNextPage, hasNextPage, hasSelectedAddress, isFetchingNextPage]);
 
-  const renderResultItem = useCallback(
-    ({ item }: { item: RestaurantSearchItem }) => (
+  const renderResultItem = useCallback<ListRenderItem<RestaurantSearchItem>>(
+    ({ item, index }) => (
       <RestaurantResult
         restaurant={item}
+        index={index ?? 0}
         onRestaurantPress={handleRestaurantPress}
         onPromotedItemPress={handlePromotedItemPress}
       />
@@ -656,12 +688,7 @@ export default function SearchScreen() {
     }
 
     if (isLoading) {
-      return (
-        <View style={styles.stateContainer}>
-          <ActivityIndicator size="large" color="#CA251B" />
-          <Text style={styles.stateText}>{t("search.states.loading")}</Text>
-        </View>
-      );
+      return <SearchSkeleton />;
     }
 
     if (isError) {
