@@ -1,9 +1,20 @@
 import { ArrowLeft, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  StyleProp,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+  ImageStyle,
+} from 'react-native';
 import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
 import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Image } from 'expo-image';
+import type { ImageProps } from 'expo-image';
 import { NavigationProp, ParamListBase, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +23,7 @@ import MainLayout from '~/layouts/MainLayout';
 import FixedOrderBar from '~/components/FixedOrderBar';
 import MenuDetail from './MenuDetail';
 import RestaurantDetailsSkeleton from '~/components/skeletons/RestaurantDetailsSkeleton';
+import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
 import { getRestaurantDetails } from '~/api/restaurants';
 import { favoriteMenuItem, favoriteRestaurant, unfavoriteMenuItem, unfavoriteRestaurant } from '~/api/favorites';
 import type {
@@ -48,15 +60,50 @@ type RestaurantDetailsRouteProp = RouteProp<RestaurantDetailsRouteParams, 'Resta
 
 type MenuCardItem = RestaurantMenuItemDetails | RestaurantMenuItemSummary;
 
-const FALLBACK_IMAGE = require('../../assets/baguette.png');
-
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
-const resolveImageSource = (imagePath?: string | null) => {
-  if (imagePath) {
-    return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
-  }
-  return FALLBACK_IMAGE;
+interface RemoteImageWithSkeletonProps {
+  imagePath?: string | null;
+  containerStyle?: StyleProp<ViewStyle>;
+  imageStyle?: StyleProp<ImageStyle>;
+  skeletonStyle?: StyleProp<ViewStyle>;
+  contentFit?: ImageProps['contentFit'];
+}
+
+const RemoteImageWithSkeleton: React.FC<RemoteImageWithSkeletonProps> = ({
+  imagePath,
+  containerStyle,
+  imageStyle,
+  skeletonStyle,
+  contentFit = 'cover',
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+  }, [imagePath]);
+
+  const hasImage = Boolean(imagePath);
+  const shouldShowSkeleton = !hasImage || !isLoaded || hasError;
+
+  return (
+    <View style={[styles.imageContainerBase, containerStyle]}>
+      {shouldShowSkeleton ? (
+        <SkeletonPulse style={[StyleSheet.absoluteFillObject, skeletonStyle]} />
+      ) : null}
+      {hasImage && !hasError ? (
+        <Image
+          source={{ uri: `${BASE_API_URL}/auth/image/${imagePath}` }}
+          style={[StyleSheet.absoluteFillObject, imageStyle]}
+          contentFit={contentFit}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setHasError(true)}
+        />
+      ) : null}
+    </View>
+  );
 };
 
 const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({ item, onOpenModal }) => {
@@ -64,9 +111,18 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
   const displayPrice = formatCurrency(getMenuItemBasePrice(item));
 
   return (
-    <TouchableOpacity style={{ width: width / 2 - 24 }} className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md" onPress={() => onOpenModal(item.id)}>
+    <TouchableOpacity
+      style={{ width: width / 2 - 24 }}
+      className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md"
+      onPress={() => onOpenModal(item.id)}
+    >
       <View className="relative">
-        <Image source={resolveImageSource(item.imageUrl)} style={{ width: '100%', height: 110 }} contentFit="cover" />
+        <RemoteImageWithSkeleton
+          imagePath={item.imageUrl}
+          containerStyle={styles.menuImageContainer}
+          imageStyle={styles.menuImage}
+          skeletonStyle={styles.menuImage}
+        />
         {promotionActive && item.promotionLabel ? (
           <View className="absolute left-2 top-2 rounded-full bg-[#CA251B]/90 px-2 py-1">
             <Text allowFontScaling={false} className="text-[10px] font-semibold uppercase text-white">
@@ -97,7 +153,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
           </TouchableOpacity>
 
         </View>
-        <View >
+        <View>
           {promotionActive ? (
             <Text allowFontScaling={false} className="text-xs font-semibold text-gray-400 line-through">
               {formatCurrency(item.price)}
@@ -704,10 +760,11 @@ export default function RestaurantDetails() {
         <View className="px-4">
           <View className="mt-4 flex-row items-center gap-4">
             <View className="rounded-3xl bg-white p-1.5 shadow-lg">
-              <Image
-                source={resolveImageSource(restaurant.iconUrl ?? restaurant.imageUrl)}
-                style={{ width: moderateScale(64), height: moderateScale(64), borderRadius: moderateScale(20) }}
-                contentFit="cover"
+              <RemoteImageWithSkeleton
+                imagePath={restaurant.iconUrl ?? restaurant.imageUrl}
+                containerStyle={styles.heroIconContainer}
+                imageStyle={styles.heroIconImage}
+                skeletonStyle={styles.heroIconImage}
               />
             </View>
 
@@ -789,7 +846,13 @@ export default function RestaurantDetails() {
 
   const customHeader = (
     <View style={{ width: '100%', height: '100%' }}>
-      <Image source={resolveImageSource(restaurant?.imageUrl)} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+      <RemoteImageWithSkeleton
+        imagePath={restaurant?.imageUrl}
+        containerStyle={StyleSheet.absoluteFillObject}
+        imageStyle={styles.heroImage}
+        skeletonStyle={styles.heroImage}
+        contentFit="cover"
+      />
 
       <View
         style={{
@@ -837,10 +900,11 @@ export default function RestaurantDetails() {
       </TouchableOpacity>
 
       <View className="flex-1 items-center justify-center px-2">
-        <Image
-          source={resolveImageSource(restaurant?.iconUrl ?? restaurant?.imageUrl)}
-          style={{ width: 32, height: 32, borderRadius: 16, marginBottom: 4 }}
-          contentFit="cover"
+        <RemoteImageWithSkeleton
+          imagePath={restaurant?.iconUrl ?? restaurant?.imageUrl}
+          containerStyle={[styles.collapsedIconContainer, { marginBottom: 4 }]}
+          imageStyle={styles.collapsedIconImage}
+          skeletonStyle={styles.collapsedIconImage}
         />
         <Text allowFontScaling={false} className="text-center text-lg font-bold text-gray-800">
           {restaurant?.name ?? t('restaurantDetails.fallbackName')}
@@ -987,3 +1051,37 @@ export default function RestaurantDetails() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  imageContainerBase: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroIconContainer: {
+    width: moderateScale(64),
+    height: moderateScale(64),
+    borderRadius: moderateScale(20),
+  },
+  heroIconImage: {
+    borderRadius: moderateScale(20),
+  },
+  collapsedIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  collapsedIconImage: {
+    borderRadius: 16,
+  },
+  menuImageContainer: {
+    width: '100%',
+    height: 110,
+    borderRadius: 16,
+  },
+  menuImage: {
+    borderRadius: 16,
+  },
+  heroImage: {
+    borderRadius: 0,
+  },
+});
