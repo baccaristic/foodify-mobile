@@ -112,7 +112,6 @@ export default function Cart() {
   const { items, restaurant, subtotal, itemCount, updateItemQuantity, removeItem, clearCart } = useCart();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-
   const hasItems = items.length > 0;
   const restaurantName = restaurant?.name ?? t('cart.defaultRestaurantName');
   const totalItems = itemCount;
@@ -254,14 +253,16 @@ export default function Cart() {
         mainContent={cartContent}
         showOnGoingOrder={false}
       />
-      {hasItems && (<FixedOrderBar
-        total={totalOrderPrice}
-        itemCount={totalItems}
-        onSeeCart={() => navigation.navigate('CheckoutOrder')}
-        buttonLabel={t('common.checkout')}
-        style={{ bottom:moderateScale(72)  + insets.bottom }}
-        disabled={!hasItems}
-      />)}
+      {hasItems && (
+        <FixedOrderBar
+          total={totalOrderPrice}
+          itemCount={totalItems}
+          onSeeCart={() => navigation.navigate('CheckoutOrder')}
+          buttonLabel={t('common.checkout')}
+          style={{ bottom: moderateScale(72) + insets.bottom }}
+          disabled={!hasItems}
+        />
+      )}
     </View>
   );
 }

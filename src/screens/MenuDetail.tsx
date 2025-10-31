@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { X, Heart, Check, Plus, Minus, ArrowLeft } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import MainLayout from '~/layouts/MainLayout';
@@ -17,6 +18,71 @@ import { useTranslation } from '~/localization';
 
 const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+
+const createHeaderEntrance = () =>
+  FadeIn.springify()
+    .damping(18)
+    .stiffness(240)
+    .mass(0.9)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ scale: 0.92 }],
+    });
+
+const createCollapsedHeaderEntrance = () =>
+  FadeInDown.springify()
+    .damping(16)
+    .stiffness(220)
+    .mass(0.85)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: -24 }],
+    });
+
+const createDetailSectionEntrance = (delayIndex: number) =>
+  FadeInUp.springify()
+    .damping(18)
+    .stiffness(220)
+    .mass(0.9)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 28 }],
+    })
+    .delay(Math.min(delayIndex, 6) * 70);
+
+const createOptionGroupEntrance = (groupIndex: number) =>
+  FadeInUp.springify()
+    .damping(20)
+    .stiffness(230)
+    .mass(0.95)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 32 }],
+    })
+    .delay(groupIndex * 90 + 120);
+
+const createOptionRowEntrance = (rowIndex: number) =>
+  FadeInUp.springify()
+    .damping(22)
+    .stiffness(250)
+    .mass(0.92)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 18 }],
+    })
+    .delay(Math.min(rowIndex, 5) * 55);
+
+const createOrderBarEntrance = () =>
+  FadeInUp.springify()
+    .damping(18)
+    .stiffness(240)
+    .mass(0.9)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 42 }],
+    })
+    .delay(160);
 
 interface MenuDetailProps {
   menuItem: RestaurantMenuItemDetails;
@@ -381,7 +447,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
   };
 
   const detailHeader = (
-    <View>
+    <Animated.View entering={createHeaderEntrance()}>
       <Image source={resolveImageSource(menuItem.imageUrl)} style={{ width, height: '100%' }} contentFit="contain" />
       <View className="absolute left-4 top-8">
         <TouchableOpacity className="rounded-full bg-white p-2" onPress={onClose}>
@@ -398,11 +464,14 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
           <Heart size={20} color={primaryColor} fill={isFavorite ? primaryColor : 'white'} />
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 
   const collapsedHeader = (
-    <View className="flex-1 flex-row items-center justify-center bg-white px-4">
+    <Animated.View
+      entering={createCollapsedHeaderEntrance()}
+      className="flex-1 flex-row items-center justify-center bg-white px-4"
+    >
       <TouchableOpacity className="p-2" onPress={onClose}>
         <ArrowLeft size={20} color={primaryColor} />
       </TouchableOpacity>
@@ -417,50 +486,60 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       >
         <Heart size={20} color={primaryColor} fill={isFavorite ? primaryColor : 'white'} />
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 
   const mainContent = (
-    <ScrollView className="-mt-4 rounded-t-2xl bg-white px-4 pt-4" contentContainerStyle={{ paddingBottom: 120 }}>
-      <Text allowFontScaling={false} className="mt-2 text-3xl font-bold text-[#17213A]">
-        {menuItem.name}
-      </Text>
-      <View className="mt-1 flex-row items-baseline gap-2">
-        <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
-          {formatPrice(basePrice)}
+    <AnimatedScrollView
+      entering={createDetailSectionEntrance(0)}
+      className="-mt-4 rounded-t-2xl bg-white px-4 pt-4"
+      contentContainerStyle={{ paddingBottom: 120 }}
+    >
+      <Animated.View entering={createDetailSectionEntrance(0)}>
+        <Text allowFontScaling={false} className="mt-2 text-3xl font-bold text-[#17213A]">
+          {menuItem.name}
         </Text>
-        {hasPromotion ? (
-          <Text allowFontScaling={false} className="text-base font-semibold text-gray-400 line-through">
-            {formatPrice(menuItem.price)}
+        <Animated.View entering={createDetailSectionEntrance(1)} className="mt-1 flex-row items-baseline gap-2">
+          <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
+            {formatPrice(basePrice)}
           </Text>
+          {hasPromotion ? (
+            <Text allowFontScaling={false} className="text-base font-semibold text-gray-400 line-through">
+              {formatPrice(menuItem.price)}
+            </Text>
+          ) : null}
+        </Animated.View>
+        {hasPromotion && menuItem.promotionLabel ? (
+          <Animated.View entering={createDetailSectionEntrance(2)} className="mt-2 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
+            <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
+              {menuItem.promotionLabel}
+            </Text>
+          </Animated.View>
         ) : null}
-      </View>
-      {hasPromotion && menuItem.promotionLabel ? (
-        <View className="mt-2 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
-          <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#CA251B]">
-            {menuItem.promotionLabel}
-          </Text>
-        </View>
-      ) : null}
-      {menuItem.description ? (
-        <Text allowFontScaling={false} className="mt-2 mb-4 text-sm text-[#17213A]">
-          {menuItem.description}
-        </Text>
-      ) : null}
+        {menuItem.description ? (
+          <Animated.View entering={createDetailSectionEntrance(3)}>
+            <Text allowFontScaling={false} className="mt-2 mb-4 text-sm text-[#17213A]">
+              {menuItem.description}
+            </Text>
+          </Animated.View>
+        ) : null}
+      </Animated.View>
 
       {menuItem.tags?.length ? (
-        <View className="mb-4 flex-row flex-wrap gap-2">
-          {menuItem.tags.map((tag) => (
-            <View key={tag} className="rounded-full bg-[#FDE7E5] px-3 py-1">
-              <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
-                {tag}
-              </Text>
-            </View>
+        <Animated.View entering={createDetailSectionEntrance(4)} className="mb-4 flex-row flex-wrap gap-2">
+          {menuItem.tags.map((tag, tagIndex) => (
+            <Animated.View key={tag} entering={createDetailSectionEntrance(tagIndex)}>
+              <View className="rounded-full bg-[#FDE7E5] px-3 py-1">
+                <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
+                  {tag}
+                </Text>
+              </View>
+            </Animated.View>
           ))}
-        </View>
+        </Animated.View>
       ) : null}
 
-      <View className="mt-4">
+      <Animated.View entering={createDetailSectionEntrance(5)} className="mt-4">
         <Text allowFontScaling={false} className="text-base font-semibold text-[#17213A]">
           {t('menuDetail.customizing', { values: {current: activeIndex + 1, total: drafts.length} })}
         </Text>
@@ -469,7 +548,8 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
             horizontal
             showsHorizontalScrollIndicator={false}
             className="mt-3"
-            contentContainerStyle={{ gap: 8 }}>
+            contentContainerStyle={{ gap: 8 }}
+          >
             {drafts.map((draft, index) => {
               const isActive = index === activeIndex;
               const isValid = isSelectionValid(menuItem.optionGroups, draft.selections);
@@ -480,46 +560,46 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
                   : 'border-red-300 bg-red-50';
               const textClass = isActive ? 'text-white' : isValid ? 'text-[#17213A]' : 'text-red-600';
               return (
-                <TouchableOpacity
-                  key={draft.id}
-                  onPress={() => setActiveIndex(index)}
-                  className={`min-w-[44px] items-center rounded-full border px-4 py-2 ${backgroundClass}`}>
-                  <Text
-                    allowFontScaling={false}
-                    className={`text-sm font-semibold ${textClass}`}>
-                    {t('menuDetail.draftLabel', { values: {index: index + 1 }})}
-                  </Text>
-                </TouchableOpacity>
+                <Animated.View key={draft.id} entering={createDetailSectionEntrance(index)}>
+                  <TouchableOpacity
+                    onPress={() => setActiveIndex(index)}
+                    className={`min-w-[44px] items-center rounded-full border px-4 py-2 ${backgroundClass}`}
+                  >
+                    <Text allowFontScaling={false} className={`text-sm font-semibold ${textClass}`}>
+                      {t('menuDetail.draftLabel', { values: {index: index + 1 }})}
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
               );
             })}
           </ScrollView>
         ) : null}
-      </View>
+      </Animated.View>
 
-      {menuItem.optionGroups.map((group) => (
-        <View key={group.id} className="mb-8">
+      {menuItem.optionGroups.map((group, groupIndex) => (
+        <Animated.View key={group.id} entering={createOptionGroupEntrance(groupIndex)} className="mb-8">
           <Text allowFontScaling={false} className="text-xl font-bold text-[#17213A]">
             {group.name}
           </Text>
-          <View className="mt-2 flex-row items-center gap-2">
+          <Animated.View entering={createDetailSectionEntrance(groupIndex)} className="mt-2 flex-row items-center gap-2">
             <Text allowFontScaling={false} className="text-sm text-gray-600">
               {describeGroupSelection(group)}
             </Text>
-            <View
-              className={`rounded-full px-2 py-1 ${group.required ? 'bg-[#CA251B]' : 'bg-gray-200'}`}>
+            <View className={`rounded-full px-2 py-1 ${group.required ? 'bg-[#CA251B]' : 'bg-gray-200'}`}>
               <Text
                 allowFontScaling={false}
-                className={`text-xs font-semibold uppercase ${group.required ? 'text-white' : 'text-gray-700'}`}>
+                className={`text-xs font-semibold uppercase ${group.required ? 'text-white' : 'text-gray-700'}`}
+              >
                 {group.required
                   ? t('menuDetail.optionGroups.required')
                   : t('menuDetail.optionGroups.optional')}
               </Text>
             </View>
-          </View>
+          </Animated.View>
 
           <View className="mt-4 rounded-2xl border border-gray-100 bg-white">
             {group.extras.map((extra, index) => (
-              <View key={extra.id} className="px-3">
+              <Animated.View key={extra.id} entering={createOptionRowEntrance(index)} className="px-3">
                 <OptionRow
                   group={group}
                   extra={extra}
@@ -527,18 +607,20 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
                   isLast={index === group.extras.length - 1}
                   onToggle={toggleExtra}
                 />
-              </View>
+              </Animated.View>
             ))}
           </View>
-        </View>
+        </Animated.View>
       ))}
-    </ScrollView>
+    </AnimatedScrollView>
   );
 
   const orderBar = (
-    <View
+    <Animated.View
+      entering={createOrderBarEntrance()}
       style={{ paddingBottom: insets.bottom }}
-      className="absolute bottom-0 left-0 right-0 w-full border-t border-gray-100 bg-white p-4 shadow-2xl">
+      className="absolute bottom-0 left-0 right-0 w-full border-t border-gray-100 bg-white p-4 shadow-2xl"
+    >
       <View className="mb-2 flex-row items-center justify-between">
         <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
           {t('menuDetail.itemTotal', { values: {index: activeIndex + 1} })}
@@ -555,11 +637,12 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         </View>
       </View>
 
-      <View className="mb-4 flex-row items-center justify-center">
+      <Animated.View entering={createDetailSectionEntrance(6)} className="mb-4 flex-row items-center justify-center">
         <TouchableOpacity
           onPress={handleDecreaseDrafts}
           className={`rounded-full border border-[#CA251B] p-2 ${drafts.length > 1 ? 'bg-[#CA251B]' : 'bg-transparent'}`}
-          disabled={drafts.length <= 1}>
+          disabled={drafts.length <= 1}
+        >
           <Minus size={24} color={drafts.length > 1 ? 'white' : primaryColor} />
         </TouchableOpacity>
         <Text allowFontScaling={false} className="mx-6 text-2xl font-bold">
@@ -568,25 +651,30 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <TouchableOpacity onPress={handleIncreaseDrafts} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-2">
           <Plus size={24} color="white" />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {!allValid ? (
-        <Text allowFontScaling={false} className="mb-3 text-center text-xs font-medium text-red-600">
-          {t('menuDetail.validationMessage')}
-        </Text>
+        <Animated.View entering={createDetailSectionEntrance(7)}>
+          <Text allowFontScaling={false} className="mb-3 text-center text-xs font-medium text-red-600">
+            {t('menuDetail.validationMessage')}
+          </Text>
+        </Animated.View>
       ) : null}
 
       <TouchableOpacity
         className={`w-full rounded-xl py-4 shadow-lg ${allValid ? 'bg-[#CA251B]' : 'bg-gray-300'}`}
         onPress={handleAdd}
-        disabled={!allValid}>
-        <View className="items-center">
+        disabled={!allValid}
+      >
+        <Animated.View entering={createDetailSectionEntrance(8)} className="items-center">
           <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
             {t('menuDetail.summary', {
-              values: {action: resolvedActionLabel,
-              count: drafts.length,
-              item: getItemLabel(drafts.length),
-              price: formatPrice(cartTotal),}
+              values: {
+                action: resolvedActionLabel,
+                count: drafts.length,
+                item: getItemLabel(drafts.length),
+                price: formatPrice(cartTotal),
+              },
             })}
           </Text>
           {hasPromotion ? (
@@ -594,9 +682,9 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
               {formatPrice(originalCartTotal)}
             </Text>
           ) : null}
-        </View>
+        </Animated.View>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 
   return (

@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Text,
   TouchableOpacity,
@@ -10,8 +9,8 @@ import {
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
-import { Image } from 'expo-image';
 import { Flame, Sparkles } from 'lucide-react-native';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 
 import MainLayout from '~/layouts/MainLayout';
 import { getClientFavorites } from '~/api/favorites';
@@ -19,12 +18,13 @@ import type {
   ClientFavoritesResponse,
   FavoriteMenuItem,
 } from '~/interfaces/Favorites';
-import { BASE_API_URL } from '@env';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
 import { useTranslation } from '~/localization';
+import FavoritesSkeleton from '~/components/skeletons/FavoritesSkeleton';
+import RemoteImageWithSkeleton from '~/components/RemoteImageWithSkeleton';
 
-const fallbackImage = require('../../../assets/baguette.png');
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 const accentColor = '#CA251B';
 const primaryText = '#17213A';
@@ -35,26 +35,40 @@ const restaurantItemGap = s(14);
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
-const resolveImageSource = (imagePath?: string | null) => {
-  if (imagePath) {
-    return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
-  }
-  return fallbackImage;
-};
-
 const FavoriteMenuItemCard = ({
   item,
   onPress,
+  index,
 }: {
   item: FavoriteMenuItem;
   onPress: () => void;
+  index: number;
 }) => {
   const hasPromotion = item.promotionActive && typeof item.promotionPrice === 'number';
   const { t } = useTranslation();
+  const entranceDelay = Math.min(index, 6) * 80;
+  const enteringAnimation = FadeInDown.springify()
+    .damping(18)
+    .stiffness(220)
+    .mass(0.9)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 24 }, { scale: 0.94 }],
+    })
+    .delay(entranceDelay);
 
   return (
-    <TouchableOpacity style={styles.menuItemCard} activeOpacity={0.88} onPress={onPress}>
-      <Image source={resolveImageSource(item.imageUrl)} style={styles.menuImage} contentFit="cover" />
+    <AnimatedTouchableOpacity
+      entering={enteringAnimation}
+      style={styles.menuItemCard}
+      activeOpacity={0.88}
+      onPress={onPress}
+    >
+      <RemoteImageWithSkeleton
+        imagePath={item.imageUrl}
+        containerStyle={styles.menuImageContainer}
+        skeletonStyle={styles.menuImageSkeleton}
+      />
       <View style={styles.menuContent}>
         <View style={styles.menuHeaderRow}>
           <Text allowFontScaling={false} style={styles.menuTitle} numberOfLines={2}>
@@ -102,7 +116,7 @@ const FavoriteMenuItemCard = ({
           ) : null}
         </View>
       </View>
-    </TouchableOpacity>
+    </AnimatedTouchableOpacity>
   );
 };
 
@@ -144,14 +158,7 @@ const FavoritesScreen = () => {
   let mainContent: React.ReactNode;
 
   if (isLoading) {
-    mainContent = (
-      <View style={styles.stateWrapper}>
-        <ActivityIndicator size="large" color={accentColor} />
-        <Text allowFontScaling={false} style={styles.stateTitle}>
-          {t('profile.favorites.states.loadingTitle')}
-        </Text>
-      </View>
-    );
+    mainContent = <FavoritesSkeleton restaurantCardWidth={restaurantCardWidth} />;
   } else if (isError) {
     mainContent = (
       <View style={styles.stateWrapper}>
@@ -195,15 +202,21 @@ const FavoritesScreen = () => {
   } else {
     mainContent = (
       <View style={styles.contentWrapper}>
-       <View style={styles.section}>
-         <View style={styles.sectionHeader}>
-           <Text allowFontScaling={false} style={styles.sectionTitle}>
+        <View style={styles.section}>
+          <Animated.View
+            entering={FadeInDown.springify()
+              .damping(18)
+              .stiffness(220)
+              .withInitialValues({ opacity: 0, transform: [{ translateY: 20 }] })}
+            style={styles.sectionHeader}
+          >
+            <Text allowFontScaling={false} style={styles.sectionTitle}>
               {t('profile.favorites.sections.restaurants.title')}
             </Text>
             <Text allowFontScaling={false} style={styles.sectionSubtitle}>
               {t('profile.favorites.sections.restaurants.subtitle')}
             </Text>
-          </View>
+          </Animated.View>
           <FlatList
             horizontal
             pagingEnabled={enableRestaurantPaging}
@@ -212,24 +225,38 @@ const FavoritesScreen = () => {
             snapToInterval={enableRestaurantPaging ? restaurantSnapInterval : undefined}
             data={favoriteRestaurants}
             keyExtractor={(restaurant) => `favorite-restaurant-${restaurant.id}`}
-            renderItem={({ item: restaurant }) => (
-              <RestaurantShowcaseCard
-                name={restaurant.name}
-                description={restaurant.description}
-                address={restaurant.address}
-                rating={restaurant.rating}
-                type={restaurant.type}
-                imageUrl={restaurant.imageUrl}
-                openingHours={restaurant.openingHours}
-                closingHours={restaurant.closingHours}
-                width={restaurantCardWidth}
-                onPress={() =>
-                  navigation.navigate('RestaurantDetails' as never, {
-                    restaurantId: restaurant.id,
-                  } as never)
-                }
-              />
-            )}
+            renderItem={({ item: restaurant, index }) => {
+              const entranceDelay = Math.min(index, 5) * 80;
+              const enteringAnimation = FadeInRight.springify()
+                .damping(18)
+                .stiffness(240)
+                .withInitialValues({
+                  opacity: 0,
+                  transform: [{ translateX: 32 }, { scale: 0.92 }],
+                })
+                .delay(entranceDelay);
+
+              return (
+                <Animated.View entering={enteringAnimation}>
+                  <RestaurantShowcaseCard
+                    name={restaurant.name}
+                    description={restaurant.description}
+                    address={restaurant.address}
+                    rating={restaurant.rating}
+                    type={restaurant.type}
+                    imageUrl={restaurant.imageUrl}
+                    openingHours={restaurant.openingHours}
+                    closingHours={restaurant.closingHours}
+                    width={restaurantCardWidth}
+                    onPress={() =>
+                      navigation.navigate('RestaurantDetails' as never, {
+                        restaurantId: restaurant.id,
+                      } as never)
+                    }
+                  />
+                </Animated.View>
+              );
+            }}
             showsHorizontalScrollIndicator={false}
             style={styles.restaurantCarousel}
             contentContainerStyle={styles.restaurantCarouselContent}
@@ -237,20 +264,28 @@ const FavoritesScreen = () => {
           />
         </View>
 
-       <View style={styles.section}>
-         <View style={styles.sectionHeader}>
-           <Text allowFontScaling={false} style={styles.sectionTitle}>
+        <View style={styles.section}>
+          <Animated.View
+            entering={FadeInDown.springify()
+              .damping(18)
+              .stiffness(220)
+              .withInitialValues({ opacity: 0, transform: [{ translateY: 20 }] })
+              .delay(60)}
+            style={styles.sectionHeader}
+          >
+            <Text allowFontScaling={false} style={styles.sectionTitle}>
               {t('profile.favorites.sections.menu.title')}
             </Text>
             <Text allowFontScaling={false} style={styles.sectionSubtitle}>
               {t('profile.favorites.sections.menu.subtitle')}
             </Text>
-          </View>
+          </Animated.View>
           <View style={styles.menuList}>
-            {favoriteMenuItems.map((item) => (
+            {favoriteMenuItems.map((item, index) => (
               <FavoriteMenuItemCard
                 key={`favorite-item-${item.id}`}
                 item={item}
+                index={index}
                 onPress={() =>
                   navigation.navigate('RestaurantDetails' as never, {
                     restaurantId: item.restaurantId,
@@ -326,9 +361,12 @@ const styles = ScaledSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  menuImage: {
+  menuImageContainer: {
     width: '110@s',
     height: '110@vs',
+  },
+  menuImageSkeleton: {
+    borderRadius: 0,
   },
   menuContent: {
     flex: 1,

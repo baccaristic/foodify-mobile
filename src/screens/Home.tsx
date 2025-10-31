@@ -6,7 +6,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
-  ImageBackground,
   FlatList,
   StyleSheet,
   Modal,
@@ -17,7 +16,6 @@ import {
   Search,
   Utensils,
   Bike,
-  MoveUp,
   Soup,
   Croissant,
   Sunrise,
@@ -44,7 +42,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import MainLayout from "~/layouts/MainLayout";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
 import Header from "~/components/Header";
@@ -66,6 +64,8 @@ import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
 import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
+import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
+import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
 
 type QuickCategoryItem = {
   key: string;
@@ -224,17 +224,21 @@ export default function HomePage() {
 
   const deliveryNetworkStatus = deliveryStatusData?.status ?? 'AVAILABLE';
   const deliveryStatusMessage = deliveryStatusData?.message ?? null;
+
+  const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
   const showSystemStatusOverlay = Boolean(
     deliveryStatusData && deliveryStatusData.status !== 'AVAILABLE'
   );
-
-  const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
 
   useEffect(() => {
     if (!showSystemStatusOverlay) {
       setSystemStatusDismissed(false);
     }
   }, [showSystemStatusOverlay]);
+
+  const handleDismissSystemStatusOverlay = useCallback(() => {
+    setSystemStatusDismissed(true);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -379,7 +383,7 @@ export default function HomePage() {
       }
     | { type: 'carouselSection'; key: string; title: string; restaurants: RestaurantDisplayDto[] }
     | { type: 'othersHeader'; key: string; title: string }
-    | { type: 'restaurant'; key: string; restaurant: RestaurantDisplayDto };
+    | { type: 'restaurant'; key: string; restaurant: RestaurantDisplayDto; position: number };
 
   const listData = useMemo(() => {
     const items: NearbyListItem[] = [];
@@ -423,6 +427,7 @@ export default function HomePage() {
           type: 'restaurant',
           key: `restaurant-${restaurant.id}-${index}`,
           restaurant,
+          position: index,
         });
       });
     }
@@ -474,37 +479,43 @@ export default function HomePage() {
   }, [favoritesQuery, hasValidCoordinates, recentOrdersQuery, restaurantsQuery, topQuery]);
 
   const renderRestaurantCard = useCallback(
-    (restaurant: RestaurantDisplayDto, options?: { width?: number | string }) => {
+    (
+      restaurant: RestaurantDisplayDto,
+      options?: { width?: number | string; index?: number }
+    ) => {
       const cardWidth = options?.width ?? screenWidth * 0.9;
+      const delay = Math.min(options?.index ?? 0, 6) * 70;
 
       return (
-        <RestaurantShowcaseCard
-          name={restaurant.name}
-          description={restaurant.description}
-          address={restaurant.address}
-          rating={restaurant.rating}
-          type={restaurant.type}
-          imageUrl={restaurant.imageUrl}
-          fallbackImageUrl={restaurant.iconUrl}
-          openingHours={restaurant.openingHours}
-          closingHours={restaurant.closingHours}
-          width={cardWidth}
-          onPress={() =>
-            navigation.navigate('RestaurantDetails' as never, {
-              restaurantId: restaurant.id,
-            } as never)
-          }
-        />
+        <Animated.View entering={FadeInUp.delay(delay).duration(450)}>
+          <RestaurantShowcaseCard
+            name={restaurant.name}
+            description={restaurant.description}
+            address={restaurant.address}
+            rating={restaurant.rating}
+            type={restaurant.type}
+            imageUrl={restaurant.imageUrl}
+            fallbackImageUrl={restaurant.iconUrl}
+            openingHours={restaurant.openingHours}
+            closingHours={restaurant.closingHours}
+            width={cardWidth}
+            onPress={() =>
+              navigation.navigate('RestaurantDetails' as never, {
+                restaurantId: restaurant.id,
+              } as never)
+            }
+          />
+        </Animated.View>
       );
     },
     [navigation, screenWidth]
   );
 
   const renderPromotionItem = useCallback(
-    ({ item }: { item: RestaurantDisplayDto }) => {
+    ({ item, index }: { item: RestaurantDisplayDto; index: number }) => {
       return (
         <View style={styles.promotionsCardWrapper}>
-          {renderRestaurantCard(item)}
+          {renderRestaurantCard(item, { index })}
         </View>
       );
     },
@@ -536,7 +547,7 @@ export default function HomePage() {
   const compactRestaurantCardWidth = useMemo(() => s(240), []);
 
   const renderTopPickCard = useCallback(
-    (restaurant: RestaurantDisplayDto) => {
+    (restaurant: RestaurantDisplayDto, options?: { index?: number }) => {
       const deliveryFee =
         typeof restaurant.deliveryFee === 'number' && Number.isFinite(restaurant.deliveryFee)
           ? restaurant.deliveryFee
@@ -547,41 +558,44 @@ export default function HomePage() {
           : t('home.delivery.free');
 
       const topPickImagePath = restaurant.iconUrl || restaurant.imageUrl;
+      const delay = Math.min(options?.index ?? 0, 6) * 70;
 
       return (
-        <TouchableOpacity
-          style={styles.topPickCard}
-          activeOpacity={0.85}
-          onPress={() =>
-            navigation.navigate('RestaurantDetails' as never, {
-              restaurantId: restaurant.id,
-            } as never)
-          }
-        >
-          <View style={styles.topPickMedia}>
-            <Image
-              source={
-                topPickImagePath
-                  ? { uri: `${BASE_API_URL}/auth/image/${topPickImagePath}` }
-                  : require('../../assets/baguette.png')
-              }
-              style={styles.topPickImage}
-              contentFit="cover"
-            />
-          </View>
-          <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
-            {restaurant.name}
-          </Text>
-          {(restaurant.type || restaurant.description) ? (
-            <Text allowFontScaling={false} style={styles.topPickSubtitle} numberOfLines={1}>
-              {restaurant.type || restaurant.description}
+        <Animated.View entering={FadeInDown.delay(delay).duration(450)}>
+          <TouchableOpacity
+            style={styles.topPickCard}
+            activeOpacity={0.85}
+            onPress={() =>
+              navigation.navigate('RestaurantDetails' as never, {
+                restaurantId: restaurant.id,
+              } as never)
+            }
+          >
+            <View style={styles.topPickMedia}>
+              <Image
+                source={
+                  topPickImagePath
+                    ? { uri: `${BASE_API_URL}/auth/image/${topPickImagePath}` }
+                    : require('../../assets/baguette.png')
+                }
+                style={styles.topPickImage}
+                contentFit="cover"
+              />
+            </View>
+            <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
+              {restaurant.name}
             </Text>
-          ) : null}
-          <Bike size={s(14)} color="#CA251B" />
-          <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
-            {deliveryLabel}
-          </Text>
-        </TouchableOpacity>
+            {(restaurant.type || restaurant.description) ? (
+              <Text allowFontScaling={false} style={styles.topPickSubtitle} numberOfLines={1}>
+                {restaurant.type || restaurant.description}
+              </Text>
+            ) : null}
+            <Bike size={s(14)} color="#CA251B" />
+            <Text allowFontScaling={false} style={styles.topPickMetaText} numberOfLines={1}>
+              {deliveryLabel}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       );
     },
     [navigation, t],
@@ -600,9 +614,9 @@ export default function HomePage() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.carouselList}
             >
-              {item.restaurants.map((restaurant) => (
+              {item.restaurants.map((restaurant, index) => (
                 <View key={restaurant.id} style={styles.topPickCarouselItem}>
-                  {renderTopPickCard(restaurant)}
+                  {renderTopPickCard(restaurant, { index })}
                 </View>
               ))}
             </ScrollView>
@@ -621,9 +635,12 @@ export default function HomePage() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.carouselList}
             >
-              {item.restaurants.map((restaurant) => (
+              {item.restaurants.map((restaurant, index) => (
                 <View key={restaurant.id} style={styles.carouselCardContainer}>
-                  {renderRestaurantCard(restaurant, { width: compactRestaurantCardWidth })}
+                  {renderRestaurantCard(restaurant, {
+                    width: compactRestaurantCardWidth,
+                    index,
+                  })}
                 </View>
               ))}
             </ScrollView>
@@ -644,7 +661,7 @@ export default function HomePage() {
       return (
         <View style={styles.mainWrapper}>
           <View style={styles.cardContainer}>
-            {renderRestaurantCard(item.restaurant)}
+            {renderRestaurantCard(item.restaurant, { index: item.position })}
           </View>
         </View>
       );
@@ -678,13 +695,7 @@ export default function HomePage() {
     }
 
     if (isLoading) {
-      return (
-        <View style={styles.mainWrapper}>
-          <View style={styles.loadingWrapper}>
-            <ActivityIndicator size="large" color="#CA251B" />
-          </View>
-        </View>
-      );
+      return <HomeSkeleton />;
     }
 
     if (isError) {
@@ -810,7 +821,7 @@ export default function HomePage() {
         }
         status={deliveryNetworkStatus}
         message={deliveryStatusMessage}
-        onRequestClose={() => setSystemStatusDismissed(true)}
+        onRequestClose={handleDismissSystemStatusOverlay}
       />
       <Modal
         visible={isPromotionsVisible}
@@ -852,8 +863,13 @@ export default function HomePage() {
                 </TouchableOpacity>
               </View>
             ) : showPromotionsLoading ? (
-              <View style={styles.promotionsStateWrapper}>
-                <ActivityIndicator size="large" color="#CA251B" />
+              <View style={styles.promotionsSkeletonState}>
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <SkeletonPulse
+                    key={`promotion-skeleton-${index}`}
+                    style={styles.promotionsSkeletonCard}
+                  />
+                ))}
               </View>
             ) : showPromotionsError ? (
               <View style={styles.promotionsStateWrapper}>
@@ -1202,6 +1218,16 @@ const styles = ScaledSheet.create({
     paddingVertical: '40@vs',
     paddingHorizontal: '16@s',
     gap: '16@vs',
+  },
+  promotionsSkeletonState: {
+    gap: '16@vs',
+    paddingVertical: '12@vs',
+    width: '100%',
+  },
+  promotionsSkeletonCard: {
+    width: '100%',
+    height: '200@vs',
+    borderRadius: '20@ms',
   },
   promotionsStateTitle: {
     fontSize: '15@ms',
