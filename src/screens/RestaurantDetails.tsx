@@ -1,16 +1,8 @@
 import { ArrowLeft, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { NavigationProp, ParamListBase, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import MainLayout from '~/layouts/MainLayout';
 import FixedOrderBar from '~/components/FixedOrderBar';
 import MenuDetail from './MenuDetail';
+import RestaurantDetailsSkeleton from '~/components/skeletons/RestaurantDetailsSkeleton';
 import { getRestaurantDetails } from '~/api/restaurants';
 import { favoriteMenuItem, favoriteRestaurant, unfavoriteMenuItem, unfavoriteRestaurant } from '~/api/favorites';
 import type {
@@ -616,11 +609,17 @@ export default function RestaurantDetails() {
         </Text>
 
         <View className="mb-4 flex-row flex-wrap justify-between gap-y-4">
-          {restaurant.topSales.map((item) => (
-            <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
-              <MenuItemCard item={item} onOpenModal={handleOpen} />
-            </View>
-          ))}
+          {restaurant.topSales.map((item, index) => {
+            const delay = Math.min(index, 6) * 70;
+
+            return (
+              <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+                <Animated.View entering={FadeInUp.delay(delay).duration(450)}>
+                  <MenuItemCard item={item} onOpenModal={handleOpen} />
+                </Animated.View>
+              </View>
+            );
+          })}
         </View>
       </View>
     );
@@ -642,11 +641,17 @@ export default function RestaurantDetails() {
                 {category.name}
               </Text>
               <View className="flex-row flex-wrap justify-between gap-y-4">
-                {category.items.map((item) => (
-                  <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
-                    <MenuItemCard item={item} onOpenModal={handleOpen} />
-                  </View>
-                ))}
+                {category.items.map((item, itemIndex) => {
+                  const delay = Math.min(itemIndex, 6) * 70;
+
+                  return (
+                    <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+                      <Animated.View entering={FadeInUp.delay(delay).duration(450)}>
+                        <MenuItemCard item={item} onOpenModal={handleOpen} />
+                      </Animated.View>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           );
@@ -674,11 +679,7 @@ export default function RestaurantDetails() {
     }
 
     if (isLoading) {
-      return (
-        <View className="flex-1 items-center justify-center py-20">
-          <ActivityIndicator size="large" color="#CA251B" />
-        </View>
-      );
+      return <RestaurantDetailsSkeleton />;
     }
 
     if (isError || !restaurant) {
