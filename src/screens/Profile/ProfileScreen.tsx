@@ -22,7 +22,7 @@ import {
   UserRound,
   Medal,
 } from 'lucide-react-native';
-import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
+import { ScaledSheet, moderateScale, s, verticalScale, vs } from 'react-native-size-matters';
 import { useQuery } from '@tanstack/react-query';
 
 import MainLayout from '~/layouts/MainLayout';
@@ -35,10 +35,7 @@ const palette = {
   accentDark: '#17213A',
   neutral: '#4B5563',
 };
-let textsize = 34;
-if (PixelRatio.get() <= 2) {
-  textsize = 28;
-}
+let textsize = 28;
 
 
 type ProfileItem = {
@@ -239,6 +236,7 @@ const ProfileScreen = () => {
         <Text allowFontScaling={false} style={styles.greetingLabel}>
           {t('profile.home.greeting', { values: { name: displayName.split(' ')[0] } })}
         </Text>
+        <View>
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.logoutButtonHeader}
@@ -253,6 +251,7 @@ const ProfileScreen = () => {
             </Text>
           )}
       </TouchableOpacity>
+      </View>
     </View>
 
     <View style={styles.greetingRow}>
@@ -265,9 +264,6 @@ const ProfileScreen = () => {
           <View style={styles.nameBlock}>
             <Text allowFontScaling={false} style={styles.nameText}>
               {displayName}
-            </Text>
-            <Text allowFontScaling={false} style={styles.superstarText}>
-              {t('profile.home.statusLabel')}
             </Text>
           </View>
         </View>
@@ -383,7 +379,7 @@ const styles = ScaledSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: vs(8),
-    gap:4
+    gap:'5@ms'
   },
 
   logoutButtonHeader: {
@@ -403,6 +399,7 @@ const styles = ScaledSheet.create({
   },
 
   greetingRow: {
+    marginTop:verticalScale(8),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -418,6 +415,7 @@ const styles = ScaledSheet.create({
     color: '#FFFFFF',
     fontSize: '16@ms',
     fontWeight: '700',
+    maxWidth:moderateScale(150)
   },
   superstarText: {
     color: 'rgba(255,255,255,0.85)',

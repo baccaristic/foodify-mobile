@@ -14,6 +14,7 @@ import useAuth from '~/hooks/useAuth';
 import { useTranslation } from '~/localization';
 import { useMutation } from '@tanstack/react-query';
 import { updateClientProfile } from '~/api/profile';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const palette = {
   accent: '#CA251B',
@@ -26,6 +27,7 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
   const { user, updateUser } = useAuth();
   const { t } = useTranslation();
   const displayEmail = user?.email ?? t('profile.modals.email.emptyValue');
+  const insets = useSafeAreaInsets();
 
   const mutation = useMutation({
     mutationFn: updateClientProfile,
@@ -60,7 +62,7 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.overlayContainer}>
+      <View style={{ flex: 1,backgroundColor: '#fff',paddingTop: insets.top }}>
         <View style={styles.header}>
         <HeaderWithBackButton title={t('profile.modals.email.title')} onBack={onClose}  />
         </View>
@@ -107,12 +109,6 @@ const ModifyEmailOverlay = ({ onClose }: { onClose: () => void }) => {
 
 const styles = ScaledSheet.create({
     header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-
-  overlayContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingVertical:verticalScale(5)
-  },
   innerContainer: {
     paddingHorizontal: '20@s',
     paddingVertical: '30@vs',

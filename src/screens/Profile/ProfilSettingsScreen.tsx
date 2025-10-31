@@ -122,18 +122,7 @@ const ProfileSettingsScreen = () => {
 
       <Text allowFontScaling={false} style={styles.sectionTitle}>{t('profile.settings.sections.other')}</Text>
       <View style={styles.infoCard}>
-        <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
-          <View style={styles.infoLeft}>
-            <Star size={20} color={palette.accent} />
-            <Text allowFontScaling={false} style={styles.infoText}>
-              {t('profile.settings.actions.pointsAndLevel')}
-            </Text>
-          </View>
-          <ChevronRight size={s(18)} color={palette.accent} />
-        </TouchableOpacity>
-
         <View style={styles.divider} />
-
         <TouchableOpacity
           style={styles.linkRow}
           activeOpacity={0.8}

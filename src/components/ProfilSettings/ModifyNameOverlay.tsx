@@ -8,12 +8,13 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { ScaledSheet, verticalScale } from 'react-native-size-matters';
+import { moderateScale, ScaledSheet, verticalScale } from 'react-native-size-matters';
 import { useMutation } from '@tanstack/react-query';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
 import { useTranslation } from '~/localization';
 import { updateClientProfile } from '~/api/profile';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
   const [firstName, setFirstName] = useState('');
@@ -22,6 +23,7 @@ const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
   const { user, updateUser } = useAuth();
   const { t } = useTranslation();
   const displayName = user?.name ?? 'Guest User';
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (user?.name) {
@@ -74,10 +76,10 @@ const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+      <View style={{ flex: 1,backgroundColor: '#fff',paddingTop: insets.top }}>
         <View style={styles.header}>
 
-          <HeaderWithBackButton title={t('profile.modals.name.title')} onBack={onClose} />
+          <HeaderWithBackButton title={t('profile.modals.name.title')} onBack={onClose} titleMarginLeft={moderateScale(70)}/>
         </View>
         <View style={styles.inner}>
           <Text allowFontScaling={false} style={styles.currentLabel}>
@@ -135,7 +137,6 @@ const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
 
 const styles = ScaledSheet.create({
   header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-  container: { flex: 1, backgroundColor: '#fff',paddingVertical:verticalScale(5) },
   inner: { paddingHorizontal: '20@s', paddingVertical: '30@vs' },
   currentLabel: { color: '#17213A', fontWeight: '700', fontSize: '17@ms' },
   currentValue: { color: '#17213A', fontWeight: '500', fontSize: '15@ms', marginBottom: '20@vs' },

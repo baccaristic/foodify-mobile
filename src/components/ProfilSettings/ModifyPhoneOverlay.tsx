@@ -5,6 +5,7 @@ import VerificationCodeTemplate from '~/components/VerificationCodeTemplate';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
 import { useTranslation } from '~/localization';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
   const [newNumber, setNewNumber] = useState('');
@@ -12,6 +13,7 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const displayPhone = user?.phone ?? t('profile.modals.phone.emptyValue');
 
@@ -43,7 +45,7 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.overlayContainer}>
+      <View style={{ flex: 1,backgroundColor: '#fff',paddingTop: insets.top }}>
         <View style={styles.header}>
           <HeaderWithBackButton title={t('profile.modals.phone.title')} onBack={onClose} />
         </View>
@@ -83,11 +85,6 @@ const ModifyPhoneOverlay = ({ onClose }: { onClose: () => void }) => {
 
 const styles = ScaledSheet.create({
   header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-  overlayContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingVertical:verticalScale(5)
-  },
   innerContainer: {
     paddingHorizontal: '20@s',
     paddingVertical: '30@vs',

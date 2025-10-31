@@ -14,6 +14,7 @@ import { useTranslation } from '~/localization';
 import { useMutation } from '@tanstack/react-query';
 import { updateClientProfile } from '~/api/profile';
 import useAuth from '~/hooks/useAuth';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
   const [currentPass, setCurrentPass] = useState('');
@@ -22,6 +23,7 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
   const { updateUser } = useAuth();
+  const insets = useSafeAreaInsets();
 
 
   const invalidError = t('profile.modals.password.errors.invalidCurrent');
@@ -64,7 +66,7 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+      <View style={{ flex: 1,backgroundColor: '#fff',paddingTop: insets.top }}>
         <View style={styles.header}>
           <HeaderWithBackButton title={t('profile.modals.password.title')} onBack={onClose} />
         </View>
@@ -138,7 +140,6 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
 
 const styles = ScaledSheet.create({
   header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-  container: { flex: 1, backgroundColor: '#fff',paddingVertical:verticalScale(5) },
   inner: { paddingHorizontal: '20@s', paddingVertical: '30@vs' },
   label: { color: '#000', fontSize: '16@ms', fontWeight: '600', marginBottom: '6@vs' },
   input: {

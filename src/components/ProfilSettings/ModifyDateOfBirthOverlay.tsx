@@ -14,6 +14,7 @@ import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import useAuth from '~/hooks/useAuth';
 import { useTranslation } from '~/localization';
 import { updateClientProfile } from '~/api/profile';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -40,6 +41,7 @@ const ModifyDateOfBirthOverlay = ({ onClose }: { onClose: () => void }) => {
   const { t } = useTranslation();
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (user?.dateOfBirth) {
@@ -80,7 +82,7 @@ const ModifyDateOfBirthOverlay = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+      <View style={{ flex: 1,backgroundColor: '#fff',paddingTop: insets.top }}>
         <View style={styles.header}>
           <HeaderWithBackButton title={t('profile.modals.dob.title')} onBack={onClose} />
         </View>
@@ -133,7 +135,6 @@ const ModifyDateOfBirthOverlay = ({ onClose }: { onClose: () => void }) => {
 
 const styles = ScaledSheet.create({
   header: { borderBottomColor: 'rgba(211,211,211,0.4)', borderBottomWidth: 2 },
-  container: { flex: 1, backgroundColor: '#fff' ,paddingVertical:verticalScale(5)},
   inner: { paddingHorizontal: '20@s', paddingVertical: '30@vs' },
   currentLabel: { color: '#17213A', fontWeight: '700', fontSize: '17@ms' },
   currentValue: { color: '#17213A', fontWeight: '500', fontSize: '15@ms', marginBottom: '20@vs' },
