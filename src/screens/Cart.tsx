@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Trash2, Minus, Plus } from 'lucide-react-native';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Alert, View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import MainLayout from '~/layouts/MainLayout';
 import { Image } from 'expo-image';
@@ -13,6 +13,7 @@ import { useCurrencyFormatter } from '~/localization/hooks';
 
 import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
+import { getDeliveryNetworkStatus } from '~/api/delivery';
 import type { CartItem } from '~/context/CartContext';
 
 const primaryColor = '#CA251B';
@@ -240,6 +241,39 @@ export default function Cart() {
     />
   );
 
+  const handleProceedToCheckout = useCallback(async () => {
+    try {
+      const statusResponse = await getDeliveryNetworkStatus();
+
+      if (statusResponse.status === 'NO_DRIVERS_AVAILABLE') {
+        Alert.alert(
+          t('cart.systemStatus.unavailableTitle'),
+          t('cart.systemStatus.unavailableMessage')
+        );
+        return;
+      }
+
+      if (statusResponse.status === 'BUSY') {
+        Alert.alert(
+          t('cart.systemStatus.busyTitle'),
+          t('cart.systemStatus.busyMessage'),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('cart.systemStatus.continueCta'),
+              onPress: () => navigation.navigate('CheckoutOrder'),
+            },
+          ]
+        );
+        return;
+      }
+    } catch {
+      // If we can't retrieve the latest status, continue to checkout as usual.
+    }
+
+    navigation.navigate('CheckoutOrder');
+  }, [navigation, t]);
+
   return (
     <View className="flex-1 bg-white">
       <MainLayout
@@ -257,7 +291,7 @@ export default function Cart() {
       {hasItems && (<FixedOrderBar
         total={totalOrderPrice}
         itemCount={totalItems}
-        onSeeCart={() => navigation.navigate('CheckoutOrder')}
+        onSeeCart={handleProceedToCheckout}
         buttonLabel={t('common.checkout')}
         style={{ bottom:moderateScale(72)  + insets.bottom }}
         disabled={!hasItems}

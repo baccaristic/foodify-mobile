@@ -57,7 +57,10 @@ import {
 } from "~/api/restaurants";
 import { getDeliveryNetworkStatus } from '~/api/delivery';
 import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
-import type { DeliveryNetworkStatusResponse } from '~/interfaces/DeliveryStatus';
+import type {
+  DeliveryNetworkStatus,
+  DeliveryNetworkStatusResponse,
+} from '~/interfaces/DeliveryStatus';
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
@@ -224,17 +227,49 @@ export default function HomePage() {
 
   const deliveryNetworkStatus = deliveryStatusData?.status ?? 'AVAILABLE';
   const deliveryStatusMessage = deliveryStatusData?.message ?? null;
-  const showSystemStatusOverlay = Boolean(
-    deliveryStatusData && deliveryStatusData.status !== 'AVAILABLE'
-  );
 
   const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
+  const [shouldShowSystemStatusOverlay, setShouldShowSystemStatusOverlay] = useState(false);
+  const previousDeliveryStatusRef = useRef<DeliveryNetworkStatus | null>(null);
 
   useEffect(() => {
-    if (!showSystemStatusOverlay) {
+    if (!deliveryStatusData || isDeliveryStatusError) {
+      return;
+    }
+
+    const currentStatus = deliveryStatusData.status;
+    const previousStatus = previousDeliveryStatusRef.current;
+
+    let nextShouldShow = false;
+    let shouldResetDismissed = false;
+
+    if (currentStatus === 'AVAILABLE') {
+      nextShouldShow = false;
+    } else if (currentStatus === 'NO_DRIVERS_AVAILABLE') {
+      if (previousStatus !== 'NO_DRIVERS_AVAILABLE') {
+        nextShouldShow = true;
+        shouldResetDismissed = true;
+      }
+    } else {
+      nextShouldShow = true;
+      if (previousStatus !== currentStatus) {
+        shouldResetDismissed = true;
+      }
+    }
+
+    if (shouldResetDismissed) {
       setSystemStatusDismissed(false);
     }
-  }, [showSystemStatusOverlay]);
+
+    setShouldShowSystemStatusOverlay(nextShouldShow);
+    previousDeliveryStatusRef.current = currentStatus;
+  }, [deliveryStatusData, isDeliveryStatusError]);
+
+  useEffect(() => {
+    if (!shouldShowSystemStatusOverlay) {
+      setSystemStatusDismissed(false);
+    }
+  }, [shouldShowSystemStatusOverlay]);
 
   useFocusEffect(
     useCallback(() => {
@@ -811,7 +846,7 @@ export default function HomePage() {
       />
       <SystemStatusOverlay
         visible={
-          showSystemStatusOverlay &&
+          shouldShowSystemStatusOverlay &&
           !isDeliveryStatusError &&
           !isSystemStatusDismissed
         }

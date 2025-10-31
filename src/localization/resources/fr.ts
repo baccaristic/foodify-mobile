@@ -207,6 +207,15 @@ const fr: TranslationDictionary = {
       cta: 'Ajouter des articles',
     },
     addMore: 'Ajouter d\'autres articles',
+    systemStatus: {
+      busyTitle: 'Coursiers très sollicités',
+      busyMessage:
+        'La livraison risque de prendre beaucoup plus de temps que d\'habitude car nos livreurs sont très sollicités. Souhaitez-vous continuer vers le paiement ?',
+      continueCta: 'Continuer vers le paiement',
+      unavailableTitle: 'Livraison momentanément indisponible',
+      unavailableMessage:
+        'Nous ne pouvons pas accepter de nouvelles commandes en livraison pour le moment car aucun livreur n’est disponible.',
+    },
   },
   coupon: {
     title: 'Code promo',

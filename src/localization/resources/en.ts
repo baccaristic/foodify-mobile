@@ -206,6 +206,15 @@ const en: TranslationDictionary = {
       cta: 'Add items',
     },
     addMore: 'Add more items',
+    systemStatus: {
+      busyTitle: 'Couriers are busy',
+      busyMessage:
+        'Delivery may take much longer than usual because our riders are currently busy. Do you want to continue to checkout?',
+      continueCta: 'Continue to checkout',
+      unavailableTitle: 'Delivery currently unavailable',
+      unavailableMessage:
+        "We're not accepting new delivery orders right now because no drivers are available.",
+    },
   },
   coupon: {
     title: 'Coupon code',
