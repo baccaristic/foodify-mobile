@@ -208,8 +208,11 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
   );
 };
 
-const flattenCategories = (categories: RestaurantMenuCategory[]) =>
-  categories.reduce<RestaurantMenuItemDetails[]>((acc, category) => acc.concat(category.items), []);
+const flattenCategories = (categories?: RestaurantMenuCategory[]) =>
+  (categories ?? []).reduce<RestaurantMenuItemDetails[]>((acc, category) => {
+    const items = category.items ?? [];
+    return acc.concat(items);
+  }, []);
 
 const mapSummaryToDetails = (summary: RestaurantMenuItemSummary): RestaurantMenuItemDetails => ({
   ...summary,
@@ -296,7 +299,7 @@ export default function RestaurantDetails() {
       sections.push({ key: 'top-sales', label: t('restaurantDetails.tabs.topSales') });
     }
 
-    restaurant.categories.forEach((category, index) => {
+    (restaurant.categories ?? []).forEach((category, index) => {
       sections.push({ key: `category-${index}`, label: category.name });
     });
 
@@ -735,7 +738,7 @@ export default function RestaurantDetails() {
 
     return (
       <View className="px-4">
-        {restaurant.categories.map((category, index) => {
+        {(restaurant.categories ?? []).map((category, index) => {
           const sectionKey = `category-${index}`;
 
           return (
@@ -753,7 +756,7 @@ export default function RestaurantDetails() {
                 {category.name}
               </AnimatedText>
               <View className="flex-row flex-wrap justify-between gap-y-4">
-                {category.items.map((item, itemIndex) => (
+                {(category.items ?? []).map((item, itemIndex) => (
                   <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
                     <Animated.View entering={createMenuCardEntrance(itemIndex)}>
                       <MenuItemCard item={item} onOpenModal={handleOpen} />
