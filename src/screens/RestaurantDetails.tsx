@@ -12,7 +12,15 @@ import {
   ImageStyle,
 } from 'react-native';
 import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
-import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInLeft,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import type { ImageProps } from 'expo-image';
 import { NavigationProp, ParamListBase, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -47,6 +55,47 @@ const CATEGORY_TAB_OVERLAY_TOP = vs(92);
 const MENU_TAB_SHOW_THRESHOLD = vs(24);
 const VIEWPORT_BUFFER_NO_TABS = vs(24);
 const VIEWPORT_BUFFER_WITH_TABS = CATEGORY_TAB_HEIGHT + vs(16);
+const MAX_CARD_STAGGER = 8;
+
+const AnimatedText = Animated.createAnimatedComponent(Text);
+
+const createMenuCardEntrance = (index: number) =>
+  FadeInUp.springify()
+    .mass(0.7)
+    .stiffness(170)
+    .damping(18)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 40 }, { scale: 0.92 }],
+    })
+    .withTargetValues({
+      transform: [{ translateY: 0 }, { scale: 1 }],
+    })
+    .delay(Math.min(index, MAX_CARD_STAGGER) * 70);
+
+const createSectionHeaderEntrance = (index: number) =>
+  FadeInLeft.springify()
+    .stiffness(140)
+    .damping(16)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateX: -24 }],
+    })
+    .withTargetValues({
+      transform: [{ translateX: 0 }],
+    })
+    .delay(index * 80);
+
+const createHighlightChipEntrance = (index: number) =>
+  FadeInUp.springify()
+    .mass(0.9)
+    .stiffness(150)
+    .damping(18)
+    .withInitialValues({
+      opacity: 0,
+      transform: [{ translateY: 24 }],
+    })
+    .delay(index * 45);
 
 interface RestaurantDetailsRouteParams {
   RestaurantDetails: {
@@ -640,12 +689,16 @@ export default function RestaurantDetails() {
 
     return (
       <View className="mt-3 flex-row flex-wrap gap-2">
-        {restaurant.highlights.map((highlight) => (
-          <View key={`${highlight.label}-${highlight.value}`} className="rounded-full bg-[#FDE7E5] px-3 py-1">
+        {restaurant.highlights.map((highlight, index) => (
+          <Animated.View
+            key={`${highlight.label}-${highlight.value}`}
+            entering={createHighlightChipEntrance(index)}
+            className="rounded-full bg-[#FDE7E5] px-3 py-1"
+          >
             <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
               {highlight.label}: {highlight.value}
             </Text>
-          </View>
+          </Animated.View>
         ))}
       </View>
     );
@@ -658,24 +711,24 @@ export default function RestaurantDetails() {
 
     return (
       <View className="px-4" onLayout={(event) => handleSectionLayout('top-sales', event)}>
-        <Text allowFontScaling={false} className="mb-4 text-lg font-semibold text-black/60">
+        <AnimatedText
+          allowFontScaling={false}
+          className="mb-4 text-lg font-semibold text-black/60"
+          entering={createSectionHeaderEntrance(0)}
+        >
           {t('restaurantDetails.sections.topSalesWithCount', {
             values: { count: restaurant.topSales.length },
           })}
-        </Text>
+        </AnimatedText>
 
         <View className="mb-4 flex-row flex-wrap justify-between gap-y-4">
-          {restaurant.topSales.map((item, index) => {
-            const delay = Math.min(index, 6) * 70;
-
-            return (
-              <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
-                <Animated.View entering={FadeInUp.delay(delay).duration(450)}>
-                  <MenuItemCard item={item} onOpenModal={handleOpen} />
-                </Animated.View>
-              </View>
-            );
-          })}
+          {restaurant.topSales.map((item, index) => (
+            <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+              <Animated.View entering={createMenuCardEntrance(index)}>
+                <MenuItemCard item={item} onOpenModal={handleOpen} />
+              </Animated.View>
+            </View>
+          ))}
         </View>
       </View>
     );
@@ -692,24 +745,29 @@ export default function RestaurantDetails() {
           const sectionKey = `category-${index}`;
 
           return (
-            <View key={sectionKey} className="mb-8" onLayout={(event) => handleSectionLayout(sectionKey, event)}>
-              <Text allowFontScaling={false} className="mb-4 text-lg font-semibold text-[#17213A]">
+            <Animated.View
+              key={sectionKey}
+              className="mb-8"
+              onLayout={(event) => handleSectionLayout(sectionKey, event)}
+              entering={FadeIn.delay((index + 1) * 90)}
+            >
+              <AnimatedText
+                allowFontScaling={false}
+                className="mb-4 text-lg font-semibold text-[#17213A]"
+                entering={createSectionHeaderEntrance(index + 1)}
+              >
                 {category.name}
-              </Text>
+              </AnimatedText>
               <View className="flex-row flex-wrap justify-between gap-y-4">
-                {category.items.map((item, itemIndex) => {
-                  const delay = Math.min(itemIndex, 6) * 70;
-
-                  return (
-                    <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
-                      <Animated.View entering={FadeInUp.delay(delay).duration(450)}>
-                        <MenuItemCard item={item} onOpenModal={handleOpen} />
-                      </Animated.View>
-                    </View>
-                  );
-                })}
+                {category.items.map((item, itemIndex) => (
+                  <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+                    <Animated.View entering={createMenuCardEntrance(itemIndex)}>
+                      <MenuItemCard item={item} onOpenModal={handleOpen} />
+                    </Animated.View>
+                  </View>
+                ))}
               </View>
-            </View>
+            </Animated.View>
           );
         })}
       </View>
@@ -757,30 +815,94 @@ export default function RestaurantDetails() {
 
     return (
       <View>
-        <View className="px-4">
-          <View className="mt-4 flex-row items-center gap-4">
-            <View className="rounded-3xl bg-white p-1.5 shadow-lg">
+        <Animated.View
+          className="px-4"
+          entering={FadeInDown.springify()
+            .mass(0.9)
+            .stiffness(130)
+            .damping(16)
+            .withInitialValues({
+              opacity: 0,
+              transform: [{ translateY: -28 }],
+            })}
+        >
+          <Animated.View
+            className="mt-4 flex-row items-center gap-4"
+            entering={FadeInDown.springify()
+              .mass(0.9)
+              .stiffness(150)
+              .damping(18)
+              .delay(60)
+              .withInitialValues({
+                opacity: 0,
+                transform: [{ translateY: -20 }],
+              })}
+          >
+            <Animated.View
+              className="rounded-3xl bg-white p-1.5 shadow-lg"
+              entering={FadeIn.springify()
+                .mass(0.8)
+                .stiffness(160)
+                .damping(18)
+                .delay(80)
+                .withInitialValues({ opacity: 0, transform: [{ scale: 0.85 }] })
+                .withTargetValues({ transform: [{ scale: 1 }] })}
+            >
               <RemoteImageWithSkeleton
                 imagePath={restaurant.iconUrl ?? restaurant.imageUrl}
                 containerStyle={styles.heroIconContainer}
                 imageStyle={styles.heroIconImage}
                 skeletonStyle={styles.heroIconImage}
               />
-            </View>
+            </Animated.View>
 
-            <View className="flex-1">
-              <Text allowFontScaling={false} className="text-2xl font-bold text-[#17213A]">
+            <Animated.View
+              className="flex-1"
+              entering={FadeInUp.springify()
+                .mass(0.8)
+                .stiffness(140)
+                .damping(18)
+                .delay(120)
+                .withInitialValues({
+                  opacity: 0,
+                  transform: [{ translateY: 24 }],
+                })}
+            >
+              <AnimatedText allowFontScaling={false} className="text-2xl font-bold text-[#17213A]">
                 {restaurant.name}
-              </Text>
+              </AnimatedText>
               {restaurant.description ? (
-                <Text allowFontScaling={false} className="mt-1 text-sm text-[#17213A]">
+                <AnimatedText
+                  allowFontScaling={false}
+                  className="mt-1 text-sm text-[#17213A]"
+                  entering={FadeInUp.springify()
+                    .mass(0.8)
+                    .stiffness(150)
+                    .damping(18)
+                    .delay(160)
+                    .withInitialValues({
+                      opacity: 0,
+                      transform: [{ translateY: 16 }],
+                    })}
+                >
                   {restaurant.description}
-                </Text>
+                </AnimatedText>
               ) : null}
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
 
-          <View className="mt-4 flex flex-row items-center justify-center text-xs text-[#17213A]">
+          <Animated.View
+            className="mt-4 flex flex-row items-center justify-center text-xs text-[#17213A]"
+            entering={FadeInUp.springify()
+              .mass(0.9)
+              .stiffness(140)
+              .damping(18)
+              .delay(180)
+              .withInitialValues({
+                opacity: 0,
+                transform: [{ translateY: 24 }],
+              })}
+          >
             <View className="border-1 mt-2 flex flex-row items-center gap-4 rounded-xl border-black/5 bg-white px-4 py-2 shadow-xl">
               <View className="flex flex-row items-center gap-1 font-sans">
                 <Clock7 size={16} color="#CA251B" />
@@ -809,28 +931,50 @@ export default function RestaurantDetails() {
                 </Text>
               </View>
             </View>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
 
-        <View className="mb-4 mt-4 rounded-lg bg-gray-100">
+        <Animated.View
+          className="mb-4 mt-4 rounded-lg bg-gray-100"
+          entering={FadeInUp.springify()
+            .mass(0.9)
+            .stiffness(140)
+            .damping(18)
+            .delay(220)
+            .withInitialValues({
+              opacity: 0,
+              transform: [{ translateY: 28 }],
+            })}
+        >
           <View className="p-3 px-4">
-            <Text allowFontScaling={false} className="mb-1 font-semibold text-[#17213A]">
+            <AnimatedText allowFontScaling={false} className="mb-1 font-semibold text-[#17213A]">
               {t('restaurantDetails.sections.infoTitle')}
-            </Text>
+            </AnimatedText>
             {restaurant.description ? (
               <Text allowFontScaling={false} className="text-sm text-[#17213A]">
                 {restaurant.description}
               </Text>
             ) : null}
             {renderHighlights()}
-            <View className="ml-2 mt-2 flex flex-row items-center text-[#17213A]/40">
+            <Animated.View
+              className="ml-2 mt-2 flex flex-row items-center text-[#17213A]/40"
+              entering={FadeInUp.springify()
+                .mass(0.9)
+                .stiffness(140)
+                .damping(18)
+                .delay(260)
+                .withInitialValues({
+                  opacity: 0,
+                  transform: [{ translateY: 20 }],
+                })}
+            >
               <MapPin size={20} />
               <Text allowFontScaling={false} className="ml-2 text-[#17213A]">
                 {restaurant.address}
               </Text>
-            </View>
+            </Animated.View>
           </View>
-        </View>
+        </Animated.View>
 
         {hasMenuSections ? (
           <View onLayout={handleMenuContentLayout}>
