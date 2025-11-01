@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import {
+  CommonActions,
   NavigationProp,
   ParamListBase,
   RouteProp,
@@ -27,6 +28,7 @@ import { isAxiosError } from 'axios';
 import { useCart } from '~/context/CartContext';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
+import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { createOrder } from '~/api/orders';
 import { getRestaurantDeliveryFee } from '~/api/restaurants';
 import type { MonetaryAmount, OrderRequest } from '~/interfaces/Order';
@@ -212,6 +214,8 @@ const CheckoutOrder: React.FC = () => {
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
+  const { order: ongoingOrder, hasFetched: hasFetchedOngoing } = useOngoingOrder();
+  const hasClosedViewModeRef = useRef(false);
   const [itemsExpanded, setItemsExpanded] = useState(true);
   const [allergiesExpanded, setAllergiesExpanded] = useState(false);
   const [commentExpanded, setCommentExpanded] = useState(false);
@@ -274,6 +278,65 @@ const CheckoutOrder: React.FC = () => {
     () => (isViewMode && viewOrder && Array.isArray(viewOrder.items) ? viewOrder.items : []),
     [isViewMode, viewOrder],
   );
+  const viewOrderId = useMemo(() => {
+    if (!viewOrder) {
+      return null;
+    }
+
+    const orderIdCandidate = (viewOrder as OrderTrackingData).orderId ?? (viewOrder as any)?.id ?? null;
+    return orderIdCandidate != null ? String(orderIdCandidate) : null;
+  }, [viewOrder]);
+
+  const closeCheckoutViewMode = useCallback(() => {
+    if (hasClosedViewModeRef.current) {
+      return;
+    }
+
+    hasClosedViewModeRef.current = true;
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      }),
+    );
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!isViewMode) {
+      hasClosedViewModeRef.current = false;
+      return;
+    }
+
+    if (!hasFetchedOngoing) {
+      return;
+    }
+
+    if (!ongoingOrder) {
+      closeCheckoutViewMode();
+      return;
+    }
+
+    const ongoingId = ongoingOrder.orderId != null ? String(ongoingOrder.orderId) : null;
+
+    if (viewOrderId && ongoingId && ongoingId !== viewOrderId) {
+      closeCheckoutViewMode();
+      return;
+    }
+
+    hasClosedViewModeRef.current = false;
+  }, [
+    closeCheckoutViewMode,
+    hasFetchedOngoing,
+    isViewMode,
+    ongoingOrder,
+    viewOrderId,
+  ]);
 
   useEffect(() => {
     if (isViewMode) {
