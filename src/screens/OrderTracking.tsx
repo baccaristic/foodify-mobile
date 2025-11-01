@@ -28,7 +28,12 @@ import {
   Phone,
   Star,
 } from 'lucide-react-native';
-import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
+import {
+  CommonActions,
+  NavigationProp,
+  ParamListBase,
+  useNavigation,
+} from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 
 import type {
@@ -119,12 +124,13 @@ const OrderTrackingScreen: React.FC = () => {
   const highlightPulse = useRef(new Animated.Value(0)).current;
   const previousStatusRef = useRef<string | null>(null);
   const helpSheetAnimation = useRef(new Animated.Value(0)).current;
+  const hasClosedRef = useRef(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
   const [highlightedStepKey, setHighlightedStepKey] = useState<string | null>(null);
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
   const [isPaymentDetailsExpanded, setIsPaymentDetailsExpanded] = useState(false);
-  const { order: ongoingOrder } = useOngoingOrder();
+  const { order: ongoingOrder, hasFetched: hasFetchedOngoing } = useOngoingOrder();
   const { t } = useTranslation();
   const formatCurrency = useCurrencyFormatter();
   const { width, height } = useWindowDimensions();
@@ -1002,6 +1008,26 @@ const OrderTrackingScreen: React.FC = () => {
     }
   };
 
+  const closeTrackingScreen = useCallback(() => {
+    if (hasClosedRef.current) {
+      return;
+    }
+
+    hasClosedRef.current = true;
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      }),
+    );
+  }, [navigation]);
+
   const handleCallCourier = () => {};
 
   const handleSeeDetails = () => {
@@ -1040,6 +1066,19 @@ const OrderTrackingScreen: React.FC = () => {
     () => Math.max(headerMaxHeight - headerMinHeight, 1),
     [headerMaxHeight, headerMinHeight],
   );
+
+  useEffect(() => {
+    if (!hasFetchedOngoing) {
+      return;
+    }
+
+    if (ongoingOrder) {
+      hasClosedRef.current = false;
+      return;
+    }
+
+    closeTrackingScreen();
+  }, [closeTrackingScreen, hasFetchedOngoing, ongoingOrder]);
 
   const headerHeight = scrollY.interpolate({
     inputRange: [0, headerScrollDistance],

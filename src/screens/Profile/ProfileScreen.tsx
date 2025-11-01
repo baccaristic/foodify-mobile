@@ -69,7 +69,7 @@ const useProfileSections = (
       {
         title: t('profile.home.sections.payment.title'),
         items: [
-          { label: t('profile.home.sections.payment.items.methods'), icon: CreditCard, route: 'PaymentMethods' },
+  
           { label: t('profile.home.sections.payment.items.history'), icon: History, route: 'OrderHistory' },
           {
             label: t('profile.home.sections.payment.items.loyalty'),
