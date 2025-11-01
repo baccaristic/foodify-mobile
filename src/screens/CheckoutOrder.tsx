@@ -34,6 +34,7 @@ import { getRestaurantDeliveryFee } from '~/api/restaurants';
 import type { MonetaryAmount, OrderRequest } from '~/interfaces/Order';
 import type { CouponType } from '~/interfaces/Loyalty';
 import type { OrderTrackingData } from './OrderTracking';
+import type { OngoingOrderData } from '~/context/OngoingOrderContext';
 import { useTranslation } from '~/localization';
 import { useCurrencyFormatter } from '~/localization/hooks';
 
@@ -214,7 +215,11 @@ const CheckoutOrder: React.FC = () => {
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
-  const { order: ongoingOrder, hasFetched: hasFetchedOngoing } = useOngoingOrder();
+  const {
+    order: ongoingOrder,
+    hasFetched: hasFetchedOngoing,
+    updateOrder: updateOngoingOrder,
+  } = useOngoingOrder();
   const hasClosedViewModeRef = useRef(false);
   const [itemsExpanded, setItemsExpanded] = useState(true);
   const [allergiesExpanded, setAllergiesExpanded] = useState(false);
@@ -1260,6 +1265,16 @@ const CheckoutOrder: React.FC = () => {
       }
 
       const response = await createOrder(payload);
+
+      updateOngoingOrder({
+        orderId: response.orderId,
+        status: response.status,
+        restaurant: response.restaurant,
+        delivery: response.delivery,
+        payment: response.payment,
+        items: response.items as unknown as OngoingOrderData['items'],
+        workflow: response.workflow,
+      });
       clearCart();
       setAppliedCoupon(null);
       setComment('');
@@ -1325,6 +1340,7 @@ const CheckoutOrder: React.FC = () => {
     isDeliveryQuoteLoading,
     deliveryQuote?.available,
     deliveryQuoteError,
+    updateOngoingOrder,
   ]);
 
   const isDeliveryQuoteBlocking =
