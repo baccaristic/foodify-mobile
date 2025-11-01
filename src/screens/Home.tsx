@@ -57,7 +57,10 @@ import {
 } from "~/api/restaurants";
 import { getDeliveryNetworkStatus } from '~/api/delivery';
 import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
-import type { DeliveryNetworkStatusResponse } from '~/interfaces/DeliveryStatus';
+import type {
+  DeliveryNetworkStatus,
+  DeliveryNetworkStatusResponse,
+} from '~/interfaces/DeliveryStatus';
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
@@ -225,19 +228,31 @@ export default function HomePage() {
   const deliveryNetworkStatus = deliveryStatusData?.status ?? 'AVAILABLE';
   const deliveryStatusMessage = deliveryStatusData?.message ?? null;
 
+  const previousDeliveryStatusRef = useRef<DeliveryNetworkStatus>('AVAILABLE');
+  const [shouldDisplaySystemStatusOverlay, setShouldDisplaySystemStatusOverlay] =
+    useState(false);
   const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
-  const showSystemStatusOverlay = Boolean(
-    deliveryStatusData && deliveryStatusData.status !== 'AVAILABLE'
-  );
 
   useEffect(() => {
-    if (!showSystemStatusOverlay) {
+    const previousStatus = previousDeliveryStatusRef.current;
+    const hasStatusChanged = previousStatus !== deliveryNetworkStatus;
+
+    if (hasStatusChanged && deliveryNetworkStatus !== 'AVAILABLE') {
+      setShouldDisplaySystemStatusOverlay(true);
       setSystemStatusDismissed(false);
     }
-  }, [showSystemStatusOverlay]);
+
+    if (deliveryNetworkStatus === 'AVAILABLE') {
+      setShouldDisplaySystemStatusOverlay(false);
+      setSystemStatusDismissed(false);
+    }
+
+    previousDeliveryStatusRef.current = deliveryNetworkStatus;
+  }, [deliveryNetworkStatus]);
 
   const handleDismissSystemStatusOverlay = useCallback(() => {
     setSystemStatusDismissed(true);
+    setShouldDisplaySystemStatusOverlay(false);
   }, []);
 
   useFocusEffect(
@@ -815,7 +830,7 @@ export default function HomePage() {
       />
       <SystemStatusOverlay
         visible={
-          showSystemStatusOverlay &&
+          shouldDisplaySystemStatusOverlay &&
           !isDeliveryStatusError &&
           !isSystemStatusDismissed
         }
