@@ -62,6 +62,7 @@ import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
+import useSystemStatusOverlay from '~/hooks/useSystemStatusOverlay';
 import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
@@ -225,20 +226,16 @@ export default function HomePage() {
   const deliveryNetworkStatus = deliveryStatusData?.status ?? 'AVAILABLE';
   const deliveryStatusMessage = deliveryStatusData?.message ?? null;
 
-  const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
-  const showSystemStatusOverlay = Boolean(
-    deliveryStatusData && deliveryStatusData.status !== 'AVAILABLE'
-  );
+  const { shouldDisplay: shouldDisplaySystemStatusOverlay, updateStatus: updateSystemStatus, dismiss: dismissSystemStatusOverlay } =
+    useSystemStatusOverlay();
 
   useEffect(() => {
-    if (!showSystemStatusOverlay) {
-      setSystemStatusDismissed(false);
-    }
-  }, [showSystemStatusOverlay]);
+    updateSystemStatus(deliveryNetworkStatus);
+  }, [deliveryNetworkStatus, updateSystemStatus]);
 
   const handleDismissSystemStatusOverlay = useCallback(() => {
-    setSystemStatusDismissed(true);
-  }, []);
+    dismissSystemStatusOverlay();
+  }, [dismissSystemStatusOverlay]);
 
   useFocusEffect(
     useCallback(() => {
@@ -772,8 +769,10 @@ export default function HomePage() {
 
   const collapsedHeader = (
     <View style={styles.collapsedHeader}>
-      
-      <TouchableOpacity style={styles.collapsedUp} onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} >
+      <TouchableOpacity
+        style={styles.collapsedUp}
+        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+      >
         <ArrowUp size={s(16)} color="#17213A" />
       </TouchableOpacity>
       <TouchableOpacity
@@ -815,9 +814,8 @@ export default function HomePage() {
       />
       <SystemStatusOverlay
         visible={
-          showSystemStatusOverlay &&
-          !isDeliveryStatusError &&
-          !isSystemStatusDismissed
+          shouldDisplaySystemStatusOverlay &&
+          !isDeliveryStatusError
         }
         status={deliveryNetworkStatus}
         message={deliveryStatusMessage}
