@@ -57,14 +57,12 @@ import {
 } from "~/api/restaurants";
 import { getDeliveryNetworkStatus } from '~/api/delivery';
 import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
-import type {
-  DeliveryNetworkStatus,
-  DeliveryNetworkStatusResponse,
-} from '~/interfaces/DeliveryStatus';
+import type { DeliveryNetworkStatusResponse } from '~/interfaces/DeliveryStatus';
 import { BASE_API_URL } from "@env";
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
+import useSystemStatusOverlay from '~/hooks/useSystemStatusOverlay';
 import { useTranslation } from '~/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
@@ -228,32 +226,16 @@ export default function HomePage() {
   const deliveryNetworkStatus = deliveryStatusData?.status ?? 'AVAILABLE';
   const deliveryStatusMessage = deliveryStatusData?.message ?? null;
 
-  const previousDeliveryStatusRef = useRef<DeliveryNetworkStatus>('AVAILABLE');
-  const [shouldDisplaySystemStatusOverlay, setShouldDisplaySystemStatusOverlay] =
-    useState(false);
-  const [isSystemStatusDismissed, setSystemStatusDismissed] = useState(false);
+  const { shouldDisplay: shouldDisplaySystemStatusOverlay, updateStatus: updateSystemStatus, dismiss: dismissSystemStatusOverlay } =
+    useSystemStatusOverlay();
 
   useEffect(() => {
-    const previousStatus = previousDeliveryStatusRef.current;
-    const hasStatusChanged = previousStatus !== deliveryNetworkStatus;
-
-    if (hasStatusChanged && deliveryNetworkStatus !== 'AVAILABLE') {
-      setShouldDisplaySystemStatusOverlay(true);
-      setSystemStatusDismissed(false);
-    }
-
-    if (deliveryNetworkStatus === 'AVAILABLE') {
-      setShouldDisplaySystemStatusOverlay(false);
-      setSystemStatusDismissed(false);
-    }
-
-    previousDeliveryStatusRef.current = deliveryNetworkStatus;
-  }, [deliveryNetworkStatus]);
+    updateSystemStatus(deliveryNetworkStatus);
+  }, [deliveryNetworkStatus, updateSystemStatus]);
 
   const handleDismissSystemStatusOverlay = useCallback(() => {
-    setSystemStatusDismissed(true);
-    setShouldDisplaySystemStatusOverlay(false);
-  }, []);
+    dismissSystemStatusOverlay();
+  }, [dismissSystemStatusOverlay]);
 
   useFocusEffect(
     useCallback(() => {
@@ -787,8 +769,10 @@ export default function HomePage() {
 
   const collapsedHeader = (
     <View style={styles.collapsedHeader}>
-      
-      <TouchableOpacity style={styles.collapsedUp} onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} >
+      <TouchableOpacity
+        style={styles.collapsedUp}
+        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+      >
         <ArrowUp size={s(16)} color="#17213A" />
       </TouchableOpacity>
       <TouchableOpacity
@@ -831,8 +815,7 @@ export default function HomePage() {
       <SystemStatusOverlay
         visible={
           shouldDisplaySystemStatusOverlay &&
-          !isDeliveryStatusError &&
-          !isSystemStatusDismissed
+          !isDeliveryStatusError
         }
         status={deliveryNetworkStatus}
         message={deliveryStatusMessage}

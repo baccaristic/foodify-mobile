@@ -42,6 +42,7 @@ import { WebSocketProvider } from '~/context/WebSocketContext';
 import { OngoingOrderProvider } from '~/context/OngoingOrderContext';
 import { DeliveryRatingOverlayProvider } from '~/context/DeliveryRatingOverlayContext';
 import { RestaurantRatingOverlayProvider } from '~/context/RestaurantRatingOverlayContext';
+import { SystemStatusOverlayProvider } from '~/context/SystemStatusOverlayContext';
 import DeliveredCelebrationOverlay from '~/components/DeliveredCelebrationOverlay';
 import DeliveryRatingOverlay from '~/components/DeliveryRatingOverlay';
 import RestaurantRatingOverlay from '~/components/RestaurantRatingOverlay';
@@ -269,7 +270,9 @@ export default function App() {
                           <SelectedAddressProvider>
                             <CartProvider>
                               <LocationOverlayProvider>
-                                <RootNavigator />
+                                <SystemStatusOverlayProvider>
+                                  <RootNavigator />
+                                </SystemStatusOverlayProvider>
                               </LocationOverlayProvider>
                             </CartProvider>
                           </SelectedAddressProvider>
