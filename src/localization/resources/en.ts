@@ -637,6 +637,10 @@ const en: TranslationDictionary = {
         redeemed: 'Points spent',
         adjustment: 'Adjustment',
       },
+      transactionDescriptions: {
+        earnedForOrder: 'Points earned for order {{orderId}}',
+        redeemedForCoupon: 'Redeemed points for coupon {{couponCode}}',
+      },
       pointsUnit: 'pts',
     },
     loyaltyDetails: {
