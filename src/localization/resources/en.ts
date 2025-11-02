@@ -412,6 +412,7 @@ const en: TranslationDictionary = {
       overlay: {
         title: 'Extra tip for your rider?',
         orderAmountLabel: 'Current order amount:',
+        tipAmountLabel: 'Your tip adds:',
         description:
           'Show your appreciation for their hard work! 100% of your tip goes directly to the rider.',
         percentageHelper: 'Of your order’s amount',

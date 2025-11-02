@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   GestureResponderEvent,
+  Keyboard,
   Linking,
   Modal,
   ScrollView,
@@ -11,6 +12,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import {
@@ -229,6 +231,8 @@ type TipSelectionOverlayProps = {
   title: string;
   orderAmountLabel: string;
   orderAmountValue: string;
+  tipAmountLabel?: string | null;
+  tipAmountValue?: string | null;
   description: string;
   percentageHelper: string;
   cancelLabel: string;
@@ -251,6 +255,8 @@ const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
   title,
   orderAmountLabel,
   orderAmountValue,
+  tipAmountLabel,
+  tipAmountValue,
   description,
   percentageHelper,
   cancelLabel,
@@ -261,125 +267,155 @@ const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
   onCashChange,
   showCashInput,
   errorMessage,
-}) => (
-  <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-    <View className="flex-1 justify-center bg-[#17213A]/40 px-6">
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={onClose}
-        className="absolute inset-0"
-      />
-      <View className="rounded-3xl bg-white px-6 py-7">
-        <TouchableOpacity
-          onPress={onClose}
-          className="absolute left-5 top-5 rounded-full border border-[#E4E6EB] p-2"
-        >
-          <X size={18} color={sectionTitleColor} />
-        </TouchableOpacity>
-        <Text
-          allowFontScaling={false}
-          className="text-center text-xl font-bold"
-          style={{ color: sectionTitleColor }}
-        >
-          {title}
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="mt-6 text-center text-sm text-[#6B7280]"
-        >
-          {orderAmountLabel}
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="mt-1 text-center text-2xl font-bold"
-          style={{ color: accentColor }}
-        >
-          {orderAmountValue}
-        </Text>
-        <View className="mt-6 flex-row flex-wrap justify-between">
-          {options.map((option) => {
-            const isSelected = selectedPercentage === option;
-            return (
-              <TouchableOpacity
-                key={option}
-                activeOpacity={0.85}
-                onPress={() => onSelect(option)}
-                className="mb-3 items-center justify-center rounded-2xl border py-3"
-                style={{
-                  width: '22%',
-                  borderColor: isSelected ? accentColor : '#EFEFF1',
-                  backgroundColor: isSelected ? '#FFF5F4' : 'white',
-                }}
-              >
+}) => {
+  const handleDismissKeyboard = useCallback(() => {
+    Keyboard.dismiss();
+  }, []);
+
+  const handleClose = useCallback(() => {
+    Keyboard.dismiss();
+    onClose();
+  }, [onClose]);
+
+  const handleConfirm = useCallback(() => {
+    Keyboard.dismiss();
+    onConfirm();
+  }, [onConfirm]);
+
+  return (
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={handleClose}>
+      <View className="flex-1 justify-center bg-[#17213A]/40 px-6">
+        <TouchableOpacity activeOpacity={1} onPress={handleClose} className="absolute inset-0" />
+        <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
+          <View className="rounded-3xl bg-white px-6 py-7">
+            <TouchableOpacity
+              onPress={handleClose}
+              className="absolute left-5 top-5 rounded-full border border-[#E4E6EB] p-2"
+            >
+              <X size={18} color={sectionTitleColor} />
+            </TouchableOpacity>
+            <Text
+              allowFontScaling={false}
+              className="text-center text-xl font-bold"
+              style={{ color: sectionTitleColor }}
+            >
+              {title}
+            </Text>
+            <Text
+              allowFontScaling={false}
+              className="mt-6 text-center text-sm text-[#6B7280]"
+            >
+              {orderAmountLabel}
+            </Text>
+            <Text
+              allowFontScaling={false}
+              className="mt-1 text-center text-2xl font-bold"
+              style={{ color: accentColor }}
+            >
+              {orderAmountValue}
+            </Text>
+            {tipAmountValue ? (
+              <View className="mt-4 items-center rounded-2xl bg-[#FFF5F4] px-4 py-3">
+                {tipAmountLabel ? (
+                  <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
+                    {tipAmountLabel}
+                  </Text>
+                ) : null}
                 <Text
                   allowFontScaling={false}
-                  className="text-base font-semibold"
-                  style={{ color: sectionTitleColor }}
+                  className="mt-1 text-lg font-semibold"
+                  style={{ color: accentColor }}
                 >
-                  {option}%
+                  +{tipAmountValue}
+                </Text>
+              </View>
+            ) : null}
+            <View className="mt-6 flex-row flex-wrap justify-between">
+              {options.map((option) => {
+                const isSelected = selectedPercentage === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    activeOpacity={0.85}
+                    onPress={() => onSelect(option)}
+                    className="mb-3 items-center justify-center rounded-2xl border py-3"
+                    style={{
+                      width: '22%',
+                      borderColor: isSelected ? accentColor : '#EFEFF1',
+                      backgroundColor: isSelected ? '#FFF5F4' : 'white',
+                    }}
+                  >
+                    <Text
+                      allowFontScaling={false}
+                      className="text-base font-semibold"
+                      style={{ color: sectionTitleColor }}
+                    >
+                      {option}%
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text
+              allowFontScaling={false}
+              className="text-center text-xs uppercase tracking-wider text-[#6B7280]"
+            >
+              {percentageHelper}
+            </Text>
+            <Text
+              allowFontScaling={false}
+              className="mt-4 text-center text-sm text-[#4B5563]"
+            >
+              {description}
+            </Text>
+            {showCashInput ? (
+              <View className="mt-6">
+                {cashLabel ? (
+                  <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: sectionTitleColor }}>
+                    {cashLabel}
+                  </Text>
+                ) : null}
+                <TextInput
+                  allowFontScaling={false}
+                  value={cashValue}
+                  onChangeText={onCashChange}
+                  keyboardType="decimal-pad"
+                  placeholder={cashPlaceholder}
+                  className="mt-2 rounded-2xl border border-[#EFEFF1] px-4 py-3 text-base text-[#111827]"
+                />
+                {errorMessage ? (
+                  <Text allowFontScaling={false} className="mt-2 text-sm text-[#CA251B]">
+                    {errorMessage}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+            <View className="mt-8 flex-row items-center justify-between">
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleClose}
+                className="mr-3 flex-1 items-center justify-center rounded-full border border-[#E4E6EB] px-4 py-3"
+              >
+                <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+                  {cancelLabel}
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-        </View>
-        <Text
-          allowFontScaling={false}
-          className="text-center text-xs uppercase tracking-wider text-[#6B7280]"
-        >
-          {percentageHelper}
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="mt-4 text-center text-sm text-[#4B5563]"
-        >
-          {description}
-        </Text>
-        {showCashInput ? (
-          <View className="mt-6">
-            {cashLabel ? (
-              <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: sectionTitleColor }}>
-                {cashLabel}
-              </Text>
-            ) : null}
-            <TextInput
-              allowFontScaling={false}
-              value={cashValue}
-              onChangeText={onCashChange}
-              keyboardType="decimal-pad"
-              placeholder={cashPlaceholder}
-              className="mt-2 rounded-2xl border border-[#EFEFF1] px-4 py-3 text-base text-[#111827]"
-            />
-            {errorMessage ? (
-              <Text allowFontScaling={false} className="mt-2 text-sm text-[#CA251B]">
-                {errorMessage}
-              </Text>
-            ) : null}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={handleConfirm}
+                className="flex-1 items-center justify-center rounded-full bg-[#CA251B] px-4 py-3"
+              >
+                <Text allowFontScaling={false} className="text-base font-semibold text-white">
+                  {confirmLabel}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        ) : null}
-        <View className="mt-8 flex-row items-center justify-between">
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onClose}
-            className="mr-3 flex-1 items-center justify-center rounded-full border border-[#E4E6EB] px-4 py-3"
-          >
-            <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
-              {cancelLabel}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={onConfirm}
-            className="flex-1 items-center justify-center rounded-full bg-[#CA251B] px-4 py-3"
-          >
-            <Text allowFontScaling={false} className="text-base font-semibold text-white">
-              {confirmLabel}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </TouchableWithoutFeedback>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 type CheckoutRouteParams = {
   couponCode?: string;
@@ -2279,6 +2315,8 @@ const CheckoutOrder: React.FC = () => {
         title={t('checkout.tip.overlay.title')}
         orderAmountLabel={t('checkout.tip.overlay.orderAmountLabel')}
         orderAmountValue={formatCurrency(displayTotalBeforeTip)}
+        tipAmountLabel={t('checkout.tip.overlay.tipAmountLabel')}
+        tipAmountValue={displayTipAmount > 0 ? formatCurrency(displayTipAmount) : null}
         description={t('checkout.tip.overlay.description')}
         percentageHelper={t('checkout.tip.overlay.percentageHelper')}
         cancelLabel={t('checkout.tip.overlay.cancel')}

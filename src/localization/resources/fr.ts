@@ -416,6 +416,7 @@ const fr: TranslationDictionary = {
       overlay: {
         title: 'Un pourboire supplémentaire pour votre livreur ?',
         orderAmountLabel: 'Montant actuel de la commande :',
+        tipAmountLabel: 'Votre pourboire ajoute :',
         description:
           'Remerciez-le pour son travail ! 100 % de votre pourboire revient directement au livreur.',
         percentageHelper: 'Sur le montant de votre commande',
