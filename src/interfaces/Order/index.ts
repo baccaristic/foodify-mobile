@@ -67,6 +67,8 @@ export interface OrderRequest {
   userId?: number;
   savedAddressId?: string;
   couponCode?: string;
+  tipPercentage?: number;
+  cashToCollect?: number;
 }
 
 export interface RestaurantSummaryResponse {
@@ -136,6 +138,10 @@ export interface PaymentSummaryResponse extends OnlinePaymentMetadata {
   couponDiscount?: MonetaryAmount;
   itemsTotal?: MonetaryAmount;
   deliveryFee?: MonetaryAmount;
+  tipPercentage?: MonetaryAmount;
+  tipAmount?: MonetaryAmount;
+  totalBeforeTip?: MonetaryAmount;
+  cashToCollect?: MonetaryAmount;
   [key: string]: unknown;
 }
 

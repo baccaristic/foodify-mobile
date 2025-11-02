@@ -41,6 +41,30 @@ import { useCurrencyFormatter } from '~/localization/hooks';
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
 const borderColor = '#E8E9EC';
+const TIP_OPTIONS = [5, 10, 15, 20];
+
+const parsePositiveDecimalInput = (value: string): number | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed.length) {
+    return null;
+  }
+
+  const normalized = trimmed.replace(/,/g, '.');
+  if (!/^\d+(\.\d{0,2})?$/.test(normalized)) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return Math.round(parsed * 100) / 100;
+};
 
 const extractNumericAmount = (value: MonetaryAmount | null | undefined): number | null => {
   if (value == null) {
@@ -195,6 +219,168 @@ const PaymentModal: React.FC<{
   </Modal>
 );
 
+type TipSelectionOverlayProps = {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  onSelect: (percentage: number) => void;
+  selectedPercentage: number | null;
+  options: number[];
+  title: string;
+  orderAmountLabel: string;
+  orderAmountValue: string;
+  description: string;
+  percentageHelper: string;
+  cancelLabel: string;
+  confirmLabel: string;
+  cashLabel?: string | null;
+  cashPlaceholder: string;
+  cashValue: string;
+  onCashChange: (value: string) => void;
+  showCashInput: boolean;
+  errorMessage?: string | null;
+};
+
+const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
+  visible,
+  onClose,
+  onConfirm,
+  onSelect,
+  selectedPercentage,
+  options,
+  title,
+  orderAmountLabel,
+  orderAmountValue,
+  description,
+  percentageHelper,
+  cancelLabel,
+  confirmLabel,
+  cashLabel,
+  cashPlaceholder,
+  cashValue,
+  onCashChange,
+  showCashInput,
+  errorMessage,
+}) => (
+  <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+    <View className="flex-1 justify-center bg-[#17213A]/40 px-6">
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onClose}
+        className="absolute inset-0"
+      />
+      <View className="rounded-3xl bg-white px-6 py-7">
+        <TouchableOpacity
+          onPress={onClose}
+          className="absolute left-5 top-5 rounded-full border border-[#E4E6EB] p-2"
+        >
+          <X size={18} color={sectionTitleColor} />
+        </TouchableOpacity>
+        <Text
+          allowFontScaling={false}
+          className="text-center text-xl font-bold"
+          style={{ color: sectionTitleColor }}
+        >
+          {title}
+        </Text>
+        <Text
+          allowFontScaling={false}
+          className="mt-6 text-center text-sm text-[#6B7280]"
+        >
+          {orderAmountLabel}
+        </Text>
+        <Text
+          allowFontScaling={false}
+          className="mt-1 text-center text-2xl font-bold"
+          style={{ color: accentColor }}
+        >
+          {orderAmountValue}
+        </Text>
+        <View className="mt-6 flex-row flex-wrap justify-between">
+          {options.map((option) => {
+            const isSelected = selectedPercentage === option;
+            return (
+              <TouchableOpacity
+                key={option}
+                activeOpacity={0.85}
+                onPress={() => onSelect(option)}
+                className="mb-3 items-center justify-center rounded-2xl border py-3"
+                style={{
+                  width: '22%',
+                  borderColor: isSelected ? accentColor : '#EFEFF1',
+                  backgroundColor: isSelected ? '#FFF5F4' : 'white',
+                }}
+              >
+                <Text
+                  allowFontScaling={false}
+                  className="text-base font-semibold"
+                  style={{ color: sectionTitleColor }}
+                >
+                  {option}%
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Text
+          allowFontScaling={false}
+          className="text-center text-xs uppercase tracking-wider text-[#6B7280]"
+        >
+          {percentageHelper}
+        </Text>
+        <Text
+          allowFontScaling={false}
+          className="mt-4 text-center text-sm text-[#4B5563]"
+        >
+          {description}
+        </Text>
+        {showCashInput ? (
+          <View className="mt-6">
+            {cashLabel ? (
+              <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: sectionTitleColor }}>
+                {cashLabel}
+              </Text>
+            ) : null}
+            <TextInput
+              allowFontScaling={false}
+              value={cashValue}
+              onChangeText={onCashChange}
+              keyboardType="decimal-pad"
+              placeholder={cashPlaceholder}
+              className="mt-2 rounded-2xl border border-[#EFEFF1] px-4 py-3 text-base text-[#111827]"
+            />
+            {errorMessage ? (
+              <Text allowFontScaling={false} className="mt-2 text-sm text-[#CA251B]">
+                {errorMessage}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+        <View className="mt-8 flex-row items-center justify-between">
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onClose}
+            className="mr-3 flex-1 items-center justify-center rounded-full border border-[#E4E6EB] px-4 py-3"
+          >
+            <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+              {cancelLabel}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onConfirm}
+            className="flex-1 items-center justify-center rounded-full bg-[#CA251B] px-4 py-3"
+          >
+            <Text allowFontScaling={false} className="text-base font-semibold text-white">
+              {confirmLabel}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+);
+
 type CheckoutRouteParams = {
   couponCode?: string;
   discountAmount?: number;
@@ -234,6 +420,11 @@ const CheckoutOrder: React.FC = () => {
   >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isTipModalVisible, setIsTipModalVisible] = useState(false);
+  const [selectedTipPercentage, setSelectedTipPercentage] = useState<number | null>(null);
+  const [cashToCollectInput, setCashToCollectInput] = useState('');
+  const [tipOverlayError, setTipOverlayError] = useState<string | null>(null);
+  const [pendingCoordinates, setPendingCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [deliveryQuote, setDeliveryQuote] = useState<
     | {
         available: boolean;
@@ -254,6 +445,15 @@ const CheckoutOrder: React.FC = () => {
       })),
     [t],
   );
+
+  const handleTipSelection = useCallback((value: number) => {
+    setSelectedTipPercentage((prev) => (prev === value ? null : value));
+  }, []);
+
+  const handleCashInputChange = useCallback((value: string) => {
+    const sanitized = value.replace(/[^0-9.,]/g, '');
+    setCashToCollectInput(sanitized);
+  }, []);
 
   const formatPaymentMethodLabel = useCallback(
     (method?: string | null) => {
@@ -365,6 +565,18 @@ const CheckoutOrder: React.FC = () => {
       });
     }
   }, [route.params, navigation, isViewMode]);
+
+  useEffect(() => {
+    if (selectedPaymentMethod !== 'CASH') {
+      setCashToCollectInput('');
+    }
+  }, [selectedPaymentMethod]);
+
+  useEffect(() => {
+    if (!isTipModalVisible) {
+      setTipOverlayError(null);
+    }
+  }, [isTipModalVisible]);
 
   useEffect(() => {
     if (isViewMode) {
@@ -555,6 +767,18 @@ const CheckoutOrder: React.FC = () => {
       grandTotal: extractNumericAmount(
         (paymentDetails as { grandTotal?: MonetaryAmount | null })?.grandTotal,
       ),
+      tipPercentage: extractNumericAmount(
+        (paymentDetails as { tipPercentage?: MonetaryAmount | null })?.tipPercentage,
+      ),
+      tipAmount: extractNumericAmount(
+        (paymentDetails as { tipAmount?: MonetaryAmount | null })?.tipAmount,
+      ),
+      totalBeforeTip: extractNumericAmount(
+        (paymentDetails as { totalBeforeTip?: MonetaryAmount | null })?.totalBeforeTip,
+      ),
+      cashToCollect: extractNumericAmount(
+        (paymentDetails as { cashToCollect?: MonetaryAmount | null })?.cashToCollect,
+      ),
     };
   }, [paymentDetails]);
 
@@ -618,11 +842,107 @@ const CheckoutOrder: React.FC = () => {
     () => (appliedCoupon ? calculateCouponDiscount(appliedCoupon.type, appliedCoupon.discountPercent) : 0),
     [appliedCoupon, calculateCouponDiscount],
   );
-  const total = useMemo(
+  const baseTotal = useMemo(
     () => Math.max(subtotal + deliveryFee + serviceFee - discountValue, 0),
     [subtotal, deliveryFee, serviceFee, discountValue],
   );
   const deliveryToken =  (viewOrder as any)?.deliveryToken;
+  const effectiveTipPercentage = useMemo(() => {
+    if (isViewMode) {
+      if (paymentBreakdown?.tipPercentage == null) {
+        return null;
+      }
+      const clamped = Math.min(Math.max(paymentBreakdown.tipPercentage, 0), 100);
+      return Math.round(clamped * 100) / 100;
+    }
+
+    if (selectedTipPercentage == null) {
+      return null;
+    }
+
+    const clamped = Math.min(Math.max(selectedTipPercentage, 0), 100);
+    return Math.round(clamped * 100) / 100;
+  }, [isViewMode, paymentBreakdown, selectedTipPercentage]);
+
+  const displayTipAmount = useMemo(() => {
+    if (isViewMode) {
+      const tipAmount = paymentBreakdown?.tipAmount;
+      return tipAmount != null ? Math.max(tipAmount, 0) : 0;
+    }
+
+    if (effectiveTipPercentage == null || baseTotal <= 0) {
+      return 0;
+    }
+
+    const computed = (baseTotal * effectiveTipPercentage) / 100;
+    return Math.max(Math.round(computed * 100) / 100, 0);
+  }, [isViewMode, paymentBreakdown, effectiveTipPercentage, baseTotal]);
+
+  const displayTotalBeforeTip = useMemo(() => {
+    if (isViewMode) {
+      if (paymentBreakdown?.totalBeforeTip != null) {
+        return Math.max(paymentBreakdown.totalBeforeTip, 0);
+      }
+
+      if (paymentBreakdown?.total != null) {
+        const fallback = paymentBreakdown.total - (paymentBreakdown.tipAmount ?? 0);
+        return Math.max(fallback, 0);
+      }
+
+      const orderTotal = extractNumericAmount((viewOrder as { total?: MonetaryAmount })?.total);
+      if (orderTotal != null) {
+        return Math.max(orderTotal - (paymentBreakdown?.tipAmount ?? 0), 0);
+      }
+
+      return viewModeTotals?.lineSubtotal ?? 0;
+    }
+
+    return baseTotal;
+  }, [
+    isViewMode,
+    paymentBreakdown,
+    baseTotal,
+    viewOrder,
+    viewModeTotals,
+  ]);
+
+  const displayCashToCollect = useMemo(() => {
+    if (isViewMode) {
+      const cashValue = paymentBreakdown?.cashToCollect;
+      return cashValue != null ? Math.max(cashValue, 0) : null;
+    }
+
+    const parsed = parsePositiveDecimalInput(cashToCollectInput);
+    return parsed != null ? parsed : null;
+  }, [isViewMode, paymentBreakdown, cashToCollectInput]);
+
+  const shouldShowTipSummary = useMemo(
+    () => (isViewMode ? paymentBreakdown?.tipAmount != null : displayTipAmount > 0),
+    [isViewMode, paymentBreakdown, displayTipAmount],
+  );
+
+  const shouldShowTotalBeforeTip = useMemo(
+    () => (isViewMode ? paymentBreakdown?.totalBeforeTip != null : displayTipAmount > 0),
+    [isViewMode, paymentBreakdown, displayTipAmount],
+  );
+
+  const shouldShowCashToCollect = useMemo(
+    () =>
+      isViewMode
+        ? paymentBreakdown?.cashToCollect != null
+        : selectedPaymentMethod === 'CASH' && displayCashToCollect != null,
+    [isViewMode, paymentBreakdown, selectedPaymentMethod, displayCashToCollect],
+  );
+
+  const tipSummaryLabel = useMemo(() => {
+    const baseLabel = t('checkout.summary.tip');
+    if (effectiveTipPercentage != null && effectiveTipPercentage > 0) {
+      const formatted = Number(effectiveTipPercentage.toFixed(2)).toString();
+      return `${baseLabel} (${formatted}%)`;
+    }
+    return baseLabel;
+  }, [t, effectiveTipPercentage]);
+
   const displayItems = useMemo<DisplayItem[]>(() => {
     if (isViewMode && viewOrder) {
       return viewOrderItems.map((item, index) => {
@@ -850,23 +1170,24 @@ const CheckoutOrder: React.FC = () => {
 
   const displayTotal = useMemo(() => {
     if (!isViewMode || !viewOrder) {
-      return total;
+      return Math.max(displayTotalBeforeTip + displayTipAmount, 0);
     }
 
     if (paymentBreakdown?.total != null) {
       return paymentBreakdown.total;
     }
 
-    if (paymentBreakdown?.subtotal != null && paymentBreakdown?.deliveryFee != null) {
-      return Math.max(paymentBreakdown.subtotal + paymentBreakdown.deliveryFee, 0);
-    }
-
     if (paymentBreakdown?.grandTotal != null) {
       return paymentBreakdown.grandTotal;
     }
 
+    if (paymentBreakdown?.subtotal != null && paymentBreakdown?.deliveryFee != null) {
+      const subtotalWithFees = Math.max(paymentBreakdown.subtotal + paymentBreakdown.deliveryFee, 0);
+      return subtotalWithFees + Math.max(paymentBreakdown.tipAmount ?? 0, 0);
+    }
+
     if (paymentBreakdown?.itemsTotal != null) {
-      return paymentBreakdown.itemsTotal;
+      return paymentBreakdown.itemsTotal + Math.max(paymentBreakdown.tipAmount ?? 0, 0);
     }
 
     const orderTotal = extractNumericAmount((viewOrder as { total?: MonetaryAmount })?.total);
@@ -874,8 +1195,14 @@ const CheckoutOrder: React.FC = () => {
       return orderTotal;
     }
 
-    return viewModeTotals?.lineTotal ?? 0;
-  }, [isViewMode, viewOrder, total, viewModeTotals, paymentBreakdown]);
+    return Math.max(displayTotalBeforeTip + Math.max(paymentBreakdown?.tipAmount ?? 0, 0), 0);
+  }, [
+    isViewMode,
+    viewOrder,
+    paymentBreakdown,
+    displayTotalBeforeTip,
+    displayTipAmount,
+  ]);
 
   const displayPromotionDiscount = useMemo(() => {
     if (!isViewMode || !viewOrder) {
@@ -918,20 +1245,26 @@ const CheckoutOrder: React.FC = () => {
 
     if (paymentBreakdown?.total != null && paymentBreakdown?.subtotal != null) {
       const diff =
-        paymentBreakdown.total - paymentBreakdown.subtotal + displayPromotionDiscount;
+        paymentBreakdown.total -
+        paymentBreakdown.subtotal -
+        Math.max(paymentBreakdown.tipAmount ?? 0, 0) +
+        displayPromotionDiscount;
       if (Number.isFinite(diff)) {
         return Math.max(diff, 0);
       }
     }
 
     const computed =
-      displayTotal - (displaySubtotal + displayExtrasTotal) + displayPromotionDiscount;
+      displayTotal -
+      displayTipAmount -
+      (displaySubtotal + displayExtrasTotal) +
+      displayPromotionDiscount;
 
     if (Number.isFinite(computed)) {
       return Math.max(computed, 0);
     }
 
-    const fallback = displayTotal - (displaySubtotal + displayExtrasTotal);
+    const fallback = displayTotal - displayTipAmount - (displaySubtotal + displayExtrasTotal);
 
     if (Number.isFinite(fallback)) {
       return Math.max(fallback, 0);
@@ -948,6 +1281,7 @@ const CheckoutOrder: React.FC = () => {
     displaySubtotal,
     displayExtrasTotal,
     displayPromotionDiscount,
+    displayTipAmount,
   ]);
 
   const deliveryStatusMessage = useMemo(() => {
@@ -1177,24 +1511,24 @@ const CheckoutOrder: React.FC = () => {
     navigation.navigate('LocationSelection');
   }, [navigation, isViewMode]);
 
-  const handleConfirmOrder = useCallback(async () => {
+  const validateBeforeSubmission = useCallback((): { lat: number; lng: number } | null => {
     if (isViewMode) {
-      return;
+      return null;
     }
 
     if (!hasItems) {
       setSubmissionError(t('checkout.errors.emptyCart'));
-      return;
+      return null;
     }
 
     if (!restaurant?.id) {
       setSubmissionError(t('checkout.errors.missingRestaurant'));
-      return;
+      return null;
     }
 
     if (!selectedAddress) {
       setSubmissionError(t('checkout.errors.missingAddress'));
-      return;
+      return null;
     }
 
     const latCandidate = Number(selectedAddress.coordinates?.latitude);
@@ -1202,45 +1536,85 @@ const CheckoutOrder: React.FC = () => {
 
     if (!Number.isFinite(latCandidate) || !Number.isFinite(lngCandidate)) {
       setSubmissionError(t('checkout.errors.missingCoordinates'));
-      return;
+      return null;
     }
 
     if (!selectedPaymentMethod) {
       setSubmissionError(t('checkout.errors.missingPayment'));
-      return;
+      return null;
     }
 
     if (isDeliveryQuoteLoading) {
       setSubmissionError(t('checkout.errors.deliveryFeePending'));
-      return;
+      return null;
     }
 
     if (deliveryQuote?.available === false) {
       setSubmissionError(t('checkout.errors.deliveryUnavailable'));
-      return;
+      return null;
     }
 
     if (deliveryQuoteError === 'INVALID_COORDINATES') {
       setSubmissionError(t('checkout.errors.missingCoordinates'));
-      return;
+      return null;
     }
 
     if (deliveryQuoteError) {
       setSubmissionError(t('checkout.errors.deliveryQuoteFailed'));
-      return;
+      return null;
     }
 
     setSubmissionError(null);
-    setIsSubmitting(true);
+    return { lat: latCandidate, lng: lngCandidate };
+  }, [
+    isViewMode,
+    hasItems,
+    restaurant?.id,
+    selectedAddress,
+    selectedPaymentMethod,
+    isDeliveryQuoteLoading,
+    deliveryQuote?.available,
+    deliveryQuoteError,
+    t,
+  ]);
 
-    try {
-      const numericUserId =
-        typeof user?.id === 'number' ? user.id : Number(user?.id);
+  const submitOrder = useCallback(
+    async (
+      tipPercentageValue: number | null,
+      cashToCollectValue: number | null,
+      coordinatesOverride?: { lat: number; lng: number } | null,
+    ) => {
+      if (isViewMode) {
+        return;
+      }
+
+      const coordinates = coordinatesOverride ?? validateBeforeSubmission();
+      if (!coordinates) {
+        return;
+      }
+
+      if (!selectedAddress) {
+        setSubmissionError(t('checkout.errors.missingAddress'));
+        return;
+      }
+
+      const restaurantId = restaurant?.id;
+      if (!restaurantId) {
+        setSubmissionError(t('checkout.errors.missingRestaurant'));
+        return;
+      }
+
+      if (!selectedPaymentMethod) {
+        setSubmissionError(t('checkout.errors.missingPayment'));
+        return;
+      }
+
+      const numericUserId = typeof user?.id === 'number' ? user.id : Number(user?.id);
 
       const paymentMethodPayload = selectedPaymentMethod === 'CASH' ? 'cash' : 'card';
 
       const payload = {
-        deliveryAddress: selectedAddress.formattedAddress,
+        deliveryAddress: selectedAddress.formattedAddress ?? '',
         items: items.map((item) => {
           const extraIds = item.extras.flatMap((group) => group.extras.map((extra) => extra.id));
           return {
@@ -1251,11 +1625,11 @@ const CheckoutOrder: React.FC = () => {
           };
         }),
         location: {
-          lat: latCandidate,
-          lng: lngCandidate,
+          lat: coordinates.lat,
+          lng: coordinates.lng,
         },
         paymentMethod: paymentMethodPayload,
-        restaurantId: restaurant.id,
+        restaurantId,
         userId: Number.isFinite(numericUserId) ? Number(numericUserId) : undefined,
         savedAddressId: selectedAddress.id,
       } as OrderRequest;
@@ -1264,83 +1638,154 @@ const CheckoutOrder: React.FC = () => {
         payload.couponCode = appliedCoupon.code;
       }
 
-      const response = await createOrder(payload);
-
-      updateOngoingOrder({
-        orderId: response.orderId,
-        status: response.status,
-        restaurant: response.restaurant,
-        delivery: response.delivery,
-        payment: response.payment,
-        items: response.items as unknown as OngoingOrderData['items'],
-        workflow: response.workflow,
-      });
-      clearCart();
-      setAppliedCoupon(null);
-      setComment('');
-      setAllergies('');
-      navigation.navigate('OrderTracking', { order: response });
-
-      const paymentUrl =
-        typeof response?.payment?.paymentUrl === 'string'
-          ? response.payment.paymentUrl.trim()
-          : '';
-
-      if (paymentUrl) {
-        try {
-          const canOpen = await Linking.canOpenURL(paymentUrl);
-          if (!canOpen) {
-            throw new Error('UNSUPPORTED_URL');
-          }
-          await Linking.openURL(paymentUrl);
-        } catch (error) {
-          console.warn('Failed to open Konnect payment URL', error);
-          Alert.alert(
-            t('orderTracking.payment.openErrorTitle'),
-            t('orderTracking.payment.openErrorMessage'),
-          );
-        }
+      if (tipPercentageValue != null) {
+        const clampedTip = Math.min(Math.max(tipPercentageValue, 0), 100);
+        payload.tipPercentage = Number(clampedTip.toFixed(2));
       }
-    } catch (error) {
-      console.error('Failed to create order:', error);
-      const message = (() => {
-        if (isAxiosError(error)) {
-          const responseMessage =
-            (typeof error.response?.data === 'object' && error.response?.data && 'message' in error.response.data
-              ? String((error.response?.data as { message?: unknown }).message)
-              : null) ?? error.message;
-          return responseMessage || t('checkout.errors.generic');
+
+      if (cashToCollectValue != null) {
+        payload.cashToCollect = Number(cashToCollectValue.toFixed(2));
+      }
+
+      setIsSubmitting(true);
+
+      try {
+        const response = await createOrder(payload);
+
+        updateOngoingOrder({
+          orderId: response.orderId,
+          status: response.status,
+          restaurant: response.restaurant,
+          delivery: response.delivery,
+          payment: response.payment,
+          items: response.items as unknown as OngoingOrderData['items'],
+          workflow: response.workflow,
+        });
+        clearCart();
+        setAppliedCoupon(null);
+        setComment('');
+        setAllergies('');
+        navigation.navigate('OrderTracking', { order: response });
+
+        const paymentUrl =
+          typeof response?.payment?.paymentUrl === 'string'
+            ? response.payment.paymentUrl.trim()
+            : '';
+
+        if (paymentUrl) {
+          try {
+            const canOpen = await Linking.canOpenURL(paymentUrl);
+            if (!canOpen) {
+              throw new Error('UNSUPPORTED_URL');
+            }
+            await Linking.openURL(paymentUrl);
+          } catch (error) {
+            console.warn('Failed to open Konnect payment URL', error);
+            Alert.alert(
+              t('orderTracking.payment.openErrorTitle'),
+              t('orderTracking.payment.openErrorMessage'),
+            );
+          }
         }
+      } catch (error) {
+        console.error('Failed to create order:', error);
+        const message = (() => {
+          if (isAxiosError(error)) {
+            const responseMessage =
+              (typeof error.response?.data === 'object' &&
+                error.response?.data &&
+                'message' in error.response.data
+                ? String((error.response?.data as { message?: unknown }).message)
+                : null) ?? error.message;
+            return responseMessage || t('checkout.errors.generic');
+          }
 
-        if (error instanceof Error) {
-          return error.message;
-        }
+          if (error instanceof Error) {
+            return error.message;
+          }
 
-        return t('checkout.errors.generic');
-      })();
+          return t('checkout.errors.generic');
+        })();
 
-      setSubmissionError(message);
-      Alert.alert(t('checkout.alerts.orderFailedTitle'), message);
-    } finally {
-      setIsSubmitting(false);
+        setSubmissionError(message);
+        Alert.alert(t('checkout.alerts.orderFailedTitle'), message);
+      } finally {
+        setIsSubmitting(false);
+        setPendingCoordinates(null);
+      }
+    }, [
+      isViewMode,
+      validateBeforeSubmission,
+      selectedAddress,
+      restaurant?.id,
+      selectedPaymentMethod,
+      user?.id,
+      items,
+      combinedInstructions,
+      appliedCoupon?.code,
+      clearCart,
+      navigation,
+      t,
+      updateOngoingOrder,
+    ],
+  );
+
+  const handleConfirmOrder = useCallback(() => {
+    if (isViewMode) {
+      return;
     }
+
+    const coordinates = validateBeforeSubmission();
+    if (!coordinates) {
+      return;
+    }
+
+    setPendingCoordinates(coordinates);
+    setTipOverlayError(null);
+    setIsTipModalVisible(true);
+  }, [isViewMode, validateBeforeSubmission]);
+
+  const handleTipOverlayConfirm = useCallback(() => {
+    if (isViewMode) {
+      return;
+    }
+
+    setTipOverlayError(null);
+
+    const normalizedTip =
+      selectedTipPercentage != null
+        ? Math.round(Math.min(Math.max(selectedTipPercentage, 0), 100) * 100) / 100
+        : null;
+
+    let cashValue: number | null = null;
+    if (selectedPaymentMethod === 'CASH') {
+      if (!cashToCollectInput.trim().length) {
+        setTipOverlayError(t('checkout.tip.overlay.errors.requiredCash'));
+        return;
+      }
+
+      const parsedCash = parsePositiveDecimalInput(cashToCollectInput);
+      if (parsedCash == null) {
+        setTipOverlayError(t('checkout.tip.overlay.errors.invalidCash'));
+        return;
+      }
+
+      cashValue = parsedCash;
+      setCashToCollectInput(parsedCash.toFixed(2));
+    }
+
+    setSelectedTipPercentage(normalizedTip);
+    setIsTipModalVisible(false);
+    submitOrder(normalizedTip, cashValue, pendingCoordinates);
+    setPendingCoordinates(null);
   }, [
     isViewMode,
-    hasItems,
-    restaurant?.id,
-    selectedAddress,
+    selectedTipPercentage,
     selectedPaymentMethod,
-    user?.id,
-    items,
-    combinedInstructions,
-    clearCart,
-    navigation,
+    cashToCollectInput,
     t,
-    appliedCoupon?.code,
-    isDeliveryQuoteLoading,
-    deliveryQuote?.available,
-    deliveryQuoteError,
-    updateOngoingOrder,
+    submitOrder,
+    pendingCoordinates,
   ]);
 
   const isDeliveryQuoteBlocking =
@@ -1707,6 +2152,36 @@ const CheckoutOrder: React.FC = () => {
                 </Text>
               </View>
             ) : null}
+            {shouldShowTotalBeforeTip ? (
+              <View className="mt-3 flex-row items-center justify-between">
+                <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                  {t('checkout.summary.beforeTip')}
+                </Text>
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                  {formatCurrency(displayTotalBeforeTip)}
+                </Text>
+              </View>
+            ) : null}
+            {shouldShowTipSummary ? (
+              <View className="mt-3 flex-row items-center justify-between">
+                <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                  {tipSummaryLabel}
+                </Text>
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                  +{formatCurrency(displayTipAmount)}
+                </Text>
+              </View>
+            ) : null}
+            {shouldShowCashToCollect && displayCashToCollect != null ? (
+              <View className="mt-3 flex-row items-center justify-between">
+                <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                  {t('checkout.summary.cashToCollect')}
+                </Text>
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                  {formatCurrency(displayCashToCollect)}
+                </Text>
+              </View>
+            ) : null}
             <View className="mt-4 border-t border-dashed pt-4" style={{ borderColor }}>
               <View className="flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: sectionTitleColor }}>
@@ -1791,6 +2266,34 @@ const CheckoutOrder: React.FC = () => {
         </View>
       ) : null}
 
+      <TipSelectionOverlay
+        visible={!isViewMode && isTipModalVisible}
+        onClose={() => {
+          setIsTipModalVisible(false);
+          setPendingCoordinates(null);
+        }}
+        onConfirm={handleTipOverlayConfirm}
+        onSelect={handleTipSelection}
+        selectedPercentage={selectedTipPercentage}
+        options={TIP_OPTIONS}
+        title={t('checkout.tip.overlay.title')}
+        orderAmountLabel={t('checkout.tip.overlay.orderAmountLabel')}
+        orderAmountValue={formatCurrency(displayTotalBeforeTip)}
+        description={t('checkout.tip.overlay.description')}
+        percentageHelper={t('checkout.tip.overlay.percentageHelper')}
+        cancelLabel={t('checkout.tip.overlay.cancel')}
+        confirmLabel={t('checkout.tip.overlay.confirm')}
+        cashLabel={
+          selectedPaymentMethod === 'CASH'
+            ? t('checkout.tip.overlay.cashLabel')
+            : undefined
+        }
+        cashPlaceholder={t('checkout.tip.overlay.cashPlaceholder')}
+        cashValue={cashToCollectInput}
+        onCashChange={handleCashInputChange}
+        showCashInput={selectedPaymentMethod === 'CASH'}
+        errorMessage={tipOverlayError}
+      />
       <PaymentModal
         visible={!isViewMode && isPaymentModalVisible}
         onClose={() => setIsPaymentModalVisible(false)}

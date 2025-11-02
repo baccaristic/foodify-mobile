@@ -399,11 +399,36 @@ const en: TranslationDictionary = {
       extras: 'Extras',
       delivery: 'Delivery',
       service: 'Service',
+      beforeTip: 'Total before tip',
+      tip: 'Tip',
+      cashToCollect: 'Cash to collect',
       checkingDelivery: 'Checking delivery availability…',
       fees: 'Fees & delivery',
       coupon: 'Coupon ({{code}})',
       promotion: 'Promotion',
       total: 'Total',
+    },
+    tip: {
+      overlay: {
+        title: 'Extra tip for your rider?',
+        orderAmountLabel: 'Current order amount:',
+        description:
+          'Show your appreciation for their hard work! 100% of your tip goes directly to the rider.',
+        percentageHelper: 'Of your order’s amount',
+        cancel: 'Cancel',
+        confirm: 'Confirm & proceed',
+        cashLabel: 'Paying with cash? Enter the amount you will hand to the courier.',
+        cashPlaceholder: 'Cash amount',
+        errors: {
+          requiredCash: 'Enter the cash amount you will provide.',
+          invalidCash: 'Please enter a valid cash amount (up to two decimals).',
+        },
+      },
+      summary: {
+        tip: 'Tip',
+        beforeTip: 'Total before tip',
+        cashToCollect: 'Cash to collect',
+      },
     },
     deliveryCode: {
       title: 'YOUR DELIVERY CODE',

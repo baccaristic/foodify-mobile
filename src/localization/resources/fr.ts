@@ -403,11 +403,36 @@ const fr: TranslationDictionary = {
       extras: 'Suppléments',
       delivery: 'Livraison',
       service: 'Service',
+      beforeTip: 'Total avant pourboire',
+      tip: 'Pourboire',
+      cashToCollect: 'Espèces à encaisser',
       checkingDelivery: 'Vérification de la disponibilité de la livraison…',
       fees: 'Frais et livraison',
       coupon: 'Code promo ({{code}})',
       promotion: 'Promotion',
       total: 'Total',
+    },
+    tip: {
+      overlay: {
+        title: 'Un pourboire supplémentaire pour votre livreur ?',
+        orderAmountLabel: 'Montant actuel de la commande :',
+        description:
+          'Remerciez-le pour son travail ! 100 % de votre pourboire revient directement au livreur.',
+        percentageHelper: 'Sur le montant de votre commande',
+        cancel: 'Annuler',
+        confirm: 'Confirmer et continuer',
+        cashLabel: 'Vous payez en espèces ? Indiquez le montant que vous remettrez au livreur.',
+        cashPlaceholder: 'Montant en espèces',
+        errors: {
+          requiredCash: 'Indiquez le montant en espèces que vous donnerez.',
+          invalidCash: 'Veuillez saisir un montant en espèces valide (jusqu’à deux décimales).',
+        },
+      },
+      summary: {
+        tip: 'Pourboire',
+        beforeTip: 'Total avant pourboire',
+        cashToCollect: 'Espèces à encaisser',
+      },
     },
     deliveryCode: {
       title: 'VOTRE CODE DE LIVRAISON',
