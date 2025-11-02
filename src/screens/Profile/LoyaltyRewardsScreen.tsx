@@ -100,7 +100,7 @@ export default function FoodyPointsScreen() {
       );
       if (earnedMatch) {
         return t("profile.loyalty.transactionDescriptions.earnedForOrder", {
-          orderId: earnedMatch[1].trim(),
+          values: {orderId: earnedMatch[1].trim()}
         });
       }
 
@@ -109,7 +109,9 @@ export default function FoodyPointsScreen() {
       );
       if (redeemedMatch) {
         return t("profile.loyalty.transactionDescriptions.redeemedForCoupon", {
-          couponCode: redeemedMatch[1].trim(),
+          values: {
+couponCode: redeemedMatch[1].trim(),
+          }
         });
       }
 
