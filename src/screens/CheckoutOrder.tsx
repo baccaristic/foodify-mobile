@@ -870,7 +870,7 @@ const CheckoutOrder: React.FC = () => {
 
     return 0;
   }, [isViewMode, paymentBreakdown, hasItems, deliveryQuote]);
-  const serviceFee = useMemo(() => (hasItems ? Math.max(1.5, subtotal * 0.05) : 0), [hasItems, subtotal]);
+  const serviceFee = 1;
   const calculateCouponDiscount = useCallback(
     (type?: CouponType, discountPercent?: number | null) => {
       if (!type) {
