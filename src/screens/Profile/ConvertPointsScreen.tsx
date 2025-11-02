@@ -18,13 +18,25 @@ import { getLoyaltyBalance, redeemCouponWithPoints } from "~/api/loyalty";
 import HeaderWithBackButton from "~/components/HeaderWithBackButton";
 import type { RedeemCouponRequest } from "~/interfaces/Loyalty";
 import { CircleAlert, CircleCheckBig, Percent, Sparkles, Ticket, Truck, X } from "lucide-react-native";
+import { useTranslation } from "~/localization";
 
 const accentColor = "#CA251B";
 const headerColor = "#17213A";
 
+const formatPointsValue = (value: number) => {
+  if (!Number.isFinite(value)) return "0";
+  const absolute = Math.abs(value);
+  const fractionDigits = absolute % 1 === 0 ? 0 : 2;
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
 export default function ConvertPointsScreen() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const FREE_DELIVERY_COST = 250;
   const DISCOUNT_COST_PER_PERCENT = 15;
@@ -35,15 +47,13 @@ export default function ConvertPointsScreen() {
   });
 
   const totalPoints = Number(balance?.balance ?? 0);
+  const pointsUnit = t("profile.loyalty.pointsUnit");
 
   const [selectedCoupon, setSelectedCoupon] = useState<
     "FREE_DELIVERY" | "DISCOUNT" | null
   >(null);
   const [discountPercent, setDiscountPercent] = useState(20);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [createdCouponCode, setCreatedCouponCode] = useState<string | null>(
-    null
-  );
 
   const discountCost = useMemo(
     () => discountPercent * DISCOUNT_COST_PER_PERCENT,
@@ -57,8 +67,10 @@ export default function ConvertPointsScreen() {
         ? discountCost
         : 0;
 
-  const remaining = (totalPoints - cost).toFixed(3);
-  const canCreate = selectedCoupon && parseFloat(remaining) >= 0;
+  const remainingValue = totalPoints - cost;
+  const remaining = formatPointsValue(remainingValue);
+  const canCreate = Boolean(selectedCoupon) && remainingValue >= 0;
+  const needsMorePoints = Boolean(selectedCoupon) && remainingValue < 0;
 
   const { mutateAsync: redeem, isPending } = useMutation({
     mutationFn: (payload: RedeemCouponRequest) =>
@@ -68,7 +80,6 @@ export default function ConvertPointsScreen() {
       await queryClient.invalidateQueries({
         queryKey: ["loyalty", "transactions"],
       });
-      setCreatedCouponCode(coupon.code);
       setShowSuccessModal(true);
     },
     onError: (err) => {
@@ -115,22 +126,27 @@ export default function ConvertPointsScreen() {
       contentContainerStyle={{ paddingHorizontal: ms(20) }}
     >
       <View style={styles.redCard}>
-        <Text allowFontScaling={false} style={styles.redCardTitle}>Available Foody Points</Text>
-        <Text allowFontScaling={false} style={styles.redCardValue}>{totalPoints.toLocaleString()}</Text>
+        <Text allowFontScaling={false} style={styles.redCardTitle}>
+          {t("profile.convert.availableTitle")}
+        </Text>
+        <Text allowFontScaling={false} style={styles.redCardValue}>
+          {formatPointsValue(totalPoints)}
+        </Text>
         <Text allowFontScaling={false} style={styles.redCardSubtitle}>
-          Create custom rewards with your Foody points
+          {t("profile.convert.availableSubtitle")}
         </Text>
       </View>
 
       <View style={styles.infoBox}>
         <CircleAlert color="#8D939F" size={20} />
         <Text allowFontScaling={false} style={styles.infoText}>
-          Choose the reward you want to create with your foody points. Customize
-          and redeem instantly.
+          {t("profile.convert.infoText")}
         </Text>
       </View>
 
-      <Text allowFontScaling={false} style={styles.sectionTitle}>Select Coupon Type</Text>
+      <Text allowFontScaling={false} style={styles.sectionTitle}>
+        {t("profile.convert.selectTitle")}
+      </Text>
       <TouchableOpacity
         style={[
           styles.optionCard,
@@ -145,15 +161,24 @@ export default function ConvertPointsScreen() {
             <Truck color={accentColor} size={34} style={{ marginTop: verticalScale(5) }} />
 
             <View style={{ flex: 1 }}>
-              <Text allowFontScaling={false} style={styles.optionTitle}>Free Delivery Coupon</Text>
+              <Text allowFontScaling={false} style={styles.optionTitle}>
+                {t("profile.convert.freeDelivery.title")}
+              </Text>
               <Text allowFontScaling={false} style={styles.optionSubtitle}>
-                Cancel delivery fees on your next order
+                {t("profile.convert.freeDelivery.description")}
               </Text>
 
               {selectedCoupon === "FREE_DELIVERY" && (
                 <View style={styles.summaryLine}>
-                  <Text allowFontScaling={false} style={{ fontSize: moderateScale(10), marginTop: verticalScale(10) }}>Point Cost :</Text>
-                  <Text allowFontScaling={false} style={styles.optionCost}>250 pt</Text>
+                  <Text
+                    allowFontScaling={false}
+                    style={{ fontSize: moderateScale(10), marginTop: verticalScale(10) }}
+                  >
+                    {t("profile.convert.freeDelivery.costLabel")}
+                  </Text>
+                  <Text allowFontScaling={false} style={styles.optionCost}>
+                    {`${formatPointsValue(FREE_DELIVERY_COST)} ${pointsUnit}`}
+                  </Text>
                 </View>
               )}
             </View>
@@ -181,9 +206,11 @@ export default function ConvertPointsScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Percent color={accentColor} size={34} />
           <View>
-            <Text allowFontScaling={false} style={styles.optionTitle}>Discount Coupon</Text>
+            <Text allowFontScaling={false} style={styles.optionTitle}>
+              {t("profile.convert.percentage.title")}
+            </Text>
             <Text allowFontScaling={false} style={styles.optionSubtitle}>
-              Save between 5% and 50% on an order
+              {t("profile.convert.percentage.description", { values: { min: 5, max: 50 } })}
             </Text>
           </View>
         </View>
@@ -194,13 +221,19 @@ export default function ConvertPointsScreen() {
 
       {selectedCoupon === "DISCOUNT" && (
         <View style={styles.discountSection}>
-          <Text allowFontScaling={false} style={styles.discountLabel}>Discount Percentage</Text>
+          <Text allowFontScaling={false} style={styles.discountLabel}>
+            {t("profile.redeem.percentageLabel")}
+          </Text>
           <Text allowFontScaling={false} style={styles.discountPercent}>{discountPercent}%</Text>
-          <Text allowFontScaling={false} style={styles.discountSub}>Discount</Text>
+          <Text allowFontScaling={false} style={styles.discountSub}>
+            {t("profile.convert.discountLabel")}
+          </Text>
 
           <View style={styles.sliderWrapper}>
 
-            <Text allowFontScaling={false} style={styles.sliderEdgeText}>5%</Text>
+            <Text allowFontScaling={false} style={styles.sliderEdgeText}>
+              {t("profile.convert.sliderEdge", { values: { value: 5 } })}
+            </Text>
 
             <View style={styles.sliderContainer}>
 
@@ -227,19 +260,33 @@ export default function ConvertPointsScreen() {
               />
             </View>
 
-            <Text allowFontScaling={false} style={styles.sliderEdgeText}>50%</Text>
+            <Text allowFontScaling={false} style={styles.sliderEdgeText}>
+              {t("profile.convert.sliderEdge", { values: { value: 50 } })}
+            </Text>
 
           </View>
           <View style={styles.costBox}>
             <View>
-              <Text allowFontScaling={false} style={styles.costPointTitle}>Point Cost:</Text>
-              <Text allowFontScaling={false} style={styles.costTitle}>Total</Text>
+              <Text allowFontScaling={false} style={styles.costPointTitle}>
+                {t("profile.convert.costBox.pointCost")}
+              </Text>
+              <Text allowFontScaling={false} style={styles.costTitle}>
+                {t("profile.convert.costBox.total")}
+              </Text>
             </View>
             <View>
               <Text allowFontScaling={false} style={styles.costPointValue}>
-                {discountPercent} × {DISCOUNT_COST_PER_PERCENT} pts
+                {t("profile.convert.costBox.multiplication", {
+                  values: {
+                    left: discountPercent,
+                    right: DISCOUNT_COST_PER_PERCENT,
+                    unit: pointsUnit,
+                  },
+                })}
               </Text>
-              <Text allowFontScaling={false} style={styles.costValue}>{discountCost} pts</Text>
+              <Text allowFontScaling={false} style={styles.costValue}>
+                {`${formatPointsValue(discountCost)} ${pointsUnit}`}
+              </Text>
 
             </View>
           </View>
@@ -249,29 +296,43 @@ export default function ConvertPointsScreen() {
       {selectedCoupon && (
         <View style={styles.summaryBox}>
           <View style={styles.summaryLine}>
-            <Text allowFontScaling={false} style={{ color: "#666D8B" }}>Your Points: </Text>
-            <Text allowFontScaling={false} style={{ color: headerColor }}>{totalPoints} pts</Text>
+            <Text allowFontScaling={false} style={{ color: "#666D8B" }}>
+              {t("profile.convert.summary.yourPoints")}:
+            </Text>
+            <Text allowFontScaling={false} style={{ color: headerColor }}>
+              {`${formatPointsValue(totalPoints)} ${pointsUnit}`}
+            </Text>
           </View>
           <View style={styles.summaryLine}>
-            <Text allowFontScaling={false} style={{ color: "#666D8B" }}>Coupon Cost:</Text>
-            <Text allowFontScaling={false} style={{ color: "#CA251B" }}>-{cost} pts</Text>
+            <Text allowFontScaling={false} style={{ color: "#666D8B" }}>
+              {t("profile.convert.summary.couponCost")}:
+            </Text>
+            <Text allowFontScaling={false} style={{ color: "#CA251B" }}>
+              {`-${formatPointsValue(cost)} ${pointsUnit}`}
+            </Text>
           </View>
           <View style={styles.separator} />
           <View style={styles.boxRenaming} >
-            <Text allowFontScaling={false} style={{ fontWeight: '600' }}>Remaining </Text>
+            <Text allowFontScaling={false} style={{ fontWeight: '600' }}>
+              {t("profile.convert.summary.remaining")}
+            </Text>
             <Text allowFontScaling={false} style={[
               styles.remaining,
-              { color: parseFloat(remaining) >= 0 ? "#3BCA1B" : "#CA251B" },
-            ]}>{remaining}</Text>
+              { color: remainingValue >= 0 ? "#3BCA1B" : "#CA251B" },
+            ]}>{`${remaining} ${pointsUnit}`}</Text>
           </View>
         </View>
       )}
 
-      {selectedCoupon && parseFloat(remaining) < 0 && (
+      {needsMorePoints && (
         <View style={styles.needMoreBox}>
           <Sparkles size={16} color="#6B7280" />
           <Text allowFontScaling={false} style={styles.needMoreText}>
-            Need {Math.abs(parseFloat(remaining))} more points
+            {t("profile.convert.needMore", {
+              values: {
+                value: `${formatPointsValue(Math.abs(remainingValue))} ${pointsUnit}`,
+              },
+            })}
           </Text>
         </View>
       )}
@@ -290,19 +351,26 @@ export default function ConvertPointsScreen() {
           ) : (
             <View style={styles.CouponBox}>
               <Ticket color="white" />
-              <Text allowFontScaling={false} style={styles.createText}>  Create coupon</Text>
+              <Text allowFontScaling={false} style={styles.createText}>
+                {t("profile.convert.createCta")}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
       )}
 
-      <Text allowFontScaling={false} style={styles.keepText}>Keep ordering to earn more points</Text>
+      <Text allowFontScaling={false} style={styles.keepText}>
+        {t("profile.convert.keepEarning")}
+      </Text>
     </ScrollView>
   );
 
   const header = (
     <View style={styles.header}>
-      <HeaderWithBackButton title="Convert Points" titleMarginLeft={s(70)} />
+      <HeaderWithBackButton
+        title={t("profile.convert.headerTitle")}
+        titleMarginLeft={s(70)}
+      />
     </View>
   );
 
@@ -329,9 +397,11 @@ export default function ConvertPointsScreen() {
               <X size={24} color="#666D8B" />
             </TouchableOpacity>
             <CircleCheckBig size={80} color="#16A34A" />
-            <Text allowFontScaling={false} style={styles.modalTitle}>Coupon Created!</Text>
+            <Text allowFontScaling={false} style={styles.modalTitle}>
+              {t("profile.redeem.successTitle")}
+            </Text>
             <Text allowFontScaling={false} style={styles.modalSubtitle}>
-              Your Coupon has been added to your wallet
+              {t("profile.redeem.successMessage")}
             </Text>
           </Pressable>
         </Pressable>

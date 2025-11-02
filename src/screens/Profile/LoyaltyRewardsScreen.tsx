@@ -1,4 +1,4 @@
-import React, { useMemo, } from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -12,22 +12,21 @@ import { ScaledSheet, moderateScale, s, verticalScale, vs } from "react-native-s
 import { ArrowRight } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getLoyaltyBalance, getLoyaltyTransactions } from "~/api/loyalty";
 import type { LoyaltyTransactionDto } from "~/interfaces/Loyalty";
 import HeaderWithBackButton from "~/components/HeaderWithBackButton";
 import { Image, ImageBackground } from "expo-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "~/localization";
 
 const FOODY_IMAGE = require('../../../assets/foodypoints.png');
 const WHEEL_IMAGE = require('../../../assets/luckywheel.png');
-const BACKGROUND_WHEEL_IMAGE = require('../../../assets/LuckyWheelBackground.png')
+const BACKGROUND_WHEEL_IMAGE = require("../../../assets/LuckyWheelBackground.png");
 
 
 
 const accentColor = "#CA251B";
 const headerColor = "#17213A";
-const dividerColor = "#EAECF0";
 
 const formatPointsValue = (value: number) => {
   if (!Number.isFinite(value)) return "0";
@@ -41,8 +40,7 @@ const formatPointsValue = (value: number) => {
 
 export default function FoodyPointsScreen() {
   const navigation = useNavigation();
-  const queryClient = useQueryClient();
-  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const {
     data: balance,
     isFetching: isBalanceFetching,
@@ -83,11 +81,18 @@ export default function FoodyPointsScreen() {
       timeStyle: "short",
     }).format(date);
 
+    const fallbackTitle =
+      item.type === "ADJUSTMENT"
+        ? t("profile.loyalty.transactionTypes.adjustment")
+        : isPositive
+          ? t("profile.loyalty.transactionTypes.earned")
+          : t("profile.loyalty.transactionTypes.redeemed");
+
     return (
       <View style={styles.transactionRow} key={item.id}>
         <View style={{ flex: 1 }}>
           <Text allowFontScaling={false} style={styles.transactionTitle}>
-            {item.description || (isPositive ? "Points earned" : "Points redeemed")}
+            {item.description || fallbackTitle}
           </Text>
           <Text allowFontScaling={false} style={styles.transactionDate}>{formattedDate}</Text>
         </View>
@@ -100,7 +105,7 @@ export default function FoodyPointsScreen() {
           ]}
         >
           {formatted}
-          {isPositive ? "" : "pts"}
+          {isPositive ? "" : ` ${t("profile.loyalty.pointsUnit")}`}
         </Text>
       </View>
     );
@@ -113,6 +118,16 @@ export default function FoodyPointsScreen() {
       flexGrow: 1,
       paddingHorizontal: moderateScale(16),
     }}
+    refreshControl={
+      <RefreshControl
+        refreshing={refreshing}
+        colors={[accentColor]}
+        onRefresh={() => {
+          refetchBalance();
+          refetchTransactions();
+        }}
+      />
+    }
     showsVerticalScrollIndicator={false}
   >
     <View style={{ flex: 1 }}>
@@ -125,13 +140,13 @@ export default function FoodyPointsScreen() {
       </View>
 
       <Text allowFontScaling={false} style={styles.tagline}>
-        10 % of your orders fee will become your points
+        {t("profile.loyaltyDetails.tagline")}
       </Text>
 
       <View style={styles.pointsCard}>
         <View>
           <Text allowFontScaling={false} style={styles.smallLabel}>
-            Total points
+            {t("profile.loyaltyDetails.totalPoints")}
           </Text>
           <Text allowFontScaling={false} style={styles.bigValue}>
             {totalPoints}
@@ -144,7 +159,7 @@ export default function FoodyPointsScreen() {
           onPress={() => navigation.navigate('ConvertPoints' as never)}
         >
           <Text allowFontScaling={false} style={styles.convertText}>
-            Convert points
+            {t("profile.loyaltyDetails.convertCta")}
           </Text>
           <ArrowRight size={s(16)} color="#CA251B" />
         </TouchableOpacity>
@@ -153,7 +168,7 @@ export default function FoodyPointsScreen() {
       <View style={styles.dualRow}>
         <View style={styles.dualBox}>
           <Text allowFontScaling={false} style={styles.smallGray}>
-            Total earned
+            {t("profile.loyaltyDetails.totalEarned")}
           </Text>
           <Text allowFontScaling={false} style={styles.mediumDark}>
             {totalEarned}
@@ -162,7 +177,7 @@ export default function FoodyPointsScreen() {
 
         <View style={styles.dualBox}>
           <Text allowFontScaling={false} style={styles.smallGray}>
-            Total spent
+            {t("profile.loyaltyDetails.totalSpent")}
           </Text>
           <Text allowFontScaling={false} style={styles.mediumDark}>
             {totalSpent}
@@ -184,22 +199,22 @@ export default function FoodyPointsScreen() {
 
         <View style={styles.luckyCardText}>
           <Text allowFontScaling={false} style={styles.availableText}>
-            Available in
+            {t("profile.loyaltyDetails.availableIn")}
           </Text>
           <View style={styles.luckyBadge}>
             <Text allowFontScaling={false} style={styles.badgeText}>
-              2 Days
+              {t("profile.loyaltyDetails.availabilityBadge", { values: { count: 2 } })}
             </Text>
           </View>
           <Text allowFontScaling={false} style={styles.luckyHint}>
-            Stay tuned
+            {t("profile.loyaltyDetails.stayTuned")}
           </Text>
         </View>
       </View>
 
       <TouchableOpacity style={styles.howButton}>
         <Text allowFontScaling={false} style={styles.howText}>
-          How it works ?
+          {t("profile.loyaltyDetails.howItWorks")}
         </Text>
       </TouchableOpacity>
 
@@ -208,7 +223,7 @@ export default function FoodyPointsScreen() {
           <ActivityIndicator color={accentColor} />
         ) : sortedTransactions.length === 0 ? (
           <Text allowFontScaling={false} style={styles.emptyText}>
-            No transactions yet.
+            {t("profile.loyalty.transactionsEmpty")}
           </Text>
         ) : (
           sortedTransactions.map(renderTransaction)
@@ -221,7 +236,10 @@ export default function FoodyPointsScreen() {
 
   const header = (
     <View style={styles.header}>
-      <HeaderWithBackButton title="Foodify Points" titleMarginLeft={s(70)} />
+      <HeaderWithBackButton
+        title={t("profile.loyaltyDetails.headerTitle")}
+        titleMarginLeft={s(70)}
+      />
     </View>
   );
 
