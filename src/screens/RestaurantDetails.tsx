@@ -34,6 +34,7 @@ import { moderateScale, vs } from 'react-native-size-matters';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
 import { useTranslation } from '~/localization';
+import useSelectedAddress from '~/hooks/useSelectedAddress';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -212,8 +213,9 @@ export default function RestaurantDetails() {
   const [handledCartItemId, setHandledCartItemId] = useState<string | null>(null);
   const isRestaurantIdValid = typeof restaurantId === 'number' && !Number.isNaN(restaurantId);
   const queryClient = useQueryClient();
-  const userLatitude = 36.8065;
-  const userLongitude = 10.1815;
+  const selectedAddress = useSelectedAddress();
+  const userLatitude = selectedAddress.selectedAddress?.coordinates.latitude;
+  const userLongitude = selectedAddress.selectedAddress?.coordinates.longitude;
 
   const {
     data: restaurant,
