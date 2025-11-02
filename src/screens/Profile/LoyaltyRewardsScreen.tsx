@@ -88,11 +88,39 @@ export default function FoodyPointsScreen() {
           ? t("profile.loyalty.transactionTypes.earned")
           : t("profile.loyalty.transactionTypes.redeemed");
 
+    const localizedDescription = (() => {
+      const description = item.description?.trim();
+
+      if (!description) {
+        return null;
+      }
+
+      const earnedMatch = description.match(
+        /points? earned (?:for|from) order(?:\s*[:\-])?\s*(.+)/i,
+      );
+      if (earnedMatch) {
+        return t("profile.loyalty.transactionDescriptions.earnedForOrder", {
+          orderId: earnedMatch[1].trim(),
+        });
+      }
+
+      const redeemedMatch = description.match(
+        /redeemed points for coupon(?:\s*[:\-])?\s*(.+)/i,
+      );
+      if (redeemedMatch) {
+        return t("profile.loyalty.transactionDescriptions.redeemedForCoupon", {
+          couponCode: redeemedMatch[1].trim(),
+        });
+      }
+
+      return description;
+    })();
+
     return (
       <View style={styles.transactionRow} key={item.id}>
         <View style={{ flex: 1 }}>
           <Text allowFontScaling={false} style={styles.transactionTitle}>
-            {item.description || fallbackTitle}
+            {localizedDescription || fallbackTitle}
           </Text>
           <Text allowFontScaling={false} style={styles.transactionDate}>{formattedDate}</Text>
         </View>
