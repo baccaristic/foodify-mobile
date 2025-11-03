@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Keyboard,
   Linking,
   Platform,
   Pressable,
@@ -10,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import type { KeyboardTypeOptions } from 'react-native';
@@ -949,6 +951,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
         headerMinHeight={compactHeaderHeight}
         showFooter={false}
         enableHeaderCollapse={false}
+        ignoreMarginBottom={true}
         customHeader={
           <Animated.View style={[styles.mapContainer, mapAnimatedStyle]}>
             <MapView
@@ -1023,7 +1026,8 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
         }
         mainContent={
           <View style={styles.content}>
-            <View style={styles.cardStack}>
+            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+<View style={styles.cardStack}>
               {isListMode && (
                 <Animated.View entering={FadeIn.duration(220)} style={styles.savedAddressesCard}>
                   <Text allowFontScaling={false} style={styles.savedTitle}>
@@ -1288,6 +1292,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                 </Animated.View>
               )}
             </View>
+            </TouchableWithoutFeedback>
           </View>
         }
       />

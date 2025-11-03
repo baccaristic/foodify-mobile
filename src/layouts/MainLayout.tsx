@@ -32,7 +32,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
-import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { formatOrderStatusLabel } from '~/utils/order';
 import { useTranslation } from '~/localization';
@@ -81,6 +81,7 @@ interface MainLayoutProps {
   onScrollOffsetChange?: (offsetY: number) => void;
   scrollRef?: MutableRefObject<ScrollView | RNFlatList<any> | null> | null;
   virtualizedListProps?: Animated.AnimatedProps<FlatListProps<any>> | null;
+  ignoreMarginBottom?: boolean,
 }
 
 export default function MainLayout({
@@ -105,6 +106,7 @@ export default function MainLayout({
   onScrollOffsetChange,
   scrollRef,
   virtualizedListProps = null,
+  ignoreMarginBottom=false
 }: MainLayoutProps) {
   const { t } = useTranslation();
   const screenHeight = Dimensions.get('screen').height;
@@ -498,7 +500,10 @@ export default function MainLayout({
     return (
       <Animated.ScrollView
         ref={setScrollViewRef}
-        style={[styles.scrollView]}
+        style={[
+  styles.scrollView,
+  { marginBottom: moderateScale(ignoreMarginBottom ? 0 : 88) },
+]}
         contentContainerStyle={resolvedContentContainerStyle}
         refreshControl={refreshControl}
         scrollEventThrottle={16}

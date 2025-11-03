@@ -94,7 +94,7 @@ const PillButton = ({ label, icon: Icon, onPress, isActive = false }: PillButton
       {Icon && (
         <Icon size={s(20)} color={iconColor} style={{ marginRight: label ? s(4) : 0 }} />
       )}
-      {label && <Text style={textStyle}>{label}</Text>}
+      {label && <Text allowFontScaling={false} style={textStyle}>{label}</Text>}
     </TouchableOpacity>
   );
 };
@@ -156,21 +156,21 @@ const RestaurantCard = ({
       )}
 
       <View style={styles.cardBody}>
-        <Text style={styles.cardTitle}>{name}</Text>
+        <Text allowFontScaling={false} style={styles.cardTitle}>{name}</Text>
         <View style={styles.timeRatingRow}>
-          <Text style={styles.deliveryTime}>{deliveryTimeRange}</Text>
+          <Text allowFontScaling={false} style={styles.deliveryTime}>{deliveryTimeRange}</Text>
           <View style={styles.ratingRow}>
             <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-            <Text style={styles.ratingText}>{formattedRating}</Text>
+            <Text allowFontScaling={false} style={styles.ratingText}>{formattedRating}</Text>
           </View>
         </View>
 
-          <Text style={styles.deliveryFee}>{formatDeliveryFee(deliveryFee)}</Text>
+          <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(deliveryFee)}</Text>
 
         {hasFreeDelivery && (
           <View style={styles.promoContainer}>
             <View style={styles.freeDeliveryPill}>
-              <Text style={styles.promoText}>{t("search.card.freeDeliveryPill")}</Text>
+              <Text allowFontScaling={false} style={styles.promoText}>{t("search.card.freeDeliveryPill")}</Text>
             </View>
           </View>
         )}
@@ -196,22 +196,22 @@ const PromotedMenuItemCard = ({
     <TouchableOpacity style={styles.menuCard} activeOpacity={0.9} onPress={onPress}>
       <Image source={imageSource} style={styles.menuImage} />
       <View style={styles.menuInfo}>
-        <Text style={styles.menuTitle} numberOfLines={2}>
+        <Text allowFontScaling={false} style={styles.menuTitle} numberOfLines={2}>
           {name}
         </Text>
-        <Text style={styles.menuSubtitle} numberOfLines={1}>
+        <Text allowFontScaling={false} style={styles.menuSubtitle} numberOfLines={1}>
           {restaurantName}
         </Text>
-        {promotionLabel && <Text style={styles.menuBadge}>{promotionLabel}</Text>}
+        {promotionLabel && <Text allowFontScaling={false} style={styles.menuBadge}>{promotionLabel}</Text>}
       </View>
       <View style={styles.menuPriceColumn}>
         {hasPromoPrice ? (
           <>
-            <Text style={styles.menuOriginalPrice}>{formatCurrency(price)}</Text>
-            <Text style={styles.menuPrice}>{formatCurrency(promotionPrice ?? price)}</Text>
+            <Text allowFontScaling={false} style={styles.menuOriginalPrice}>{formatCurrency(price)}</Text>
+            <Text allowFontScaling={false} style={styles.menuPrice}>{formatCurrency(promotionPrice ?? price)}</Text>
           </>
         ) : (
-          <Text style={styles.menuPrice}>{formatCurrency(price)}</Text>
+          <Text allowFontScaling={false} style={styles.menuPrice}>{formatCurrency(price)}</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -247,7 +247,7 @@ const RestaurantResult = ({
       <RestaurantCard data={restaurant} onPress={() => onRestaurantPress(restaurant.id)} />
       {promotions.length > 0 && (
         <View style={styles.promotedMenuList}>
-          <Text style={styles.promotedMenuHeading}>{t("search.promoted.heading")}</Text>
+          <Text allowFontScaling={false} style={styles.promotedMenuHeading}>{t("search.promoted.heading")}</Text>
           {promotions.map((item, promoIndex) => (
             <Animated.View
               key={`promotion-${restaurant.id}-${item.id}`}
@@ -638,7 +638,7 @@ export default function SearchScreen() {
       <View style={{ height: vs(10) }} />
 
       {showResultCount && (
-        <Text style={styles.resultsCount}>
+        <Text allowFontScaling={false} style={styles.resultsCount}>
           {isLoading
             ? t("search.results.searching")
             : t("search.results.count", {
@@ -653,7 +653,7 @@ export default function SearchScreen() {
       {showInlineSpinner && (
         <View style={styles.inlineSpinner}>
           <ActivityIndicator size="small" color="#CA251B" />
-          <Text style={styles.inlineSpinnerText}>{t("search.results.updating")}</Text>
+          <Text allowFontScaling={false} style={styles.inlineSpinnerText}>{t("search.results.updating")}</Text>
         </View>
       )}
     </View>
@@ -670,8 +670,8 @@ export default function SearchScreen() {
     if (!hasSelectedAddress) {
       return (
         <View style={styles.stateContainer}>
-          <Text style={styles.addressPromptTitle}>{t("search.states.addressPrompt.title")}</Text>
-          <Text style={styles.addressPromptSubtitle}>
+          <Text allowFontScaling={false} style={styles.addressPromptTitle}>{t("search.states.addressPrompt.title")}</Text>
+          <Text allowFontScaling={false} style={styles.addressPromptSubtitle}>
             {t("search.states.addressPrompt.subtitle")}
           </Text>
           <TouchableOpacity
@@ -679,7 +679,7 @@ export default function SearchScreen() {
             activeOpacity={0.85}
             onPress={openLocationOverlay}
           >
-            <Text style={styles.addressPromptButtonText}>
+            <Text allowFontScaling={false} style={styles.addressPromptButtonText}>
               {t("search.states.addressPrompt.cta")}
             </Text>
           </TouchableOpacity>
@@ -694,9 +694,9 @@ export default function SearchScreen() {
     if (isError) {
       return (
         <View style={styles.stateContainer}>
-          <Text style={styles.stateText}>{t("search.states.error")}</Text>
+          <Text allowFontScaling={false} style={styles.stateText}>{t("search.states.error")}</Text>
           <TouchableOpacity style={styles.retryButton} activeOpacity={0.8} onPress={() => refetch()}>
-            <Text style={styles.retryText}>{t("common.retry")}</Text>
+            <Text allowFontScaling={false} style={styles.retryText}>{t("common.retry")}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -705,7 +705,7 @@ export default function SearchScreen() {
     if (isEmpty) {
       return (
         <View style={styles.stateContainer}>
-          <Text style={styles.stateText}>{t("search.states.empty")}</Text>
+          <Text allowFontScaling={false} style={styles.stateText}>{t("search.states.empty")}</Text>
         </View>
       );
     }
@@ -729,7 +729,7 @@ export default function SearchScreen() {
     return (
       <View style={styles.listFooter}>
         <ActivityIndicator size="small" color="#CA251B" />
-        <Text style={styles.inlineSpinnerText}>{t("search.results.loadingMore")}</Text>
+        <Text allowFontScaling={false} style={styles.inlineSpinnerText}>{t("search.results.loadingMore")}</Text>
       </View>
     );
   }, [isFetchingNextPage, t]);

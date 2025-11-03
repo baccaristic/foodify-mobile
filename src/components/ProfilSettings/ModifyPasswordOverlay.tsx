@@ -116,7 +116,7 @@ const ModifyPasswordOverlay = ({ onClose }: { onClose: () => void }) => {
           />
 
           {(error === mismatchError || (error && error !== invalidError && error !== mismatchError)) && (
-            <Text style={styles.error}>{error}</Text>
+            <Text  allowFontScaling={false} style={styles.error}>{error}</Text>
           )}
 
           <TouchableOpacity

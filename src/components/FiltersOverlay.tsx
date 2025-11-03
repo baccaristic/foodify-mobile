@@ -74,14 +74,14 @@ export default function FiltersOverlay({
             <TouchableOpacity onPress={onClose}>
               <X color="#17213A" size={s(22)} />
             </TouchableOpacity>
-            <Text style={styles.title}>{t("filters.title")}</Text>
+            <Text allowFontScaling={false}style={styles.title}>{t("filters.title")}</Text>
             <TouchableOpacity onPress={clearAll}>
-              <Text style={styles.clearText}>{t("filters.clear")}</Text>
+              <Text allowFontScaling={false}style={styles.clearText}>{t("filters.clear")}</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.sectionTitle}>{t("filters.sections.sort")}</Text>
+            <Text allowFontScaling={false}style={styles.sectionTitle}>{t("filters.sections.sort")}</Text>
 
             <TouchableOpacity
               style={styles.optionRow}
@@ -163,7 +163,7 @@ export default function FiltersOverlay({
             <View style={styles.rowBetween}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: s(6) }}>
                 <Award color="#CA251B" size={s(22)} />
-                <Text style={styles.sectionTitle}>{t("filters.sections.topEat")}</Text>
+                <Text allowFontScaling={false}style={styles.sectionTitle}>{t("filters.sections.topEat")}</Text>
               </View>
               <Switch
                 trackColor={{ false: "#ccc", true: "#CA251B" }}
@@ -176,7 +176,7 @@ export default function FiltersOverlay({
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-              <Text style={styles.applyText}>{t("filters.actions.apply")}</Text>
+              <Text allowFontScaling={false}style={styles.applyText}>{t("filters.actions.apply")}</Text>
             </TouchableOpacity>
 
             <View style={{ height: vs(40) }} />

@@ -179,22 +179,22 @@ export default function CategoryOverlay({
                                 style={styles.promotionSticker}
                             >
                                 <Percent size={s(11)} color="#0F172A" />
-                                <Text style={styles.promotionText} numberOfLines={1}>
+                                <Text allowFontScaling={false}style={styles.promotionText} numberOfLines={1}>
                                     {item.promotionSummary}
                                 </Text>
                             </LinearGradient>
                         </View>
                     ) : null}
                     <View style={styles.cardBody}>
-                        <Text style={styles.cardTitle}>{item.name}</Text>
+                        <Text allowFontScaling={false}style={styles.cardTitle}>{item.name}</Text>
                         <View style={styles.cardRow}>
-                            <Text style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
+                            <Text allowFontScaling={false}style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
                             <View style={styles.ratingRow}>
                                 <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-                                <Text style={styles.ratingText}>{ratingDisplay}</Text>
+                                <Text allowFontScaling={false}style={styles.ratingText}>{ratingDisplay}</Text>
                             </View>
                         </View>
-                        <Text style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee ?? 0)}</Text>
+                        <Text allowFontScaling={false}style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee ?? 0)}</Text>
                     </View>
                 </TouchableOpacity>
             );
@@ -215,7 +215,7 @@ export default function CategoryOverlay({
     const listEmptyComponent = React.useCallback(
         () => (
             <View style={styles.emptyWrapper}>
-                <Text style={styles.emptyText}>
+                <Text allowFontScaling={false}style={styles.emptyText}>
                     {t('categoryOverlay.empty.title', { values: { category: categoryLabelForCopy } })}
                 </Text>
             </View>
@@ -228,7 +228,7 @@ export default function CategoryOverlay({
     if (!hasLocation) {
         content = (
             <View style={styles.emptyWrapper}>
-                <Text style={styles.emptyText}>{t('categoryOverlay.addressPrompt')}</Text>
+                <Text allowFontScaling={false}style={styles.emptyText}>{t('categoryOverlay.addressPrompt')}</Text>
             </View>
         );
     } else if (isLoading) {
@@ -240,11 +240,11 @@ export default function CategoryOverlay({
     } else if (isError) {
         content = (
             <View style={styles.errorWrapper}>
-                <Text style={styles.errorText}>
+                <Text allowFontScaling={false}style={styles.errorText}>
                     {t('categoryOverlay.error.title', { values: { category: categoryLabelForCopy } })}
                 </Text>
                 <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-                    <Text style={styles.retryText}>{t('common.retry')}</Text>
+                    <Text allowFontScaling={false}style={styles.retryText}>{t('common.retry')}</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -275,7 +275,7 @@ export default function CategoryOverlay({
                         <TouchableOpacity onPress={onClose}>
                             <X color="#17213A" size={s(22)} />
                         </TouchableOpacity>
-                        <Text style={styles.title}>{categoryTitle}</Text>
+                        <Text allowFontScaling={false}style={styles.title}>{categoryTitle}</Text>
                         <View style={{ width: s(22) }} />
                     </View>
 

@@ -129,7 +129,7 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
 
                     <Text allowFontScaling={false} className="text-2xl font-semibold mb-10 text-black">
                         {promptStart}
-                        <Text className="font-bold">{contact}</Text>
+                        <Text allowFontScaling={false} className="font-bold">{contact}</Text>
                         {promptEnd}
                     </Text>
 
@@ -154,13 +154,13 @@ const VerificationCodeTemplate: React.FC<VerificationCodeTemplateProps> = ({
                     </View>
 
                     {errorMessage ? (
-                        <Text className="text-center text-red-500 font-semibold mb-4">
+                        <Text allowFontScaling={false} className="text-center text-red-500 font-semibold mb-4">
                             {errorMessage}
                         </Text>
                     ) : null}
 
                     {helperMessage ? (
-                        <Text className="text-center text-gray-500 mb-4">{helperMessage}</Text>
+                        <Text allowFontScaling={false} className="text-center text-gray-500 mb-4">{helperMessage}</Text>
                     ) : null}
 
                     <TouchableOpacity

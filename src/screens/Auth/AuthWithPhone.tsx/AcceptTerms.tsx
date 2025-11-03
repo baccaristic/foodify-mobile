@@ -96,19 +96,19 @@ const PhoneAcceptTerms = () => {
             .map((segment, index) => {
               if (segment === '<terms>') {
                 return (
-                  <Text key={`terms-${index}`} className="text-[#CA251B]">
+                  <Text allowFontScaling={false} key={`terms-${index}`} className="text-[#CA251B]">
                     {t('auth.common.terms.termsLabel')}
                   </Text>
                 );
               }
               if (segment === '<privacy>') {
                 return (
-                  <Text key={`privacy-${index}`} className="text-[#CA251B]">
+                  <Text allowFontScaling={false} key={`privacy-${index}`} className="text-[#CA251B]">
                     {t('auth.common.terms.privacyLabel')}
                   </Text>
                 );
               }
-              return <Text key={`segment-${index}`}>{segment}</Text>;
+              return <Text allowFontScaling={false} key={`segment-${index}`}>{segment}</Text>;
             })}
         </Text>
       </View>

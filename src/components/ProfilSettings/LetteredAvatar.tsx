@@ -52,6 +52,7 @@ const LetteredAvatar: React.FC<LetteredAvatarProps> = ({
       ]}
     >
       <Text
+      allowFontScaling={false}
         style={[
           styles.text,
           {

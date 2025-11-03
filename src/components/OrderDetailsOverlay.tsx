@@ -161,7 +161,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
               <TouchableOpacity style={styles.backBtn} onPress={onClose}>
                 <X size={36} color={accentColor} />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>{restaurant.name}</Text>
+              <Text allowFontScaling={false} style={styles.headerTitle}>{restaurant.name}</Text>
               <TouchableOpacity
                 style={styles.goBtn}
                 onPress={() => {
@@ -173,7 +173,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
                   }
                 }}
               >
-                <Text style={styles.goBtnText}>Go to Restaurant</Text>
+                <Text allowFontScaling={false} style={styles.goBtnText}>Go to Restaurant</Text>
               </TouchableOpacity>
             </View>
 
@@ -195,108 +195,108 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
                     />
                   )}
                   <View>
-                    <Text style={styles.delivered}>{status}</Text>
-                    <Text style={styles.smallText}>
+                    <Text allowFontScaling={false} style={styles.delivered}>{status}</Text>
+                    <Text allowFontScaling={false} style={styles.smallText}>
                       {orderDate} | {orderTime}
                     </Text>
-                    <Text style={styles.smallText}>ID: {order.id}</Text>
+                    <Text allowFontScaling={false} style={styles.smallText}>ID: {order.id}</Text>
                   </View>
                 </View>
-                <Text style={styles.amount}>{formatCurrency(total)}</Text>
+                <Text allowFontScaling={false} style={styles.amount}>{formatCurrency(total)}</Text>
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Your Order</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Your Order</Text>
             <View style={styles.card}>
-              <Text style={styles.productsHeader}>
+              <Text allowFontScaling={false} style={styles.productsHeader}>
                 {items.length} Products from{" "}
-                <Text style={styles.accent}>{restaurant.name}</Text>
+                <Text allowFontScaling={false} style={styles.accent}>{restaurant.name}</Text>
               </Text>
               {items.map((it: OrderItemDto, idx) => (
                 <View key={idx} style={styles.itemRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName}>
+                    <Text allowFontScaling={false} style={styles.itemName}>
                       {it.quantity}x {it.name || it.menuItemName}
                     </Text>
                     {Array.isArray(it.extras) && it.extras.length > 0 ? (
-                      <Text style={styles.itemDesc}>
+                      <Text allowFontScaling={false} style={styles.itemDesc}>
                         Extras: {it.extras.map((e) => e).join(", ")}
                       </Text>
                     ) : null}
                   </View>
-                  <Text style={styles.itemPrice}>
+                  <Text allowFontScaling={false} style={styles.itemPrice}>
                     {formatCurrency(extractNum(it.lineTotal))}
                   </Text>
                 </View>
               ))}
             </View>
 
-            <Text style={styles.sectionTitle}>Restaurant Address</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Restaurant Address</Text>
             <View style={styles.card}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <MapPin size={18} color={accentColor} />
-                <Text style={[styles.addressTitle, { marginLeft: 8 }]}>
+                <Text allowFontScaling={false} style={[styles.addressTitle, { marginLeft: 8 }]}>
                   {restaurant.name || "Restaurant"}
                 </Text>
               </View>
-              <Text style={styles.addressText}>{restaurantAddress}</Text>
+              <Text allowFontScaling={false} style={styles.addressText}>{restaurantAddress}</Text>
             </View>
 
-            <Text style={styles.sectionTitle}>Delivery Address</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Delivery Address</Text>
             <View style={styles.card}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <MapPin size={18} color={accentColor} />
-                <Text style={[styles.addressTitle, { marginLeft: 8 }]}>
+                <Text allowFontScaling={false} style={[styles.addressTitle, { marginLeft: 8 }]}>
                   {addressTitle}
                 </Text>
               </View>
-              <Text style={styles.addressText}>{addressValue}</Text>
+              <Text allowFontScaling={false} style={styles.addressText}>{addressValue}</Text>
             </View>
 
-            <Text style={styles.sectionTitle}>Order Summary</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Order Summary</Text>
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>
+                <Text allowFontScaling={false} style={styles.summaryLabel}>Subtotal</Text>
+                <Text allowFontScaling={false} style={styles.summaryValue}>
                   {formatCurrency(subtotal)}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Extras</Text>
-                <Text style={styles.summaryValue}>
+                <Text allowFontScaling={false} style={styles.summaryLabel}>Extras</Text>
+                <Text allowFontScaling={false} style={styles.summaryValue}>
                   {formatCurrency(extras)}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Delivery</Text>
-                <Text style={styles.summaryValue}>
+                <Text allowFontScaling={false} style={styles.summaryLabel}>Delivery</Text>
+                <Text allowFontScaling={false} style={styles.summaryValue}>
                   {formatCurrency(deliveryFee)}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Service Fee</Text>
-                <Text style={styles.summaryValue}>
+                <Text allowFontScaling={false} style={styles.summaryLabel}>Service Fee</Text>
+                <Text allowFontScaling={false} style={styles.summaryValue}>
                   {formatCurrency(serviceFee)}
                 </Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Tips</Text>
-                <Text style={styles.summaryValue}>
+                <Text allowFontScaling={false} style={styles.summaryLabel}>Tips</Text>
+                <Text allowFontScaling={false} style={styles.summaryValue}>
                   {formatCurrency(tips)}
                 </Text>
               </View>
               {promotion > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Promotion</Text>
-                  <Text style={[styles.summaryValue, { color: accentColor }]}>
+                  <Text allowFontScaling={false} style={styles.summaryLabel}>Promotion</Text>
+                  <Text allowFontScaling={false} style={[styles.summaryValue, { color: accentColor }]}>
                     -{formatCurrency(promotion)}
                   </Text>
                 </View>
               )}
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>
+                <Text allowFontScaling={false} style={styles.totalLabel}>Total</Text>
+                <Text allowFontScaling={false} style={styles.totalValue}>
                   {formatCurrency(total)}
                 </Text>
               </View>
@@ -304,14 +304,14 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
 
             <View style={styles.paymentRow}>
               <Banknote size={20} color={accentColor} />
-              <Text style={styles.paymentText}>
+              <Text allowFontScaling={false} style={styles.paymentText}>
                 Paid with {paymentMethod}
               </Text>
             </View>
 
             {isDelivered ? (
               <TouchableOpacity style={styles.rateButton} onPress={handleOpenRating}>
-                <Text style={styles.rateButtonText}>
+                <Text allowFontScaling={false} style={styles.rateButtonText}>
                   {ratingSummary
                     ? t('profile.orderHistory.actions.updateRating')
                     : t('profile.orderHistory.actions.rateDelivery')}
@@ -319,7 +319,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity style={styles.reorderBtn} onPress={handleReorder}>
-              <Text style={styles.reorderText}>
+              <Text allowFontScaling={false} style={styles.reorderText}>
                 {t('profile.orderHistory.actions.reorder').toUpperCase()}
               </Text>
             </TouchableOpacity>
