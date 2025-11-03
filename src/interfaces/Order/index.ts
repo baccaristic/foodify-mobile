@@ -138,6 +138,7 @@ export interface PaymentSummaryResponse extends OnlinePaymentMetadata {
   couponDiscount?: MonetaryAmount;
   itemsTotal?: MonetaryAmount;
   deliveryFee?: MonetaryAmount;
+  serviceFee?: MonetaryAmount;
   tipPercentage?: MonetaryAmount;
   tipAmount?: MonetaryAmount;
   totalBeforeTip?: MonetaryAmount;

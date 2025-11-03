@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   Modal,
   View,
@@ -82,6 +82,8 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
     extractNum((payment as any).itemsSubtotal) ||
     extractNum((payment as any).subtotal);
   const deliveryFee = extractNum((payment as any).deliveryFee);
+  const tips = extractNum((payment as any).tipAmount);
+  const serviceFee = extractNum((payment as any).serviceFee);
   const extras = extractNum((payment as any).extrasTotal);
   const promotion = extractNum((payment as any).promotionDiscount);
   const paymentMethod =
@@ -269,6 +271,18 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
                 <Text style={styles.summaryLabel}>Delivery</Text>
                 <Text style={styles.summaryValue}>
                   {formatCurrency(deliveryFee)}
+                </Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Service Fee</Text>
+                <Text style={styles.summaryValue}>
+                  {formatCurrency(serviceFee)}
+                </Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Tips</Text>
+                <Text style={styles.summaryValue}>
+                  {formatCurrency(tips)}
                 </Text>
               </View>
               {promotion > 0 && (

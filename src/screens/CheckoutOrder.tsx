@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -41,6 +41,7 @@ import type { OngoingOrderData } from '~/context/OngoingOrderContext';
 import { useTranslation } from '~/localization';
 import { useCurrencyFormatter } from '~/localization/hooks';
 import { moderateScale } from 'react-native-size-matters';
+import { useServiceFeeAmount } from '~/hooks/useServiceFee';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -456,6 +457,7 @@ const CheckoutOrder: React.FC = () => {
   const route = useRoute<CheckoutRoute>();
   const { t } = useTranslation();
   const formatCurrency = useCurrencyFormatter();
+  const { amount: serviceFeeAmount } = useServiceFeeAmount();
   const { items, restaurant, subtotal, clearCart } = useCart();
   const { selectedAddress } = useSelectedAddress();
   const { user } = useAuth();
@@ -818,6 +820,7 @@ const CheckoutOrder: React.FC = () => {
       subtotal: extractNumericAmount(paymentDetails.subtotal),
       extrasTotal: extractNumericAmount(paymentDetails.extrasTotal),
       total: extractNumericAmount(paymentDetails.total),
+      serviceFee: extractNumericAmount(paymentDetails.serviceFee),
       itemsSubtotal: extractNumericAmount(paymentDetails.itemsSubtotal),
       promotionDiscount: extractNumericAmount(paymentDetails.promotionDiscount),
       itemsTotal: extractNumericAmount(paymentDetails.itemsTotal),
@@ -870,7 +873,14 @@ const CheckoutOrder: React.FC = () => {
 
     return 0;
   }, [isViewMode, paymentBreakdown, hasItems, deliveryQuote]);
-  const serviceFee = useMemo(() => (hasItems ? Math.max(1.5, subtotal * 0.05) : 0), [hasItems, subtotal]);
+  const serviceFee = useMemo(() => {
+    if (isViewMode) {
+      const fee = paymentBreakdown?.serviceFee;
+      return typeof fee === 'number' && Number.isFinite(fee) ? Math.max(fee, 0) : 0;
+    }
+    if (!hasItems) return 0;
+    return Math.max(Number(serviceFeeAmount) || 0, 0);
+  }, [isViewMode, paymentBreakdown?.serviceFee, hasItems, serviceFeeAmount]);
   const calculateCouponDiscount = useCallback(
     (type?: CouponType, discountPercent?: number | null) => {
       if (!type) {
@@ -2181,7 +2191,16 @@ const CheckoutOrder: React.FC = () => {
                 </View>
               </>
             ) : (
+              <>
               <View className="mt-3 flex-row items-center justify-between">
+                  <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                    {t('checkout.summary.service')}
+                  </Text>
+                  <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                    {formatCurrency(serviceFee)}
+                  </Text>
+                </View>
+                 <View className="mt-3 flex-row items-center justify-between">
                 <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
                   {t('checkout.summary.fees')}
                 </Text>
@@ -2189,6 +2208,8 @@ const CheckoutOrder: React.FC = () => {
                   {formatCurrency(displayFees)}
                 </Text>
               </View>
+              </>
+              
             )}
             {!isViewMode && appliedCoupon ? (
               <View className="mt-3 flex-row items-center justify-between">
