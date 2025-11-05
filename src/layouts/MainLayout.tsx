@@ -653,9 +653,9 @@ const OngoingOrderSection = ({
           </View>
           <View style={styles.chevronContainer}>
             {isExpanded ? (
-              <ChevronUp size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
-            ) : (
               <ChevronDown size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
+            ) : (
+              <ChevronUp size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
             )}
           </View>
         </TouchableOpacity>
