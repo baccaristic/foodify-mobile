@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User, Package, Clock, MapPin } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
   MutableRefObject,
@@ -29,10 +29,13 @@ import Animated, {
   withTiming,
   useAnimatedReaction,
   runOnJS,
+  withRepeat,
+  withSequence,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
+import { LinearGradient } from 'expo-linear-gradient';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { formatOrderStatusLabel } from '~/utils/order';
 import { useTranslation } from '~/localization';
@@ -380,8 +383,8 @@ export default function MainLayout({
   const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
 
   const defaultFooterHeight = vs(80);
-  const collapsedOngoingHeight = vs(120);
-  const expandedOngoingHeight = vs(160);
+  const collapsedOngoingHeight = vs(90);
+  const expandedOngoingHeight = vs(162);
   const resolvedFooterHeight = !showFooter
     ? 0
     : ongoingOrder
@@ -593,43 +596,82 @@ const OngoingOrderSection = ({
   statusHeading,
   detailsLabel,
 }: OngoingOrderSectionProps) => {
+  // Animated value for pulsing effect
+  const pulseAnim = useSharedValue(0);
+
+  useEffect(() => {
+    pulseAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1500 }),
+        withTiming(0, { duration: 1500 })
+      ),
+      -1,
+      false
+    );
+  }, [pulseAnim]);
+
+  const pulseStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(pulseAnim.value, [0, 1], [0.6, 1]);
+    return { opacity };
+  });
+
+  const expandedStyle = useAnimatedStyle(() => {
+    return {
+      height: withTiming(isExpanded ? vs(72) : 0, { duration: 300 }),
+      opacity: withTiming(isExpanded ? 1 : 0, { duration: 300 }),
+    };
+  });
+
   return (
     <View style={styles.ongoingContainer}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onToggle}
-        style={styles.ongoingHeader}
+      <LinearGradient
+        colors={['#FF6B35', '#F7931E']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBackground}
       >
-        <Text allowFontScaling={false} style={styles.ongoingHeaderText} numberOfLines={1}>
-          {title}
-        </Text>
-        {isExpanded ? (
-          <ChevronDown size={s(18)} color="#FFFFFF" />
-        ) : (
-          <ChevronUp size={s(18)} color="#FFFFFF" />
-        )}
-      </TouchableOpacity>
-      {isExpanded ? (
-        <View style={styles.ongoingBody}>
-          <View style={styles.statusCard}>
-            <Text allowFontScaling={false} style={styles.statusCardLabel}>
-              {statusHeading}
-            </Text>
-            <Text allowFontScaling={false} style={styles.statusCardValue} numberOfLines={2}>
-              {statusLabel}
-            </Text>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onToggle}
+          style={styles.ongoingHeader}
+        >
+          <View style={styles.headerLeft}>
+            <Animated.View style={[styles.iconContainer, pulseStyle]}>
+              <Package size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
+            </Animated.View>
+            <View style={styles.headerTextContainer}>
+              <Text allowFontScaling={false} style={styles.ongoingHeaderText} numberOfLines={1}>
+                {title}
+              </Text>
+              <View style={styles.statusBadge}>
+                <Clock size={s(10)} color="#FFF8F0" />
+                <Text allowFontScaling={false} style={styles.statusBadgeText} numberOfLines={1}>
+                  {statusLabel}
+                </Text>
+              </View>
+            </View>
           </View>
+          <View style={styles.chevronContainer}>
+            {isExpanded ? (
+              <ChevronUp size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
+            ) : (
+              <ChevronDown size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
+            )}
+          </View>
+        </TouchableOpacity>
+        <Animated.View style={[styles.ongoingBody, expandedStyle]}>
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.detailsButton}
             onPress={onPressDetails}
           >
+            <MapPin size={s(16)} color="#FF6B35" strokeWidth={2.5} />
             <Text allowFontScaling={false} style={styles.detailsButtonLabel}>
               {detailsLabel}
             </Text>
           </TouchableOpacity>
-        </View>
-      ) : null}
+        </Animated.View>
+      </LinearGradient>
     </View>
   );
 };
@@ -683,61 +725,102 @@ const styles = ScaledSheet.create({
   },
   ongoingContainer: {
     width: '100%',
-    borderRadius: '18@ms',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#243255',
-    paddingVertical: '12@vs',
-    paddingHorizontal: '18@s',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: '20@ms',
     marginBottom: '12@vs',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  gradientBackground: {
+    width: '100%',
+    borderRadius: '20@ms',
+    paddingVertical: '14@vs',
+    paddingHorizontal: '18@s',
   },
   ongoingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  ongoingHeaderText: {
-    color: '#FFFFFF',
-    fontSize: '14@ms',
-    fontWeight: '600',
-  },
-  ongoingBody: {
+  headerLeft: {
     flexDirection: 'row',
-    alignItems: 'stretch',
-    marginTop: '12@vs',
-  },
-  statusCard: {
+    alignItems: 'center',
     flex: 1,
-    backgroundColor: '#CA251B',
-    borderRadius: '16@ms',
-    paddingVertical: '12@vs',
-    paddingHorizontal: '14@s',
+  },
+  iconContainer: {
+    width: '40@s',
+    height: '40@s',
+    borderRadius: '20@s',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: '12@s',
   },
-  statusCardLabel: {
-    color: '#FFFFFF',
-    fontSize: '13@ms',
-    fontWeight: '700',
+  headerTextContainer: {
+    flex: 1,
   },
-  statusCardValue: {
+  ongoingHeaderText: {
     color: '#FFFFFF',
-    fontSize: '12@ms',
-    marginTop: '4@vs',
-    fontWeight: '500',
+    fontSize: '15@ms',
+    fontWeight: '700',
+    marginBottom: '4@vs',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: '8@s',
+    paddingVertical: '3@vs',
+    borderRadius: '12@ms',
+    alignSelf: 'flex-start',
+  },
+  statusBadgeText: {
+    color: '#FFF8F0',
+    fontSize: '11@ms',
+    fontWeight: '600',
+    marginLeft: '4@s',
+  },
+  chevronContainer: {
+    width: '32@s',
+    height: '32@s',
+    borderRadius: '16@s',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: '8@s',
+  },
+  ongoingBody: {
+    marginTop: '12@vs',
+    overflow: 'hidden',
   },
   detailsButton: {
-    flex: 1,
-    backgroundColor: '#CA251B',
-    borderRadius: '16@ms',
+    backgroundColor: '#FFFFFF',
+    borderRadius: '14@ms',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: '14@vs',
-    paddingHorizontal: '12@s',
+    paddingHorizontal: '16@s',
+    flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   detailsButtonLabel: {
-    color: '#FFFFFF',
+    color: '#FF6B35',
     fontSize: '14@ms',
     fontWeight: '700',
+    marginLeft: '6@s',
   },
   navRow: {
     flexDirection: 'row',
