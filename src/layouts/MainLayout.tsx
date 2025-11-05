@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User, Package, Clock, MapPin, X, ChevronRight } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
   MutableRefObject,
@@ -29,6 +29,9 @@ import Animated, {
   withTiming,
   useAnimatedReaction,
   runOnJS,
+  withRepeat,
+  withSequence,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
@@ -380,15 +383,7 @@ export default function MainLayout({
   const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
 
   const defaultFooterHeight = vs(80);
-  const collapsedOngoingHeight = vs(120);
-  const expandedOngoingHeight = vs(160);
-  const resolvedFooterHeight = !showFooter
-    ? 0
-    : ongoingOrder
-    ? isOngoingExpanded
-      ? expandedOngoingHeight
-      : collapsedOngoingHeight
-    : defaultFooterHeight;
+  const resolvedFooterHeight = defaultFooterHeight;
   const fallbackContentPadding = vs(20);
   const floatingBottomOffset = showFooter
     ? insets.bottom + resolvedFooterHeight + vs(4)
@@ -429,6 +424,10 @@ export default function MainLayout({
       navigation.navigate('OrderTracking' as never, params as never);
     }
   }, [navigation, ongoingOrder]);
+
+  const handleDismissOngoing = useCallback(() => {
+    setIsOngoingExpanded(false);
+  }, []);
 
   const headerNode = !showHeader
     ? null
@@ -530,20 +529,23 @@ export default function MainLayout({
         </View>
       ) : null}
 
+      {ongoingOrder && showOnGoingOrder && showFooter ? (
+        <OngoingOrderFloatingBanner
+          isExpanded={isOngoingExpanded}
+          onToggle={handleToggleOngoing}
+          onDismiss={handleDismissOngoing}
+          statusLabel={ongoingStatusLabel ?? t('layout.ongoingOrder.trackingFallback')}
+          onPressDetails={handleViewOrderDetails}
+          title={t('layout.ongoingOrder.bannerTitle')}
+          detailsLabel={t('layout.ongoingOrder.seeDetails')}
+          bottomOffset={insets.bottom + defaultFooterHeight + vs(16)}
+          orderStatus={ongoingOrder.status}
+        />
+      ) : null}
+
       {showFooter && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + vs(10) }]}>
-          {ongoingOrder && showOnGoingOrder ? (
-            <OngoingOrderSection
-              isExpanded={isOngoingExpanded}
-              onToggle={handleToggleOngoing}
-              statusLabel={ongoingStatusLabel ?? t('layout.ongoingOrder.trackingFallback')}
-              onPressDetails={handleViewOrderDetails}
-              title={t('layout.ongoingOrder.bannerTitle')}
-              statusHeading={t('layout.ongoingOrder.statusHeading')}
-              detailsLabel={t('layout.ongoingOrder.seeDetails')}
-            />
-          ) : null}
-          <View style={[styles.navRow, ongoingOrder ? styles.navRowWithBanner : null]}>
+          <View style={styles.navRow}>
             {resolvedNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = resolvedActiveTab === item.route;
@@ -580,57 +582,178 @@ interface OngoingOrderSectionProps {
   statusLabel: string;
   onPressDetails: () => void;
   title: string;
-  statusHeading: string;
   detailsLabel: string;
 }
 
-const OngoingOrderSection = ({
+interface OngoingOrderFloatingBannerProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+  onDismiss: () => void;
+  statusLabel: string;
+  onPressDetails: () => void;
+  title: string;
+  detailsLabel: string;
+  bottomOffset: number;
+  orderStatus?: string | null;
+}
+
+// Constants defined outside component to avoid recreation on every render
+const EXPANDED_BODY_HEIGHT = vs(72);
+const PULSE_DURATION = 1500;
+const MIN_PULSE_OPACITY = 0.6;
+const MAX_PULSE_OPACITY = 1;
+const EXPAND_ANIMATION_DURATION = 300;
+const PROGRESS_BAR_ANIMATION_DURATION = 800;
+
+// Order status progress mapping
+const getOrderProgress = (status: string | null | undefined): number => {
+  if (!status) return 0;
+  const upperStatus = status.toUpperCase();
+  
+  // Map statuses to progress (0-3)
+  if (upperStatus === 'PENDING' || upperStatus === 'ACCEPTED') return 1;
+  if (upperStatus === 'PREPARING' || upperStatus === 'READY_FOR_PICK_UP') return 2;
+  if (upperStatus === 'IN_DELIVERY') return 3;
+  if (upperStatus === 'DELIVERED') return 3; // Complete
+  
+  return 0;
+};
+
+// Floating banner that slides in from the right
+const OngoingOrderFloatingBanner = ({
   isExpanded,
   onToggle,
+  onDismiss,
   statusLabel,
   onPressDetails,
   title,
-  statusHeading,
   detailsLabel,
-}: OngoingOrderSectionProps) => {
+  bottomOffset,
+  orderStatus,
+}: OngoingOrderFloatingBannerProps) => {
+  const { t } = useTranslation();
+  const slideAnim = useSharedValue(1);
+  const pulseAnim = useSharedValue(0);
+  const progressAnim = useSharedValue(0);
+  const currentProgress = getOrderProgress(orderStatus);
+
+  useEffect(() => {
+    // Slide in from right
+    slideAnim.value = withTiming(0, { duration: 400 });
+
+    // Pulsing animation
+    pulseAnim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: PULSE_DURATION }),
+        withTiming(0, { duration: PULSE_DURATION })
+      ),
+      -1,
+      false
+    );
+
+    return () => {
+      cancelAnimation(pulseAnim);
+      cancelAnimation(slideAnim);
+      cancelAnimation(progressAnim);
+    };
+  }, [pulseAnim, slideAnim, progressAnim]);
+
+  // Animate progress when status changes
+  useEffect(() => {
+    progressAnim.value = withTiming(currentProgress, {
+      duration: PROGRESS_BAR_ANIMATION_DURATION,
+    });
+  }, [currentProgress, progressAnim]);
+
+  const slideStyle = useAnimatedStyle(() => {
+    const translateX = interpolate(slideAnim.value, [0, 1], [0, 400], Extrapolate.CLAMP);
+    return {
+      transform: [{ translateX }],
+    };
+  });
+
+  const pulseStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(pulseAnim.value, [0, 1], [MIN_PULSE_OPACITY, MAX_PULSE_OPACITY]);
+    return { opacity };
+  });
+
+  const expandedStyle = useAnimatedStyle(() => {
+    return {
+      height: withTiming(isExpanded ? EXPANDED_BODY_HEIGHT : 0, { duration: EXPAND_ANIMATION_DURATION }),
+      opacity: withTiming(isExpanded ? 1 : 0, { duration: EXPAND_ANIMATION_DURATION }),
+    };
+  });
+
+  // Progress bar animations for each step
+  const progressStep1Style = useAnimatedStyle(() => {
+    const opacity = progressAnim.value >= 1 ? 1 : 0.3;
+    return { opacity };
+  });
+
+  const progressStep2Style = useAnimatedStyle(() => {
+    const opacity = progressAnim.value >= 2 ? 1 : 0.3;
+    return { opacity };
+  });
+
+  const progressStep3Style = useAnimatedStyle(() => {
+    const opacity = progressAnim.value >= 3 ? 1 : 0.3;
+    return { opacity };
+  });
+
   return (
-    <View style={styles.ongoingContainer}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onToggle}
-        style={styles.ongoingHeader}
-      >
-        <Text allowFontScaling={false} style={styles.ongoingHeaderText} numberOfLines={1}>
-          {title}
-        </Text>
-        {isExpanded ? (
-          <ChevronDown size={s(18)} color="#FFFFFF" />
-        ) : (
-          <ChevronUp size={s(18)} color="#FFFFFF" />
-        )}
-      </TouchableOpacity>
-      {isExpanded ? (
-        <View style={styles.ongoingBody}>
-          <View style={styles.statusCard}>
-            <Text allowFontScaling={false} style={styles.statusCardLabel}>
-              {statusHeading}
+    <Animated.View style={[styles.floatingBanner, { bottom: bottomOffset }, slideStyle]}>
+      <View style={styles.floatingContainer}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onPressDetails}
+          style={styles.floatingContent}
+        >
+          <Animated.View style={[styles.floatingIconContainer, pulseStyle]}>
+            <Package size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
+          </Animated.View>
+          <View style={styles.floatingTextContainer}>
+            <Text allowFontScaling={false} style={styles.floatingTitle} numberOfLines={1}>
+              {title}
             </Text>
-            <Text allowFontScaling={false} style={styles.statusCardValue} numberOfLines={2}>
-              {statusLabel}
-            </Text>
+            <View style={styles.floatingBadge}>
+              <Clock size={s(10)} color="#FFF8F0" />
+              <Text allowFontScaling={false} style={styles.floatingBadgeText} numberOfLines={1}>
+                {statusLabel}
+              </Text>
+            </View>
           </View>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.detailsButton}
-            onPress={onPressDetails}
-          >
-            <Text allowFontScaling={false} style={styles.detailsButtonLabel}>
-              {detailsLabel}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.floatingAction}>
+            <ChevronRight size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
+          </View>
+        </TouchableOpacity>
+        
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressRow}>
+            <Animated.View style={[styles.progressStep, progressStep1Style]}>
+              <View style={styles.progressDot} />
+              <Text allowFontScaling={false} style={styles.progressLabel}>
+                {t('layout.ongoingOrder.progressSteps.created')}
+              </Text>
+            </Animated.View>
+            <Animated.View style={[styles.progressLine, progressStep2Style]} />
+            <Animated.View style={[styles.progressStep, progressStep2Style]}>
+              <View style={styles.progressDot} />
+              <Text allowFontScaling={false} style={styles.progressLabel}>
+                {t('layout.ongoingOrder.progressSteps.preparing')}
+              </Text>
+            </Animated.View>
+            <Animated.View style={[styles.progressLine, progressStep3Style]} />
+            <Animated.View style={[styles.progressStep, progressStep3Style]}>
+              <View style={styles.progressDot} />
+              <Text allowFontScaling={false} style={styles.progressLabel}>
+                {t('layout.ongoingOrder.progressSteps.inDelivery')}
+              </Text>
+            </Animated.View>
+          </View>
         </View>
-      ) : null}
-    </View>
+      </View>
+    </Animated.View>
   );
 };
 
@@ -681,71 +804,115 @@ const styles = ScaledSheet.create({
     borderTopRightRadius: '24@ms',
     zIndex: 2,
   },
-  ongoingContainer: {
-    width: '100%',
-    borderRadius: '18@ms',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#243255',
-    paddingVertical: '12@vs',
-    paddingHorizontal: '18@s',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    marginBottom: '12@vs',
+  floatingBanner: {
+    position: 'absolute',
+    right: '16@s',
+    width: '88%',
+    maxWidth: '340@s',
+    borderRadius: '20@ms',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: -2,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+    zIndex: 4,
   },
-  ongoingHeader: {
+  floatingContainer: {
+    width: '100%',
+    backgroundColor: '#CA251B',
+    borderRadius: '20@ms',
+    paddingVertical: '12@vs',
+    paddingHorizontal: '16@s',
+    paddingBottom: '16@vs',
+  },
+  floatingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  floatingIconContainer: {
+    width: '36@s',
+    height: '36@s',
+    borderRadius: '18@s',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: '10@s',
+  },
+  floatingTextContainer: {
+    flex: 1,
+  },
+  floatingTitle: {
+    color: '#FFFFFF',
+    fontSize: '14@ms',
+    fontWeight: '700',
+    marginBottom: '3@vs',
+  },
+  floatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: '6@s',
+    paddingVertical: '2@vs',
+    borderRadius: '10@ms',
+    alignSelf: 'flex-start',
+  },
+  floatingBadgeText: {
+    color: '#FFF8F0',
+    fontSize: '10@ms',
+    fontWeight: '600',
+    marginLeft: '3@s',
+  },
+  floatingAction: {
+    width: '28@s',
+    height: '28@s',
+    borderRadius: '14@s',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: '8@s',
+  },
+  progressContainer: {
+    marginTop: '12@vs',
+    paddingTop: '12@vs',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  ongoingHeaderText: {
-    color: '#FFFFFF',
-    fontSize: '14@ms',
-    fontWeight: '600',
-  },
-  ongoingBody: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginTop: '12@vs',
-  },
-  statusCard: {
-    flex: 1,
-    backgroundColor: '#CA251B',
-    borderRadius: '16@ms',
-    paddingVertical: '12@vs',
-    paddingHorizontal: '14@s',
-    marginRight: '12@s',
-  },
-  statusCardLabel: {
-    color: '#FFFFFF',
-    fontSize: '13@ms',
-    fontWeight: '700',
-  },
-  statusCardValue: {
-    color: '#FFFFFF',
-    fontSize: '12@ms',
-    marginTop: '4@vs',
-    fontWeight: '500',
-  },
-  detailsButton: {
-    flex: 1,
-    backgroundColor: '#CA251B',
-    borderRadius: '16@ms',
+  progressStep: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: '14@vs',
-    paddingHorizontal: '12@s',
+    flex: 1,
   },
-  detailsButtonLabel: {
+  progressDot: {
+    width: '10@s',
+    height: '10@s',
+    borderRadius: '5@s',
+    backgroundColor: '#FFFFFF',
+    marginBottom: '4@vs',
+  },
+  progressLabel: {
     color: '#FFFFFF',
-    fontSize: '14@ms',
-    fontWeight: '700',
+    fontSize: '9@ms',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  progressLine: {
+    height: '2@vs',
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: '4@s',
   },
   navRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-  },
-  navRowWithBanner: {
-    marginTop: '16@vs',
   },
   navButton: {
     alignItems: 'center',
