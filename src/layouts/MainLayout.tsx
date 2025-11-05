@@ -542,7 +542,6 @@ export default function MainLayout({
               statusLabel={ongoingStatusLabel ?? t('layout.ongoingOrder.trackingFallback')}
               onPressDetails={handleViewOrderDetails}
               title={t('layout.ongoingOrder.bannerTitle')}
-              statusHeading={t('layout.ongoingOrder.statusHeading')}
               detailsLabel={t('layout.ongoingOrder.seeDetails')}
             />
           ) : null}
@@ -583,7 +582,6 @@ interface OngoingOrderSectionProps {
   statusLabel: string;
   onPressDetails: () => void;
   title: string;
-  statusHeading: string;
   detailsLabel: string;
 }
 
@@ -593,7 +591,6 @@ const OngoingOrderSection = ({
   statusLabel,
   onPressDetails,
   title,
-  statusHeading,
   detailsLabel,
 }: OngoingOrderSectionProps) => {
   // Animated value for pulsing effect
