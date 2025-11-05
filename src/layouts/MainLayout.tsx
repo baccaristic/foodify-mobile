@@ -662,7 +662,7 @@ const OngoingOrderSection = ({
             </View>
           </View>
           <View style={styles.chevronContainer}>
-            {/* Chevron indicates current state: down when expanded, up when collapsed */}
+            {/* Chevron shows current state: down arrow when expanded (can collapse), up arrow when collapsed (can expand) */}
             {isExpanded ? (
               <ChevronDown size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
             ) : (
