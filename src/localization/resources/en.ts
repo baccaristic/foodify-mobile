@@ -40,6 +40,11 @@ const en: TranslationDictionary = {
       statusHeading: 'Status',
       trackingFallback: 'Tracking…',
       seeDetails: 'See details',
+      progressSteps: {
+        created: 'Order created',
+        preparing: 'Preparing',
+        inDelivery: 'In delivery',
+      },
       deliveredCelebration: {
         title: 'Enjoy your food',
         subtitle: 'Your delivery has arrived. Bon appétit!',

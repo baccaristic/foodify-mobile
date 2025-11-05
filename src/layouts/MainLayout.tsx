@@ -36,7 +36,6 @@ import Animated, {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
-import { LinearGradient } from 'expo-linear-gradient';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { formatOrderStatusLabel } from '~/utils/order';
 import { useTranslation } from '~/localization';
@@ -540,6 +539,7 @@ export default function MainLayout({
           title={t('layout.ongoingOrder.bannerTitle')}
           detailsLabel={t('layout.ongoingOrder.seeDetails')}
           bottomOffset={insets.bottom + defaultFooterHeight + vs(16)}
+          orderStatus={ongoingOrder.status}
         />
       ) : null}
 
@@ -594,6 +594,7 @@ interface OngoingOrderFloatingBannerProps {
   title: string;
   detailsLabel: string;
   bottomOffset: number;
+  orderStatus?: string | null;
 }
 
 // Constants defined outside component to avoid recreation on every render
@@ -602,6 +603,21 @@ const PULSE_DURATION = 1500;
 const MIN_PULSE_OPACITY = 0.6;
 const MAX_PULSE_OPACITY = 1;
 const EXPAND_ANIMATION_DURATION = 300;
+const PROGRESS_BAR_ANIMATION_DURATION = 800;
+
+// Order status progress mapping
+const getOrderProgress = (status: string | null | undefined): number => {
+  if (!status) return 0;
+  const upperStatus = status.toUpperCase();
+  
+  // Map statuses to progress (0-3)
+  if (upperStatus === 'PENDING' || upperStatus === 'ACCEPTED') return 1;
+  if (upperStatus === 'PREPARING' || upperStatus === 'READY_FOR_PICK_UP') return 2;
+  if (upperStatus === 'IN_DELIVERY') return 3;
+  if (upperStatus === 'DELIVERED') return 3; // Complete
+  
+  return 0;
+};
 
 // Floating banner that slides in from the right
 const OngoingOrderFloatingBanner = ({
@@ -613,9 +629,13 @@ const OngoingOrderFloatingBanner = ({
   title,
   detailsLabel,
   bottomOffset,
+  orderStatus,
 }: OngoingOrderFloatingBannerProps) => {
+  const { t } = useTranslation();
   const slideAnim = useSharedValue(1);
   const pulseAnim = useSharedValue(0);
+  const progressAnim = useSharedValue(0);
+  const currentProgress = getOrderProgress(orderStatus);
 
   useEffect(() => {
     // Slide in from right
@@ -634,8 +654,16 @@ const OngoingOrderFloatingBanner = ({
     return () => {
       cancelAnimation(pulseAnim);
       cancelAnimation(slideAnim);
+      cancelAnimation(progressAnim);
     };
-  }, [pulseAnim, slideAnim]);
+  }, [pulseAnim, slideAnim, progressAnim]);
+
+  // Animate progress when status changes
+  useEffect(() => {
+    progressAnim.value = withTiming(currentProgress, {
+      duration: PROGRESS_BAR_ANIMATION_DURATION,
+    });
+  }, [currentProgress, progressAnim]);
 
   const slideStyle = useAnimatedStyle(() => {
     const translateX = interpolate(slideAnim.value, [0, 1], [0, 400], Extrapolate.CLAMP);
@@ -656,14 +684,25 @@ const OngoingOrderFloatingBanner = ({
     };
   });
 
+  // Progress bar animations for each step
+  const progressStep1Style = useAnimatedStyle(() => {
+    const opacity = progressAnim.value >= 1 ? 1 : 0.3;
+    return { opacity };
+  });
+
+  const progressStep2Style = useAnimatedStyle(() => {
+    const opacity = progressAnim.value >= 2 ? 1 : 0.3;
+    return { opacity };
+  });
+
+  const progressStep3Style = useAnimatedStyle(() => {
+    const opacity = progressAnim.value >= 3 ? 1 : 0.3;
+    return { opacity };
+  });
+
   return (
     <Animated.View style={[styles.floatingBanner, { bottom: bottomOffset }, slideStyle]}>
-      <LinearGradient
-        colors={['#FF6B35', '#F7931E']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.floatingGradient}
-      >
+      <View style={styles.floatingContainer}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onPressDetails}
@@ -687,7 +726,33 @@ const OngoingOrderFloatingBanner = ({
             <ChevronRight size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
           </View>
         </TouchableOpacity>
-      </LinearGradient>
+        
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressRow}>
+            <Animated.View style={[styles.progressStep, progressStep1Style]}>
+              <View style={styles.progressDot} />
+              <Text allowFontScaling={false} style={styles.progressLabel}>
+                {t('layout.ongoingOrder.progressSteps.created')}
+              </Text>
+            </Animated.View>
+            <Animated.View style={[styles.progressLine, progressStep2Style]} />
+            <Animated.View style={[styles.progressStep, progressStep2Style]}>
+              <View style={styles.progressDot} />
+              <Text allowFontScaling={false} style={styles.progressLabel}>
+                {t('layout.ongoingOrder.progressSteps.preparing')}
+              </Text>
+            </Animated.View>
+            <Animated.View style={[styles.progressLine, progressStep3Style]} />
+            <Animated.View style={[styles.progressStep, progressStep3Style]}>
+              <View style={styles.progressDot} />
+              <Text allowFontScaling={false} style={styles.progressLabel}>
+                {t('layout.ongoingOrder.progressSteps.inDelivery')}
+              </Text>
+            </Animated.View>
+          </View>
+        </View>
+      </View>
     </Animated.View>
   );
 };
@@ -756,11 +821,13 @@ const styles = ScaledSheet.create({
     elevation: 10,
     zIndex: 4,
   },
-  floatingGradient: {
+  floatingContainer: {
     width: '100%',
+    backgroundColor: '#CA251B',
     borderRadius: '20@ms',
     paddingVertical: '12@vs',
     paddingHorizontal: '16@s',
+    paddingBottom: '16@vs',
   },
   floatingContent: {
     flexDirection: 'row',
@@ -807,6 +874,40 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: '8@s',
+  },
+  progressContainer: {
+    marginTop: '12@vs',
+    paddingTop: '12@vs',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressStep: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  progressDot: {
+    width: '10@s',
+    height: '10@s',
+    borderRadius: '5@s',
+    backgroundColor: '#FFFFFF',
+    marginBottom: '4@vs',
+  },
+  progressLabel: {
+    color: '#FFFFFF',
+    fontSize: '9@ms',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  progressLine: {
+    height: '2@vs',
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: '4@s',
   },
   navRow: {
     flexDirection: 'row',
