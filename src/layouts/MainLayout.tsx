@@ -605,6 +605,11 @@ const OngoingOrderSection = ({
       -1,
       false
     );
+
+    // Cleanup: Cancel animation when component unmounts
+    return () => {
+      pulseAnim.value = 0;
+    };
   }, [pulseAnim]);
 
   const pulseStyle = useAnimatedStyle(() => {
@@ -612,9 +617,11 @@ const OngoingOrderSection = ({
     return { opacity };
   });
 
+  const EXPANDED_BODY_HEIGHT = vs(72);
+
   const expandedStyle = useAnimatedStyle(() => {
     return {
-      height: withTiming(isExpanded ? vs(72) : 0, { duration: 300 }),
+      height: withTiming(isExpanded ? EXPANDED_BODY_HEIGHT : 0, { duration: 300 }),
       opacity: withTiming(isExpanded ? 1 : 0, { duration: 300 }),
     };
   });
@@ -649,6 +656,7 @@ const OngoingOrderSection = ({
             </View>
           </View>
           <View style={styles.chevronContainer}>
+            {/* Chevron indicates current state: down when expanded, up when collapsed */}
             {isExpanded ? (
               <ChevronDown size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
             ) : (
