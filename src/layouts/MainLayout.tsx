@@ -31,6 +31,7 @@ import Animated, {
   runOnJS,
   withRepeat,
   withSequence,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
@@ -585,6 +586,9 @@ interface OngoingOrderSectionProps {
   detailsLabel: string;
 }
 
+// Constants defined outside component to avoid recreation on every render
+const EXPANDED_BODY_HEIGHT = vs(72);
+
 const OngoingOrderSection = ({
   isExpanded,
   onToggle,
@@ -608,7 +612,7 @@ const OngoingOrderSection = ({
 
     // Cleanup: Cancel animation when component unmounts
     return () => {
-      pulseAnim.value = 0;
+      cancelAnimation(pulseAnim);
     };
   }, [pulseAnim]);
 
@@ -616,8 +620,6 @@ const OngoingOrderSection = ({
     const opacity = interpolate(pulseAnim.value, [0, 1], [0.6, 1]);
     return { opacity };
   });
-
-  const EXPANDED_BODY_HEIGHT = vs(72);
 
   const expandedStyle = useAnimatedStyle(() => {
     return {
