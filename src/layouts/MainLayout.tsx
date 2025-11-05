@@ -650,7 +650,7 @@ const OngoingOrderSection = ({
                 {title}
               </Text>
               <View style={styles.statusBadge}>
-                <Clock size={s(10)} color="#FFF8F0" />
+                <Clock size={s(12)} color="#FFF8F0" />
                 <Text allowFontScaling={false} style={styles.statusBadgeText} numberOfLines={1}>
                   {statusLabel}
                 </Text>
@@ -746,7 +746,6 @@ const styles = ScaledSheet.create({
   },
   gradientBackground: {
     width: '100%',
-    borderRadius: '20@ms',
     paddingVertical: '14@vs',
     paddingHorizontal: '18@s',
   },
