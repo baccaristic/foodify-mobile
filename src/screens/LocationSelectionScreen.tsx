@@ -57,9 +57,10 @@ const palette = {
   divider: '#E2E8F0',
 };
 
-const initialAddress = 'Q5RP+JVP, Tunis, Tunisia';
+const initialAddress = 'Loading your location...';
 
-const DEFAULT_REGION: Region = {
+// This will be replaced with user's actual location
+let DEFAULT_REGION: Region = {
   latitude: 36.8065,
   longitude: 10.1815,
   latitudeDelta: 0.01,
@@ -370,16 +371,33 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     }
 
     if (access.granted) {
-      const applied = await applyCurrentLocation();
+      const coords = await getCurrentCoordinates();
+      
+      if (coords && componentMountedRef.current) {
+        // Update the default region with user's actual location
+        DEFAULT_REGION = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        
+        programmaticChangeRef.current = true;
+        setCurrentRegion(DEFAULT_REGION);
+        setFormattedAddress(formatRegion(DEFAULT_REGION));
+        fetchAddress(DEFAULT_REGION);
+        mapRef.current?.animateToRegion(DEFAULT_REGION, 280);
+        setShowPermissionPrompt(false);
+        setPermissionError(null);
+        return;
+      }
 
       if (!componentMountedRef.current) {
         return;
       }
 
-      if (!applied) {
-        setPermissionError('We could not determine your current location. Try again.');
-        setShowPermissionPrompt(true);
-      }
+      setPermissionError('We could not determine your current location. Try again.');
+      setShowPermissionPrompt(true);
       return;
     }
 
@@ -392,7 +410,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
     }
 
     setShowPermissionPrompt(true);
-  }, [applyCurrentLocation]);
+  }, [fetchAddress]);
 
   useEffect(() => {
     fetchAddress(DEFAULT_REGION);

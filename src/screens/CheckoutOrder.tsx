@@ -27,8 +27,12 @@ import {
 import { ArrowLeft, ChevronDown, CreditCard, MapPin, PenSquare, TicketPercent, Wallet, X } from 'lucide-react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { isAxiosError } from 'axios';
+import * as Location from 'expo-location';
+import { GOOGLE_MAPS_API_KEY } from '@env';
 
 import { useCart } from '~/context/CartContext';
+import AddressMismatchOverlay from '~/components/AddressMismatchOverlay';
+import { getCurrentCoordinates } from '~/services/locationAccess';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
@@ -495,6 +499,9 @@ const CheckoutOrder: React.FC = () => {
   >(null);
   const [isDeliveryQuoteLoading, setIsDeliveryQuoteLoading] = useState(false);
   const [deliveryQuoteError, setDeliveryQuoteError] = useState<DeliveryQuoteError | null>(null);
+  const [showAddressMismatchOverlay, setShowAddressMismatchOverlay] = useState(false);
+  const [currentGpsLocation, setCurrentGpsLocation] = useState<Location.LocationObjectCoords | null>(null);
+  const [currentGpsAddress, setCurrentGpsAddress] = useState<string | null>(null);
 
   const paymentOptions = useMemo(
     () =>
@@ -716,6 +723,48 @@ const CheckoutOrder: React.FC = () => {
     selectedAddress?.coordinates?.latitude,
     selectedAddress?.coordinates?.longitude,
   ]);
+
+  // Fetch current GPS location on mount
+  useEffect(() => {
+    if (isViewMode) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchCurrentLocation = async () => {
+      try {
+        const coords = await getCurrentCoordinates();
+        if (isCancelled || !coords) {
+          return;
+        }
+
+        setCurrentGpsLocation(coords);
+
+        // Reverse geocode to get address
+        try {
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_MAPS_API_KEY || ''}`
+          );
+          const data = await response.json();
+
+          if (!isCancelled && data.status === 'OK' && data.results?.length) {
+            setCurrentGpsAddress(data.results[0].formatted_address);
+          }
+        } catch (error) {
+          console.error('Failed to reverse geocode current location:', error);
+        }
+      } catch (error) {
+        console.error('Failed to get current location:', error);
+      }
+    };
+
+    fetchCurrentLocation();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isViewMode]);
 
   type ViewModeAggregates = {
     lineSubtotal: number;
@@ -1798,6 +1847,46 @@ const CheckoutOrder: React.FC = () => {
     ],
   );
 
+  // Function to calculate distance between two coordinates (in meters)
+  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  }, []);
+
+  // Function to check if addresses match (within 500 meters tolerance)
+  const checkAddressMismatch = useCallback((): boolean => {
+    if (!currentGpsLocation || !selectedAddress?.coordinates) {
+      return false;
+    }
+
+    const selectedLat = Number(selectedAddress.coordinates.latitude);
+    const selectedLng = Number(selectedAddress.coordinates.longitude);
+
+    if (!Number.isFinite(selectedLat) || !Number.isFinite(selectedLng)) {
+      return false;
+    }
+
+    const distance = calculateDistance(
+      currentGpsLocation.latitude,
+      currentGpsLocation.longitude,
+      selectedLat,
+      selectedLng
+    );
+
+    // Consider addresses as mismatched if distance is more than 500 meters
+    return distance > 500;
+  }, [currentGpsLocation, selectedAddress, calculateDistance]);
+
   const handleConfirmOrder = useCallback(() => {
     if (isViewMode) {
       return;
@@ -1808,10 +1897,17 @@ const CheckoutOrder: React.FC = () => {
       return;
     }
 
+    // Check for address mismatch
+    const hasMismatch = checkAddressMismatch();
+    if (hasMismatch && !showAddressMismatchOverlay) {
+      setShowAddressMismatchOverlay(true);
+      return;
+    }
+
     setPendingCoordinates(coordinates);
     setTipOverlayError(null);
     setIsTipModalVisible(true);
-  }, [isViewMode, validateBeforeSubmission]);
+  }, [isViewMode, validateBeforeSubmission, checkAddressMismatch, showAddressMismatchOverlay]);
 
   const handleTipOverlayConfirm = useCallback(() => {
     if (isViewMode) {
@@ -1855,6 +1951,31 @@ const CheckoutOrder: React.FC = () => {
     submitOrder,
     pendingCoordinates,
   ]);
+
+  const handleAddressMismatchContinue = useCallback(() => {
+    setShowAddressMismatchOverlay(false);
+    
+    // Proceed with the order using selected address
+    const coordinates = validateBeforeSubmission();
+    if (!coordinates) {
+      return;
+    }
+
+    setPendingCoordinates(coordinates);
+    setTipOverlayError(null);
+    setIsTipModalVisible(true);
+  }, [validateBeforeSubmission]);
+
+  const handleAddressMismatchUpdateLocation = useCallback(() => {
+    setShowAddressMismatchOverlay(false);
+    
+    // Navigate to location selection screen to update address
+    navigation.navigate('LocationSelection');
+  }, [navigation]);
+
+  const handleAddressMismatchCancel = useCallback(() => {
+    setShowAddressMismatchOverlay(false);
+  }, []);
 
   const isDeliveryQuoteBlocking =
     !isViewMode &&
@@ -2382,6 +2503,14 @@ const CheckoutOrder: React.FC = () => {
         selected={isViewMode ? null : selectedPaymentMethod}
         title={t('checkout.payment.modalTitle')}
         options={paymentOptions}
+      />
+      <AddressMismatchOverlay
+        visible={!isViewMode && showAddressMismatchOverlay}
+        selectedAddress={selectedAddress?.formattedAddress ?? ''}
+        currentLocationAddress={currentGpsAddress ?? undefined}
+        onContinueWithSelected={handleAddressMismatchContinue}
+        onUpdateToCurrentLocation={handleAddressMismatchUpdateLocation}
+        onCancel={handleAddressMismatchCancel}
       />
     </SafeAreaView>
   );
