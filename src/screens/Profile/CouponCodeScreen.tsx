@@ -9,12 +9,14 @@ import {
   View,
 } from 'react-native';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Gift, Sparkles } from 'lucide-react-native';
+import { ArrowRight, Check, TicketPercent, CircleArrowRight } from 'lucide-react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getLoyaltyCoupons } from '~/api/loyalty';
+import { getLoyaltyCoupons, getLoyaltyBalance } from '~/api/loyalty';
 import type { CouponDto } from '~/interfaces/Loyalty';
 import { useTranslation } from '~/localization';
+import HeaderWithBackButton from '~/components/HeaderWithBackButton';
+import { ScaledSheet, moderateScale, s } from 'react-native-size-matters';
 
 const headerColor = '#17213A';
 const accentColor = '#CA251B';
@@ -34,6 +36,25 @@ const CouponCodeScreen: React.FC = () => {
     queryFn: getLoyaltyCoupons,
   });
 
+  const {
+    data: balanceData,
+    isFetching: isBalanceFetching,
+  } = useQuery({
+    queryKey: ['loyalty', 'balance'],
+    queryFn: getLoyaltyBalance,
+  });
+
+  const formatPoints = (v: number) => {
+    const abs = Math.abs(v);
+    const fractionDigits = abs % 1 === 0 ? 0 : 2;
+    return new Intl.NumberFormat(undefined, {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: 2,
+    }).format(v);
+  };
+
+  const pointsDisplay = formatPoints(Number(balanceData?.balance ?? 0));
+
   const sortedCoupons = useMemo(
     () =>
       [...coupons].sort((a, b) => {
@@ -45,53 +66,74 @@ const CouponCodeScreen: React.FC = () => {
   );
 
   const renderCoupon = ({ item }: { item: CouponDto }) => {
-    const statusKey = item.redeemed
-      ? 'redeemed'
-      : item.active
-      ? 'active'
-      : 'inactive';
+    let statusLabel = '';
+    let bgButton = accentColor;
+    let textColor = 'white';
+    let IconComponent = ArrowRight;
 
-    const statusLabel = t(`profile.coupon.status.${statusKey}`);
-    const statusColor = item.redeemed ? '#6B7280' : item.active ? '#16A34A' : accentColor;
+    if (item.redeemed) {
+      statusLabel = t('profile.coupon.status.redeemed'); 
+      bgButton = '#D1D5DB';
+      textColor = '#fff';
+      IconComponent = Check;
+    } else if (item.active) {
+      statusLabel = t('profile.coupon.status.active'); 
+    } else {
+      statusLabel = t('profile.coupon.status.inactive'); 
+    }
+
     const discountLabel =
       item.type === 'PERCENTAGE_DISCOUNT'
         ? t('profile.coupon.discount.percent', { values: { value: item.discountPercent ?? 0 } })
         : t('profile.coupon.discount.freeDelivery');
-    const assignedDate = item.assignedAt
+
+    const creationDate = item.assignedAt
       ? new Intl.DateTimeFormat(undefined, {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        }).format(new Date(item.assignedAt))
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(item.assignedAt))
       : null;
 
+
     return (
-      <View className="mb-3 rounded-3xl border bg-white p-5" style={{ borderColor }}>
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-4">
-            <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: headerColor }}>
-              {item.code}
-            </Text>
-            <Text allowFontScaling={false} className="mt-1 text-sm" style={{ color: '#6B7280' }}>
+      <View
+        className="mb-3 flex-row items-center justify-between rounded-3xl border bg-white px-4 py-4"
+        style={{ borderColor, borderWidth:2 }}
+      >
+        <View className="flex-row items-center flex-1 pr-3">
+          <View className="mr-4 h-10 w-10 items-center justify-center rounded-2xl bg-[#FDE7E5]">
+            <TicketPercent size={20} color={accentColor} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: accentColor }}>
               {discountLabel}
             </Text>
-            {assignedDate ? (
-              <Text allowFontScaling={false} className="mt-2 text-xs" style={{ color: '#9CA3AF' }}>
-                {t('profile.coupon.assignedAt', { values: { date: assignedDate } })}
+
+            <Text allowFontScaling={false} className="text-xs font-semibold mt-1" style={{ color: '#9CA3AF' }}>
+              {item.code}
+            </Text>
+
+            {creationDate ? (
+              <Text allowFontScaling={false} className="mt-1 text-xs font-semibold" style={{ color: accentColor }}>
+                {t('profile.coupon.assignedAt', { values: { date: creationDate } })}
               </Text>
             ) : null}
-            {item.createdFromPoints ? (
-              <View className="mt-3 self-start rounded-full bg-[#FDE7E5] px-3 py-1">
-                <Text allowFontScaling={false} className="text-xs font-semibold" style={{ color: accentColor }}>
-                  {t('profile.coupon.createdFromPoints')}
-                </Text>
-              </View>
-            ) : null}
           </View>
-          <View className="items-end">
-            <Gift size={24} color={accentColor} />
-            <Text allowFontScaling={false} className="mt-2 text-xs font-semibold" style={{ color: statusColor }}>
+        </View>
+
+        <View>
+          <View
+            className="flex-row items-center justify-center rounded-full px-3 py-2"
+            style={{ backgroundColor: bgButton, minWidth: 90 }}
+          >
+            <Text allowFontScaling={false} className="text-xs font-semibold mr-1" style={{ color: textColor }}>
               {statusLabel}
             </Text>
+            <IconComponent size={14} color={textColor} />
           </View>
         </View>
       </View>
@@ -100,17 +142,8 @@ const CouponCodeScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row items-center px-4 pb-4 pt-2">
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className="mr-4 rounded-full border border-[#E4E6EB] p-2"
-        >
-          <ArrowLeft size={20} color={headerColor} />
-        </TouchableOpacity>
-        <Text allowFontScaling={false} className="flex-1 text-center text-xl font-bold" style={{ color: headerColor }}>
-          {t('profile.coupon.title')}
-        </Text>
-        <View className="w-10" />
+      <View style={styles.header}>
+        <HeaderWithBackButton title={t('profile.coupon.title')} titleMarginLeft={s(70)} />
       </View>
 
       <FlatList
@@ -119,31 +152,44 @@ const CouponCodeScreen: React.FC = () => {
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         ListHeaderComponent={
           <View className="mb-4">
-            <Text allowFontScaling={false} className="text-sm" style={{ color: '#6B7280' }}>
-              {t('profile.coupon.subtitle')}
-            </Text>
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={() => navigation.navigate('RedeemCoupon' as never)}
-              className="mt-4 flex-row items-center justify-between rounded-3xl bg-[#FDE7E5] px-5 py-4"
+              onPress={() => navigation.navigate('LoyaltyRewards' as never)}
+              className="flex-row items-center justify-between rounded-3xl bg-[#CA251B] px-6 py-5"
             >
               <View>
-                <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: accentColor }}>
-                  {t('profile.coupon.redeemCta')}
+                <Text allowFontScaling={false} className="text-white font-medium text-sm">
+                  {t('profile.convert.availableTitle')}
                 </Text>
-                <Text allowFontScaling={false} className="mt-1 text-xs" style={{ color: '#B91C1C' }}>
-                  {t('profile.coupon.redeemHint')}
+
+                {isBalanceFetching ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text allowFontScaling={false} className="text-white font-extrabold text-2xl mt-1">
+                    {pointsDisplay}
+                  </Text>
+                )}
+
+                <Text allowFontScaling={false} className="text-white font-semibold text-sm mt-1" style={{maxWidth:moderateScale(220)}}>
+                  {t('profile.convert.availableSubtitle')}
                 </Text>
               </View>
-              <Sparkles size={20} color={accentColor} />
+              <CircleArrowRight size={48} color="white" />
             </TouchableOpacity>
 
-            <Text allowFontScaling={false} className="mt-6 text-base font-bold" style={{ color: headerColor }}>
+            <Text allowFontScaling={false} className="mt-6 text-lg font-extrabold" style={{ color: headerColor }}>
               {t('profile.coupon.listTitle')}
             </Text>
           </View>
         }
         renderItem={renderCoupon}
+        ListFooterComponent={
+          <View className="mt-6 px-3">
+            <Text allowFontScaling={false} className="text-center text-sm" style={{ color: '#9CA3AF' }}>
+              {t('profile.coupon.emptyHint')}
+            </Text>
+          </View>
+        }
         ListEmptyComponent={() => (
           <View className="mt-10 items-center">
             {isLoading ? (
@@ -162,6 +208,7 @@ const CouponCodeScreen: React.FC = () => {
             tintColor={accentColor}
             onRefresh={() => {
               queryClient.invalidateQueries({ queryKey: ['loyalty', 'coupons'] });
+              queryClient.invalidateQueries({ queryKey: ['loyalty', 'balance'] });
             }}
           />
         }
@@ -171,3 +218,10 @@ const CouponCodeScreen: React.FC = () => {
 };
 
 export default CouponCodeScreen;
+
+const styles = ScaledSheet.create({
+  header: {
+    borderBottomColor: 'rgba(211,211,211,0.4)',
+    borderBottomWidth: 2,
+  },
+});
