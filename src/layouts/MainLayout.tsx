@@ -588,6 +588,10 @@ interface OngoingOrderSectionProps {
 
 // Constants defined outside component to avoid recreation on every render
 const EXPANDED_BODY_HEIGHT = vs(72);
+const PULSE_DURATION = 1500;
+const MIN_PULSE_OPACITY = 0.6;
+const MAX_PULSE_OPACITY = 1;
+const EXPAND_ANIMATION_DURATION = 300;
 
 const OngoingOrderSection = ({
   isExpanded,
@@ -603,8 +607,8 @@ const OngoingOrderSection = ({
   useEffect(() => {
     pulseAnim.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 1500 }),
-        withTiming(0, { duration: 1500 })
+        withTiming(1, { duration: PULSE_DURATION }),
+        withTiming(0, { duration: PULSE_DURATION })
       ),
       -1,
       false
@@ -617,14 +621,14 @@ const OngoingOrderSection = ({
   }, [pulseAnim]);
 
   const pulseStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(pulseAnim.value, [0, 1], [0.6, 1]);
+    const opacity = interpolate(pulseAnim.value, [0, 1], [MIN_PULSE_OPACITY, MAX_PULSE_OPACITY]);
     return { opacity };
   });
 
   const expandedStyle = useAnimatedStyle(() => {
     return {
-      height: withTiming(isExpanded ? EXPANDED_BODY_HEIGHT : 0, { duration: 300 }),
-      opacity: withTiming(isExpanded ? 1 : 0, { duration: 300 }),
+      height: withTiming(isExpanded ? EXPANDED_BODY_HEIGHT : 0, { duration: EXPAND_ANIMATION_DURATION }),
+      opacity: withTiming(isExpanded ? 1 : 0, { duration: EXPAND_ANIMATION_DURATION }),
     };
   });
 
