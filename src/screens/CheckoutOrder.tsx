@@ -1850,16 +1850,23 @@ const CheckoutOrder: React.FC = () => {
   // Function to calculate distance between two coordinates (in meters)
   const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371e3; // Earth's radius in meters
+    
+    // Convert latitude and longitude to radians
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
     const Δφ = ((lat2 - lat1) * Math.PI) / 180;
     const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
+    // Haversine formula: calculate the great-circle distance between two points
+    // a = sin²(Δφ/2) + cos(φ1) * cos(φ2) * sin²(Δλ/2)
     const a =
       Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
       Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    
+    // c = 2 * atan2(√a, √(1−a))
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
+    // Distance = R * c
     return R * c;
   }, []);
 
