@@ -3,10 +3,12 @@ import * as ExpoLocalization from 'expo-localization';
 import type { Locale, TranslationDictionary, TranslationResources } from './types';
 import en from './resources/en';
 import fr from './resources/fr';
+import ar from './resources/ar';
 
 const resources: TranslationResources = {
   en,
   fr,
+  ar
 };
 
 type TranslateOptions = {
@@ -45,6 +47,9 @@ const resolveInitialLocale = (): Locale => {
     switch (primary.languageCode?.toLowerCase()) {
       case 'fr':
         return 'fr';
+
+      case 'ar':
+        return 'ar';
       case 'en':
       default:
         return 'en';
@@ -124,4 +129,5 @@ export const useTranslation = () => {
 export const availableLocales: { value: Locale; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'fr', label: 'Français' },
+  {value: 'ar', label: 'العربية'}
 ];

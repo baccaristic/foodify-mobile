@@ -6,6 +6,8 @@ const resolveNumberLocale = (locale: string) => {
   switch (locale) {
     case 'fr':
       return 'fr-TN';
+    case 'ar':
+      return 'ar-TN';
     case 'en':
     default:
       return 'en-TN';

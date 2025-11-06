@@ -975,7 +975,6 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
             <MapView
               ref={mapRef}
               style={StyleSheet.absoluteFillObject}
-              provider={PROVIDER_GOOGLE}
               initialRegion={currentRegion}
               onRegionChange={handleRegionChange}
               onRegionChangeComplete={handleRegionChangeComplete}
