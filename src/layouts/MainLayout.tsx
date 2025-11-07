@@ -1,4 +1,16 @@
-import { ChevronDown, ChevronUp, Home, Search, ShoppingBag, User, Package, Clock, MapPin, X, ChevronRight } from 'lucide-react-native';
+import {
+  ChevronDown,
+  ChevronUp,
+  Home,
+  Search,
+  ShoppingBag,
+  User,
+  Package,
+  Clock,
+  MapPin,
+  X,
+  ChevronRight,
+} from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
   MutableRefObject,
@@ -84,7 +96,7 @@ interface MainLayoutProps {
   onScrollOffsetChange?: (offsetY: number) => void;
   scrollRef?: MutableRefObject<ScrollView | RNFlatList<any> | null> | null;
   virtualizedListProps?: Animated.AnimatedProps<FlatListProps<any>> | null;
-  ignoreMarginBottom?: boolean,
+  ignoreMarginBottom?: boolean;
 }
 
 export default function MainLayout({
@@ -109,7 +121,7 @@ export default function MainLayout({
   onScrollOffsetChange,
   scrollRef,
   virtualizedListProps = null,
-  ignoreMarginBottom=false
+  ignoreMarginBottom = false,
 }: MainLayoutProps) {
   const { t } = useTranslation();
   const screenHeight = Dimensions.get('screen').height;
@@ -175,19 +187,22 @@ export default function MainLayout({
     }
   }, []);
 
-  const scheduleOffsetNotification = useCallback((offset: number) => {
-    latestOffsetRef.current = offset;
-    if (pendingOffsetFrameRef.current != null) {
-      return;
-    }
+  const scheduleOffsetNotification = useCallback(
+    (offset: number) => {
+      latestOffsetRef.current = offset;
+      if (pendingOffsetFrameRef.current != null) {
+        return;
+      }
 
-    if (typeof requestAnimationFrame === 'function') {
-      pendingOffsetFrameRef.current = requestAnimationFrame(flushPendingOffset);
-      return;
-    }
+      if (typeof requestAnimationFrame === 'function') {
+        pendingOffsetFrameRef.current = requestAnimationFrame(flushPendingOffset);
+        return;
+      }
 
-    flushPendingOffset();
-  }, [flushPendingOffset]);
+      flushPendingOffset();
+    },
+    [flushPendingOffset]
+  );
 
   const scrollHandler = useAnimatedScrollHandler(
     (event) => {
@@ -226,7 +241,8 @@ export default function MainLayout({
         return;
       }
 
-      const wasCollapsed = typeof previous === 'number' ? previous >= SCROLL_DISTANCE / 2 : undefined;
+      const wasCollapsed =
+        typeof previous === 'number' ? previous >= SCROLL_DISTANCE / 2 : undefined;
       const isCollapsed = current >= SCROLL_DISTANCE / 2;
 
       if (wasCollapsed === isCollapsed) {
@@ -308,24 +324,21 @@ export default function MainLayout({
       return null;
     }
 
-    const fullNode = customHeader
-      ? isAnimated
-        ? (
-            <Animated.View style={fullHeaderStyle} pointerEvents={fullHeaderPointerEvents}>
-              {customHeader}
-            </Animated.View>
-          )
-        : (
-            <View style={{ flex: 1 }}>{customHeader}</View>
-          )
-      : null;
+    const fullNode = customHeader ? (
+      isAnimated ? (
+        <Animated.View style={fullHeaderStyle} pointerEvents={fullHeaderPointerEvents}>
+          {customHeader}
+        </Animated.View>
+      ) : (
+        <View style={{ flex: 1 }}>{customHeader}</View>
+      )
+    ) : null;
 
     const collapsedNode =
       isAnimated && collapseEnabled && collapsedHeader ? (
         <Animated.View
           style={[styles.collapsedHeader, collapsedHeaderStyle]}
-          pointerEvents={collapsedHeaderPointerEvents}
-        >
+          pointerEvents={collapsedHeaderPointerEvents}>
           {collapsedHeader}
         </Animated.View>
       ) : null;
@@ -335,8 +348,7 @@ export default function MainLayout({
         <ImageBackground
           source={headerBackgroundImage}
           style={{ flex: 1, width: '100%', height: '100%' }}
-          resizeMode="cover"
-        >
+          resizeMode="cover">
           <View style={styles.overlay} />
           {fullNode}
           {collapsedNode}
@@ -352,35 +364,37 @@ export default function MainLayout({
     );
   };
 
-  const refreshControl = onRefresh
-    ? (
-        <RefreshControl
-          refreshing={Boolean(isRefreshing)}
-          onRefresh={() => {
-            const result = onRefresh();
-            if (result instanceof Promise) {
-              result.catch((error) => console.warn('Refresh failed', error));
-            }
-          }}
-          tintColor="#CA251B"
-          colors={['#CA251B']}
-        />
-      )
-    : undefined;
+  const refreshControl = onRefresh ? (
+    <RefreshControl
+      refreshing={Boolean(isRefreshing)}
+      onRefresh={() => {
+        const result = onRefresh();
+        if (result instanceof Promise) {
+          result.catch((error) => console.warn('Refresh failed', error));
+        }
+      }}
+      tintColor="#CA251B"
+      colors={['#CA251B']}
+    />
+  ) : undefined;
 
   const fallbackNavItems = useMemo<NavItem[]>(
     () => [
-      { icon: Home, label: t('navigation.home'), route: 'Home' },
+      { icon: Home, label: t('navigation.home'), route: 'Landing' },
       { icon: Search, label: t('navigation.search'), route: 'Search' },
       { icon: ShoppingBag, label: t('navigation.cart'), route: 'Cart' },
       { icon: User, label: t('navigation.profile'), route: 'Profile' },
     ],
-    [t],
+    [t]
   );
 
   const resolvedNavItems = navItems ?? fallbackNavItems;
   const routeName = route?.name;
-  const resolvedActiveTab = activeTab ?? (routeName && resolvedNavItems.find((item) => item.route === routeName) ? routeName : undefined);
+  const resolvedActiveTab =
+    activeTab ??
+    (routeName && resolvedNavItems.find((item) => item.route === routeName)
+      ? routeName
+      : undefined);
 
   const defaultFooterHeight = vs(80);
   const resolvedFooterHeight = defaultFooterHeight;
@@ -429,19 +443,15 @@ export default function MainLayout({
     setIsOngoingExpanded(false);
   }, []);
 
-  const headerNode = !showHeader
-    ? null
-    : collapseEnabled
-    ? (
-        <Animated.View style={[headerHeightStyle, { width: '100%', overflow: 'hidden' }]}>
-          {renderHeaderContent(true)}
-        </Animated.View>
-      )
-    : (
-        <View style={{ width: '100%', overflow: 'hidden', height: MAX_HEIGHT + 20 }}>
-          {renderHeaderContent(false)}
-        </View>
-      );
+  const headerNode = !showHeader ? null : collapseEnabled ? (
+    <Animated.View style={[headerHeightStyle, { width: '100%', overflow: 'hidden' }]}>
+      {renderHeaderContent(true)}
+    </Animated.View>
+  ) : (
+    <View style={{ width: '100%', overflow: 'hidden', height: MAX_HEIGHT + 20 }}>
+      {renderHeaderContent(false)}
+    </View>
+  );
 
   const setScrollViewRef = useCallback(
     (node: ScrollView | RNFlatList<any> | null) => {
@@ -475,11 +485,22 @@ export default function MainLayout({
     }
 
     return paddingStyle;
-  }, [collapseEnabled, fallbackContentPadding, isVirtualized, resolvedFooterHeight, showFooter, virtualizedListProps]);
+  }, [
+    collapseEnabled,
+    fallbackContentPadding,
+    isVirtualized,
+    resolvedFooterHeight,
+    showFooter,
+    virtualizedListProps,
+  ]);
 
   const renderScrollComponent = () => {
     if (isVirtualized) {
-      const { contentContainerStyle: _ignored, style: userStyle, ...restVirtualizedProps } = virtualizedListProps ?? {};
+      const {
+        contentContainerStyle: _ignored,
+        style: userStyle,
+        ...restVirtualizedProps
+      } = virtualizedListProps ?? {};
 
       return (
         <Animated.FlatList
@@ -499,10 +520,7 @@ export default function MainLayout({
     return (
       <Animated.ScrollView
         ref={setScrollViewRef}
-        style={[
-  styles.scrollView,
-  { marginBottom: moderateScale(ignoreMarginBottom ? 0 : 88) },
-]}
+        style={[styles.scrollView, { marginBottom: moderateScale(ignoreMarginBottom ? 0 : 88) }]}
         contentContainerStyle={resolvedContentContainerStyle}
         refreshControl={refreshControl}
         scrollEventThrottle={16}
@@ -520,10 +538,7 @@ export default function MainLayout({
 
       {floatingContent ? (
         <View
-          style={[
-            styles.floatingSlot,
-            { bottom: floatingBottomOffset },
-          ]}
+          style={[styles.floatingSlot, { bottom: floatingBottomOffset }]}
           pointerEvents="box-none">
           {floatingContent}
         </View>
@@ -563,9 +578,15 @@ export default function MainLayout({
               };
 
               return (
-                <TouchableOpacity key={item.route} activeOpacity={0.7} style={styles.navButton} onPress={handlePress}>
+                <TouchableOpacity
+                  key={item.route}
+                  activeOpacity={0.7}
+                  style={styles.navButton}
+                  onPress={handlePress}>
                   <Icon size={s(22)} color={color} />
-                  <Text allowFontScaling={false} style={[styles.navLabel, { color }]}>{item.label}</Text>
+                  <Text allowFontScaling={false} style={[styles.navLabel, { color }]}>
+                    {item.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -609,13 +630,13 @@ const PROGRESS_BAR_ANIMATION_DURATION = 800;
 const getOrderProgress = (status: string | null | undefined): number => {
   if (!status) return 0;
   const upperStatus = status.toUpperCase();
-  
+
   // Map statuses to progress (0-3)
   if (upperStatus === 'PENDING' || upperStatus === 'ACCEPTED') return 1;
   if (upperStatus === 'PREPARING' || upperStatus === 'READY_FOR_PICK_UP') return 2;
   if (upperStatus === 'IN_DELIVERY') return 3;
   if (upperStatus === 'DELIVERED') return 3; // Complete
-  
+
   return 0;
 };
 
@@ -679,7 +700,9 @@ const OngoingOrderFloatingBanner = ({
 
   const expandedStyle = useAnimatedStyle(() => {
     return {
-      height: withTiming(isExpanded ? EXPANDED_BODY_HEIGHT : 0, { duration: EXPAND_ANIMATION_DURATION }),
+      height: withTiming(isExpanded ? EXPANDED_BODY_HEIGHT : 0, {
+        duration: EXPAND_ANIMATION_DURATION,
+      }),
       opacity: withTiming(isExpanded ? 1 : 0, { duration: EXPAND_ANIMATION_DURATION }),
     };
   });
@@ -706,8 +729,7 @@ const OngoingOrderFloatingBanner = ({
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onPressDetails}
-          style={styles.floatingContent}
-        >
+          style={styles.floatingContent}>
           <Animated.View style={[styles.floatingIconContainer, pulseStyle]}>
             <Package size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
           </Animated.View>
@@ -726,7 +748,7 @@ const OngoingOrderFloatingBanner = ({
             <ChevronRight size={s(20)} color="#FFFFFF" strokeWidth={2.5} />
           </View>
         </TouchableOpacity>
-        
+
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressRow}>
@@ -926,7 +948,3 @@ const styles = ScaledSheet.create({
     marginTop: '2@vs',
   },
 });
-
-
-
-
