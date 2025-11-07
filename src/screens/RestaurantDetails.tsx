@@ -905,13 +905,6 @@ export default function RestaurantDetails() {
                 <Star size={16} color="#CA251B" fill="#CA251B" />
               </View>
 
-              <View className="flex flex-row items-center gap-1 font-sans">
-                <MapPin size={16} color="#CA251B" />
-                <Text allowFontScaling={false} className="text-sm text-gray-700">
-                  {restaurant.type}
-                </Text>
-              </View>
-
                 <View className="flex flex-row items-center gap-1 font-sans">
       <Image
         source={require('../../assets/delivery.png')} // path to your PNG

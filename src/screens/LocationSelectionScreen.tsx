@@ -1085,7 +1085,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
             </View>
             <View style={[StyleSheet.absoluteFillObject, styles.mapOverlay]}>
               <Animated.View style={[styles.pinWrapper, pinAnimatedStyle]}>
-                <Image style={{width: s(44), height: s(60)}} source={require('../../assets/map-pin.png')} contentFit='contain' />
+                <Image style={{width: s(25), height: s(35)}} source={require('../../assets/map-pin.png')} contentFit='contain' />
               </Animated.View>
               <View style={styles.pinShadow} />
             </View>
