@@ -242,6 +242,8 @@ const ar: TranslationDictionary = {
   },
   locationSearch: {
     placeholder: 'أدخل الشارع، رقم المبنى، إلخ',
+    customLabelPlaceholder: 'أعط هذا المكان اسمًا وديًا',
+    customLabelTitle: 'تسمية مخصصة',
     empty: {
       initial: 'ابدأ الكتابة للبحث عن شارع أو مبنى أو منطقة.',
       noResults: 'لا توجد أماكن مطابقة. حاول تحسين الكلمات المفتاحية.',
@@ -556,6 +558,16 @@ const ar: TranslationDictionary = {
     timestamp: {
       am: 'صباحًا',
       pm: 'مساءً',
+    },
+  },
+  orderDetails: {
+    fallbacks: {
+      status: 'تم التوصيل',
+      paymentMethod: 'نقدًا',
+      addressTitle: 'عنوان التوصيل',
+      addressUnavailable: 'العنوان غير متاح',
+      itemName: 'منتج',
+      restaurantName: 'مطعم',
     },
   },
   profile: {

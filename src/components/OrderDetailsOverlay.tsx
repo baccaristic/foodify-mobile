@@ -76,7 +76,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
     (restaurant as any).coverImage ||
     undefined;
 
-  const status = order.status?.toUpperCase() || "DELIVERED";
+  const status = order.status?.toUpperCase() || t('orderDetails.fallbacks.status').toUpperCase();
   const total = extractNum(payment.total);
   const subtotal =
     extractNum((payment as any).itemsSubtotal) ||
@@ -87,11 +87,11 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
   const extras = extractNum((payment as any).extrasTotal);
   const promotion = extractNum((payment as any).promotionDiscount);
   const paymentMethod =
-    (payment as any).method || (order as any).paymentMethod || "Cash";
-  const addressTitle = savedAddress.label || "Delivery Address";
+    (payment as any).method || (order as any).paymentMethod || t('orderDetails.fallbacks.paymentMethod');
+  const addressTitle = savedAddress.label || t('orderDetails.fallbacks.addressTitle');
   const addressValue =
     savedAddress.formattedAddress || (order as any).deliveryAddress || "";
-  const restaurantAddress = restaurant.address || "Address unavailable";
+  const restaurantAddress = restaurant.address || t('orderDetails.fallbacks.addressUnavailable');
   const orderDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString()
     : "";
@@ -114,7 +114,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
         restaurant: { id: restaurant.id, name: restaurant.name },
         menuItem: {
           id: it.menuItemId || 0,
-          name: it.name || it.menuItemName || "Item",
+          name: it.name || it.menuItemName || t('orderDetails.fallbacks.itemName'),
           description: "",
           imageUrl: restaurant.imageUrl,
           price: extractNum(it.lineTotal) / (it.quantity || 1),
@@ -236,7 +236,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <MapPin size={18} color={accentColor} />
                 <Text allowFontScaling={false} style={[styles.addressTitle, { marginLeft: 8 }]}>
-                  {restaurant.name || "Restaurant"}
+                  {restaurant.name || t('orderDetails.fallbacks.restaurantName')}
                 </Text>
               </View>
               <Text allowFontScaling={false} style={styles.addressText}>{restaurantAddress}</Text>

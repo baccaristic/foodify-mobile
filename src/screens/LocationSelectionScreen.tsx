@@ -42,6 +42,7 @@ import { createAddress, getMySavedAddresses, updateAddress } from '~/api/address
 import type { AddressType as AddressTypeApi, SaveAddressRequest, SavedAddressResponse } from '~/interfaces/Address';
 import { getErrorMessage } from '~/helper/apiError';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
+import { useTranslation } from '~/localization';
 
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
 
@@ -197,6 +198,7 @@ type LocationSelectionScreenProps = {
 export default function LocationSelectionScreen({ onClose }: LocationSelectionScreenProps) {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [screenState, setScreenState] = useState<'list' | 'compose' | 'details'>('list');
   const [activeType, setActiveType] = useState<AddressTypeConfig | null>(null);
   const [detailForm, setDetailForm] = useState<Record<string, string>>({});
@@ -1233,12 +1235,12 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                     {SelectedType.id === 'other' && (
                       <View style={styles.inputGroup}>
                         <Text allowFontScaling={false} style={styles.inputLabel}>
-                          Custom label
+                          {t('locationSearch.customLabelTitle')}
                         </Text>
                         <TextInput
                           value={customLabel}
                           onChangeText={setCustomLabel}
-                          placeholder="Give this place a friendly name"
+                          placeholder={t('locationSearch.customLabelPlaceholder')}
                           placeholderTextColor={palette.textSecondary}
                           style={styles.textInput}
                         />
