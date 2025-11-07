@@ -24,6 +24,7 @@ import Cart from '~/screens/Cart';
 import CheckoutOrder from '~/screens/CheckoutOrder';
 import CouponCode from '~/screens/CouponCode';
 import Home from '~/screens/Home';
+import LandingScreen from '~/screens/LandingScreen';
 import OrderTracking from '~/screens/OrderTracking';
 import LiveChatScreen from '~/screens/LiveChatScreen';
 import LocationPermissionScreen from '~/screens/LocationPermissionScreen';
@@ -76,6 +77,7 @@ const RootNavigator = () => {
   const [needsLocationPermission, setNeedsLocationPermission] = useState(false);
   const [notificationCheckComplete, setNotificationCheckComplete] = useState(false);
   const [needsNotificationPermission, setNeedsNotificationPermission] = useState(false);
+  const [hasSeenLanding, setHasSeenLanding] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +87,7 @@ const RootNavigator = () => {
       setLocationCheckComplete(true);
       setNeedsNotificationPermission(false);
       setNotificationCheckComplete(true);
+      setHasSeenLanding(false); // Reset landing screen state when logged out
       return () => {
         cancelled = true;
       };
@@ -154,7 +157,9 @@ const RootNavigator = () => {
       ? 'auth-stack-location'
       : needsNotificationPermission
       ? 'auth-stack-notification'
-      : 'auth-stack'
+      : hasSeenLanding
+      ? 'auth-stack'
+      : 'auth-stack-landing'
     : 'guest-stack';
 
   const initialRouteName = user
@@ -162,7 +167,9 @@ const RootNavigator = () => {
       ? 'LocationPermission'
       : needsNotificationPermission
       ? 'Notification'
-      : 'Home'
+      : hasSeenLanding
+      ? 'Home'
+      : 'Landing'
     : 'Guest';
 
   return (
@@ -175,6 +182,14 @@ const RootNavigator = () => {
       {user ? (
         <>
           <Stack.Screen name="Guest" component={AuthScreen} />
+          <Stack.Screen name="Landing">
+            {(props) => (
+              <LandingScreen
+                {...props}
+                onComplete={() => setHasSeenLanding(true)}
+              />
+            )}
+          </Stack.Screen>
           <Stack.Screen
             name="LocationPermission"
             initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}
