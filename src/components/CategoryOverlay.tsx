@@ -18,7 +18,8 @@ import type { CategoryRestaurantsResponse, RestaurantCategory, RestaurantDisplay
 import { BASE_API_URL } from "@env";
 import { LinearGradient } from "expo-linear-gradient";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
-import { useTranslation } from "~/localization";
+import { useTranslation, useLocalization } from "~/localization";
+import { getLocalizedName } from "~/utils/localization";
 import { getCategoryLabelKey, toCategoryDisplayName } from "~/localization/categoryKeys";
 
 interface CategoryOverlayProps {
@@ -37,6 +38,7 @@ export default function CategoryOverlay({
     const navigation = useNavigation();
     const savedAddresse = useSelectedAddress();
     const { t } = useTranslation();
+    const { locale } = useLocalization();
     const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude ?? null;
     const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude ?? null;
     const hasLocation = userLatitude !== null && userLongitude !== null;
@@ -186,7 +188,7 @@ export default function CategoryOverlay({
                         </View>
                     ) : null}
                     <View style={styles.cardBody}>
-                        <Text allowFontScaling={false}style={styles.cardTitle}>{item.name}</Text>
+                        <Text allowFontScaling={false}style={styles.cardTitle}>{getLocalizedName(item, locale)}</Text>
                         <View style={styles.cardRow}>
                             <Text allowFontScaling={false}style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
                             <View style={styles.ratingRow}>

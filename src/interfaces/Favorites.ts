@@ -1,7 +1,13 @@
 export interface FavoriteRestaurant {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   description: string | null;
+  descriptionEn?: string | null;
+  descriptionFr?: string | null;
+  descriptionAr?: string | null;
   rating: number | null;
   type: string;
   address: string;
@@ -16,7 +22,13 @@ export interface FavoriteRestaurant {
 export interface FavoriteMenuItem {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   description: string | null;
+  descriptionEn?: string | null;
+  descriptionFr?: string | null;
+  descriptionAr?: string | null;
   price: number;
   imageUrl: string;
   popular: boolean;

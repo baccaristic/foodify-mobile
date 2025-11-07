@@ -47,7 +47,8 @@ import { updateMenuItemFavoriteState } from "~/utils/restaurantFavorites";
 import { BASE_API_URL } from "@env";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
 import useLocationOverlay from "~/hooks/useLocationOverlay";
-import { useTranslation } from "~/localization";
+import { useTranslation, useLocalization } from "~/localization";
+import { getLocalizedName } from "~/utils/localization";
 import SearchSkeleton from "~/components/skeletons/SearchSkeleton";
 
 const FALLBACK_IMAGE = require("../../assets/TEST.png");
@@ -134,6 +135,8 @@ const RestaurantCard = ({
 }) => {
   const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl, deliveryFee } = data;
   const { t } = useTranslation();
+  const { locale } = useLocalization();
+  const localizedName = getLocalizedName(data, locale);
 
   const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : "-";
@@ -156,7 +159,7 @@ const RestaurantCard = ({
       )}
 
       <View style={styles.cardBody}>
-        <Text allowFontScaling={false} style={styles.cardTitle}>{name}</Text>
+        <Text allowFontScaling={false} style={styles.cardTitle}>{localizedName}</Text>
         <View style={styles.timeRatingRow}>
           <Text allowFontScaling={false} style={styles.deliveryTime}>{deliveryTimeRange}</Text>
           <View style={styles.ratingRow}>
@@ -188,6 +191,8 @@ const PromotedMenuItemCard = ({
   restaurantName: string;
   onPress: () => void;
 }) => {
+  const { locale } = useLocalization();
+  const localizedName = getLocalizedName(item, locale);
   const { name, promotionLabel, price, promotionPrice, imageUrl } = item;
   const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_MENU_IMAGE;
   const hasPromoPrice = typeof promotionPrice === "number" && Number.isFinite(promotionPrice);
@@ -197,7 +202,7 @@ const PromotedMenuItemCard = ({
       <Image source={imageSource} style={styles.menuImage} />
       <View style={styles.menuInfo}>
         <Text allowFontScaling={false} style={styles.menuTitle} numberOfLines={2}>
-          {name}
+          {localizedName}
         </Text>
         <Text allowFontScaling={false} style={styles.menuSubtitle} numberOfLines={1}>
           {restaurantName}
@@ -231,6 +236,7 @@ const RestaurantResult = ({
 }) => {
   const promotions = restaurant.promotedMenuItems ?? [];
   const { t } = useTranslation();
+  const { locale } = useLocalization();
   const baseDelay = Math.min(index, 6) * 70;
   const enteringAnimation = FadeInDown.springify()
     .damping(20)
@@ -262,7 +268,7 @@ const RestaurantResult = ({
             >
               <PromotedMenuItemCard
                 item={item}
-                restaurantName={restaurant.name}
+                restaurantName={getLocalizedName(restaurant, locale)}
                 onPress={() => onPromotedItemPress(restaurant, item)}
               />
             </Animated.View>

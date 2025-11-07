@@ -20,7 +20,8 @@ import type {
 } from '~/interfaces/Favorites';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
-import { useTranslation } from '~/localization';
+import { useTranslation, useLocalization } from '~/localization';
+import { getLocalizedName, getLocalizedDescriptionNullable } from '~/utils/localization';
 import FavoritesSkeleton from '~/components/skeletons/FavoritesSkeleton';
 import RemoteImageWithSkeleton from '~/components/RemoteImageWithSkeleton';
 
@@ -46,6 +47,7 @@ const FavoriteMenuItemCard = ({
 }) => {
   const hasPromotion = item.promotionActive && typeof item.promotionPrice === 'number';
   const { t } = useTranslation();
+  const { locale } = useLocalization();
   const entranceDelay = Math.min(index, 6) * 80;
   const enteringAnimation = FadeInDown.springify()
     .damping(18)
@@ -56,6 +58,9 @@ const FavoriteMenuItemCard = ({
       transform: [{ translateY: 24 }, { scale: 0.94 }],
     })
     .delay(entranceDelay);
+
+  const localizedName = getLocalizedName(item, locale);
+  const localizedDescription = getLocalizedDescription(item, locale);
 
   return (
     <AnimatedTouchableOpacity
@@ -72,7 +77,7 @@ const FavoriteMenuItemCard = ({
       <View style={styles.menuContent}>
         <View style={styles.menuHeaderRow}>
           <Text allowFontScaling={false} style={styles.menuTitle} numberOfLines={2}>
-            {item.name}
+            {localizedName}
           </Text>
           <Text allowFontScaling={false} style={[styles.menuPrice, hasPromotion && styles.menuPromotionPrice]}>
             {hasPromotion ? formatCurrency(item.promotionPrice ?? item.price) : formatCurrency(item.price)}
@@ -88,8 +93,8 @@ const FavoriteMenuItemCard = ({
         </Text>
         <Text allowFontScaling={false} style={styles.menuDescription} numberOfLines={2}>
           {(() => {
-            if (typeof item.description === 'string') {
-              const trimmed = item.description.trim();
+            if (typeof localizedDescription === 'string') {
+              const trimmed = localizedDescription.trim();
               if (trimmed.length > 0) {
                 return trimmed;
               }
@@ -124,6 +129,7 @@ const FavoritesScreen = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { width: screenWidth } = useWindowDimensions();
   const { t } = useTranslation();
+  const { locale } = useLocalization();
 
   const restaurantCardWidth = useMemo(
     () => Math.max(screenWidth - carouselHorizontalPadding * 2, s(240)),
@@ -239,8 +245,8 @@ const FavoritesScreen = () => {
               return (
                 <Animated.View entering={enteringAnimation}>
                   <RestaurantShowcaseCard
-                    name={restaurant.name}
-                    description={restaurant.description}
+                    name={getLocalizedName(restaurant, locale)}
+                    description={getLocalizedDescriptionNullable(restaurant, locale)}
                     address={restaurant.address}
                     rating={restaurant.rating}
                     type={restaurant.type}

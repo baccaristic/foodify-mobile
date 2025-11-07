@@ -63,7 +63,8 @@ import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
 import useSystemStatusOverlay from '~/hooks/useSystemStatusOverlay';
-import { useTranslation } from '~/localization';
+import { useTranslation, useLocalization } from '~/localization';
+import { getLocalizedName, getLocalizedDescriptionNullable } from '~/utils/localization';
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
 import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
@@ -127,6 +128,7 @@ export default function HomePage() {
   const navigation = useNavigation();
   const { open: openLocationOverlay } = useLocationOverlay();
   const { t } = useTranslation();
+  const { locale } = useLocalization();
 
   const [selectedCategory, setSelectedCategory] = useState<RestaurantCategory | null>(null);
   const [isPromotionsVisible, setPromotionsVisible] = useState(false);
@@ -486,8 +488,8 @@ export default function HomePage() {
       return (
         <Animated.View entering={FadeInUp.delay(delay).duration(450)}>
           <RestaurantShowcaseCard
-            name={restaurant.name}
-            description={restaurant.description}
+            name={getLocalizedName(restaurant, locale)}
+            description={getLocalizedDescriptionNullable(restaurant, locale)}
             address={restaurant.address}
             rating={restaurant.rating}
             type={restaurant.type}
@@ -580,11 +582,11 @@ export default function HomePage() {
               />
             </View>
             <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
-              {restaurant.name}
+              {getLocalizedName(restaurant, locale)}
             </Text>
             {(restaurant.type || restaurant.description) ? (
               <Text allowFontScaling={false} style={styles.topPickSubtitle} numberOfLines={1}>
-                {restaurant.type || restaurant.description}
+                {restaurant.type || getLocalizedDescriptionNullable(restaurant, locale)}
               </Text>
             ) : null}
             <Bike size={s(14)} color="#CA251B" />

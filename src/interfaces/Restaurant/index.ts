@@ -41,6 +41,9 @@ export interface RestaurantDeliveryFeeResponse {
 export interface RestaurantMenuItemExtra {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   price: number;
   defaultOption: boolean;
 }
@@ -48,6 +51,9 @@ export interface RestaurantMenuItemExtra {
 export interface RestaurantMenuOptionGroup {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   minSelect: number;
   maxSelect: number;
   required: boolean;
@@ -57,7 +63,13 @@ export interface RestaurantMenuOptionGroup {
 export interface RestaurantMenuItemDetails {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   description: string;
+  descriptionEn?: string;
+  descriptionFr?: string;
+  descriptionAr?: string;
   price: number;
   imageUrl: string;
   popular: boolean;
@@ -71,13 +83,22 @@ export interface RestaurantMenuItemDetails {
 
 export interface RestaurantMenuCategory {
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   items: RestaurantMenuItemDetails[];
 }
 
 export interface RestaurantMenuItemSummary {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   description: string;
+  descriptionEn?: string;
+  descriptionFr?: string;
+  descriptionAr?: string;
   price: number;
   imageUrl: string;
   popular: boolean;
@@ -91,7 +112,13 @@ export interface RestaurantMenuItemSummary {
 export interface RestaurantDetailsResponse {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   description: string;
+  descriptionEn?: string;
+  descriptionFr?: string;
+  descriptionAr?: string;
   deliveryFee: number;
   imageUrl: string;
   iconUrl?: string | null;
@@ -114,6 +141,9 @@ export interface RestaurantDetailsResponse {
 export interface RestaurantSummary {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   address: string;
   deliveryFee: number;
   phone: string;
@@ -122,6 +152,9 @@ export interface RestaurantSummary {
   openingHours: string;
   closingHours: string;
   description: string;
+  descriptionEn?: string;
+  descriptionFr?: string;
+  descriptionAr?: string;
   licenseNumber: string;
   taxId: string;
   latitude: number;
@@ -139,7 +172,13 @@ export interface RestaurantSummary {
 export interface RestaurantDisplayDto {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   description?: string | null;
+  descriptionEn?: string | null;
+  descriptionFr?: string | null;
+  descriptionAr?: string | null;
   address?: string | null;
   type?: string | null;
   rating?: string | number | null;
@@ -180,6 +219,9 @@ export interface RestaurantSearchParams {
 export interface RestaurantSearchItem {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   deliveryTimeRange: string;
   deliveryFee: number;
   rating: number;
@@ -201,6 +243,9 @@ export interface RestaurantSearchResponse {
 export interface MenuItemPromotion {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   price: number;
   promotionPrice?: number | null;
   promotionLabel?: string | null;
@@ -210,7 +255,13 @@ export interface MenuItemPromotion {
 export interface RestaurantDisplay {
   id: number;
   name: string;
+  nameEn?: string;
+  nameFr?: string;
+  nameAr?: string;
   description?: string | null;
+  descriptionEn?: string | null;
+  descriptionFr?: string | null;
+  descriptionAr?: string | null;
   rating?: number | null;
   type?: string | null;
   address?: string | null;
