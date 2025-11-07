@@ -43,6 +43,7 @@ import type { AddressType as AddressTypeApi, SaveAddressRequest, SavedAddressRes
 import { getErrorMessage } from '~/helper/apiError';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import { useTranslation } from '~/localization';
+import { Image } from 'expo-image';
 
 const mapsApiKey = GOOGLE_MAPS_API_KEY;
 
@@ -998,7 +999,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
             </View>
             <View style={[StyleSheet.absoluteFillObject, styles.mapOverlay]}>
               <Animated.View style={[styles.pinWrapper, pinAnimatedStyle]}>
-                <FoodifyPin width={s(44)} height={s(60)} color={palette.accent} />
+                <Image style={{width: s(44), height: s(60)}} source={require('../../assets/map-pin.png')} contentFit='contain' />
               </Animated.View>
               <View style={styles.pinShadow} />
             </View>

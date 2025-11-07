@@ -15,7 +15,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import {Image} from 'expo-image';
+import { Image } from 'expo-image';
 import {
   CommonActions,
   NavigationProp,
@@ -24,7 +24,16 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
-import { ArrowLeft, ChevronDown, CreditCard, MapPin, PenSquare, TicketPercent, Wallet, X } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  ChevronDown,
+  CreditCard,
+  MapPin,
+  PenSquare,
+  TicketPercent,
+  Wallet,
+  X,
+} from 'lucide-react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { isAxiosError } from 'axios';
 import * as Location from 'expo-location';
@@ -38,6 +47,7 @@ import useAuth from '~/hooks/useAuth';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { createOrder } from '~/api/orders';
 import { getRestaurantDeliveryFee } from '~/api/restaurants';
+import { hasValidEstimatedDeliveryTime } from '~/utils/restaurantFavorites';
 import type { MonetaryAmount, OrderRequest } from '~/interfaces/Order';
 import type { CouponType } from '~/interfaces/Loyalty';
 import type { OrderTrackingData } from './OrderTracking';
@@ -92,7 +102,6 @@ const extractNumericAmount = (value: MonetaryAmount | null | undefined): number 
   return null;
 };
 
-
 const resolvePaymentIcon = (method?: string | null) => {
   if (!method) {
     return CreditCard;
@@ -125,9 +134,11 @@ const Accordion: React.FC<AccordionProps> = ({ title, expanded, onToggle, childr
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onToggle}
-      className="flex-row items-center justify-between px-5 py-4"
-    >
-      <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+      className="flex-row items-center justify-between px-5 py-4">
+      <Text
+        allowFontScaling={false}
+        className="text-base font-semibold"
+        style={{ color: sectionTitleColor }}>
         {title}
       </Text>
       <ChevronDown
@@ -173,20 +184,14 @@ const PaymentModal: React.FC<{
   title: string;
   options: PaymentOption[];
 }> = ({ visible, onClose, onSelect, selected, title, options }) => (
-  <Modal
-    animationType="fade"
-    transparent
-    visible={visible}
-    onRequestClose={onClose}
-  >
+  <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
     <View className="flex-1 justify-center bg-[#17213A]/40 px-6">
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={onClose}
-        className="absolute inset-0"
-      />
+      <TouchableOpacity activeOpacity={1} onPress={onClose} className="absolute inset-0" />
       <View className="rounded-3xl bg-white p-6 shadow-lg">
-        <Text allowFontScaling={false} className="text-center text-lg font-semibold" style={{ color: sectionTitleColor }}>
+        <Text
+          allowFontScaling={false}
+          className="text-center text-lg font-semibold"
+          style={{ color: sectionTitleColor }}>
           {title}
         </Text>
         {options.map((option, index) => {
@@ -200,23 +205,31 @@ const PaymentModal: React.FC<{
               style={{
                 borderColor: isSelected ? accentColor : '#EFEFF1',
                 backgroundColor: isSelected ? '#FFF5F4' : 'white',
-              }}
-            >
+              }}>
               <View className="flex-row items-center">
                 <option.Icon size={22} color={accentColor} />
-                <Text allowFontScaling={false} className="ml-3 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                <Text
+                  allowFontScaling={false}
+                  className="ml-3 text-base font-semibold"
+                  style={{ color: sectionTitleColor }}>
                   {option.label}
                 </Text>
               </View>
               {option.id === 'CARD' ? (
-                <ChevronDown size={20} color={sectionTitleColor} style={{ transform: [{ rotate: '-90deg' }] }} />
+                <ChevronDown
+                  size={20}
+                  color={sectionTitleColor}
+                  style={{ transform: [{ rotate: '-90deg' }] }}
+                />
               ) : (
                 <View
                   className="h-5 w-5 items-center justify-center rounded-full border"
-                  style={{ borderColor: accentColor, backgroundColor: 'white' }}
-                >
+                  style={{ borderColor: accentColor, backgroundColor: 'white' }}>
                   {isSelected ? (
-                    <View className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: accentColor }} />
+                    <View
+                      className="h-3.5 w-3.5 rounded-full"
+                      style={{ backgroundColor: accentColor }}
+                    />
                   ) : null}
                 </View>
               )}
@@ -296,19 +309,16 @@ const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
         <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
           <View
             className="rounded-3xl bg-white px-6 py-7"
-            style={{ maxHeight: '88%', width: '100%', alignSelf: 'center' }}
-          >
+            style={{ maxHeight: '88%', width: '100%', alignSelf: 'center' }}>
             <TouchableOpacity
               onPress={handleClose}
-              className="absolute left-5 top-5 rounded-full border border-[#E4E6EB] p-2"
-            >
+              className="absolute left-5 top-5 rounded-full border border-[#E4E6EB] p-2">
               <X size={18} color={sectionTitleColor} />
             </TouchableOpacity>
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 8 }}
-            >
+              contentContainerStyle={{ paddingBottom: 8 }}>
               <View className="items-center">
                 <Image
                   source={require('../../assets/tip-rider.png')}
@@ -323,35 +333,31 @@ const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
               <Text
                 allowFontScaling={false}
                 className="mt-4 text-center text-xl font-bold"
-                style={{ color: sectionTitleColor }}
-              >
+                style={{ color: sectionTitleColor }}>
                 {title}
               </Text>
-              <Text
-                allowFontScaling={false}
-                className="mt-6 text-center text-sm text-[#6B7280]"
-              >
+              <Text allowFontScaling={false} className="mt-6 text-center text-sm text-[#6B7280]">
                 {orderAmountLabel}
               </Text>
               <Text
                 allowFontScaling={false}
                 className="mt-1 text-center text-2xl font-bold"
-                style={{ color: accentColor }}
-              >
+                style={{ color: accentColor }}>
                 {orderAmountValue}
               </Text>
               {tipAmountValue ? (
                 <View className="mt-4 items-center rounded-2xl bg-[#FFF5F4] px-4 py-3">
                   {tipAmountLabel ? (
-                    <Text allowFontScaling={false} className="text-xs font-semibold uppercase text-[#6B7280]">
+                    <Text
+                      allowFontScaling={false}
+                      className="text-xs font-semibold uppercase text-[#6B7280]">
                       {tipAmountLabel}
                     </Text>
                   ) : null}
                   <Text
                     allowFontScaling={false}
                     className="mt-1 text-lg font-semibold"
-                    style={{ color: accentColor }}
-                  >
+                    style={{ color: accentColor }}>
                     +{tipAmountValue}
                   </Text>
                 </View>
@@ -369,13 +375,11 @@ const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
                         width: '22%',
                         borderColor: isSelected ? accentColor : '#EFEFF1',
                         backgroundColor: isSelected ? '#FFF5F4' : 'white',
-                      }}
-                    >
+                      }}>
                       <Text
                         allowFontScaling={false}
                         className="text-base font-semibold"
-                        style={{ color: sectionTitleColor }}
-                      >
+                        style={{ color: sectionTitleColor }}>
                         {option}%
                       </Text>
                     </TouchableOpacity>
@@ -384,20 +388,19 @@ const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
               </View>
               <Text
                 allowFontScaling={false}
-                className="text-center text-xs uppercase tracking-wider text-[#6B7280]"
-              >
+                className="text-center text-xs uppercase tracking-wider text-[#6B7280]">
                 {percentageHelper}
               </Text>
-              <Text
-                allowFontScaling={false}
-                className="mt-4 text-center text-sm text-[#4B5563]"
-              >
+              <Text allowFontScaling={false} className="mt-4 text-center text-sm text-[#4B5563]">
                 {description}
               </Text>
               {showCashInput ? (
                 <View className="mt-6">
                   {cashLabel ? (
-                    <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: sectionTitleColor }}>
+                    <Text
+                      allowFontScaling={false}
+                      className="text-sm font-semibold"
+                      style={{ color: sectionTitleColor }}>
                       {cashLabel}
                     </Text>
                   ) : null}
@@ -421,17 +424,18 @@ const TipSelectionOverlay: React.FC<TipSelectionOverlayProps> = ({
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={handleClose}
-                className="mr-3 flex-1 items-center justify-center rounded-full border border-[#E4E6EB] px-4 py-3"
-              >
-                <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+                className="mr-3 flex-1 items-center justify-center rounded-full border border-[#E4E6EB] px-4 py-3">
+                <Text
+                  allowFontScaling={false}
+                  className="text-base font-semibold"
+                  style={{ color: sectionTitleColor }}>
                   {cancelLabel}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={handleConfirm}
-                className="flex-1 items-center justify-center rounded-full bg-[#CA251B] px-4 py-3"
-              >
+                className="flex-1 items-center justify-center rounded-full bg-[#CA251B] px-4 py-3">
                 <Text allowFontScaling={false} className="text-base font-semibold text-white">
                   {confirmLabel}
                 </Text>
@@ -478,29 +482,30 @@ const CheckoutOrder: React.FC = () => {
   const [comment, setComment] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<
-    { code: string; type: CouponType; discountPercent: number | null }
-    | null
-  >(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    type: CouponType;
+    discountPercent: number | null;
+  } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [isTipModalVisible, setIsTipModalVisible] = useState(false);
   const [selectedTipPercentage, setSelectedTipPercentage] = useState<number | null>(null);
   const [cashToCollectInput, setCashToCollectInput] = useState('');
   const [tipOverlayError, setTipOverlayError] = useState<string | null>(null);
-  const [pendingCoordinates, setPendingCoordinates] = useState<{ lat: number; lng: number } | null>(null);
-  const [deliveryQuote, setDeliveryQuote] = useState<
-    | {
-        available: boolean;
-        fee: number | null;
-        distanceKm: number | null;
-      }
-    | null
-  >(null);
+  const [pendingCoordinates, setPendingCoordinates] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  const [deliveryQuote, setDeliveryQuote] = useState<{
+    available: boolean;
+    fee: number | null;
+    distanceKm: number | null;
+  } | null>(null);
   const [isDeliveryQuoteLoading, setIsDeliveryQuoteLoading] = useState(false);
   const [deliveryQuoteError, setDeliveryQuoteError] = useState<DeliveryQuoteError | null>(null);
   const [showAddressMismatchOverlay, setShowAddressMismatchOverlay] = useState(false);
-  const [currentGpsLocation, setCurrentGpsLocation] = useState<Location.LocationObjectCoords | null>(null);
+  const [currentGpsLocation, setCurrentGpsLocation] =
+    useState<Location.LocationObjectCoords | null>(null);
   const [currentGpsAddress, setCurrentGpsAddress] = useState<string | null>(null);
 
   const paymentOptions = useMemo(
@@ -510,7 +515,7 @@ const CheckoutOrder: React.FC = () => {
         Icon: option.Icon,
         label: t(option.labelKey),
       })),
-    [t],
+    [t]
   );
 
   const handleTipSelection = useCallback((value: number) => {
@@ -540,7 +545,7 @@ const CheckoutOrder: React.FC = () => {
 
       return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
     },
-    [t],
+    [t]
   );
 
   const rawOrderParam = route.params?.order ?? null;
@@ -548,14 +553,15 @@ const CheckoutOrder: React.FC = () => {
   const viewOrder = isViewMode ? rawOrderParam : null;
   const viewOrderItems = useMemo<unknown[]>(
     () => (isViewMode && viewOrder && Array.isArray(viewOrder.items) ? viewOrder.items : []),
-    [isViewMode, viewOrder],
+    [isViewMode, viewOrder]
   );
   const viewOrderId = useMemo(() => {
     if (!viewOrder) {
       return null;
     }
 
-    const orderIdCandidate = (viewOrder as OrderTrackingData).orderId ?? (viewOrder as any)?.id ?? null;
+    const orderIdCandidate =
+      (viewOrder as OrderTrackingData).orderId ?? (viewOrder as any)?.id ?? null;
     return orderIdCandidate != null ? String(orderIdCandidate) : null;
   }, [viewOrder]);
 
@@ -575,7 +581,7 @@ const CheckoutOrder: React.FC = () => {
       CommonActions.reset({
         index: 0,
         routes: [{ name: 'Home' }],
-      }),
+      })
     );
   }, [navigation]);
 
@@ -602,13 +608,7 @@ const CheckoutOrder: React.FC = () => {
     }
 
     hasClosedViewModeRef.current = false;
-  }, [
-    closeCheckoutViewMode,
-    hasFetchedOngoing,
-    isViewMode,
-    ongoingOrder,
-    viewOrderId,
-  ]);
+  }, [closeCheckoutViewMode, hasFetchedOngoing, isViewMode, ongoingOrder, viewOrderId]);
 
   useEffect(() => {
     if (isViewMode) {
@@ -683,8 +683,7 @@ const CheckoutOrder: React.FC = () => {
 
         const normalizedFee = Number(response.deliveryFee);
         const normalizedDistance = Number(response.distanceKm);
-        const fee =
-          Number.isFinite(normalizedFee) && normalizedFee >= 0 ? normalizedFee : null;
+        const fee = Number.isFinite(normalizedFee) && normalizedFee >= 0 ? normalizedFee : null;
         const distance =
           Number.isFinite(normalizedDistance) && normalizedDistance >= 0
             ? normalizedDistance
@@ -785,26 +784,36 @@ const CheckoutOrder: React.FC = () => {
         const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
 
         const unitBasePrice = extractNumericAmount(
-          (rawItem as { unitBasePrice?: MonetaryAmount })?.unitBasePrice,
+          (rawItem as { unitBasePrice?: MonetaryAmount })?.unitBasePrice
         );
-        const unitPrice = extractNumericAmount((rawItem as { unitPrice?: MonetaryAmount })?.unitPrice);
+        const unitPrice = extractNumericAmount(
+          (rawItem as { unitPrice?: MonetaryAmount })?.unitPrice
+        );
         const unitExtrasPrice = extractNumericAmount(
-          (rawItem as { unitExtrasPrice?: MonetaryAmount })?.unitExtrasPrice,
+          (rawItem as { unitExtrasPrice?: MonetaryAmount })?.unitExtrasPrice
         );
         const lineSubtotal = extractNumericAmount(
-          (rawItem as { lineSubtotal?: MonetaryAmount })?.lineSubtotal,
+          (rawItem as { lineSubtotal?: MonetaryAmount })?.lineSubtotal
         );
         const promotionDiscount = extractNumericAmount(
-          (rawItem as { promotionDiscount?: MonetaryAmount })?.promotionDiscount,
+          (rawItem as { promotionDiscount?: MonetaryAmount })?.promotionDiscount
         );
         const lineItemsTotal = extractNumericAmount(
-          (rawItem as { lineItemsTotal?: MonetaryAmount })?.lineItemsTotal,
+          (rawItem as { lineItemsTotal?: MonetaryAmount })?.lineItemsTotal
         );
-        const extrasTotal = extractNumericAmount((rawItem as { extrasTotal?: MonetaryAmount })?.extrasTotal);
-        const lineTotal = extractNumericAmount((rawItem as { lineTotal?: MonetaryAmount })?.lineTotal);
+        const extrasTotal = extractNumericAmount(
+          (rawItem as { extrasTotal?: MonetaryAmount })?.extrasTotal
+        );
+        const lineTotal = extractNumericAmount(
+          (rawItem as { lineTotal?: MonetaryAmount })?.lineTotal
+        );
         const total = extractNumericAmount((rawItem as { total?: MonetaryAmount })?.total);
-        const totalPrice = extractNumericAmount((rawItem as { totalPrice?: MonetaryAmount })?.totalPrice);
-        const extrasPrice = extractNumericAmount((rawItem as { extrasPrice?: MonetaryAmount })?.extrasPrice);
+        const totalPrice = extractNumericAmount(
+          (rawItem as { totalPrice?: MonetaryAmount })?.totalPrice
+        );
+        const extrasPrice = extractNumericAmount(
+          (rawItem as { extrasPrice?: MonetaryAmount })?.extrasPrice
+        );
 
         const resolvedLineSubtotal =
           lineSubtotal ??
@@ -832,10 +841,7 @@ const CheckoutOrder: React.FC = () => {
           0;
 
         const resolvedLineTotal =
-          lineTotal ??
-          total ??
-          totalPrice ??
-          Math.max(resolvedItemsTotal + resolvedExtras, 0);
+          lineTotal ?? total ?? totalPrice ?? Math.max(resolvedItemsTotal + resolvedExtras, 0);
 
         return {
           lineSubtotal: acc.lineSubtotal + resolvedLineSubtotal,
@@ -851,13 +857,13 @@ const CheckoutOrder: React.FC = () => {
         extrasTotal: 0,
         lineTotal: 0,
         promotionDiscount: 0,
-      },
+      }
     );
   }, [isViewMode, viewOrder, viewOrderItems]);
 
   const paymentDetails = useMemo(
-    () => (isViewMode && viewOrder ? viewOrder.payment ?? null : null),
-    [isViewMode, viewOrder],
+    () => (isViewMode && viewOrder ? (viewOrder.payment ?? null) : null),
+    [isViewMode, viewOrder]
   );
 
   const paymentBreakdown = useMemo(() => {
@@ -875,19 +881,19 @@ const CheckoutOrder: React.FC = () => {
       itemsTotal: extractNumericAmount(paymentDetails.itemsTotal),
       deliveryFee: extractNumericAmount(paymentDetails.deliveryFee),
       grandTotal: extractNumericAmount(
-        (paymentDetails as { grandTotal?: MonetaryAmount | null })?.grandTotal,
+        (paymentDetails as { grandTotal?: MonetaryAmount | null })?.grandTotal
       ),
       tipPercentage: extractNumericAmount(
-        (paymentDetails as { tipPercentage?: MonetaryAmount | null })?.tipPercentage,
+        (paymentDetails as { tipPercentage?: MonetaryAmount | null })?.tipPercentage
       ),
       tipAmount: extractNumericAmount(
-        (paymentDetails as { tipAmount?: MonetaryAmount | null })?.tipAmount,
+        (paymentDetails as { tipAmount?: MonetaryAmount | null })?.tipAmount
       ),
       totalBeforeTip: extractNumericAmount(
-        (paymentDetails as { totalBeforeTip?: MonetaryAmount | null })?.totalBeforeTip,
+        (paymentDetails as { totalBeforeTip?: MonetaryAmount | null })?.totalBeforeTip
       ),
       cashToCollect: extractNumericAmount(
-        (paymentDetails as { cashToCollect?: MonetaryAmount | null })?.cashToCollect,
+        (paymentDetails as { cashToCollect?: MonetaryAmount | null })?.cashToCollect
       ),
     };
   }, [paymentDetails]);
@@ -897,11 +903,11 @@ const CheckoutOrder: React.FC = () => {
 
   const extrasTotal = useMemo(
     () => items.reduce((sum, item) => sum + item.extrasTotal * item.quantity, 0),
-    [items],
+    [items]
   );
   const baseSubtotal = useMemo(
     () => items.reduce((sum, item) => sum + item.basePrice * item.quantity, 0),
-    [items],
+    [items]
   );
   const deliveryFee = useMemo(() => {
     if (isViewMode) {
@@ -953,17 +959,20 @@ const CheckoutOrder: React.FC = () => {
       const discount = (orderBase * percentValue) / 100;
       return Math.min(Math.max(discount, 0), orderBase);
     },
-    [subtotal, deliveryFee, serviceFee],
+    [subtotal, deliveryFee, serviceFee]
   );
   const discountValue = useMemo(
-    () => (appliedCoupon ? calculateCouponDiscount(appliedCoupon.type, appliedCoupon.discountPercent) : 0),
-    [appliedCoupon, calculateCouponDiscount],
+    () =>
+      appliedCoupon
+        ? calculateCouponDiscount(appliedCoupon.type, appliedCoupon.discountPercent)
+        : 0,
+    [appliedCoupon, calculateCouponDiscount]
   );
   const baseTotal = useMemo(
     () => Math.max(subtotal + deliveryFee + serviceFee - discountValue, 0),
-    [subtotal, deliveryFee, serviceFee, discountValue],
+    [subtotal, deliveryFee, serviceFee, discountValue]
   );
-  const deliveryToken =  (viewOrder as any)?.deliveryToken;
+  const deliveryToken = (viewOrder as any)?.deliveryToken;
   const effectiveTipPercentage = useMemo(() => {
     if (isViewMode) {
       if (paymentBreakdown?.tipPercentage == null) {
@@ -1015,13 +1024,7 @@ const CheckoutOrder: React.FC = () => {
     }
 
     return baseTotal;
-  }, [
-    isViewMode,
-    paymentBreakdown,
-    baseTotal,
-    viewOrder,
-    viewModeTotals,
-  ]);
+  }, [isViewMode, paymentBreakdown, baseTotal, viewOrder, viewModeTotals]);
 
   const displayCashToCollect = useMemo(() => {
     if (isViewMode) {
@@ -1035,12 +1038,12 @@ const CheckoutOrder: React.FC = () => {
 
   const shouldShowTipSummary = useMemo(
     () => (isViewMode ? paymentBreakdown?.tipAmount != null : displayTipAmount > 0),
-    [isViewMode, paymentBreakdown, displayTipAmount],
+    [isViewMode, paymentBreakdown, displayTipAmount]
   );
 
   const shouldShowTotalBeforeTip = useMemo(
     () => (isViewMode ? paymentBreakdown?.totalBeforeTip != null : displayTipAmount > 0),
-    [isViewMode, paymentBreakdown, displayTipAmount],
+    [isViewMode, paymentBreakdown, displayTipAmount]
   );
 
   const shouldShowCashToCollect = useMemo(
@@ -1048,7 +1051,7 @@ const CheckoutOrder: React.FC = () => {
       isViewMode
         ? paymentBreakdown?.cashToCollect != null
         : selectedPaymentMethod === 'CASH' && displayCashToCollect != null,
-    [isViewMode, paymentBreakdown, selectedPaymentMethod, displayCashToCollect],
+    [isViewMode, paymentBreakdown, selectedPaymentMethod, displayCashToCollect]
   );
 
   const tipSummaryLabel = useMemo(() => {
@@ -1085,9 +1088,7 @@ const CheckoutOrder: React.FC = () => {
         const quantityValue = Number(rawItem.quantity);
         const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
         const name =
-          (typeof rawItem.name === 'string' && rawItem.name.trim().length
-            ? rawItem.name
-            : null) ??
+          (typeof rawItem.name === 'string' && rawItem.name.trim().length ? rawItem.name : null) ??
           (typeof rawItem.menuItemName === 'string' && rawItem.menuItemName.trim().length
             ? rawItem.menuItemName
             : t('checkout.defaults.item'));
@@ -1167,10 +1168,7 @@ const CheckoutOrder: React.FC = () => {
           0;
 
         const resolvedTotal =
-          lineTotal ??
-          total ??
-          totalPrice ??
-          Math.max(resolvedItemsTotal + resolvedExtras, 0);
+          lineTotal ?? total ?? totalPrice ?? Math.max(resolvedItemsTotal + resolvedExtras, 0);
 
         return {
           key: `order-${String(rawItem.menuItemId ?? name)}-${index}`,
@@ -1187,14 +1185,15 @@ const CheckoutOrder: React.FC = () => {
       name: item.name,
       quantity: item.quantity,
       extrasLabel:
-        item.extras.flatMap((group) => group.extras.map((extra) => extra.name)).join(', ') || undefined,
+        item.extras.flatMap((group) => group.extras.map((extra) => extra.name)).join(', ') ||
+        undefined,
       total: item.totalPrice,
     }));
   }, [isViewMode, viewOrder, viewOrderItems, items, t]);
 
   const displayItemCount = useMemo(
     () => displayItems.reduce((sum, item) => sum + item.quantity, 0),
-    [displayItems],
+    [displayItems]
   );
   const hasDisplayItems = displayItems.length > 0;
   const itemSummaryPrefix = useMemo(
@@ -1203,13 +1202,11 @@ const CheckoutOrder: React.FC = () => {
         values: {
           count: displayItemCount,
           productLabel: t(
-            displayItemCount === 1
-              ? 'cart.productLabel.singular'
-              : 'cart.productLabel.plural',
+            displayItemCount === 1 ? 'cart.productLabel.singular' : 'cart.productLabel.plural'
           ),
         },
       }),
-    [displayItemCount, t],
+    [displayItemCount, t]
   );
   const displayRestaurantName = useMemo(() => {
     if (!isViewMode || !viewOrder) {
@@ -1223,7 +1220,7 @@ const CheckoutOrder: React.FC = () => {
     ];
 
     const resolved = candidates.find(
-      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+      (value): value is string => typeof value === 'string' && value.trim().length > 0
     );
 
     return resolved ?? t('cart.defaultRestaurantName');
@@ -1251,13 +1248,7 @@ const CheckoutOrder: React.FC = () => {
     }
 
     return viewModeTotals?.lineSubtotal ?? 0;
-  }, [
-    isViewMode,
-    viewOrder,
-    baseSubtotal,
-    viewModeTotals,
-    paymentBreakdown,
-  ]);
+  }, [isViewMode, viewOrder, baseSubtotal, viewModeTotals, paymentBreakdown]);
 
   const displayExtrasTotal = useMemo(() => {
     if (!isViewMode || !viewOrder) {
@@ -1277,13 +1268,7 @@ const CheckoutOrder: React.FC = () => {
     }
 
     return viewModeTotals?.extrasTotal ?? 0;
-  }, [
-    isViewMode,
-    viewOrder,
-    extrasTotal,
-    viewModeTotals,
-    paymentBreakdown,
-  ]);
+  }, [isViewMode, viewOrder, extrasTotal, viewModeTotals, paymentBreakdown]);
 
   const displayTotal = useMemo(() => {
     if (!isViewMode || !viewOrder) {
@@ -1299,7 +1284,10 @@ const CheckoutOrder: React.FC = () => {
     }
 
     if (paymentBreakdown?.subtotal != null && paymentBreakdown?.deliveryFee != null) {
-      const subtotalWithFees = Math.max(paymentBreakdown.subtotal + paymentBreakdown.deliveryFee, 0);
+      const subtotalWithFees = Math.max(
+        paymentBreakdown.subtotal + paymentBreakdown.deliveryFee,
+        0
+      );
       return subtotalWithFees + Math.max(paymentBreakdown.tipAmount ?? 0, 0);
     }
 
@@ -1313,13 +1301,7 @@ const CheckoutOrder: React.FC = () => {
     }
 
     return Math.max(displayTotalBeforeTip + Math.max(paymentBreakdown?.tipAmount ?? 0, 0), 0);
-  }, [
-    isViewMode,
-    viewOrder,
-    paymentBreakdown,
-    displayTotalBeforeTip,
-    displayTipAmount,
-  ]);
+  }, [isViewMode, viewOrder, paymentBreakdown, displayTotalBeforeTip, displayTipAmount]);
 
   const displayPromotionDiscount = useMemo(() => {
     if (!isViewMode || !viewOrder) {
@@ -1423,13 +1405,7 @@ const CheckoutOrder: React.FC = () => {
     }
 
     return null;
-  }, [
-    isViewMode,
-    isDeliveryQuoteLoading,
-    deliveryQuote?.available,
-    deliveryQuoteError,
-    t,
-  ]);
+  }, [isViewMode, isDeliveryQuoteLoading, deliveryQuote?.available, deliveryQuoteError, t]);
 
   const deliveryStatusColor =
     deliveryQuote?.available === false || deliveryQuoteError ? '#CA251B' : '#6B7280';
@@ -1441,13 +1417,14 @@ const CheckoutOrder: React.FC = () => {
 
     const candidates = [
       viewOrder.delivery?.address,
-      (viewOrder.delivery?.savedAddress as { formattedAddress?: string } | undefined)?.formattedAddress,
+      (viewOrder.delivery?.savedAddress as { formattedAddress?: string } | undefined)
+        ?.formattedAddress,
       (viewOrder as { deliveryAddress?: string | null })?.deliveryAddress ?? null,
       (viewOrder.savedAddress as { formattedAddress?: string } | undefined)?.formattedAddress,
     ];
 
     const resolved = candidates.find(
-      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+      (value): value is string => typeof value === 'string' && value.trim().length > 0
     );
 
     return resolved ?? '';
@@ -1467,7 +1444,7 @@ const CheckoutOrder: React.FC = () => {
     ];
 
     const resolved = candidates.find(
-      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+      (value): value is string => typeof value === 'string' && value.trim().length > 0
     );
 
     return resolved ?? t('checkout.address.deliveryAddressFallback');
@@ -1539,8 +1516,11 @@ const CheckoutOrder: React.FC = () => {
     if (isViewMode && viewOrder) {
       const candidateLocations = [
         viewOrder.delivery?.location,
-        (viewOrder as { deliveryLocation?: { lat?: number | string; lng?: number | string } } | null)
-          ?.deliveryLocation,
+        (
+          viewOrder as {
+            deliveryLocation?: { lat?: number | string; lng?: number | string };
+          } | null
+        )?.deliveryLocation,
       ];
 
       for (const location of candidateLocations) {
@@ -1604,9 +1584,13 @@ const CheckoutOrder: React.FC = () => {
       return null;
     }
 
-    const candidates = [selectedAddress.directions, selectedAddress.notes, selectedAddress.entranceNotes];
+    const candidates = [
+      selectedAddress.directions,
+      selectedAddress.notes,
+      selectedAddress.entranceNotes,
+    ];
     const detail = candidates.find(
-      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+      (value): value is string => typeof value === 'string' && value.trim().length > 0
     );
 
     return detail ?? null;
@@ -1699,7 +1683,7 @@ const CheckoutOrder: React.FC = () => {
     async (
       tipPercentageValue: number | null,
       cashToCollectValue: number | null,
-      coordinatesOverride?: { lat: number; lng: number } | null,
+      coordinatesOverride?: { lat: number; lng: number } | null
     ) => {
       if (isViewMode) {
         return;
@@ -1800,7 +1784,7 @@ const CheckoutOrder: React.FC = () => {
             console.warn('Failed to open Konnect payment URL', error);
             Alert.alert(
               t('orderTracking.payment.openErrorTitle'),
-              t('orderTracking.payment.openErrorMessage'),
+              t('orderTracking.payment.openErrorMessage')
             );
           }
         }
@@ -1810,8 +1794,8 @@ const CheckoutOrder: React.FC = () => {
           if (isAxiosError(error)) {
             const responseMessage =
               (typeof error.response?.data === 'object' &&
-                error.response?.data &&
-                'message' in error.response.data
+              error.response?.data &&
+              'message' in error.response.data
                 ? String((error.response?.data as { message?: unknown }).message)
                 : null) ?? error.message;
             return responseMessage || t('checkout.errors.generic');
@@ -1830,7 +1814,8 @@ const CheckoutOrder: React.FC = () => {
         setIsSubmitting(false);
         setPendingCoordinates(null);
       }
-    }, [
+    },
+    [
       isViewMode,
       validateBeforeSubmission,
       selectedAddress,
@@ -1844,31 +1829,34 @@ const CheckoutOrder: React.FC = () => {
       navigation,
       t,
       updateOngoingOrder,
-    ],
+    ]
   );
 
   // Function to calculate distance between two coordinates (in meters)
-  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371e3; // Earth's radius in meters
-    
-    // Convert latitude and longitude to radians
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const calculateDistance = useCallback(
+    (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371e3; // Earth's radius in meters
 
-    // Haversine formula: calculate the great-circle distance between two points
-    // a = sin²(Δφ/2) + cos(φ1) * cos(φ2) * sin²(Δλ/2)
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    
-    // c = 2 * atan2(√a, √(1−a))
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      // Convert latitude and longitude to radians
+      const φ1 = (lat1 * Math.PI) / 180;
+      const φ2 = (lat2 * Math.PI) / 180;
+      const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+      const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-    // Distance = R * c
-    return R * c;
-  }, []);
+      // Haversine formula: calculate the great-circle distance between two points
+      // a = sin²(Δφ/2) + cos(φ1) * cos(φ2) * sin²(Δλ/2)
+      const a =
+        Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
+      // c = 2 * atan2(√a, √(1−a))
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      // Distance = R * c
+      return R * c;
+    },
+    []
+  );
 
   // Function to check if addresses match (within 500 meters tolerance)
   const checkAddressMismatch = useCallback((): boolean => {
@@ -1961,7 +1949,7 @@ const CheckoutOrder: React.FC = () => {
 
   const handleAddressMismatchContinue = useCallback(() => {
     setShowAddressMismatchOverlay(false);
-    
+
     // Proceed with the order using selected address
     const coordinates = validateBeforeSubmission();
     if (!coordinates) {
@@ -1975,7 +1963,7 @@ const CheckoutOrder: React.FC = () => {
 
   const handleAddressMismatchUpdateLocation = useCallback(() => {
     setShowAddressMismatchOverlay(false);
-    
+
     // Navigate to location selection screen to update address
     navigation.navigate('LocationSelection');
   }, [navigation]);
@@ -1999,10 +1987,15 @@ const CheckoutOrder: React.FC = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-row items-center px-4 pb-4 pt-2">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 rounded-full border border-[#E4E6EB] p-2">
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="mr-4 rounded-full border border-[#E4E6EB] p-2">
           <ArrowLeft size={20} color={sectionTitleColor} />
         </TouchableOpacity>
-        <Text allowFontScaling={false} className="flex-1 text-center text-xl font-bold" style={{ color: sectionTitleColor }}>
+        <Text
+          allowFontScaling={false}
+          className="flex-1 text-center text-xl font-bold"
+          style={{ color: sectionTitleColor }}>
           {t('checkout.title')}
         </Text>
         <View className="w-10" />
@@ -2014,16 +2007,30 @@ const CheckoutOrder: React.FC = () => {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setItemsExpanded((prev) => !prev)}
-              className="flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] px-5 py-4"
-            >
+              className="flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] px-5 py-4">
               <View>
-                <Text allowFontScaling={false} className="text-sm font-semibold" style={{ color: accentColor }}>
+                <Text
+                  allowFontScaling={false}
+                  className="text-sm font-semibold"
+                  style={{ color: accentColor }}>
                   {itemSummaryPrefix}
                 </Text>
-                <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
+                <Text
+                  allowFontScaling={false}
+                  className="text-lg font-bold"
+                  style={{ color: accentColor }}>
                   {displayRestaurantName}
                 </Text>
-                <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-[#17213A]">
+                {hasValidEstimatedDeliveryTime(restaurant?.estimatedDeliveryTime) && (
+                  <Text allowFontScaling={false} className="mt-0.5 text-xs text-gray-500">
+                    {t('restaurantDetails.delivery.estimatedTime', {
+                      values: { time: restaurant!.estimatedDeliveryTime },
+                    })}
+                  </Text>
+                )}
+                <Text
+                  allowFontScaling={false}
+                  className="mt-1 text-sm font-semibold text-[#17213A]">
                   {formatCurrency(displaySubtotal)}
                 </Text>
               </View>
@@ -2039,16 +2046,22 @@ const CheckoutOrder: React.FC = () => {
                   displayItems.map((item) => (
                     <View key={item.key} className="flex-row items-start justify-between px-5 py-4">
                       <View className="flex-1 pr-3">
-                        <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
+                        <Text
+                          allowFontScaling={false}
+                          className="text-sm font-semibold text-[#17213A]">
                           {item.quantity} × {item.name}
                         </Text>
                         {item.extrasLabel ? (
                           <Text allowFontScaling={false} className="mt-1 text-xs text-[#6B7280]">
-                            {t('checkout.items.extrasLabel', { values: { extras: item.extrasLabel } })}
+                            {t('checkout.items.extrasLabel', {
+                              values: { extras: item.extrasLabel },
+                            })}
                           </Text>
                         ) : null}
                       </View>
-                      <Text allowFontScaling={false} className="text-sm font-semibold text-[#17213A]">
+                      <Text
+                        allowFontScaling={false}
+                        className="text-sm font-semibold text-[#17213A]">
                         {formatCurrency(item.total)}
                       </Text>
                     </View>
@@ -2059,7 +2072,7 @@ const CheckoutOrder: React.FC = () => {
                       {t(
                         isViewMode
                           ? 'checkout.items.empty.viewMode'
-                          : 'checkout.items.empty.editMode',
+                          : 'checkout.items.empty.editMode'
                       )}
                     </Text>
                   </View>
@@ -2073,8 +2086,7 @@ const CheckoutOrder: React.FC = () => {
               <Accordion
                 title={t('checkout.sections.allergies.title')}
                 expanded={allergiesExpanded}
-                onToggle={() => setAllergiesExpanded((prev) => !prev)}
-              >
+                onToggle={() => setAllergiesExpanded((prev) => !prev)}>
                 <TextInput
                   allowFontScaling={false}
                   multiline
@@ -2090,8 +2102,7 @@ const CheckoutOrder: React.FC = () => {
               <Accordion
                 title={t('checkout.sections.comment.title')}
                 expanded={commentExpanded}
-                onToggle={() => setCommentExpanded((prev) => !prev)}
-              >
+                onToggle={() => setCommentExpanded((prev) => !prev)}>
                 <TextInput
                   allowFontScaling={false}
                   multiline
@@ -2108,15 +2119,17 @@ const CheckoutOrder: React.FC = () => {
 
           <View className="mt-6">
             <View className="flex-row items-center justify-between">
-              <Text allowFontScaling={false} className="text-base font-bold" style={{ color: sectionTitleColor }}>
+              <Text
+                allowFontScaling={false}
+                className="text-base font-bold"
+                style={{ color: sectionTitleColor }}>
                 {t('checkout.address.sectionTitle')}
               </Text>
               {!isViewMode ? (
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={handleOpenLocationSelection}
-                  className="rounded-full bg-[#FDE7E5] px-6 py-3"
-                >
+                  className="rounded-full bg-[#FDE7E5] px-6 py-3">
                   <Text allowFontScaling={false} className=" font-semibold text-[#CA251B]">
                     {t('checkout.address.changeCta')}
                   </Text>
@@ -2128,14 +2141,15 @@ const CheckoutOrder: React.FC = () => {
                 <View style={styles.mapWrapper}>
                   {deliveryRegion ? (
                     <MapView
-                      key={isViewMode ? `order-${viewOrder?.orderId ?? 'map'}` : selectedAddress?.id}
+                      key={
+                        isViewMode ? `order-${viewOrder?.orderId ?? 'map'}` : selectedAddress?.id
+                      }
                       style={StyleSheet.absoluteFill}
                       initialRegion={deliveryRegion}
                       scrollEnabled={false}
                       zoomEnabled={false}
                       pitchEnabled={false}
-                      rotateEnabled={false}
-                    >
+                      rotateEnabled={false}>
                       <Marker
                         coordinate={deliveryRegion}
                         title={t('checkout.address.markerTitle')}
@@ -2145,11 +2159,13 @@ const CheckoutOrder: React.FC = () => {
                   ) : (
                     <View className="flex-1 items-center justify-center bg-[#FDE7E5]">
                       <MapPin size={24} color={accentColor} />
-                      <Text allowFontScaling={false} className="mt-2 text-xs font-semibold text-[#CA251B]">
+                      <Text
+                        allowFontScaling={false}
+                        className="mt-2 text-xs font-semibold text-[#CA251B]">
                         {t(
                           isViewMode
                             ? 'checkout.address.mapUnavailable.viewMode'
-                            : 'checkout.address.mapUnavailable.editMode',
+                            : 'checkout.address.mapUnavailable.editMode'
                         )}
                       </Text>
                     </View>
@@ -2176,21 +2192,30 @@ const CheckoutOrder: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleOpenLocationSelection}
-                className="mt-3 flex-row items-center justify-between rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4"
-              >
+                className="mt-3 flex-row items-center justify-between rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4">
                 <View className="flex-1 flex-row items-center">
                   <MapPin size={22} color={accentColor} />
-                  <Text allowFontScaling={false} className="ml-3 flex-1 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                  <Text
+                    allowFontScaling={false}
+                    className="ml-3 flex-1 text-base font-semibold"
+                    style={{ color: sectionTitleColor }}>
                     {t('checkout.address.choosePrompt')}
                   </Text>
                 </View>
-                <ChevronDown size={20} color={sectionTitleColor} style={{ transform: [{ rotate: '-90deg' }] }} />
+                <ChevronDown
+                  size={20}
+                  color={sectionTitleColor}
+                  style={{ transform: [{ rotate: '-90deg' }] }}
+                />
               </TouchableOpacity>
             ) : (
               <View className="mt-3 rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4">
                 <View className="flex-row items-center">
                   <MapPin size={22} color={accentColor} />
-                  <Text allowFontScaling={false} className="ml-3 flex-1 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                  <Text
+                    allowFontScaling={false}
+                    className="ml-3 flex-1 text-base font-semibold"
+                    style={{ color: sectionTitleColor }}>
                     {emptyAddressMessage}
                   </Text>
                 </View>
@@ -2199,14 +2224,20 @@ const CheckoutOrder: React.FC = () => {
           </View>
 
           <View className="mt-6">
-            <Text allowFontScaling={false} className="text-base font-bold" style={{ color: sectionTitleColor }}>
+            <Text
+              allowFontScaling={false}
+              className="text-base font-bold"
+              style={{ color: sectionTitleColor }}>
               {t('checkout.payment.sectionTitle')}
             </Text>
             {isViewMode ? (
               <View className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4">
                 <View className="flex-row items-center">
                   <SelectedPaymentIcon size={22} color={accentColor} />
-                  <Text allowFontScaling={false} className="ml-3 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                  <Text
+                    allowFontScaling={false}
+                    className="ml-3 text-base font-semibold"
+                    style={{ color: sectionTitleColor }}>
                     {paymentMethodLabel}
                   </Text>
                 </View>
@@ -2215,11 +2246,13 @@ const CheckoutOrder: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => setIsPaymentModalVisible(true)}
-                className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4"
-              >
+                className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4">
                 <View className="flex-row items-center">
                   <SelectedPaymentIcon size={22} color={accentColor} />
-                  <Text allowFontScaling={false} className="ml-3 text-base font-semibold" style={{ color: sectionTitleColor }}>
+                  <Text
+                    allowFontScaling={false}
+                    className="ml-3 text-base font-semibold"
+                    style={{ color: sectionTitleColor }}>
                     {paymentMethodLabel}
                   </Text>
                 </View>
@@ -2236,12 +2269,14 @@ const CheckoutOrder: React.FC = () => {
                   currentCode: appliedCoupon?.code,
                 })
               }
-              className="mt-4 flex-row items-center justify-between rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4"
-            >
+              className="mt-4 flex-row items-center justify-between rounded-3xl border border-dashed border-[#F0F1F3] bg-white px-5 py-4">
               <View className="flex-1 flex-row items-center">
                 <TicketPercent size={22} color={accentColor} />
                 <View className="ml-3 flex-1">
-                  <Text allowFontScaling={false} className="text-base font-semibold" style={{ color: sectionTitleColor }}>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-base font-semibold"
+                    style={{ color: sectionTitleColor }}>
                     {appliedCoupon ? t('checkout.coupon.applied') : t('checkout.coupon.add')}
                   </Text>
                   {appliedCoupon ? (
@@ -2257,8 +2292,7 @@ const CheckoutOrder: React.FC = () => {
                   onPress={(event: GestureResponderEvent) => {
                     event.stopPropagation();
                     handleRemoveCoupon();
-                  }}
-                >
+                  }}>
                   <X size={20} color={sectionTitleColor} />
                 </TouchableOpacity>
               ) : (
@@ -2294,7 +2328,9 @@ const CheckoutOrder: React.FC = () => {
                     {isDeliveryQuoteLoading ? (
                       <ActivityIndicator size="small" color={sectionTitleColor} />
                     ) : (
-                      <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                      <Text
+                        allowFontScaling={false}
+                        className="text-sm font-semibold text-[#4B5563]">
                         {formatCurrency(deliveryFee)}
                       </Text>
                     )}
@@ -2304,8 +2340,7 @@ const CheckoutOrder: React.FC = () => {
                   <Text
                     allowFontScaling={false}
                     className="mt-2 text-xs"
-                    style={{ color: deliveryStatusColor }}
-                  >
+                    style={{ color: deliveryStatusColor }}>
                     {deliveryStatusMessage}
                   </Text>
                 ) : null}
@@ -2320,7 +2355,7 @@ const CheckoutOrder: React.FC = () => {
               </>
             ) : (
               <>
-              <View className="mt-3 flex-row items-center justify-between">
+                <View className="mt-3 flex-row items-center justify-between">
                   <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
                     {t('checkout.summary.service')}
                   </Text>
@@ -2328,16 +2363,15 @@ const CheckoutOrder: React.FC = () => {
                     {formatCurrency(serviceFee)}
                   </Text>
                 </View>
-                 <View className="mt-3 flex-row items-center justify-between">
-                <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
-                  {t('checkout.summary.fees')}
-                </Text>
-                <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
-                  {formatCurrency(displayFees)}
-                </Text>
-              </View>
+                <View className="mt-3 flex-row items-center justify-between">
+                  <Text allowFontScaling={false} className="text-sm text-[#6B7280]">
+                    {t('checkout.summary.fees')}
+                  </Text>
+                  <Text allowFontScaling={false} className="text-sm font-semibold text-[#4B5563]">
+                    {formatCurrency(displayFees)}
+                  </Text>
+                </View>
               </>
-              
             )}
             {!isViewMode && appliedCoupon ? (
               <View className="mt-3 flex-row items-center justify-between">
@@ -2391,10 +2425,16 @@ const CheckoutOrder: React.FC = () => {
             ) : null}
             <View className="mt-4 border-t border-dashed pt-4" style={{ borderColor }}>
               <View className="flex-row items-center justify-between">
-                <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: sectionTitleColor }}>
+                <Text
+                  allowFontScaling={false}
+                  className="text-lg font-bold"
+                  style={{ color: sectionTitleColor }}>
                   {t('checkout.summary.total')}
                 </Text>
-                <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
+                <Text
+                  allowFontScaling={false}
+                  className="text-lg font-bold"
+                  style={{ color: accentColor }}>
                   {formatCurrency(displayTotal)}
                 </Text>
               </View>
@@ -2404,36 +2444,26 @@ const CheckoutOrder: React.FC = () => {
             <View className="mt-4 rounded-3xl border border-[#F0F1F3] bg-white p-5">
               <Text
                 allowFontScaling={false}
-                className="text-center text-lg font-bold mb-3"
-                style={{ color: sectionTitleColor }}
-              >
+                className="mb-3 text-center text-lg font-bold"
+                style={{ color: sectionTitleColor }}>
                 {t('checkout.deliveryCode.title')}
               </Text>
 
-              <Text
-                allowFontScaling={false}
-                className="text-center text-sm text-[#4B5563] mb-5"
-              >
+              <Text allowFontScaling={false} className="mb-5 text-center text-sm text-[#4B5563]">
                 {t('checkout.deliveryCode.description')}
               </Text>
 
               <View className="items-center justify-center">
-                <View
-                  className="rounded-full px-10 py-3"
-                  style={{ backgroundColor: accentColor }}
-                >
+                <View className="rounded-full px-10 py-3" style={{ backgroundColor: accentColor }}>
                   <Text
                     allowFontScaling={false}
-                    className="text-white text-2xl font-bold text-center tracking-[2]"
-                  >
+                    className="text-center text-2xl font-bold tracking-[2] text-white">
                     {deliveryToken}
                   </Text>
                 </View>
               </View>
             </View>
           )}
-
-
         </View>
       </ScrollView>
 
@@ -2443,8 +2473,7 @@ const CheckoutOrder: React.FC = () => {
             <Text
               allowFontScaling={false}
               className="mb-2 text-center text-sm"
-              style={{ color: deliveryStatusColor }}
-            >
+              style={{ color: deliveryStatusColor }}>
               {deliveryStatusMessage}
             </Text>
           ) : null}
@@ -2457,15 +2486,13 @@ const CheckoutOrder: React.FC = () => {
             activeOpacity={0.9}
             className={`rounded-full px-6 py-4 ${canSubmit ? 'bg-[#CA251B]' : 'bg-[#F1F2F4]'}`}
             disabled={!canSubmit}
-            onPress={handleConfirmOrder}
-          >
+            onPress={handleConfirmOrder}>
             {isSubmitting ? (
               <ActivityIndicator color={canSubmit ? '#FFFFFF' : '#9CA3AF'} />
             ) : (
               <Text
                 allowFontScaling={false}
-                className={`text-center text-base font-semibold ${canSubmit ? 'text-white' : 'text-[#9CA3AF]'}`}
-              >
+                className={`text-center text-base font-semibold ${canSubmit ? 'text-white' : 'text-[#9CA3AF]'}`}>
                 {t('checkout.actions.confirm')}
               </Text>
             )}
@@ -2493,9 +2520,7 @@ const CheckoutOrder: React.FC = () => {
         cancelLabel={t('checkout.tip.overlay.cancel')}
         confirmLabel={t('checkout.tip.overlay.confirm')}
         cashLabel={
-          selectedPaymentMethod === 'CASH'
-            ? t('checkout.tip.overlay.cashLabel')
-            : undefined
+          selectedPaymentMethod === 'CASH' ? t('checkout.tip.overlay.cashLabel') : undefined
         }
         cashPlaceholder={t('checkout.tip.overlay.cashPlaceholder')}
         cashValue={cashToCollectInput}

@@ -313,7 +313,8 @@ const en: TranslationDictionary = {
       optional: 'Optional',
     },
     itemTotal: 'Item {{index}} total',
-    validationMessage: 'Finish required selections for every item. Items shown in red need attention.',
+    validationMessage:
+      'Finish required selections for every item. Items shown in red need attention.',
     summary: '{{action}} {{count}} {{item}} for {{price}}',
     actions: {
       add: 'Add',
@@ -337,8 +338,9 @@ const en: TranslationDictionary = {
       },
     },
     delivery: {
-      withFee: '{{fee}} delivery fee',
+      withFee: '{{fee}} DT',
       free: 'Free delivery',
+      estimatedTime: '{{time}} min',
     },
     rating: {
       new: 'New',
@@ -450,7 +452,8 @@ const en: TranslationDictionary = {
       emptyCart: 'Your cart is empty.',
       missingRestaurant: 'Missing restaurant information.',
       missingAddress: 'Please choose a delivery address.',
-      missingCoordinates: 'The selected address is missing coordinates. Please update it and try again.',
+      missingCoordinates:
+        'The selected address is missing coordinates. Please update it and try again.',
       missingPayment: 'Select a payment method to continue.',
       deliveryUnavailable: 'Delivery is not available to this address for this restaurant.',
       deliveryQuoteFailed: 'We could not verify delivery availability. Please try again.',
@@ -554,10 +557,14 @@ const en: TranslationDictionary = {
       third: 'Is there anything else you would like me to double-check while you wait?',
     },
     initialMessages: {
-      system: 'You are connected with {{agentName}} from {{brand}}. We typically reply in under 2 minutes.',
-      agentGreeting: 'Hi there! Thanks for reaching out. I’m here to help with anything related to your order.',
-      customerQuestion: 'Hi {{agentName}}, could you check why my driver seems to be stuck on the map?',
-      agentFollowUp: 'Absolutely! Let me review their route and I’ll share what I find in just a moment.',
+      system:
+        'You are connected with {{agentName}} from {{brand}}. We typically reply in under 2 minutes.',
+      agentGreeting:
+        'Hi there! Thanks for reaching out. I’m here to help with anything related to your order.',
+      customerQuestion:
+        'Hi {{agentName}}, could you check why my driver seems to be stuck on the map?',
+      agentFollowUp:
+        'Absolutely! Let me review their route and I’ll share what I find in just a moment.',
     },
     timestamp: {
       am: 'AM',
@@ -650,7 +657,8 @@ const en: TranslationDictionary = {
       title: 'Coupon code',
       subtitle: 'Track and redeem your Foodify coupons.',
       listTitle: 'Your coupon codes',
-      emptyHint: 'New deals drop weekly! Follow us, order often, or check back soon — your wallet will thank you.',
+      emptyHint:
+        'New deals drop weekly! Follow us, order often, or check back soon — your wallet will thank you.',
       redeemCta: 'Redeem points for a new coupon',
       redeemHint: 'Use your loyalty points to unlock fresh rewards.',
       assignedAt: 'Added {{date}}',
@@ -702,7 +710,8 @@ const en: TranslationDictionary = {
       headerTitle: 'Convert points',
       availableTitle: 'Available Foody Points',
       availableSubtitle: 'Create custom rewards with your Foody points.',
-      infoText: 'Choose the reward you want to create with your Foody points. Customize and redeem instantly.',
+      infoText:
+        'Choose the reward you want to create with your Foody points. Customize and redeem instantly.',
       selectTitle: 'Select coupon type',
       freeDelivery: {
         title: 'Free delivery coupon',
@@ -791,11 +800,13 @@ const en: TranslationDictionary = {
           questions: {
             applyPromo: {
               question: 'How do I apply a promo code?',
-              answer: 'You can apply your promo code at checkout in the “Promo code” field before placing your order.',
+              answer:
+                'You can apply your promo code at checkout in the “Promo code” field before placing your order.',
             },
             splitPayment: {
               question: 'Can I split payment between two cards?',
-              answer: 'Currently, split payments are not supported. You can only use one payment method per order.',
+              answer:
+                'Currently, split payments are not supported. You can only use one payment method per order.',
             },
             paymentMethods: {
               question: 'What payment methods do you accept?',
@@ -803,11 +814,13 @@ const en: TranslationDictionary = {
             },
             cancelCharge: {
               question: 'Will I be charged if I cancel my order?',
-              answer: 'You will not be charged if the order is canceled before processing. Refunds may take up to 3–5 business days.',
+              answer:
+                'You will not be charged if the order is canceled before processing. Refunds may take up to 3–5 business days.',
             },
             declinedPayment: {
               question: 'Why was my payment declined?',
-              answer: 'This can occur if your card has insufficient funds or if your bank declined the transaction for security reasons.',
+              answer:
+                'This can occur if your card has insufficient funds or if your bank declined the transaction for security reasons.',
             },
           },
         },
@@ -816,7 +829,8 @@ const en: TranslationDictionary = {
           questions: {
             trackRider: {
               question: 'Can I track my rider in real time?',
-              answer: 'Yes. Once your order is confirmed, you can track your delivery in real time from the “Orders” section.',
+              answer:
+                'Yes. Once your order is confirmed, you can track your delivery in real time from the “Orders” section.',
             },
             scheduleDelivery: {
               question: 'Can I schedule a delivery for later?',
@@ -824,7 +838,8 @@ const en: TranslationDictionary = {
             },
             deliveryTime: {
               question: 'How long does grocery delivery usually take?',
-              answer: 'Typical delivery time ranges from 30 to 60 minutes depending on your location and order size.',
+              answer:
+                'Typical delivery time ranges from 30 to 60 minutes depending on your location and order size.',
             },
           },
         },
@@ -833,15 +848,18 @@ const en: TranslationDictionary = {
           questions: {
             missingItems: {
               question: 'What if my order is missing items?',
-              answer: 'Please contact our support team through the “Help” section and we’ll resolve it quickly.',
+              answer:
+                'Please contact our support team through the “Help” section and we’ll resolve it quickly.',
             },
             coldFood: {
               question: 'My food arrived cold—what can I do?',
-              answer: 'We’re sorry! Reach out to support to report the issue and request compensation or a refund.',
+              answer:
+                'We’re sorry! Reach out to support to report the issue and request compensation or a refund.',
             },
             lateOrder: {
               question: 'Can I get a refund if my order is late?',
-              answer: 'Refunds may apply depending on the delay. Contact customer service for more details.',
+              answer:
+                'Refunds may apply depending on the delay. Contact customer service for more details.',
             },
           },
         },
@@ -850,11 +868,13 @@ const en: TranslationDictionary = {
           questions: {
             paymentSecurity: {
               question: 'Is my payment data secure?',
-              answer: 'Yes, we use encrypted payment systems to ensure your information is safe and protected.',
+              answer:
+                'Yes, we use encrypted payment systems to ensure your information is safe and protected.',
             },
             deleteAccount: {
               question: 'Can I delete my account permanently?',
-              answer: 'Yes. Go to “Account settings” → “Delete account & data” to permanently remove your account.',
+              answer:
+                'Yes. Go to “Account settings” → “Delete account & data” to permanently remove your account.',
             },
           },
         },
@@ -891,6 +911,7 @@ const en: TranslationDictionary = {
         openMenuHint: 'Tap to open the full menu',
         addToCartHint: 'Tap to customize and add it to your cart.',
         popular: 'Popular',
+        deliveryMinutes: 'min',
       },
       sections: {
         restaurants: {
@@ -924,7 +945,8 @@ const en: TranslationDictionary = {
         errorTitle: 'We couldn’t load your orders.',
         errorSubtitle: 'Check your connection and try again in a moment.',
         emptyTitle: 'Your order history is empty',
-        emptySubtitle: 'Every great meal begins with a first click. Browse top-rated restaurants and build your flavor legacy today.',
+        emptySubtitle:
+          'Every great meal begins with a first click. Browse top-rated restaurants and build your flavor legacy today.',
       },
       actions: {
         retry: 'Try again',
@@ -941,7 +963,8 @@ const en: TranslationDictionary = {
       warningDescription:
         'Deleting your account will permanently remove all your data, including earnings, delivery history, and personal information.',
       confirmPrompt: 'Please confirm to continue',
-      confirmationLabel: 'I understand that deleting my account is permanent. All my data will be lost forever.',
+      confirmationLabel:
+        'I understand that deleting my account is permanent. All my data will be lost forever.',
       deleteCta: 'Delete my account',
       cancel: 'Cancel',
       deletingTitle: 'Deleting your account',
@@ -1028,7 +1051,8 @@ const en: TranslationDictionary = {
       googleCta: 'Continue with Google',
       emailCta: 'Continue with e-mail',
       errors: {
-        startSignup: 'We were unable to start verification. Please check your phone number and try again.',
+        startSignup:
+          'We were unable to start verification. Please check your phone number and try again.',
       },
     },
     common: {
@@ -1080,7 +1104,7 @@ const en: TranslationDictionary = {
         },
       },
       nameEntry: {
-        title: "What’s your name",
+        title: 'What’s your name',
         firstNamePlaceholder: 'First Name',
         lastNamePlaceholder: 'Last Name',
         dobPlaceholder: 'Date of Birth (YYYY-MM-DD)',
@@ -1136,7 +1160,7 @@ const en: TranslationDictionary = {
           },
         },
         name: {
-          title: "What’s your name",
+          title: 'What’s your name',
           firstNamePlaceholder: 'First Name',
           lastNamePlaceholder: 'Last Name',
           dobPlaceholder: 'YYYY-MM-DD',

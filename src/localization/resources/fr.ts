@@ -132,16 +132,18 @@ const fr: TranslationDictionary = {
     },
     addressPrompt: {
       title: 'Choisissez une adresse pour explorer les restaurants à proximité.',
-      subtitle: 'Définissez votre lieu de livraison pour voir les options disponibles dans votre zone.',
+      subtitle:
+        'Définissez votre lieu de livraison pour voir les options disponibles dans votre zone.',
       cta: 'Sélectionner une adresse',
     },
     error: {
-      title: "Impossible de récupérer les restaurants pour le moment.",
+      title: 'Impossible de récupérer les restaurants pour le moment.',
       action: 'Réessayer',
     },
     empty: {
       title: 'Aucun restaurant disponible dans votre zone.',
-      subtitle: 'Élargissez votre rayon de recherche ou mettez à jour votre localisation pour découvrir de bons repas à proximité.',
+      subtitle:
+        'Élargissez votre rayon de recherche ou mettez à jour votre localisation pour découvrir de bons repas à proximité.',
     },
     header: {
       chooseAddress: 'Veuillez choisir votre adresse.',
@@ -204,14 +206,14 @@ const fr: TranslationDictionary = {
       plural: 'produits',
     },
     itemSummaryPrefix: '{{count}} {{productLabel}} de ',
-    priceEach: '{{price}} l\'unité',
+    priceEach: "{{price}} l'unité",
     empty: {
       title: 'Ajoutez des articles pour commencer votre panier',
       subtitle:
-        'Une fois que vous aurez ajouté des articles d\'un restaurant ou d\'une boutique, votre panier apparaîtra ici.',
+        "Une fois que vous aurez ajouté des articles d'un restaurant ou d'une boutique, votre panier apparaîtra ici.",
       cta: 'Ajouter des articles',
     },
-    addMore: 'Ajouter d\'autres articles',
+    addMore: "Ajouter d'autres articles",
   },
   coupon: {
     title: 'Code promo',
@@ -237,7 +239,8 @@ const fr: TranslationDictionary = {
       agree: 'J’accepte',
     },
     errors: {
-      disabled: 'L’autorisation de localisation est désactivée. Veuillez l’activer dans les réglages.',
+      disabled:
+        'L’autorisation de localisation est désactivée. Veuillez l’activer dans les réglages.',
       servicesDisabled: 'Veuillez activer les services de localisation de votre appareil.',
       generic: 'Nous avons besoin de votre autorisation pour afficher les restaurants à proximité.',
     },
@@ -278,7 +281,8 @@ const fr: TranslationDictionary = {
       menuUnavailableMessage:
         'Nous ne pouvons pas charger cet article promotionnel pour le moment. Veuillez réessayer plus tard.',
       genericErrorTitle: 'Un problème est survenu',
-      genericErrorMessage: "Nous n'avons pas pu charger cet article promotionnel. Veuillez réessayer.",
+      genericErrorMessage:
+        "Nous n'avons pas pu charger cet article promotionnel. Veuillez réessayer.",
     },
     results: {
       searching: 'Recherche…',
@@ -341,8 +345,9 @@ const fr: TranslationDictionary = {
       },
     },
     delivery: {
-      withFee: 'Frais de livraison {{fee}}',
+      withFee: '{{fee}} DT',
       free: 'Livraison gratuite',
+      estimatedTime: '{{time}} min',
     },
     rating: {
       new: 'Nouveau',
@@ -363,7 +368,7 @@ const fr: TranslationDictionary = {
     },
     sections: {
       allergies: {
-        title: 'J\'ai des allergies',
+        title: "J'ai des allergies",
         placeholder: 'Ajoutez vos allergies',
       },
       comment: {
@@ -379,11 +384,11 @@ const fr: TranslationDictionary = {
       deliveryAddressFallback: 'Adresse de livraison',
       empty: {
         viewMode: 'Les détails de livraison ne sont pas disponibles pour cette commande.',
-        editMode: 'Ajoutez une adresse de livraison pour l\'afficher ici.',
+        editMode: "Ajoutez une adresse de livraison pour l'afficher ici.",
       },
       mapUnavailable: {
         viewMode: 'Aperçu de la carte indisponible pour cette adresse',
-        editMode: 'Définissez une localisation précise pour l\'afficher ici',
+        editMode: "Définissez une localisation précise pour l'afficher ici",
       },
       markerTitle: 'Adresse de livraison',
     },
@@ -454,12 +459,16 @@ const fr: TranslationDictionary = {
       emptyCart: 'Votre panier est vide.',
       missingRestaurant: 'Informations sur le restaurant manquantes.',
       missingAddress: 'Veuillez choisir une adresse de livraison.',
-      missingCoordinates: 'L\'adresse sélectionnée ne comporte pas de coordonnées. Veuillez la mettre à jour puis réessayer.',
+      missingCoordinates:
+        "L'adresse sélectionnée ne comporte pas de coordonnées. Veuillez la mettre à jour puis réessayer.",
       missingPayment: 'Sélectionnez un mode de paiement pour continuer.',
-      deliveryUnavailable: 'La livraison n’est pas disponible pour cette adresse avec ce restaurant.',
-      deliveryQuoteFailed: 'Nous n’avons pas pu vérifier la disponibilité de la livraison. Veuillez réessayer.',
-      deliveryFeePending: 'Veuillez patienter pendant la vérification de la disponibilité de la livraison.',
-      generic: 'Nous n\'avons pas pu passer votre commande. Veuillez réessayer.',
+      deliveryUnavailable:
+        'La livraison n’est pas disponible pour cette adresse avec ce restaurant.',
+      deliveryQuoteFailed:
+        'Nous n’avons pas pu vérifier la disponibilité de la livraison. Veuillez réessayer.',
+      deliveryFeePending:
+        'Veuillez patienter pendant la vérification de la disponibilité de la livraison.',
+      generic: "Nous n'avons pas pu passer votre commande. Veuillez réessayer.",
     },
     alerts: {
       orderFailedTitle: 'Échec de la commande',
@@ -652,13 +661,14 @@ const fr: TranslationDictionary = {
         en: 'Recommandée pour les utilisateurs internationaux',
         fr: 'Idéale pour les francophones',
       },
-      note: 'Votre sélection s\'applique immédiatement dans l\'application.',
+      note: "Votre sélection s'applique immédiatement dans l'application.",
     },
     coupon: {
       title: 'Code promo',
       subtitle: 'Gérez et utilisez vos coupons Foodify.',
       listTitle: 'Vos codes promo',
-      emptyHint: 'De nouvelles offres arrivent chaque semaine ! Suivez-nous, commandez souvent ou revenez bientôt — votre portefeuille vous remerciera.',
+      emptyHint:
+        'De nouvelles offres arrivent chaque semaine ! Suivez-nous, commandez souvent ou revenez bientôt — votre portefeuille vous remerciera.',
       redeemCta: 'Échanger des points contre un coupon',
       redeemHint: 'Transformez vos points fidélité en réductions ou en livraisons gratuites.',
       assignedAt: 'Ajouté le {{date}}',
@@ -682,7 +692,8 @@ const fr: TranslationDictionary = {
       redeemCta: 'Échanger des points contre des coupons',
       redeemHint: 'Convertissez votre solde en réductions ou livraisons gratuites.',
       transactionsTitle: 'Historique des points',
-      transactionsEmpty: 'Aucune activité pour le moment — passez une commande pour commencer à gagner des points.',
+      transactionsEmpty:
+        'Aucune activité pour le moment — passez une commande pour commencer à gagner des points.',
       transactionTypes: {
         earned: 'Points gagnés',
         redeemed: 'Points dépensés',
@@ -710,7 +721,8 @@ const fr: TranslationDictionary = {
       headerTitle: 'Convertir des points',
       availableTitle: 'Points Foodify disponibles',
       availableSubtitle: 'Créez des récompenses personnalisées avec vos points Foodify.',
-      infoText: 'Choisissez la récompense que vous souhaitez créer avec vos points Foodify. Personnalisez et échangez instantanément.',
+      infoText:
+        'Choisissez la récompense que vous souhaitez créer avec vos points Foodify. Personnalisez et échangez instantanément.',
       selectTitle: 'Sélectionner un type de coupon',
       freeDelivery: {
         title: 'Coupon livraison gratuite',
@@ -743,11 +755,13 @@ const fr: TranslationDictionary = {
       options: {
         freeDelivery: {
           title: 'Coupon livraison gratuite',
-          description: 'Coûte 250 points et annule les frais de livraison de votre prochaine commande.',
+          description:
+            'Coûte 250 points et annule les frais de livraison de votre prochaine commande.',
         },
         percentage: {
           title: 'Coupon de réduction',
-          description: 'Coûte 15 points par pourcentage. Économisez entre 5 % et 50 % sur une commande.',
+          description:
+            'Coûte 15 points par pourcentage. Économisez entre 5 % et 50 % sur une commande.',
         },
       },
       percentageLabel: 'Pourcentage de réduction',
@@ -761,7 +775,8 @@ const fr: TranslationDictionary = {
       successTitle: 'Coupon créé',
       successMessage: 'Votre nouveau coupon vous attend dans votre portefeuille.',
       errorTitle: 'Impossible d’échanger',
-      errorMessage: 'Nous n’avons pas pu échanger vos points pour le moment. Veuillez réessayer plus tard.',
+      errorMessage:
+        'Nous n’avons pas pu échanger vos points pour le moment. Veuillez réessayer plus tard.',
     },
     notifications: {
       title: 'Notifications',
@@ -774,7 +789,8 @@ const fr: TranslationDictionary = {
       orderStatus: {
         title: 'Suivi des commandes',
         recommended: 'Recommandé',
-        description: 'Recevez les mises à jour de votre livreur et de l\'assistance en temps réel. Nous vous le conseillons !',
+        description:
+          "Recevez les mises à jour de votre livreur et de l'assistance en temps réel. Nous vous le conseillons !",
       },
       marketing: {
         title: 'Offres spéciales pour vous',
@@ -787,7 +803,7 @@ const fr: TranslationDictionary = {
       alerts: {
         updateFailureTitle: 'Impossible de mettre à jour les notifications',
         updateFailureMessage: 'Veuillez réessayer dans un instant.',
-        enableAllFailureTitle: 'Impossible d\'activer toutes les notifications',
+        enableAllFailureTitle: "Impossible d'activer toutes les notifications",
         enableAllFailureMessage: 'Veuillez réessayer dans un instant.',
       },
     },
@@ -799,23 +815,28 @@ const fr: TranslationDictionary = {
           questions: {
             applyPromo: {
               question: 'Comment appliquer un code promo ?',
-              answer: 'Ajoutez votre code promo au moment du paiement dans le champ « Code promo » avant de valider la commande.',
+              answer:
+                'Ajoutez votre code promo au moment du paiement dans le champ « Code promo » avant de valider la commande.',
             },
             splitPayment: {
               question: 'Puis-je partager le paiement sur deux cartes ?',
-              answer: 'Le paiement fractionné n\'est pas encore disponible. Une seule méthode de paiement est acceptée par commande.',
+              answer:
+                "Le paiement fractionné n'est pas encore disponible. Une seule méthode de paiement est acceptée par commande.",
             },
             paymentMethods: {
               question: 'Quels moyens de paiement acceptez-vous ?',
-              answer: 'Nous acceptons les principales cartes bancaires, les portefeuilles mobiles et les cartes cadeaux.',
+              answer:
+                'Nous acceptons les principales cartes bancaires, les portefeuilles mobiles et les cartes cadeaux.',
             },
             cancelCharge: {
-              question: 'Serai-je facturé si j\'annule ma commande ?',
-              answer: 'Aucun frais si la commande est annulée avant préparation. Les remboursements peuvent prendre 3 à 5 jours ouvrés.',
+              question: "Serai-je facturé si j'annule ma commande ?",
+              answer:
+                'Aucun frais si la commande est annulée avant préparation. Les remboursements peuvent prendre 3 à 5 jours ouvrés.',
             },
             declinedPayment: {
               question: 'Pourquoi mon paiement a-t-il été refusé ?',
-              answer: 'Cela peut venir d\'un solde insuffisant ou d\'un refus de votre banque pour des raisons de sécurité.',
+              answer:
+                "Cela peut venir d'un solde insuffisant ou d'un refus de votre banque pour des raisons de sécurité.",
             },
           },
         },
@@ -824,15 +845,17 @@ const fr: TranslationDictionary = {
           questions: {
             trackRider: {
               question: 'Puis-je suivre mon livreur en temps réel ?',
-              answer: 'Oui, une fois la commande confirmée, suivez la livraison en temps réel depuis la section « Commandes ».',
+              answer:
+                'Oui, une fois la commande confirmée, suivez la livraison en temps réel depuis la section « Commandes ».',
             },
             scheduleDelivery: {
               question: 'Puis-je programmer une livraison plus tard ?',
-              answer: 'Bien sûr ! Choisissez l\'horaire de livraison souhaité lors du paiement.',
+              answer: "Bien sûr ! Choisissez l'horaire de livraison souhaité lors du paiement.",
             },
             deliveryTime: {
               question: 'Quel est le délai de livraison habituel ?',
-              answer: 'Compte entre 30 et 60 minutes selon votre localisation et la taille de la commande.',
+              answer:
+                'Compte entre 30 et 60 minutes selon votre localisation et la taille de la commande.',
             },
           },
         },
@@ -841,15 +864,18 @@ const fr: TranslationDictionary = {
           questions: {
             missingItems: {
               question: 'Que faire si des articles manquent ?',
-              answer: 'Contactez notre support via la rubrique « Aide » et nous réglerons le problème rapidement.',
+              answer:
+                'Contactez notre support via la rubrique « Aide » et nous réglerons le problème rapidement.',
             },
             coldFood: {
               question: 'Mon repas est arrivé froid, que faire ?',
-              answer: 'Nous en sommes désolés ! Signalez-le au support pour demander une compensation ou un remboursement.',
+              answer:
+                'Nous en sommes désolés ! Signalez-le au support pour demander une compensation ou un remboursement.',
             },
             lateOrder: {
               question: 'Puis-je être remboursé si ma commande est en retard ?',
-              answer: 'Selon le retard, un remboursement peut être envisagé. Contactez le service client pour en savoir plus.',
+              answer:
+                'Selon le retard, un remboursement peut être envisagé. Contactez le service client pour en savoir plus.',
             },
           },
         },
@@ -858,11 +884,13 @@ const fr: TranslationDictionary = {
           questions: {
             paymentSecurity: {
               question: 'Mes données de paiement sont-elles protégées ?',
-              answer: 'Oui, nous utilisons des systèmes de paiement chiffrés pour garantir la sécurité de vos informations.',
+              answer:
+                'Oui, nous utilisons des systèmes de paiement chiffrés pour garantir la sécurité de vos informations.',
             },
             deleteAccount: {
               question: 'Puis-je supprimer définitivement mon compte ?',
-              answer: 'Oui. Rendez-vous dans « Paramètres du compte » → « Supprimer le compte et les données » pour procéder.',
+              answer:
+                'Oui. Rendez-vous dans « Paramètres du compte » → « Supprimer le compte et les données » pour procéder.',
             },
           },
         },
@@ -878,7 +906,8 @@ const fr: TranslationDictionary = {
       cards: {
         personalizedRecommendations: {
           title: 'Autoriser les recommandations personnalisées',
-          description: 'Nous utilisons votre historique de commandes pour vous suggérer des plats susceptibles de vous plaire.',
+          description:
+            'Nous utilisons votre historique de commandes pour vous suggérer des plats susceptibles de vous plaire.',
         },
         location: {
           title: 'Utiliser la localisation précise pour des livraisons plus rapides',
@@ -899,6 +928,7 @@ const fr: TranslationDictionary = {
         openMenuHint: 'Touchez pour ouvrir le menu complet',
         addToCartHint: 'Personnalisez et ajoutez-le à votre panier.',
         popular: 'Populaire',
+        deliveryMinutes: 'min',
       },
       sections: {
         restaurants: {
@@ -915,7 +945,8 @@ const fr: TranslationDictionary = {
         errorTitle: 'Impossible de récupérer vos adresses favorites.',
         errorSubtitle: 'Vérifiez votre connexion puis réessayez.',
         emptyTitle: 'Votre liste est encore vide.',
-        emptySubtitle: 'Explorez les restaurants et touchez le cœur pour commencer votre collection.',
+        emptySubtitle:
+          'Explorez les restaurants et touchez le cœur pour commencer votre collection.',
       },
       actions: {
         retry: 'Réessayer',
@@ -929,10 +960,11 @@ const fr: TranslationDictionary = {
       fallbackItem: 'Article',
       states: {
         loadingTitle: 'Chargement de vos délicieuses commandes…',
-        errorTitle: 'Nous n\'avons pas pu charger vos commandes.',
+        errorTitle: "Nous n'avons pas pu charger vos commandes.",
         errorSubtitle: 'Vérifiez votre connexion puis réessayez dans un instant.',
         emptyTitle: 'Votre historique est vide',
-        emptySubtitle: 'Chaque festin commence par une première commande. Parcourez les restaurants et écrivez votre histoire gourmande.',
+        emptySubtitle:
+          'Chaque festin commence par une première commande. Parcourez les restaurants et écrivez votre histoire gourmande.',
       },
       actions: {
         retry: 'Réessayer',
@@ -949,12 +981,14 @@ const fr: TranslationDictionary = {
       warningDescription:
         'La suppression de votre compte effacera définitivement toutes vos données : gains, historique de livraison et informations personnelles.',
       confirmPrompt: 'Veuillez confirmer pour continuer',
-      confirmationLabel: 'Je comprends que la suppression de mon compte est définitive et que toutes mes données seront perdues.',
+      confirmationLabel:
+        'Je comprends que la suppression de mon compte est définitive et que toutes mes données seront perdues.',
       deleteCta: 'Supprimer mon compte',
       cancel: 'Annuler',
       deletingTitle: 'Suppression du compte en cours',
-      deletingDescription: 'Cela peut prendre quelques instants. Ne fermez pas l\'application.',
-      deletingNote: 'Nous vous informerons lorsque le processus sera terminé ou en cas de problème.',
+      deletingDescription: "Cela peut prendre quelques instants. Ne fermez pas l'application.",
+      deletingNote:
+        'Nous vous informerons lorsque le processus sera terminé ou en cas de problème.',
       successTitle: 'Compte supprimé',
       successDescription:
         'Votre compte et toutes les données associées ont été supprimés avec succès. Vous allez être déconnecté automatiquement.',
@@ -964,7 +998,7 @@ const fr: TranslationDictionary = {
       common: {
         continue: 'Continuer',
         errors: {
-          generic: 'Nous n\'avons pas pu mettre à jour votre profil. Veuillez réessayer.',
+          generic: "Nous n'avons pas pu mettre à jour votre profil. Veuillez réessayer.",
         },
       },
       name: {
@@ -978,14 +1012,14 @@ const fr: TranslationDictionary = {
         },
       },
       email: {
-        title: 'Modifier l\'adresse e-mail',
+        title: "Modifier l'adresse e-mail",
         currentLabel: 'E-mail actuel',
         prompt: 'Saisissez votre nouvel e-mail',
         inputPlaceholder: 'Entrez votre e-mail',
         emptyValue: 'Ajouter une adresse e-mail',
         errors: {
           invalid: 'Veuillez saisir une adresse e-mail valide.',
-          generic: 'Nous n\'avons pas pu mettre à jour votre e-mail. Veuillez réessayer.',
+          generic: "Nous n'avons pas pu mettre à jour votre e-mail. Veuillez réessayer.",
         },
         resendMethod: 'E-mail',
         resendButton: 'Renvoyer le code par e-mail',
@@ -1013,7 +1047,7 @@ const fr: TranslationDictionary = {
         errors: {
           invalidCurrent: 'Mot de passe incorrect. Veuillez réessayer.',
           mismatch: 'Les mots de passe ne correspondent pas.',
-          generic: 'Nous n\'avons pas pu mettre à jour votre mot de passe. Veuillez réessayer.',
+          generic: "Nous n'avons pas pu mettre à jour votre mot de passe. Veuillez réessayer.",
         },
       },
       dob: {
@@ -1047,7 +1081,8 @@ const fr: TranslationDictionary = {
         mustAcceptTerms: 'Vous devez accepter les conditions pour continuer.',
       },
       helper: {
-        existingAccount: 'Nous avons trouvé un compte Foodify existant. Saisissez le code pour vous connecter.',
+        existingAccount:
+          'Nous avons trouvé un compte Foodify existant. Saisissez le code pour vous connecter.',
         attempts: 'Tentatives restantes : {{count}}',
         resends: 'Renvois restants : {{count}}',
         expires: 'Le code expire dans {{seconds}} s',
@@ -1065,7 +1100,8 @@ const fr: TranslationDictionary = {
         prompt: 'Saisissez le code à {{count}} chiffres envoyé à {{contact}}',
         errors: {
           invalidCode: 'Le code de vérification est invalide ou expiré.',
-          resendFailed: 'Impossible de renvoyer le code pour le moment. Veuillez réessayer plus tard.',
+          resendFailed:
+            'Impossible de renvoyer le code pour le moment. Veuillez réessayer plus tard.',
         },
       },
       terms: {
@@ -1154,7 +1190,8 @@ const fr: TranslationDictionary = {
         },
         acceptTerms: {
           errors: {
-            generic: 'Une erreur est survenue lors de la finalisation de votre inscription. Veuillez réessayer.',
+            generic:
+              'Une erreur est survenue lors de la finalisation de votre inscription. Veuillez réessayer.',
           },
         },
         notifications: {
@@ -1164,9 +1201,12 @@ const fr: TranslationDictionary = {
           enableCta: 'Activer les notifications push',
           skipCta: 'Plus tard',
           errors: {
-            physicalDevice: 'Les notifications push sont disponibles uniquement sur appareil physique.',
-            settings: 'Activez les notifications dans les réglages de votre appareil pour recevoir les mises à jour.',
-            permission: 'Nous avons besoin de votre autorisation pour vous envoyer les notifications de suivi de commande.',
+            physicalDevice:
+              'Les notifications push sont disponibles uniquement sur appareil physique.',
+            settings:
+              'Activez les notifications dans les réglages de votre appareil pour recevoir les mises à jour.',
+            permission:
+              'Nous avons besoin de votre autorisation pour vous envoyer les notifications de suivi de commande.',
           },
         },
       },

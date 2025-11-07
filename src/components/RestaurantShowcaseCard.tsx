@@ -6,6 +6,7 @@ import { ArrowRight, Star, UtensilsCrossed } from 'lucide-react-native';
 import { BASE_API_URL } from '@env';
 
 import { useTranslation } from '~/localization';
+import { hasValidEstimatedDeliveryTime } from '~/utils/restaurantFavorites';
 
 const fallbackImage = require('../../assets/baguette.png');
 
@@ -27,6 +28,7 @@ export interface RestaurantShowcaseCardProps {
   fallbackImageUrl?: string | null;
   openingHours?: string | null;
   closingHours?: string | null;
+  estimatedDeliveryTime?: number;
   onPress: () => void;
   width?: number | string;
   height?: number | string;
@@ -60,6 +62,7 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
   fallbackImageUrl,
   openingHours,
   closingHours,
+  estimatedDeliveryTime,
   onPress,
   width,
   height,
@@ -97,12 +100,16 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
   }, [address, description]);
 
   const hintText = useMemo(() => {
+    if (hasValidEstimatedDeliveryTime(estimatedDeliveryTime)) {
+      return `${estimatedDeliveryTime} ${t('profile.favorites.labels.deliveryMinutes')}`;
+    }
+
     if (openingHours && closingHours) {
       return `${openingHours} - ${closingHours}`;
     }
 
     return t('profile.favorites.labels.openMenuHint');
-  }, [closingHours, openingHours, t]);
+  }, [estimatedDeliveryTime, closingHours, openingHours, t]);
 
   const imageSource = useMemo(() => {
     return resolveImageSource(imageUrl ?? fallbackImageUrl);
@@ -117,8 +124,7 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
         width != null ? { width } : null,
         height != null ? { height } : null,
         style,
-      ]}
-    >
+      ]}>
       <Image source={imageSource} style={styles.image} contentFit="cover" />
       <View style={styles.overlay} />
       <View style={styles.content}>
