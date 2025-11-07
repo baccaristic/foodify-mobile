@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useLocalization } from '~/localization';
 
 interface BackButtonHeaderProps {
   onPress?: () => void;
@@ -10,6 +11,7 @@ interface BackButtonHeaderProps {
 
 const BackButtonHeader: React.FC<BackButtonHeaderProps> = ({ onPress, paddingTop = 'pt-16' }) => {
   const navigation = useNavigation();
+  const { isRTL } = useLocalization();
 
   const handlePress = () => {
     if (onPress) {
@@ -27,7 +29,11 @@ const BackButtonHeader: React.FC<BackButtonHeaderProps> = ({ onPress, paddingTop
         className="w-16 h-16 px-8 py-8 items-center justify-center rounded-full border border-[#CA251B]"
         onPress={handlePress}
       >
-        <ArrowLeft color="#CA251B" size={38} />
+        {isRTL ? (
+          <ArrowRight color="#CA251B" size={38} />
+        ) : (
+          <ArrowLeft color="#CA251B" size={38} />
+        )}
       </TouchableOpacity>
     </View>
   );

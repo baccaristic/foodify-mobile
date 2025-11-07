@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { ArrowLeft, ChevronDown } from "lucide-react-native";
+import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react-native";
 
 import useLocationOverlay from '~/hooks/useLocationOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
-import { useTranslation } from '~/localization';
+import { useTranslation, useLocalization } from '~/localization';
 
 interface HeaderProps {
   title?: string;
@@ -22,6 +22,7 @@ export default function Header({
   const { open } = useLocationOverlay();
   const { selectedAddress } = useSelectedAddress();
   const { t } = useTranslation();
+  const { isRTL } = useLocalization();
 
   const handleLocationPress = () => {
     open();
@@ -38,7 +39,11 @@ export default function Header({
           onPress={onBack}
           className="items-center justify-center rounded-full border-2 border-white/40 p-2"
         >
-          <ArrowLeft color="white" size={20} />
+          {isRTL ? (
+            <ArrowRight color="white" size={20} />
+          ) : (
+            <ArrowLeft color="white" size={20} />
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
