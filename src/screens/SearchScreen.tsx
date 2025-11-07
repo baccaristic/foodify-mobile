@@ -133,7 +133,7 @@ const RestaurantCard = ({
   data: RestaurantSearchItem;
   onPress: () => void;
 }) => {
-  const { name, deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl, deliveryFee } = data;
+  const { deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl, deliveryFee } = data;
   const { t } = useTranslation();
   const { locale } = useLocalization();
   const localizedName = getLocalizedName(data, locale);

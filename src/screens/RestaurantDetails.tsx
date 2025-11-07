@@ -534,7 +534,7 @@ export default function RestaurantDetails() {
       setEditingCartItemId(null);
       setInitialDraftSelections(null);
     },
-    [addItem, editingCartItemId, removeItem, restaurant, selectedMenuItem]
+    [addItem, editingCartItemId, removeItem, restaurant, selectedMenuItem, locale]
   );
 
   const handleToggleRestaurantFavorite = useCallback(() => {

@@ -507,7 +507,7 @@ export default function HomePage() {
         </Animated.View>
       );
     },
-    [navigation, screenWidth]
+    [navigation, screenWidth, locale]
   );
 
   const renderPromotionItem = useCallback(

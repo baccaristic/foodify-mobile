@@ -181,7 +181,7 @@ export default function CategoryOverlay({
                                 style={styles.promotionSticker}
                             >
                                 <Percent size={s(11)} color="#0F172A" />
-                                <Text allowFontScaling={false}style={styles.promotionText} numberOfLines={1}>
+                                <Text allowFontScaling={false} style={styles.promotionText} numberOfLines={1}>
                                     {item.promotionSummary}
                                 </Text>
                             </LinearGradient>
@@ -193,15 +193,15 @@ export default function CategoryOverlay({
                             <Text allowFontScaling={false} style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
                             <View style={styles.ratingRow}>
                                 <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-                                <Text allowFontScaling={false}style={styles.ratingText}>{ratingDisplay}</Text>
+                                <Text allowFontScaling={false} style={styles.ratingText}>{ratingDisplay}</Text>
                             </View>
                         </View>
-                        <Text allowFontScaling={false}style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee ?? 0)}</Text>
+                        <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee ?? 0)}</Text>
                     </View>
                 </TouchableOpacity>
             );
         },
-        [formatDeliveryFee, navigation, onClose, t]
+        [formatDeliveryFee, navigation, onClose, t, locale]
     );
 
     const listFooter = React.useMemo(
