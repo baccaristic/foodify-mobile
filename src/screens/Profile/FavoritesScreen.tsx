@@ -60,7 +60,7 @@ const FavoriteMenuItemCard = ({
     .delay(entranceDelay);
 
   const localizedName = getLocalizedName(item, locale);
-  const localizedDescription = getLocalizedDescription(item, locale);
+  const localizedDescription = getLocalizedDescriptionNullable(item, locale);
 
   return (
     <AnimatedTouchableOpacity

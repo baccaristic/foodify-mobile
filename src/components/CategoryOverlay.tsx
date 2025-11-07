@@ -188,9 +188,9 @@ export default function CategoryOverlay({
                         </View>
                     ) : null}
                     <View style={styles.cardBody}>
-                        <Text allowFontScaling={false}style={styles.cardTitle}>{getLocalizedName(item, locale)}</Text>
+                        <Text allowFontScaling={false} style={styles.cardTitle}>{getLocalizedName(item, locale)}</Text>
                         <View style={styles.cardRow}>
-                            <Text allowFontScaling={false}style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
+                            <Text allowFontScaling={false} style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
                             <View style={styles.ratingRow}>
                                 <Star size={s(14)} color="#FACC15" fill="#FACC15" />
                                 <Text allowFontScaling={false}style={styles.ratingText}>{ratingDisplay}</Text>
