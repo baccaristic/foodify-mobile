@@ -2024,7 +2024,7 @@ const CheckoutOrder: React.FC = () => {
                 {hasValidEstimatedDeliveryTime(restaurant?.estimatedDeliveryTime) && (
                   <Text allowFontScaling={false} className="mt-0.5 text-xs text-gray-500">
                     {t('restaurantDetails.delivery.estimatedTime', {
-                      values: { time: restaurant.estimatedDeliveryTime },
+                      values: { time: restaurant!.estimatedDeliveryTime },
                     })}
                   </Text>
                 )}
