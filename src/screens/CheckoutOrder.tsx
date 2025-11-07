@@ -2023,6 +2023,11 @@ const CheckoutOrder: React.FC = () => {
                 <Text allowFontScaling={false} className="text-lg font-bold" style={{ color: accentColor }}>
                   {displayRestaurantName}
                 </Text>
+                {restaurant?.estimatedDeliveryTime != null && restaurant.estimatedDeliveryTime > 0 && (
+                  <Text allowFontScaling={false} className="mt-0.5 text-xs text-gray-500">
+                    {restaurant.estimatedDeliveryTime} {t('profile.favorites.labels.deliveryMinutes')}
+                  </Text>
+                )}
                 <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-[#17213A]">
                   {formatCurrency(displaySubtotal)}
                 </Text>

@@ -133,7 +133,7 @@ const RestaurantCard = ({
   data: RestaurantSearchItem;
   onPress: () => void;
 }) => {
-  const { deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl, deliveryFee } = data;
+  const { deliveryTimeRange, rating, isTopChoice, hasFreeDelivery, imageUrl, deliveryFee, estimatedDeliveryTime } = data;
   const { t } = useTranslation();
   const { locale } = useLocalization();
   const localizedName = getLocalizedName(data, locale);
@@ -148,6 +148,13 @@ const RestaurantCard = ({
     [t],
   );
 
+  const displayDeliveryTime = useMemo(() => {
+    if (estimatedDeliveryTime != null && estimatedDeliveryTime > 0) {
+      return `${estimatedDeliveryTime} min`;
+    }
+    return deliveryTimeRange;
+  }, [estimatedDeliveryTime, deliveryTimeRange]);
+
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
       <Image source={imageSource} style={styles.cardImage} />
@@ -161,7 +168,7 @@ const RestaurantCard = ({
       <View style={styles.cardBody}>
         <Text allowFontScaling={false} style={styles.cardTitle}>{localizedName}</Text>
         <View style={styles.timeRatingRow}>
-          <Text allowFontScaling={false} style={styles.deliveryTime}>{deliveryTimeRange}</Text>
+          <Text allowFontScaling={false} style={styles.deliveryTime}>{displayDeliveryTime}</Text>
           <View style={styles.ratingRow}>
             <Star size={s(14)} color="#FACC15" fill="#FACC15" />
             <Text allowFontScaling={false} style={styles.ratingText}>{formattedRating}</Text>

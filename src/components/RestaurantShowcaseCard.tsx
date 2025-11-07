@@ -27,6 +27,7 @@ export interface RestaurantShowcaseCardProps {
   fallbackImageUrl?: string | null;
   openingHours?: string | null;
   closingHours?: string | null;
+  estimatedDeliveryTime?: number;
   onPress: () => void;
   width?: number | string;
   height?: number | string;
@@ -60,6 +61,7 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
   fallbackImageUrl,
   openingHours,
   closingHours,
+  estimatedDeliveryTime,
   onPress,
   width,
   height,
@@ -97,12 +99,16 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
   }, [address, description]);
 
   const hintText = useMemo(() => {
+    if (estimatedDeliveryTime != null && estimatedDeliveryTime > 0) {
+      return `${estimatedDeliveryTime} ${t('profile.favorites.labels.deliveryMinutes')}`;
+    }
+
     if (openingHours && closingHours) {
       return `${openingHours} - ${closingHours}`;
     }
 
     return t('profile.favorites.labels.openMenuHint');
-  }, [closingHours, openingHours, t]);
+  }, [estimatedDeliveryTime, closingHours, openingHours, t]);
 
   const imageSource = useMemo(() => {
     return resolveImageSource(imageUrl ?? fallbackImageUrl);

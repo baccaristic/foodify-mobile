@@ -343,6 +343,7 @@ const fr: TranslationDictionary = {
     delivery: {
       withFee: 'Frais de livraison {{fee}}',
       free: 'Livraison gratuite',
+      estimatedTime: '{{time}} min',
     },
     rating: {
       new: 'Nouveau',
@@ -899,6 +900,7 @@ const fr: TranslationDictionary = {
         openMenuHint: 'Touchez pour ouvrir le menu complet',
         addToCartHint: 'Personnalisez et ajoutez-le à votre panier.',
         popular: 'Populaire',
+        deliveryMinutes: 'min',
       },
       sections: {
         restaurants: {

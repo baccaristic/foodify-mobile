@@ -339,6 +339,7 @@ const en: TranslationDictionary = {
     delivery: {
       withFee: '{{fee}} delivery fee',
       free: 'Free delivery',
+      estimatedTime: '{{time}} min',
     },
     rating: {
       new: 'New',
@@ -891,6 +892,7 @@ const en: TranslationDictionary = {
         openMenuHint: 'Tap to open the full menu',
         addToCartHint: 'Tap to customize and add it to your cart.',
         popular: 'Popular',
+        deliveryMinutes: 'min',
       },
       sections: {
         restaurants: {

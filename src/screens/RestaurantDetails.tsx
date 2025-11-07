@@ -876,6 +876,15 @@ export default function RestaurantDetails() {
                   {formatDeliveryFeeLabel(restaurant.deliveryFee)}
                 </Text>
               </View>
+
+              {restaurant.estimatedDeliveryTime != null && restaurant.estimatedDeliveryTime > 0 && (
+                <View className="flex flex-row items-center gap-1 font-sans">
+                  <Clock7 size={16} color="#CA251B" />
+                  <Text allowFontScaling={false} className="text-sm text-gray-700">
+                    {t('restaurantDetails.delivery.estimatedTime', { values: { time: restaurant.estimatedDeliveryTime } })}
+                  </Text>
+                </View>
+              )}
             </View>
           </Animated.View>
         </Animated.View>

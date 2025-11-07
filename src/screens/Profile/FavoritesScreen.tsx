@@ -253,6 +253,7 @@ const FavoritesScreen = () => {
                     imageUrl={restaurant.imageUrl}
                     openingHours={restaurant.openingHours}
                     closingHours={restaurant.closingHours}
+                    estimatedDeliveryTime={restaurant.estimatedDeliveryTime}
                     width={restaurantCardWidth}
                     onPress={() =>
                       navigation.navigate('RestaurantDetails' as never, {

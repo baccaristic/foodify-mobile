@@ -497,6 +497,7 @@ export default function HomePage() {
             fallbackImageUrl={restaurant.iconUrl}
             openingHours={restaurant.openingHours}
             closingHours={restaurant.closingHours}
+            estimatedDeliveryTime={restaurant.estimatedDeliveryTime}
             width={cardWidth}
             onPress={() =>
               navigation.navigate('RestaurantDetails' as never, {

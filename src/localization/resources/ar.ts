@@ -338,6 +338,7 @@ const ar: TranslationDictionary = {
     delivery: {
       withFee: 'رسوم توصيل {{fee}}',
       free: 'توصيل مجاني',
+      estimatedTime: '{{time}} دقيقة',
     },
     rating: {
       new: 'جديد',
@@ -886,6 +887,7 @@ const ar: TranslationDictionary = {
         openMenuHint: 'اضغط لفتح القائمة الكاملة',
         addToCartHint: 'اضغط للتخصيص وإضافة إلى السلة.',
         popular: 'شائع',
+        deliveryMinutes: 'دقيقة',
       },
       sections: {
         restaurants: {
