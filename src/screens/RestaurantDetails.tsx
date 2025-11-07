@@ -11,7 +11,13 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { NavigationProp, ParamListBase, RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import {
+  NavigationProp,
+  ParamListBase,
+  RouteProp,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -21,7 +27,12 @@ import MenuDetail from './MenuDetail';
 import RestaurantDetailsSkeleton from '~/components/skeletons/RestaurantDetailsSkeleton';
 import RemoteImageWithSkeleton from '~/components/RemoteImageWithSkeleton';
 import { getRestaurantDetails } from '~/api/restaurants';
-import { favoriteMenuItem, favoriteRestaurant, unfavoriteMenuItem, unfavoriteRestaurant } from '~/api/favorites';
+import {
+  favoriteMenuItem,
+  favoriteRestaurant,
+  unfavoriteMenuItem,
+  unfavoriteRestaurant,
+} from '~/api/favorites';
 import type {
   RestaurantDetailsResponse,
   RestaurantMenuCategory,
@@ -94,7 +105,10 @@ type MenuCardItem = RestaurantMenuItemDetails | RestaurantMenuItemSummary;
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
-const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({ item, onOpenModal }) => {
+const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({
+  item,
+  onOpenModal,
+}) => {
   const { locale } = useLocalization();
   const promotionActive = hasActivePromotion(item);
   const displayPrice = formatCurrency(getMenuItemBasePrice(item));
@@ -105,8 +119,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
     <TouchableOpacity
       style={{ width: width / 2 - 24 }}
       className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md"
-      onPress={() => onOpenModal(item.id)}
-    >
+      onPress={() => onOpenModal(item.id)}>
       <View className="relative">
         <RemoteImageWithSkeleton
           imagePath={item.imageUrl}
@@ -116,7 +129,9 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
         />
         {promotionActive && item.promotionLabel ? (
           <View className="absolute left-2 top-2 rounded-full bg-[#CA251B]/90 px-2 py-1">
-            <Text allowFontScaling={false} className="text-[10px] font-semibold uppercase text-white">
+            <Text
+              allowFontScaling={false}
+              className="text-[10px] font-semibold uppercase text-white">
               {item.promotionLabel}
             </Text>
           </View>
@@ -124,7 +139,10 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
       </View>
 
       <View className="flex flex-col p-3">
-        <Text allowFontScaling={false} className="text-sm font-bold text-[#17213A]" numberOfLines={1}>
+        <Text
+          allowFontScaling={false}
+          className="text-sm font-bold text-[#17213A]"
+          numberOfLines={1}>
           {localizedName}
         </Text>
         <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
@@ -136,17 +154,19 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
             <Text allowFontScaling={false} className="font-bold text-[#CA251B]">
               {displayPrice}
             </Text>
-
           </View>
 
-          <TouchableOpacity className="rounded-full bg-[#CA251B] p-1.5 text-white shadow-md" onPress={() => onOpenModal(item.id)}>
+          <TouchableOpacity
+            className="rounded-full bg-[#CA251B] p-1.5 text-white shadow-md"
+            onPress={() => onOpenModal(item.id)}>
             <Plus size={18} color="white" />
           </TouchableOpacity>
-
         </View>
         <View>
           {promotionActive ? (
-            <Text allowFontScaling={false} className="text-xs font-semibold text-gray-400 line-through">
+            <Text
+              allowFontScaling={false}
+              className="text-xs font-semibold text-gray-400 line-through">
               {formatCurrency(item.price)}
             </Text>
           ) : null}
@@ -193,8 +213,9 @@ export default function RestaurantDetails() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedMenuItem, setSelectedMenuItem] = useState<RestaurantMenuItemDetails | null>(null);
   const [editingCartItemId, setEditingCartItemId] = useState<string | null>(null);
-  const [initialDraftSelections, setInitialDraftSelections] =
-    useState<Record<number, number[]>[] | null>(null);
+  const [initialDraftSelections, setInitialDraftSelections] = useState<
+    Record<number, number[]>[] | null
+  >(null);
   const [activeMenuSection, setActiveMenuSection] = useState<string | null>(null);
   const [showMenuTabs, setShowMenuTabs] = useState(false);
   const [pendingFavoriteMenuItemId, setPendingFavoriteMenuItemId] = useState<number | null>(null);
@@ -207,7 +228,13 @@ export default function RestaurantDetails() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { locale } = useLocalization();
-  const { addItem, itemCount, items: cartItems, removeItem, restaurant: cartRestaurant } = useCart();
+  const {
+    addItem,
+    itemCount,
+    items: cartItems,
+    removeItem,
+    restaurant: cartRestaurant,
+  } = useCart();
 
   const translateY = useSharedValue(modalHeight);
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -229,15 +256,19 @@ export default function RestaurantDetails() {
     refetch,
   } = useQuery<RestaurantDetailsResponse>({
     queryKey: ['restaurant-details', restaurantId, userLatitude, userLongitude],
-    queryFn: () => getRestaurantDetails({
-      id: restaurantId as number,
-      lat: userLatitude,
-      lng: userLongitude,
-    }),
+    queryFn: () =>
+      getRestaurantDetails({
+        id: restaurantId as number,
+        lat: userLatitude,
+        lng: userLongitude,
+      }),
     enabled: isRestaurantIdValid,
   });
 
-  const allMenuItems = useMemo(() => (restaurant ? flattenCategories(restaurant.categories) : []), [restaurant]);
+  const allMenuItems = useMemo(
+    () => (restaurant ? flattenCategories(restaurant.categories) : []),
+    [restaurant]
+  );
   const menuSections = useMemo(() => {
     if (!restaurant) {
       return [] as { key: string; label: string }[];
@@ -262,7 +293,7 @@ export default function RestaurantDetails() {
       fee > 0
         ? t('restaurantDetails.delivery.withFee', { values: { fee: formatCurrency(fee) } })
         : t('restaurantDetails.delivery.free'),
-    [t],
+    [t]
   );
 
   const restaurantFavoriteMutation = useMutation({
@@ -377,12 +408,7 @@ export default function RestaurantDetails() {
     });
 
     setHandledMenuItemParamKey(`${key}-${didOpen ? 'opened' : 'missing'}`);
-  }, [
-    handleOpenMenuItem,
-    handledMenuItemParamKey,
-    menuItemIdFromParams,
-    restaurant,
-  ]);
+  }, [handleOpenMenuItem, handledMenuItemParamKey, menuItemIdFromParams, restaurant]);
 
   const handleMenuContentLayout = useCallback((event: LayoutChangeEvent) => {
     menuContentOffsetRef.current = event.nativeEvent.layout.y;
@@ -419,7 +445,8 @@ export default function RestaurantDetails() {
         .map(([key, value]) => [key, value + baseOffset] as [string, number])
         .sort((a, b) => a[1] - b[1]);
 
-      const viewportOffset = offsetY + (shouldShowTabs ? VIEWPORT_BUFFER_WITH_TABS : VIEWPORT_BUFFER_NO_TABS);
+      const viewportOffset =
+        offsetY + (shouldShowTabs ? VIEWPORT_BUFFER_WITH_TABS : VIEWPORT_BUFFER_NO_TABS);
 
       let currentKey = entries[0][0];
 
@@ -440,27 +467,30 @@ export default function RestaurantDetails() {
     [hasMenuSections, showMenuTabs]
   );
 
-  const handleTabPress = useCallback(
-    (key: string) => {
-      setActiveMenuSection((previous) => (previous === key ? previous : key));
+  const handleTabPress = useCallback((key: string) => {
+    setActiveMenuSection((previous) => (previous === key ? previous : key));
 
-      const menuContentOffset = menuContentOffsetRef.current ?? 0;
-      const relativeOffset = sectionRelativeOffsetsRef.current[key];
+    const menuContentOffset = menuContentOffsetRef.current ?? 0;
+    const relativeOffset = sectionRelativeOffsetsRef.current[key];
 
-      if (!scrollViewRef.current || typeof relativeOffset !== 'number') {
-        return;
-      }
+    if (!scrollViewRef.current || typeof relativeOffset !== 'number') {
+      return;
+    }
 
-      const scrollTarget = Math.max(menuContentOffset + relativeOffset - VIEWPORT_BUFFER_WITH_TABS, 0);
-      scrollViewRef.current.scrollTo({ y: scrollTarget, animated: true });
-    },
-    []
-  );
+    const scrollTarget = Math.max(
+      menuContentOffset + relativeOffset - VIEWPORT_BUFFER_WITH_TABS,
+      0
+    );
+    scrollViewRef.current.scrollTo({ y: scrollTarget, animated: true });
+  }, []);
 
   const handleOpenMenuItem = useCallback(
     (
       itemId: number,
-      options?: { editingCartItemId?: string | null; initialDrafts?: Record<number, number[]>[] | null }
+      options?: {
+        editingCartItemId?: string | null;
+        initialDrafts?: Record<number, number[]>[] | null;
+      }
     ): boolean => {
       if (!restaurant) {
         return false;
@@ -566,7 +596,14 @@ export default function RestaurantDetails() {
         },
       }
     );
-  }, [isRestaurantIdValid, queryClient, restaurant, restaurantFavoriteMutation, userLatitude, userLongitude]);
+  }, [
+    isRestaurantIdValid,
+    queryClient,
+    restaurant,
+    restaurantFavoriteMutation,
+    userLatitude,
+    userLongitude,
+  ]);
 
   const handleToggleMenuItemFavorite = useCallback(
     (menuItemId: number, nextFavorite: boolean) => {
@@ -583,10 +620,15 @@ export default function RestaurantDetails() {
 
       if (previousData) {
         const updatedData = updateMenuItemFavoriteState(previousData, menuItemId, nextFavorite);
-        queryClient.setQueryData(['restaurant-details', restaurantId, userLatitude, userLongitude], updatedData);
+        queryClient.setQueryData(
+          ['restaurant-details', restaurantId, userLatitude, userLongitude],
+          updatedData
+        );
       }
 
-      setSelectedMenuItem((prev) => (prev && prev.id === menuItemId ? { ...prev, favorite: nextFavorite } : prev));
+      setSelectedMenuItem((prev) =>
+        prev && prev.id === menuItemId ? { ...prev, favorite: nextFavorite } : prev
+      );
       setPendingFavoriteMenuItemId(menuItemId);
 
       menuItemFavoriteMutation.mutate(
@@ -640,8 +682,7 @@ export default function RestaurantDetails() {
           <Animated.View
             key={`${highlight.label}-${highlight.value}`}
             entering={createHighlightChipEntrance(index)}
-            className="rounded-full bg-[#FDE7E5] px-3 py-1"
-          >
+            className="rounded-full bg-[#FDE7E5] px-3 py-1">
             <Text allowFontScaling={false} className="text-xs font-semibold text-[#CA251B]">
               {highlight.label}: {highlight.value}
             </Text>
@@ -661,8 +702,7 @@ export default function RestaurantDetails() {
         <AnimatedText
           allowFontScaling={false}
           className="mb-4 text-lg font-semibold text-black/60"
-          entering={createSectionHeaderEntrance(0)}
-        >
+          entering={createSectionHeaderEntrance(0)}>
           {t('restaurantDetails.sections.topSalesWithCount', {
             values: { count: restaurant.topSales.length },
           })}
@@ -670,7 +710,7 @@ export default function RestaurantDetails() {
 
         <View className="mb-4 flex-row flex-wrap justify-between gap-y-4">
           {restaurant.topSales.map((item, index) => (
-            <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+            <View key={item.id} className="shadow-3xl overflow-hidden rounded-3xl">
               <Animated.View entering={createMenuCardEntrance(index)}>
                 <MenuItemCard item={item} onOpenModal={handleOpen} />
               </Animated.View>
@@ -696,18 +736,16 @@ export default function RestaurantDetails() {
               key={sectionKey}
               className="mb-8"
               onLayout={(event) => handleSectionLayout(sectionKey, event)}
-              entering={FadeIn.delay((index + 1) * 90)}
-            >
+              entering={FadeIn.delay((index + 1) * 90)}>
               <AnimatedText
                 allowFontScaling={false}
                 className="mb-4 text-lg font-semibold text-[#17213A]"
-                entering={createSectionHeaderEntrance(index + 1)}
-              >
+                entering={createSectionHeaderEntrance(index + 1)}>
                 {getLocalizedName(category, locale)}
               </AnimatedText>
               <View className="flex-row flex-wrap justify-between gap-y-4">
                 {(category.items ?? []).map((item, itemIndex) => (
-                  <View key={item.id} className="overflow-hidden rounded-3xl shadow-3xl">
+                  <View key={item.id} className="shadow-3xl overflow-hidden rounded-3xl">
                     <Animated.View entering={createMenuCardEntrance(itemIndex)}>
                       <MenuItemCard item={item} onOpenModal={handleOpen} />
                     </Animated.View>
@@ -725,7 +763,9 @@ export default function RestaurantDetails() {
     if (!isRestaurantIdValid) {
       return (
         <View className="flex-1 items-center justify-center px-6 py-20">
-          <Text allowFontScaling={false} className="mb-4 text-center text-lg font-semibold text-[#17213A]">
+          <Text
+            allowFontScaling={false}
+            className="mb-4 text-center text-lg font-semibold text-[#17213A]">
             {t('restaurantDetails.states.noSelection.title')}
           </Text>
           <TouchableOpacity
@@ -746,7 +786,9 @@ export default function RestaurantDetails() {
     if (isError || !restaurant) {
       return (
         <View className="flex-1 items-center justify-center px-6 py-20">
-          <Text allowFontScaling={false} className="mb-4 text-center text-lg font-semibold text-[#17213A]">
+          <Text
+            allowFontScaling={false}
+            className="mb-4 text-center text-lg font-semibold text-[#17213A]">
             {t('restaurantDetails.states.error.title')}
           </Text>
           <TouchableOpacity
@@ -771,8 +813,7 @@ export default function RestaurantDetails() {
             .withInitialValues({
               opacity: 0,
               transform: [{ translateY: -28 }],
-            })}
-        >
+            })}>
           <Animated.View
             className="mt-4 flex-row items-center gap-4"
             entering={FadeInDown.springify()
@@ -783,8 +824,7 @@ export default function RestaurantDetails() {
               .withInitialValues({
                 opacity: 0,
                 transform: [{ translateY: -20 }],
-              })}
-          >
+              })}>
             <Animated.View
               className="rounded-3xl bg-white p-1.5 shadow-lg"
               entering={FadeIn.springify()
@@ -792,8 +832,7 @@ export default function RestaurantDetails() {
                 .stiffness(160)
                 .damping(18)
                 .delay(80)
-                .withInitialValues({ opacity: 0, transform: [{ scale: 0.85 }] })}
-            >
+                .withInitialValues({ opacity: 0, transform: [{ scale: 0.85 }] })}>
               <RemoteImageWithSkeleton
                 imagePath={restaurant.iconUrl ?? restaurant.imageUrl}
                 containerStyle={styles.heroIconContainer}
@@ -812,8 +851,7 @@ export default function RestaurantDetails() {
                 .withInitialValues({
                   opacity: 0,
                   transform: [{ translateY: 24 }],
-                })}
-            >
+                })}>
               <AnimatedText allowFontScaling={false} className="text-2xl font-bold text-[#17213A]">
                 {getLocalizedName(restaurant, locale)}
               </AnimatedText>
@@ -829,8 +867,7 @@ export default function RestaurantDetails() {
                     .withInitialValues({
                       opacity: 0,
                       transform: [{ translateY: 16 }],
-                    })}
-                >
+                    })}>
                   {getLocalizedDescription(restaurant, locale)}
                 </AnimatedText>
               ) : null}
@@ -847,8 +884,7 @@ export default function RestaurantDetails() {
               .withInitialValues({
                 opacity: 0,
                 transform: [{ translateY: 24 }],
-              })}
-          >
+              })}>
             <View className="border-1 mt-2 flex flex-row items-center gap-4 rounded-xl border-black/5 bg-white px-4 py-2 shadow-xl">
               <View className="flex flex-row items-center gap-1 font-sans">
                 <Clock7 size={16} color="#CA251B" />
@@ -881,7 +917,9 @@ export default function RestaurantDetails() {
                 <View className="flex flex-row items-center gap-1 font-sans">
                   <Clock7 size={16} color="#CA251B" />
                   <Text allowFontScaling={false} className="text-sm text-gray-700">
-                    {t('restaurantDetails.delivery.estimatedTime', { values: { time: restaurant.estimatedDeliveryTime } })}
+                    {t('restaurantDetails.delivery.estimatedTime', {
+                      values: { time: restaurant.estimatedDeliveryTime },
+                    })}
                   </Text>
                 </View>
               )}
@@ -899,8 +937,7 @@ export default function RestaurantDetails() {
             .withInitialValues({
               opacity: 0,
               transform: [{ translateY: 28 }],
-            })}
-        >
+            })}>
           <View className="p-3 px-4">
             <AnimatedText allowFontScaling={false} className="mb-1 font-semibold text-[#17213A]">
               {t('restaurantDetails.sections.infoTitle')}
@@ -920,8 +957,7 @@ export default function RestaurantDetails() {
                 .withInitialValues({
                   opacity: 0,
                   transform: [{ translateY: 20 }],
-                })}
-            >
+                })}>
               <MapPin size={20} />
               <Text allowFontScaling={false} className="ml-2 text-[#17213A]">
                 {restaurant.address}
@@ -979,13 +1015,8 @@ export default function RestaurantDetails() {
             opacity: restaurant && !restaurantFavoriteMutation.isPending ? 1 : 0.5,
           }}
           disabled={!restaurant || restaurantFavoriteMutation.isPending}
-          onPress={handleToggleRestaurantFavorite}
-        >
-          <Heart
-            size={24}
-            color="#CA251B"
-            fill={restaurant?.favorite ? '#CA251B' : 'white'}
-          />
+          onPress={handleToggleRestaurantFavorite}>
+          <Heart size={24} color="#CA251B" fill={restaurant?.favorite ? '#CA251B' : 'white'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -1005,7 +1036,8 @@ export default function RestaurantDetails() {
           skeletonStyle={styles.collapsedIconImage}
         />
         <Text allowFontScaling={false} className="text-center text-lg font-bold text-gray-800">
-          {getLocalizedName(restaurant as RestaurantDetailsResponse, locale) ?? t('restaurantDetails.fallbackName')}
+          {getLocalizedName(restaurant as RestaurantDetailsResponse, locale) ??
+            t('restaurantDetails.fallbackName')}
         </Text>
       </View>
 
@@ -1013,13 +1045,8 @@ export default function RestaurantDetails() {
         className="p-2"
         disabled={!restaurant || restaurantFavoriteMutation.isPending}
         onPress={handleToggleRestaurantFavorite}
-        style={{ opacity: restaurant && !restaurantFavoriteMutation.isPending ? 1 : 0.5 }}
-      >
-        <Heart
-          size={20}
-          color="#CA251B"
-          fill={restaurant?.favorite ? '#CA251B' : 'white'}
-        />
+        style={{ opacity: restaurant && !restaurantFavoriteMutation.isPending ? 1 : 0.5 }}>
+        <Heart size={20} color="#CA251B" fill={restaurant?.favorite ? '#CA251B' : 'white'} />
       </TouchableOpacity>
     </View>
   );
@@ -1048,8 +1075,7 @@ export default function RestaurantDetails() {
             left: 0,
             right: 0,
             zIndex: 40,
-          }}
-        >
+          }}>
           <View
             style={{
               marginHorizontal: 16,
@@ -1062,14 +1088,12 @@ export default function RestaurantDetails() {
               shadowRadius: 12,
               shadowOffset: { width: 0, height: 4 },
               elevation: 6,
-            }}
-          >
+            }}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 4 }}
-              keyboardShouldPersistTaps="handled"
-            >
+              keyboardShouldPersistTaps="handled">
               {menuSections.map((section) => {
                 const isActive = activeMenuSection === section.key;
 
@@ -1083,16 +1107,14 @@ export default function RestaurantDetails() {
                       paddingVertical: 6,
                       paddingHorizontal: 12,
                       borderRadius: 9999,
-                    }}
-                  >
+                    }}>
                     <Text
                       allowFontScaling={false}
                       style={{
                         fontWeight: '600',
                         color: isActive ? '#CA251B' : '#6B7280',
                         fontSize: 14,
-                      }}
-                    >
+                      }}>
                       {section.label}
                     </Text>
                     <View
@@ -1112,7 +1134,10 @@ export default function RestaurantDetails() {
       ) : null}
 
       {hasCartItems && !isModalVisible && (
-        <FixedOrderBar onSeeCart={handleSeeCart} style={{ bottom: moderateScale(72) + insets.bottom }} />
+        <FixedOrderBar
+          onSeeCart={handleSeeCart}
+          style={{ bottom: moderateScale(72) + insets.bottom }}
+        />
       )}
 
       {isModalVisible && selectedMenuItem && (
@@ -1131,9 +1156,7 @@ export default function RestaurantDetails() {
               onClose={() => handleUpdateCartAndClose([])}
               initialDraftSelections={initialDraftSelections ?? undefined}
               actionLabel={
-                editingCartItemId
-                  ? t('menuDetail.actions.update')
-                  : t('menuDetail.actions.add')
+                editingCartItemId ? t('menuDetail.actions.update') : t('menuDetail.actions.add')
               }
               onToggleFavorite={(nextFavorite) =>
                 handleToggleMenuItemFavorite(selectedMenuItem.id, nextFavorite)

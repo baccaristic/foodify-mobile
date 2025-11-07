@@ -123,8 +123,7 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
         width != null ? { width } : null,
         height != null ? { height } : null,
         style,
-      ]}
-    >
+      ]}>
       <Image source={imageSource} style={styles.image} contentFit="cover" />
       <View style={styles.overlay} />
       <View style={styles.content}>

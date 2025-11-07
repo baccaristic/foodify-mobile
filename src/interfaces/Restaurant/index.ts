@@ -203,7 +203,7 @@ export interface PageResponse<T> {
   totalItems: number;
 }
 
-export type RestaurantSearchSort = "picked" | "popular" | "rating";
+export type RestaurantSearchSort = 'picked' | 'popular' | 'rating';
 
 export interface RestaurantSearchParams {
   lat: number;

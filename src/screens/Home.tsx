@@ -39,13 +39,13 @@ import {
   ArrowUp,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import MainLayout from "~/layouts/MainLayout";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
-import { Image } from "expo-image";
-import { ScaledSheet, moderateScale, s, vs } from "react-native-size-matters";
-import Header from "~/components/Header";
+import MainLayout from '~/layouts/MainLayout';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Image } from 'expo-image';
+import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
+import Header from '~/components/Header';
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
 import SystemStatusOverlay from '~/components/SystemStatusOverlay';
 import {
@@ -54,11 +54,11 @@ import {
   getNearbyRecentOrderRestaurants,
   getNearbyRestaurantsPage,
   getNearbyTopRestaurants,
-} from "~/api/restaurants";
+} from '~/api/restaurants';
 import { getDeliveryNetworkStatus } from '~/api/delivery';
-import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from "~/interfaces/Restaurant";
+import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from '~/interfaces/Restaurant';
 import type { DeliveryNetworkStatusResponse } from '~/interfaces/DeliveryStatus';
-import { BASE_API_URL } from "@env";
+import { BASE_API_URL } from '@env';
 import CategoryOverlay from '~/components/CategoryOverlay';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
@@ -160,20 +160,22 @@ export default function HomePage() {
       isDiscount: true,
     };
 
-    const categoryItems = (Object.values(RestaurantCategory) as RestaurantCategory[]).map((category) => {
-      const labelKey = getCategoryLabelKey(category);
-      const label = labelKey ? t(labelKey) : toCategoryDisplayName(category);
-      const Icon = CATEGORY_ICON_MAP[category] ?? Utensils;
+    const categoryItems = (Object.values(RestaurantCategory) as RestaurantCategory[]).map(
+      (category) => {
+        const labelKey = getCategoryLabelKey(category);
+        const label = labelKey ? t(labelKey) : toCategoryDisplayName(category);
+        const Icon = CATEGORY_ICON_MAP[category] ?? Utensils;
 
-      return {
-        key: category,
-        label,
-        Icon,
-        onPress: () => handleCategoryPress(category),
-        iconBackgroundColor: '#FFFFFF',
-        iconTintColor: '#CA251B',
-      } satisfies QuickCategoryItem;
-    });
+        return {
+          key: category,
+          label,
+          Icon,
+          onPress: () => handleCategoryPress(category),
+          iconBackgroundColor: '#FFFFFF',
+          iconTintColor: '#CA251B',
+        } satisfies QuickCategoryItem;
+      }
+    );
 
     return [discountItem, ...categoryItems];
   }, [discountLabel, handleCategoryPress, handleDiscountPress, t]);
@@ -183,23 +185,23 @@ export default function HomePage() {
       <TouchableOpacity
         style={styles.categoryEqualWidth}
         onPress={item.onPress}
-        activeOpacity={0.88}
-      >
+        activeOpacity={0.88}>
         <View
           style={[
             styles.categoryIconWrapper,
             { backgroundColor: item.iconBackgroundColor },
             item.isDiscount ? styles.discountIconWrapper : null,
-          ]}
-        >
+          ]}>
           <item.Icon size={s(28)} color={item.iconTintColor} />
         </View>
         <View style={styles.categoryTextContainer}>
           <Text
             allowFontScaling={false}
-            style={[styles.categoryLabelFixed, item.isDiscount ? styles.discountCategoryLabel : null]}
-            numberOfLines={2}
-          >
+            style={[
+              styles.categoryLabelFixed,
+              item.isDiscount ? styles.discountCategoryLabel : null,
+            ]}
+            numberOfLines={2}>
             {item.label}
           </Text>
         </View>
@@ -228,8 +230,11 @@ export default function HomePage() {
   const deliveryNetworkStatus = deliveryStatusData?.status ?? 'AVAILABLE';
   const deliveryStatusMessage = deliveryStatusData?.message ?? null;
 
-  const { shouldDisplay: shouldDisplaySystemStatusOverlay, updateStatus: updateSystemStatus, dismiss: dismissSystemStatusOverlay } =
-    useSystemStatusOverlay();
+  const {
+    shouldDisplay: shouldDisplaySystemStatusOverlay,
+    updateStatus: updateSystemStatus,
+    dismiss: dismissSystemStatusOverlay,
+  } = useSystemStatusOverlay();
 
   useEffect(() => {
     updateSystemStatus(deliveryNetworkStatus);
@@ -350,10 +355,7 @@ export default function HomePage() {
   } = promotionsQuery;
 
   const topRestaurants = useMemo(() => topQuery.data ?? [], [topQuery.data]);
-  const favoriteRestaurants = useMemo(
-    () => favoritesQuery.data ?? [],
-    [favoritesQuery.data]
-  );
+  const favoriteRestaurants = useMemo(() => favoritesQuery.data ?? [], [favoritesQuery.data]);
   const recentOrderRestaurants = useMemo(
     () => recentOrdersQuery.data ?? [],
     [recentOrdersQuery.data]
@@ -478,10 +480,7 @@ export default function HomePage() {
   }, [favoritesQuery, hasValidCoordinates, recentOrdersQuery, restaurantsQuery, topQuery]);
 
   const renderRestaurantCard = useCallback(
-    (
-      restaurant: RestaurantDisplayDto,
-      options?: { width?: number | string; index?: number }
-    ) => {
+    (restaurant: RestaurantDisplayDto, options?: { width?: number | string; index?: number }) => {
       const cardWidth = options?.width ?? screenWidth * 0.9;
       const delay = Math.min(options?.index ?? 0, 6) * 70;
 
@@ -500,9 +499,12 @@ export default function HomePage() {
             estimatedDeliveryTime={restaurant.estimatedDeliveryTime}
             width={cardWidth}
             onPress={() =>
-              navigation.navigate('RestaurantDetails' as never, {
-                restaurantId: restaurant.id,
-              } as never)
+              navigation.navigate(
+                'RestaurantDetails' as never,
+                {
+                  restaurantId: restaurant.id,
+                } as never
+              )
             }
           />
         </Animated.View>
@@ -514,9 +516,7 @@ export default function HomePage() {
   const renderPromotionItem = useCallback(
     ({ item, index }: { item: RestaurantDisplayDto; index: number }) => {
       return (
-        <View style={styles.promotionsCardWrapper}>
-          {renderRestaurantCard(item, { index })}
-        </View>
+        <View style={styles.promotionsCardWrapper}>{renderRestaurantCard(item, { index })}</View>
       );
     },
     [renderRestaurantCard]
@@ -530,7 +530,12 @@ export default function HomePage() {
     if (promotionsHasNextPage && !promotionsIsFetchingNextPage) {
       fetchNextPromotionsPage();
     }
-  }, [fetchNextPromotionsPage, hasValidCoordinates, promotionsHasNextPage, promotionsIsFetchingNextPage]);
+  }, [
+    fetchNextPromotionsPage,
+    hasValidCoordinates,
+    promotionsHasNextPage,
+    promotionsIsFetchingNextPage,
+  ]);
 
   const renderPromotionsFooter = useCallback(() => {
     if (!promotionsIsFetchingNextPage) {
@@ -566,11 +571,13 @@ export default function HomePage() {
             style={styles.topPickCard}
             activeOpacity={0.85}
             onPress={() =>
-              navigation.navigate('RestaurantDetails' as never, {
-                restaurantId: restaurant.id,
-              } as never)
-            }
-          >
+              navigation.navigate(
+                'RestaurantDetails' as never,
+                {
+                  restaurantId: restaurant.id,
+                } as never
+              )
+            }>
             <View style={styles.topPickMedia}>
               <Image
                 source={
@@ -585,7 +592,7 @@ export default function HomePage() {
             <Text allowFontScaling={false} style={styles.topPickTitle} numberOfLines={1}>
               {getLocalizedName(restaurant, locale)}
             </Text>
-            {(restaurant.type || restaurant.description) ? (
+            {restaurant.type || restaurant.description ? (
               <Text allowFontScaling={false} style={styles.topPickSubtitle} numberOfLines={1}>
                 {restaurant.type || getLocalizedDescriptionNullable(restaurant, locale)}
               </Text>
@@ -598,7 +605,7 @@ export default function HomePage() {
         </Animated.View>
       );
     },
-    [navigation, t],
+    [navigation, t, locale]
   );
 
   const renderItem = useCallback(
@@ -607,13 +614,14 @@ export default function HomePage() {
         return (
           <View style={styles.mainWrapper}>
             <View style={styles.sectionHeader}>
-              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>
+                {item.title}
+              </Text>
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.carouselList}
-            >
+              contentContainerStyle={styles.carouselList}>
               {item.restaurants.map((restaurant, index) => (
                 <View key={restaurant.id} style={styles.topPickCarouselItem}>
                   {renderTopPickCard(restaurant, { index })}
@@ -628,13 +636,14 @@ export default function HomePage() {
         return (
           <View style={styles.mainWrapper}>
             <View style={styles.sectionHeader}>
-              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>
+                {item.title}
+              </Text>
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.carouselList}
-            >
+              contentContainerStyle={styles.carouselList}>
               {item.restaurants.map((restaurant, index) => (
                 <View key={restaurant.id} style={styles.carouselCardContainer}>
                   {renderRestaurantCard(restaurant, {
@@ -652,7 +661,9 @@ export default function HomePage() {
         return (
           <View style={styles.mainWrapper}>
             <View style={styles.sectionHeader}>
-              <Text allowFontScaling={false} style={styles.sectionTitle}>{item.title}</Text>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>
+                {item.title}
+              </Text>
             </View>
           </View>
         );
@@ -683,8 +694,7 @@ export default function HomePage() {
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.addressPromptButton}
-              onPress={openLocationOverlay}
-            >
+              onPress={openLocationOverlay}>
               <Text allowFontScaling={false} style={styles.addressPromptButtonLabel}>
                 {t('home.addressPrompt.cta')}
               </Text>
@@ -705,8 +715,13 @@ export default function HomePage() {
             <Text allowFontScaling={false} style={styles.errorTitle}>
               {t('home.error.title')}
             </Text>
-            <TouchableOpacity activeOpacity={0.8} style={styles.retryButton} onPress={() => refetchAll()}>
-              <Text allowFontScaling={false} style={styles.retryLabel}>{t('home.error.action')}</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.retryButton}
+              onPress={() => refetchAll()}>
+              <Text allowFontScaling={false} style={styles.retryLabel}>
+                {t('home.error.action')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -751,8 +766,7 @@ export default function HomePage() {
         />
         <TouchableOpacity
           style={styles.searchBar}
-          onPress={() => navigation.navigate('Search' as never)}
-        >
+          onPress={() => navigation.navigate('Search' as never)}>
           <Text allowFontScaling={false} style={styles.searchPlaceholder}>
             {t('home.search.prompt')}
           </Text>
@@ -774,25 +788,22 @@ export default function HomePage() {
     <View style={styles.collapsedHeader}>
       <TouchableOpacity
         style={styles.collapsedUp}
-        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-      >
+        onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}>
         <ArrowUp size={s(16)} color="#17213A" />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.collapsedSearch}
-        onPress={() => navigation.navigate('Search' as never)}
-      >
+        onPress={() => navigation.navigate('Search' as never)}>
         <Text style={styles.collapsedPlaceholder}>{t('home.search.collapsedPlaceholder')}</Text>
         <Search size={s(18)} color="gray" style={{ marginLeft: s(120) }} />
       </TouchableOpacity>
     </View>
   );
 
-
   return (
     <>
       <MainLayout
-        headerBackgroundImage={require("../../assets/pattern1.png")}
+        headerBackgroundImage={require('../../assets/pattern1.png')}
         showHeader
         showFooter
         headerMaxHeight={vs(160)}
@@ -816,10 +827,7 @@ export default function HomePage() {
         }}
       />
       <SystemStatusOverlay
-        visible={
-          shouldDisplaySystemStatusOverlay &&
-          !isDeliveryStatusError
-        }
+        visible={shouldDisplaySystemStatusOverlay && !isDeliveryStatusError}
         status={deliveryNetworkStatus}
         message={deliveryStatusMessage}
         onRequestClose={handleDismissSystemStatusOverlay}
@@ -829,8 +837,7 @@ export default function HomePage() {
         transparent
         animationType="slide"
         statusBarTranslucent
-        onRequestClose={closePromotionsOverlay}
-      >
+        onRequestClose={closePromotionsOverlay}>
         <View style={styles.promotionsBackdrop}>
           <View style={styles.promotionsContainer}>
             <View style={styles.promotionsHeader}>
@@ -841,8 +848,7 @@ export default function HomePage() {
                 onPress={closePromotionsOverlay}
                 accessibilityRole="button"
                 accessibilityLabel="Close"
-                style={styles.promotionsCloseButton}
-              >
+                style={styles.promotionsCloseButton}>
                 <X size={s(20)} color="#0F172A" />
               </TouchableOpacity>
             </View>
@@ -856,8 +862,7 @@ export default function HomePage() {
                   onPress={() => {
                     closePromotionsOverlay();
                     openLocationOverlay();
-                  }}
-                >
+                  }}>
                   <Text allowFontScaling={false} style={styles.promotionsPrimaryButtonLabel}>
                     {t('home.addressPrompt.cta')}
                   </Text>
@@ -879,8 +884,7 @@ export default function HomePage() {
                 </Text>
                 <TouchableOpacity
                   style={styles.promotionsPrimaryButton}
-                  onPress={refetchPromotions}
-                >
+                  onPress={refetchPromotions}>
                   <Text allowFontScaling={false} style={styles.promotionsPrimaryButtonLabel}>
                     {t('home.error.action')}
                   </Text>
@@ -919,11 +923,10 @@ export default function HomePage() {
     </>
   );
 }
-const { height: SCREEN_HEIGHT } = Dimensions.get("screen");
+const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const styles = ScaledSheet.create({
-
-  mainWrapper: { paddingHorizontal: "16@s" },
-  sectionTitle: { fontSize: "18@ms", fontWeight: "700" },
+  mainWrapper: { paddingHorizontal: '16@s' },
+  sectionTitle: { fontSize: '18@ms', fontWeight: '700' },
   sectionHeader: {
     marginTop: '16@vs',
     marginBottom: '12@vs',
@@ -1080,22 +1083,19 @@ const styles = ScaledSheet.create({
   },
 
   headerWrapper: {
-    padding: "6@s",
-    paddingTop:
-      SCREEN_HEIGHT < 700
-        ? vs(0)
-        : vs(6),
+    padding: '6@s',
+    paddingTop: SCREEN_HEIGHT < 700 ? vs(0) : vs(6),
   },
-  headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  headerTitle: { color: "white", fontSize: "16@ms", fontWeight: "400", marginLeft: "20@ms" },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitle: { color: 'white', fontSize: '16@ms', fontWeight: '400', marginLeft: '20@ms' },
   searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: "12@ms",
-    paddingHorizontal: "12@s",
-    paddingVertical: "8@vs",
-    marginTop: "6@vs",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: '12@ms',
+    paddingHorizontal: '12@s',
+    paddingVertical: '8@vs',
+    marginTop: '6@vs',
   },
   searchPlaceholder: { color: 'gray', flex: 1, fontSize: '13@ms' },
 
@@ -1103,47 +1103,54 @@ const styles = ScaledSheet.create({
     marginTop: '10@vs',
   },
 
- collapsedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: '24@s', flex: 1,backgroundColor:'#F2F0EF', },
+  collapsedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: '24@s',
+    flex: 1,
+    backgroundColor: '#F2F0EF',
+  },
   collapsedSearch: {
-  flex: 1, 
-  flexDirection: "row", 
-  alignItems: "center", 
-  justifyContent: "space-between", 
-  backgroundColor: "white", 
-  borderRadius: "16@ms", 
-  paddingHorizontal: "12@s", 
-  paddingVertical: "6@vs", 
-  borderWidth: 2,
-  borderColor: "#E5E7EB",
-},
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'white',
+    borderRadius: '16@ms',
+    paddingHorizontal: '12@s',
+    paddingVertical: '6@vs',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
   collapsedUp: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "white",
-    borderRadius: "16@ms",
-    paddingVertical: "8@ms",
-    paddingHorizontal: "6@vs",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'white',
+    borderRadius: '16@ms',
+    paddingVertical: '8@ms',
+    paddingHorizontal: '6@vs',
     marginRight: moderateScale(10),
     borderWidth: 1,
-    borderColor: "#17213A",
+    borderColor: '#17213A',
   },
 
-  collapsedPlaceholder: { color: "gray", fontSize: "13@ms" },
+  collapsedPlaceholder: { color: 'gray', fontSize: '13@ms' },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.2,
   },
 
   filterButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E5E5E5",
-    borderRadius: "50@ms",
-    paddingHorizontal: "10@s",
-    paddingVertical: "6@vs",
-    marginLeft: "8@s",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E5E5E5',
+    borderRadius: '50@ms',
+    paddingHorizontal: '10@s',
+    paddingVertical: '6@vs',
+    marginLeft: '8@s',
   },
-  filterText: { color: "#333", fontSize: "12@ms", marginRight: "4@s" },
+  filterText: { color: '#333', fontSize: '12@ms', marginRight: '4@s' },
   categoryEqualWidth: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1259,18 +1266,17 @@ const styles = ScaledSheet.create({
     justifyContent: 'center',
   },
   centeredHeaderGroup: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
   },
   leftHeaderButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: "50@ms",
-    borderWidth: "0.5@s",
-    borderColor: "white",
-    padding: "4@ms"
-  }
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '50@ms',
+    borderWidth: '0.5@s',
+    borderColor: 'white',
+    padding: '4@ms',
+  },
 });
-

@@ -1,11 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  FlatList,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { FlatList, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
@@ -14,10 +8,7 @@ import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 
 import MainLayout from '~/layouts/MainLayout';
 import { getClientFavorites } from '~/api/favorites';
-import type {
-  ClientFavoritesResponse,
-  FavoriteMenuItem,
-} from '~/interfaces/Favorites';
+import type { ClientFavoritesResponse, FavoriteMenuItem } from '~/interfaces/Favorites';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
 import { useTranslation, useLocalization } from '~/localization';
@@ -67,8 +58,7 @@ const FavoriteMenuItemCard = ({
       entering={enteringAnimation}
       style={styles.menuItemCard}
       activeOpacity={0.88}
-      onPress={onPress}
-    >
+      onPress={onPress}>
       <RemoteImageWithSkeleton
         imagePath={item.imageUrl}
         containerStyle={styles.menuImageContainer}
@@ -79,8 +69,12 @@ const FavoriteMenuItemCard = ({
           <Text allowFontScaling={false} style={styles.menuTitle} numberOfLines={2}>
             {localizedName}
           </Text>
-          <Text allowFontScaling={false} style={[styles.menuPrice, hasPromotion && styles.menuPromotionPrice]}>
-            {hasPromotion ? formatCurrency(item.promotionPrice ?? item.price) : formatCurrency(item.price)}
+          <Text
+            allowFontScaling={false}
+            style={[styles.menuPrice, hasPromotion && styles.menuPromotionPrice]}>
+            {hasPromotion
+              ? formatCurrency(item.promotionPrice ?? item.price)
+              : formatCurrency(item.price)}
           </Text>
         </View>
         {hasPromotion ? (
@@ -133,12 +127,12 @@ const FavoritesScreen = () => {
 
   const restaurantCardWidth = useMemo(
     () => Math.max(screenWidth - carouselHorizontalPadding * 2, s(240)),
-    [screenWidth],
+    [screenWidth]
   );
 
   const restaurantSnapInterval = useMemo(
     () => restaurantCardWidth + restaurantItemGap,
-    [restaurantCardWidth],
+    [restaurantCardWidth]
   );
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery<ClientFavoritesResponse>({
@@ -174,11 +168,7 @@ const FavoritesScreen = () => {
         <Text allowFontScaling={false} style={styles.stateSubtitle}>
           {t('profile.favorites.states.errorSubtitle')}
         </Text>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.retryButton}
-          onPress={() => refetch()}
-        >
+        <TouchableOpacity activeOpacity={0.85} style={styles.retryButton} onPress={() => refetch()}>
           <Text allowFontScaling={false} style={styles.retryLabel}>
             {t('profile.favorites.actions.retry')}
           </Text>
@@ -197,8 +187,7 @@ const FavoritesScreen = () => {
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Home' as never)}
-        >
+          onPress={() => navigation.navigate('Home' as never)}>
           <Text allowFontScaling={false} style={styles.primaryButtonLabel}>
             {t('profile.favorites.actions.discover')}
           </Text>
@@ -214,8 +203,7 @@ const FavoritesScreen = () => {
               .damping(18)
               .stiffness(220)
               .withInitialValues({ opacity: 0, transform: [{ translateY: 20 }] })}
-            style={styles.sectionHeader}
-          >
+            style={styles.sectionHeader}>
             <Text allowFontScaling={false} style={styles.sectionTitle}>
               {t('profile.favorites.sections.restaurants.title')}
             </Text>
@@ -256,9 +244,12 @@ const FavoritesScreen = () => {
                     estimatedDeliveryTime={restaurant.estimatedDeliveryTime}
                     width={restaurantCardWidth}
                     onPress={() =>
-                      navigation.navigate('RestaurantDetails' as never, {
-                        restaurantId: restaurant.id,
-                      } as never)
+                      navigation.navigate(
+                        'RestaurantDetails' as never,
+                        {
+                          restaurantId: restaurant.id,
+                        } as never
+                      )
                     }
                   />
                 </Animated.View>
@@ -278,8 +269,7 @@ const FavoritesScreen = () => {
               .stiffness(220)
               .withInitialValues({ opacity: 0, transform: [{ translateY: 20 }] })
               .delay(60)}
-            style={styles.sectionHeader}
-          >
+            style={styles.sectionHeader}>
             <Text allowFontScaling={false} style={styles.sectionTitle}>
               {t('profile.favorites.sections.menu.title')}
             </Text>
@@ -294,10 +284,13 @@ const FavoritesScreen = () => {
                 item={item}
                 index={index}
                 onPress={() =>
-                  navigation.navigate('RestaurantDetails' as never, {
-                    restaurantId: item.restaurantId,
-                    menuItemId: item.id,
-                  } as never)
+                  navigation.navigate(
+                    'RestaurantDetails' as never,
+                    {
+                      restaurantId: item.restaurantId,
+                      menuItemId: item.id,
+                    } as never
+                  )
                 }
               />
             ))}
