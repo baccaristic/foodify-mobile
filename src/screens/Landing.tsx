@@ -396,7 +396,7 @@ export default function LandingScreen() {
       <View style={styles.headerWrapper}>
         <Header
           title={t('home.header.chooseAddress')}
-          onBack={() => navigation.navigate('Home' as never)}
+          onBack={() => console.log('Landing screen - no back navigation')}
           compact
         />
         <TouchableOpacity
@@ -411,8 +411,6 @@ export default function LandingScreen() {
     </Animated.View>
   );
 
-  const mainContent = <></>;
-
   return (
     <MainLayout
       headerBackgroundImage={require('../../assets/pattern1.png')}
@@ -423,7 +421,7 @@ export default function LandingScreen() {
       customHeader={customHeader}
       onRefresh={refetch}
       isRefreshing={isRefetching}
-      mainContent={mainContent}
+      mainContent={<></>}
       ignoreMarginBottom
       virtualizedListProps={{
         data: [{ key: 'content' }],
