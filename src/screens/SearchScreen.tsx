@@ -43,7 +43,10 @@ import type {
 import { useCart } from '~/context/CartContext';
 import type { CartItemOptionSelection } from '~/context/CartContext';
 import { getMenuItemBasePrice } from '~/utils/menuPricing';
-import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
+import {
+  updateMenuItemFavoriteState,
+  hasValidEstimatedDeliveryTime,
+} from '~/utils/restaurantFavorites';
 import { BASE_API_URL } from '@env';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
@@ -153,11 +156,11 @@ const RestaurantCard = ({ data, onPress }: { data: RestaurantSearchItem; onPress
   );
 
   const displayDeliveryTime = useMemo(() => {
-    if (estimatedDeliveryTime != null && estimatedDeliveryTime > 0) {
-      return `${estimatedDeliveryTime} min`;
+    if (hasValidEstimatedDeliveryTime(estimatedDeliveryTime)) {
+      return `${estimatedDeliveryTime} ${t('profile.favorites.labels.deliveryMinutes')}`;
     }
     return deliveryTimeRange;
-  }, [estimatedDeliveryTime, deliveryTimeRange]);
+  }, [estimatedDeliveryTime, deliveryTimeRange, t]);
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>

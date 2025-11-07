@@ -6,6 +6,7 @@ import { ArrowRight, Star, UtensilsCrossed } from 'lucide-react-native';
 import { BASE_API_URL } from '@env';
 
 import { useTranslation } from '~/localization';
+import { hasValidEstimatedDeliveryTime } from '~/utils/restaurantFavorites';
 
 const fallbackImage = require('../../assets/baguette.png');
 
@@ -99,7 +100,7 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
   }, [address, description]);
 
   const hintText = useMemo(() => {
-    if (estimatedDeliveryTime != null && estimatedDeliveryTime > 0) {
+    if (hasValidEstimatedDeliveryTime(estimatedDeliveryTime)) {
       return `${estimatedDeliveryTime} ${t('profile.favorites.labels.deliveryMinutes')}`;
     }
 

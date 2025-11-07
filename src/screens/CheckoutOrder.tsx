@@ -47,6 +47,7 @@ import useAuth from '~/hooks/useAuth';
 import useOngoingOrder from '~/hooks/useOngoingOrder';
 import { createOrder } from '~/api/orders';
 import { getRestaurantDeliveryFee } from '~/api/restaurants';
+import { hasValidEstimatedDeliveryTime } from '~/utils/restaurantFavorites';
 import type { MonetaryAmount, OrderRequest } from '~/interfaces/Order';
 import type { CouponType } from '~/interfaces/Loyalty';
 import type { OrderTrackingData } from './OrderTracking';
@@ -2020,13 +2021,13 @@ const CheckoutOrder: React.FC = () => {
                   style={{ color: accentColor }}>
                   {displayRestaurantName}
                 </Text>
-                {restaurant?.estimatedDeliveryTime != null &&
-                  restaurant.estimatedDeliveryTime > 0 && (
-                    <Text allowFontScaling={false} className="mt-0.5 text-xs text-gray-500">
-                      {restaurant.estimatedDeliveryTime}{' '}
-                      {t('profile.favorites.labels.deliveryMinutes')}
-                    </Text>
-                  )}
+                {hasValidEstimatedDeliveryTime(restaurant?.estimatedDeliveryTime) && (
+                  <Text allowFontScaling={false} className="mt-0.5 text-xs text-gray-500">
+                    {t('restaurantDetails.delivery.estimatedTime', {
+                      values: { time: restaurant.estimatedDeliveryTime },
+                    })}
+                  </Text>
+                )}
                 <Text
                   allowFontScaling={false}
                   className="mt-1 text-sm font-semibold text-[#17213A]">

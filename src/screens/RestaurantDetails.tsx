@@ -43,7 +43,10 @@ import { useCart } from '~/context/CartContext';
 import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 import { moderateScale, vs } from 'react-native-size-matters';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
-import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
+import {
+  updateMenuItemFavoriteState,
+  hasValidEstimatedDeliveryTime,
+} from '~/utils/restaurantFavorites';
 import { useTranslation, useLocalization } from '~/localization';
 import { getLocalizedName, getLocalizedDescription } from '~/utils/localization';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
@@ -913,7 +916,7 @@ export default function RestaurantDetails() {
                 </Text>
               </View>
 
-              {restaurant.estimatedDeliveryTime != null && restaurant.estimatedDeliveryTime > 0 && (
+              {hasValidEstimatedDeliveryTime(restaurant.estimatedDeliveryTime) && (
                 <View className="flex flex-row items-center gap-1 font-sans">
                   <Clock7 size={16} color="#CA251B" />
                   <Text allowFontScaling={false} className="text-sm text-gray-700">
