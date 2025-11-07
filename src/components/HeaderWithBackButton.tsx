@@ -30,6 +30,10 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
     }
   };
 
+  const titleStyle = isRTL 
+    ? { marginRight: titleMarginLeft, maxWidth: s(200) } 
+    : { marginLeft: titleMarginLeft, maxWidth: s(200) };
+
   return (
     <View
       style={[
@@ -49,7 +53,7 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
         )}
       </TouchableOpacity>
 
-      <Text allowFontScaling={true} style={[styles.title, isRTL ? { marginRight: titleMarginLeft, maxWidth:s(200) } : { marginLeft: titleMarginLeft, maxWidth:s(200) }]} numberOfLines={2}>
+      <Text allowFontScaling={true} style={[styles.title, titleStyle]} numberOfLines={2}>
         {title}
       </Text>
     </View>
