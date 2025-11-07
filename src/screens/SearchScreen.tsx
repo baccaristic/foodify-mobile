@@ -193,7 +193,7 @@ const PromotedMenuItemCard = ({
 }) => {
   const { locale } = useLocalization();
   const localizedName = getLocalizedName(item, locale);
-  const { name, promotionLabel, price, promotionPrice, imageUrl } = item;
+  const { promotionLabel, price, promotionPrice, imageUrl } = item;
   const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_MENU_IMAGE;
   const hasPromoPrice = typeof promotionPrice === "number" && Number.isFinite(promotionPrice);
 
