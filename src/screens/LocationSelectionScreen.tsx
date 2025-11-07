@@ -59,8 +59,6 @@ const palette = {
   divider: '#E2E8F0',
 };
 
-const initialAddress = 'Loading your location...';
-
 // This will be replaced with user's actual location
 let DEFAULT_REGION: Region = {
   latitude: 36.8065,
@@ -95,74 +93,159 @@ type AddressTypeConfig = {
   entranceOptions: EntranceOption[];
 };
 
-const ADDRESS_TYPES: AddressTypeConfig[] = [
+const createAddressTypes = (t: (key: string, options?: any) => string): AddressTypeConfig[] => [
   {
     id: 'home',
     serverType: 'HOME',
-    label: 'Home',
-    description: 'House, villa or standalone property',
+    label: t('locationSearch.addressTypes.home.label'),
+    description: t('locationSearch.addressTypes.home.description'),
     icon: Home,
     accent: '#F97316',
     detailFields: [
-      { id: 'houseNumber', label: 'House number', placeholder: 'e.g. 24 or Villa Nour' },
-      { id: 'directions', label: 'Directions for the rider', placeholder: 'Landmarks, gate color…' },
+      { 
+        id: 'houseNumber', 
+        label: t('locationSearch.fields.houseNumber.label'), 
+        placeholder: t('locationSearch.fields.houseNumber.placeholder')
+      },
+      { 
+        id: 'directions', 
+        label: t('locationSearch.fields.directions.label'), 
+        placeholder: t('locationSearch.fields.directions.placeholder')
+      },
     ],
     entranceOptions: [
-      { id: 'leaveAtDoor', label: 'Leave at the door', helper: 'Ideal when someone is home' },
-      { id: 'callOnArrival', label: 'Call when outside', helper: 'We will ring you as we arrive' },
-      { id: 'meetOutside', label: 'Meet me outside', helper: 'I will meet the rider at the gate' },
+      { 
+        id: 'leaveAtDoor', 
+        label: t('locationSearch.entranceOptions.leaveAtDoor.label'), 
+        helper: t('locationSearch.entranceOptions.leaveAtDoor.helper')
+      },
+      { 
+        id: 'callOnArrival', 
+        label: t('locationSearch.entranceOptions.callOnArrival.label'), 
+        helper: t('locationSearch.entranceOptions.callOnArrival.helper')
+      },
+      { 
+        id: 'meetOutside', 
+        label: t('locationSearch.entranceOptions.meetOutside.label'), 
+        helper: t('locationSearch.entranceOptions.meetOutside.helper')
+      },
     ],
   },
   {
     id: 'apartment',
     serverType: 'APARTMENT',
-    label: 'Apartment',
-    description: 'Multi-unit building or residence',
+    label: t('locationSearch.addressTypes.apartment.label'),
+    description: t('locationSearch.addressTypes.apartment.description'),
     icon: Building2,
     accent: '#6366F1',
     detailFields: [
-      { id: 'building', label: 'Building', placeholder: 'Tower, block or residence name' },
-      { id: 'floor', label: 'Floor', placeholder: 'e.g. 5th', keyboardType: 'number-pad' },
-      { id: 'unit', label: 'Apartment', placeholder: 'e.g. 5B or 17' },
-      { id: 'complement', label: 'Complementary info', placeholder: 'How to reach the buzzer, etc.' },
+      { 
+        id: 'building', 
+        label: t('locationSearch.fields.building.label'), 
+        placeholder: t('locationSearch.fields.building.placeholder')
+      },
+      { 
+        id: 'floor', 
+        label: t('locationSearch.fields.floor.label'), 
+        placeholder: t('locationSearch.fields.floor.placeholder'), 
+        keyboardType: 'number-pad' as KeyboardTypeOptions
+      },
+      { 
+        id: 'unit', 
+        label: t('locationSearch.fields.unit.label'), 
+        placeholder: t('locationSearch.fields.unit.placeholder')
+      },
+      { 
+        id: 'complement', 
+        label: t('locationSearch.fields.complement.label'), 
+        placeholder: t('locationSearch.fields.complement.placeholder')
+      },
     ],
     entranceOptions: [
-      { id: 'buzz', label: 'Ring the buzzer', helper: 'Provide code or apartment name if needed' },
-      { id: 'security', label: 'Check in with security', helper: 'Rider will leave ID if required' },
+      { 
+        id: 'buzz', 
+        label: t('locationSearch.entranceOptions.buzz.label'), 
+        helper: t('locationSearch.entranceOptions.buzz.helper')
+      },
+      { 
+        id: 'security', 
+        label: t('locationSearch.entranceOptions.security.label'), 
+        helper: t('locationSearch.entranceOptions.security.helper')
+      },
     ],
   },
   {
     id: 'work',
     serverType: 'WORK',
-    label: 'Work',
-    description: 'Office, co-working or store front',
+    label: t('locationSearch.addressTypes.work.label'),
+    description: t('locationSearch.addressTypes.work.description'),
     icon: BriefcaseBusiness,
     accent: '#0EA5E9',
     detailFields: [
-      { id: 'company', label: 'Company or organization', placeholder: 'Foodify, Inc.' },
-      { id: 'department', label: 'Department', placeholder: 'e.g. Product, HR' },
-      { id: 'contact', label: 'Reception contact', placeholder: 'Name or phone for handoff' },
+      { 
+        id: 'company', 
+        label: t('locationSearch.fields.company.label'), 
+        placeholder: t('locationSearch.fields.company.placeholder')
+      },
+      { 
+        id: 'department', 
+        label: t('locationSearch.fields.department.label'), 
+        placeholder: t('locationSearch.fields.department.placeholder')
+      },
+      { 
+        id: 'contact', 
+        label: t('locationSearch.fields.contact.label'), 
+        placeholder: t('locationSearch.fields.contact.placeholder')
+      },
     ],
     entranceOptions: [
-      { id: 'reception', label: 'Drop at reception', helper: 'Front desk signs off the delivery' },
-      { id: 'securityDesk', label: 'Leave with security', helper: 'Perfect when access is limited' },
-      { id: 'callUponArrival', label: 'Call when outside', helper: 'We ring you before heading up' },
+      { 
+        id: 'reception', 
+        label: t('locationSearch.entranceOptions.reception.label'), 
+        helper: t('locationSearch.entranceOptions.reception.helper')
+      },
+      { 
+        id: 'securityDesk', 
+        label: t('locationSearch.entranceOptions.securityDesk.label'), 
+        helper: t('locationSearch.entranceOptions.securityDesk.helper')
+      },
+      { 
+        id: 'callUponArrival', 
+        label: t('locationSearch.entranceOptions.callUponArrival.label'), 
+        helper: t('locationSearch.entranceOptions.callUponArrival.helper')
+      },
     ],
   },
   {
     id: 'other',
     serverType: 'OTHER',
-    label: 'Other',
-    description: 'Any other type of location',
+    label: t('locationSearch.addressTypes.other.label'),
+    description: t('locationSearch.addressTypes.other.description'),
     icon: Sparkles,
     accent: '#F472B6',
     detailFields: [
-      { id: 'label', label: 'Give it a name', placeholder: 'Friend, gym, studio…' },
-      { id: 'notes', label: 'Notes for the rider', placeholder: 'Describe the entrance or drop point' },
+      { 
+        id: 'label', 
+        label: t('locationSearch.fields.customName.label'), 
+        placeholder: t('locationSearch.fields.customName.placeholder')
+      },
+      { 
+        id: 'notes', 
+        label: t('locationSearch.fields.notes.label'), 
+        placeholder: t('locationSearch.fields.notes.placeholder')
+      },
     ],
     entranceOptions: [
-      { id: 'call', label: 'Call me on arrival', helper: 'Best for one-off meetups' },
-      { id: 'text', label: 'Send a text update', helper: 'Get a quick SMS when close' },
+      { 
+        id: 'call', 
+        label: t('locationSearch.entranceOptions.call.label'), 
+        helper: t('locationSearch.entranceOptions.call.helper')
+      },
+      { 
+        id: 'text', 
+        label: t('locationSearch.entranceOptions.text.label'), 
+        helper: t('locationSearch.entranceOptions.text.helper')
+      },
     ],
   },
 ];
@@ -200,6 +283,9 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  
+  const ADDRESS_TYPES = useMemo(() => createAddressTypes(t), [t]);
+  
   const [screenState, setScreenState] = useState<'list' | 'compose' | 'details'>('list');
   const [activeType, setActiveType] = useState<AddressTypeConfig | null>(null);
   const [detailForm, setDetailForm] = useState<Record<string, string>>({});
@@ -207,7 +293,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
   const [selectedSavedAddress, setSelectedSavedAddress] = useState<SavedAddressResponse | null>(null);
   const [customLabel, setCustomLabel] = useState('');
   const [currentRegion, setCurrentRegion] = useState<Region>(DEFAULT_REGION);
-  const [formattedAddress, setFormattedAddress] = useState(initialAddress);
+  const [formattedAddress, setFormattedAddress] = useState(t('locationSearch.loadingAddress'));
   const [hasConfirmedPoint, setHasConfirmedPoint] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
@@ -330,11 +416,11 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
           setFormattedAddress(data.results[0].formatted_address);
         } else {
           setFormattedAddress(formatRegion(region));
-          setGeocodeError(data.error_message ?? 'Precise address unavailable');
+          setGeocodeError(data.error_message ?? t('locationSearch.errors.preciseAddressUnavailable'));
         }
       } catch {
         setFormattedAddress(formatRegion(region));
-        setGeocodeError('Could not reach Google Maps');
+        setGeocodeError(t('locationSearch.errors.couldNotReachMaps'));
       } finally {
         setIsGeocoding(false);
       }
@@ -399,15 +485,15 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
         return;
       }
 
-      setPermissionError('We could not determine your current location. Try again.');
+      setPermissionError(t('locationSearch.errors.couldNotDetermineLocation'));
       setShowPermissionPrompt(true);
       return;
     }
 
     if (!access.permissionGranted && !access.canAskAgain) {
-      setPermissionError('Location permission is disabled. Please enable it in Settings.');
+      setPermissionError(t('locationSearch.errors.locationPermissionDisabled'));
     } else if (access.permissionGranted && !access.servicesEnabled) {
-      setPermissionError('Turn on your device location services to continue.');
+      setPermissionError(t('locationSearch.errors.locationServicesOff'));
     } else {
       setPermissionError(null);
     }
@@ -454,7 +540,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
       if (!componentMountedRef.current) {
         return;
       }
-      setSavedAddressesError(getErrorMessage(error, 'Could not load your saved addresses.'));
+      setSavedAddressesError(getErrorMessage(error, t('locationSearch.errors.couldNotLoadAddresses')));
     } finally {
       if (!componentMountedRef.current) {
         return;
@@ -481,19 +567,19 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
       const applied = await applyCurrentLocation();
 
       if (componentMountedRef.current && !applied) {
-        setPermissionError('We could not determine your current location. Try again.');
+        setPermissionError(t('locationSearch.errors.couldNotDetermineLocation'));
         setShowPermissionPrompt(true);
       }
     } else {
       if (!result.permissionGranted && !result.canAskAgain) {
-        setPermissionError('Location permission is disabled. Please enable it in Settings.');
+        setPermissionError(t('locationSearch.errors.locationPermissionDisabled'));
         if (Platform.OS !== 'web') {
           Linking.openSettings().catch(() => undefined);
         }
       } else if (result.permissionGranted && !result.servicesEnabled) {
-        setPermissionError('Turn on your device location services to continue.');
+        setPermissionError(t('locationSearch.errors.locationServicesOff'));
       } else {
-        setPermissionError('We need your permission to show nearby restaurants.');
+        setPermissionError(t('locationSearch.errors.needPermission'));
       }
 
       setShowPermissionPrompt(true);
@@ -773,7 +859,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
       setFormattedAddress(response.formattedAddress);
       mapRef.current?.animateToRegion(nextRegion, 320);
     } catch (error) {
-      setSaveError(getErrorMessage(error, 'Could not save this address. Please try again.'));
+      setSaveError(getErrorMessage(error, t('locationSearch.errors.couldNotSaveAddress')));
     } finally {
       setIsSavingAddress(false);
     }
@@ -858,15 +944,15 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
           }));
           setSearchPredictions(nextPredictions);
           if (!nextPredictions.length) {
-            setSearchError('No matching places. Try refining the keywords.');
+            setSearchError(t('locationSearch.errors.noMatchingPlaces'));
           }
         } else {
           setSearchPredictions([]);
-          setSearchError(data.error_message ?? 'Could not retrieve suggestions.');
+          setSearchError(data.error_message ?? t('locationSearch.errors.couldNotRetrieveSuggestions'));
         }
       } catch {
         setSearchPredictions([]);
-        setSearchError('Could not reach Google Maps.');
+        setSearchError(t('locationSearch.errors.couldNotReachMaps'));
       } finally {
         setSearchLoading(false);
       }
@@ -937,10 +1023,10 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
           fetchAddress(nextRegion);
           closeSearch();
         } else {
-          setSearchError(data.error_message ?? 'Could not load the selected place.');
+          setSearchError(data.error_message ?? t('locationSearch.errors.couldNotLoadPlace'));
         }
       } catch {
-        setSearchError('Could not load the selected place.');
+        setSearchError(t('locationSearch.errors.couldNotLoadPlace'));
       } finally {
         setSearchLoading(false);
       }
@@ -999,18 +1085,18 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
             </View>
             <View style={[StyleSheet.absoluteFillObject, styles.mapOverlay]}>
               <Animated.View style={[styles.pinWrapper, pinAnimatedStyle]}>
-                <Image style={{width: s(44), height: s(60)}} source={require('../../assets/map-pin.png')} contentFit='contain' />
+                <Image style={{width: s(25), height: s(35)}} source={require('../../assets/map-pin.png')} contentFit='contain' />
               </Animated.View>
               <View style={styles.pinShadow} />
             </View>
             <View style={styles.addressCard}>
               <View style={styles.addressBadge}>
                 <Text allowFontScaling={false} style={styles.addressBadgeText}>
-                  DELIVERY LOCATION
+                  {t('locationSearch.deliveryLocation')}
                 </Text>
               </View>
               <Text allowFontScaling={false} style={styles.addressTitle} numberOfLines={2}>
-                {isGeocoding ? 'Pinning exact spot…' : formattedAddress}
+                {isGeocoding ? t('locationSearch.pinningLocation') : formattedAddress}
               </Text>
               {geocodeError && (
                 <Text allowFontScaling={false} style={styles.addressError} numberOfLines={1}>
@@ -1027,7 +1113,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                   <ActivityIndicator size="small" color={palette.surfaceAlt} />
                 ) : (
                   <Text allowFontScaling={false} style={styles.addressActionText}>
-                    {hasConfirmedPoint && isDetailsMode ? 'KEEP EDITING DETAILS' : 'USE THIS ADDRESS'}
+                    {hasConfirmedPoint && isDetailsMode ? t('locationSearch.keepEditingDetails') : t('locationSearch.useThisAddress')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -1051,10 +1137,10 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
               {isListMode && (
                 <Animated.View entering={FadeIn.duration(220)} style={styles.savedAddressesCard}>
                   <Text allowFontScaling={false} style={styles.savedTitle}>
-                    Saved addresses
+                    {t('locationSearch.savedAddresses')}
                   </Text>
                   <Text allowFontScaling={false} style={styles.savedSubtitle}>
-                    Choose a frequent spot or add a brand new location.
+                    {t('locationSearch.savedAddressesSubtitle')}
                   </Text>
 
                   {savedAddressesLoading ? (
@@ -1120,7 +1206,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                                   allowFontScaling={false}
                                   style={[styles.selectedBadgeText, { color: address.accent }]}
                                 >
-                                  Selected
+                                  {t('locationSearch.selectedLabel')}
                                 </Text>
                               </View>
                             ) : null}
@@ -1143,7 +1229,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                     })
                   ) : (
                     <Text allowFontScaling={false} style={styles.savedEmptyState}>
-                      You have no saved addresses yet. Pin a spot to add one.
+                      {t('locationSearch.noSavedAddresses')}
                     </Text>
                   )}
 
@@ -1155,7 +1241,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
 
                   <TouchableOpacity activeOpacity={0.9} style={styles.addAddressButton} onPress={openSearch}>
                     <Text allowFontScaling={false} style={styles.addAddressLabel}>
-                      Add new address
+                      {t('locationSearch.addNewAddress')}
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>
@@ -1164,15 +1250,15 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
               {isComposeMode && (
                 <Animated.View entering={FadeIn.duration(220)} style={styles.searchPrompt}>
                   <Text allowFontScaling={false} style={styles.searchPromptTitle}>
-                    Search for a different spot
+                    {t('locationSearch.searchPromptTitle')}
                   </Text>
                   <Text allowFontScaling={false} style={styles.searchPromptSubtitle}>
-                    Drag the pin on the map above or look up an exact street, building or landmark.
+                    {t('locationSearch.searchPromptSubtitle')}
                   </Text>
                   <TouchableOpacity activeOpacity={0.85} onPress={openSearch} style={styles.searchLaunchBar}>
                     <Search size={s(18)} color={palette.textSecondary} style={{ marginRight: s(8) }} />
                     <Text allowFontScaling={false} style={styles.searchLaunchPlaceholder}>
-                      Search your delivery location
+                      {t('locationSearch.searchPlaceholder')}
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>
@@ -1181,7 +1267,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
               {isDetailsMode && SelectedType && (
                 <Animated.View entering={FadeIn.duration(220)} style={styles.detailsCard}>
                   <Text allowFontScaling={false} style={styles.detailsTitle}>
-                    Label this address as
+                    {t('locationSearch.labelThisAddress')}
                   </Text>
                   <ScrollView
                     horizontal
@@ -1215,7 +1301,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
 
                   <View style={styles.detailsSection}>
                     <Text allowFontScaling={false} style={styles.sectionHeading}>
-                      Address details
+                      {t('locationSearch.addressDetailsHeading')}
                     </Text>
                     {SelectedType.detailFields.map((field) => (
                       <View key={field.id} style={styles.inputGroup}>
@@ -1251,10 +1337,10 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
 
                   <View style={styles.detailsSection}>
                     <Text allowFontScaling={false} style={styles.sectionHeading}>
-                      Mark the entrance
+                      {t('locationSearch.markEntranceHeading')}
                     </Text>
                     <Text allowFontScaling={false} style={styles.sectionHelper}>
-                      Help our rider find you faster and more safely.
+                      {t('locationSearch.markEntranceHelper')}
                     </Text>
                     <View style={styles.entranceGrid}>
                       {SelectedType.entranceOptions.map((option) => {
@@ -1291,7 +1377,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                       <ActivityIndicator size="small" color={palette.surfaceAlt} />
                     ) : (
                       <Text allowFontScaling={false} style={styles.primaryButtonText}>
-                        Save and continue
+                        {t('locationSearch.saveAndContinue')}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -1306,7 +1392,7 @@ export default function LocationSelectionScreen({ onClose }: LocationSelectionSc
                     onPress={() => setScreenState('compose')}
                   >
                     <Text allowFontScaling={false} style={styles.secondaryButtonText}>
-                      Adjust pin location
+                      {t('locationSearch.adjustPinLocation')}
                     </Text>
                   </TouchableOpacity>
                 </Animated.View>

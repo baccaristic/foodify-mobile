@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarClock, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, CalendarClock, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
@@ -112,7 +112,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
   item,
   onOpenModal,
 }) => {
-  const { locale } = useLocalization();
+  const { locale, isRTL } = useLocalization();
   const promotionActive = hasActivePromotion(item);
   const displayPrice = formatCurrency(getMenuItemBasePrice(item));
   const localizedName = getLocalizedName(item, locale);
@@ -131,7 +131,9 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
           skeletonStyle={styles.menuImage}
         />
         {promotionActive && item.promotionLabel ? (
-          <View className="absolute left-2 top-2 rounded-full bg-[#CA251B]/90 px-2 py-1">
+          <View 
+            className="absolute top-2 rounded-full bg-[#CA251B]/90 px-2 py-1"
+            style={isRTL ? { right: 8 } : { left: 8 }}>
             <Text
               allowFontScaling={false}
               className="text-[10px] font-semibold uppercase text-white">
@@ -230,7 +232,7 @@ export default function RestaurantDetails() {
 
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { locale } = useLocalization();
+  const { locale, isRTL } = useLocalization();
   const {
     addItem,
     itemCount,
@@ -903,13 +905,6 @@ export default function RestaurantDetails() {
                 <Star size={16} color="#CA251B" fill="#CA251B" />
               </View>
 
-              <View className="flex flex-row items-center gap-1 font-sans">
-                <MapPin size={16} color="#CA251B" />
-                <Text allowFontScaling={false} className="text-sm text-gray-700">
-                  {restaurant.type}
-                </Text>
-              </View>
-
                 <View className="flex flex-row items-center gap-1 font-sans">
       <Image
         source={require('../../assets/delivery.png')} // path to your PNG
@@ -1011,7 +1006,11 @@ export default function RestaurantDetails() {
             padding: 8,
           }}
           onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#CA251B" />
+          {isRTL ? (
+            <ArrowRight size={24} color="#CA251B" />
+          ) : (
+            <ArrowLeft size={24} color="#CA251B" />
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1032,7 +1031,11 @@ export default function RestaurantDetails() {
   const collapsedHeader = (
     <View className="flex-1 flex-row items-center justify-between bg-white px-4">
       <TouchableOpacity className="p-2" onPress={() => navigation.goBack()}>
-        <ArrowLeft size={20} color="#CA251B" />
+        {isRTL ? (
+          <ArrowRight size={20} color="#CA251B" />
+        ) : (
+          <ArrowLeft size={20} color="#CA251B" />
+        )}
       </TouchableOpacity>
 
       <View className="flex-1 items-center justify-center px-2">

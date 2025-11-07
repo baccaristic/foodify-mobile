@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
+import { useLocalization } from '~/localization';
 
 interface HeaderWithBackButtonProps {
   title: string;
@@ -19,6 +20,7 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
   titleMarginLeft=s(60),
 }) => {
   const navigation = useNavigation();
+  const { isRTL } = useLocalization();
 
   const handleBack = () => {
     if (onBack) {
@@ -27,6 +29,10 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
       navigation.goBack();
     }
   };
+
+  const titleStyle = isRTL 
+    ? { marginRight: titleMarginLeft, maxWidth: s(200) } 
+    : { marginLeft: titleMarginLeft, maxWidth: s(200) };
 
   return (
     <View
@@ -40,10 +46,14 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
         activeOpacity={0.8}
         style={styles.backButton}
       >
-        <ArrowLeft color="#CA251B" size={s(26)} />
+        {isRTL ? (
+          <ArrowRight color="#CA251B" size={s(26)} />
+        ) : (
+          <ArrowLeft color="#CA251B" size={s(26)} />
+        )}
       </TouchableOpacity>
 
-      <Text allowFontScaling={true} style={[styles.title, { marginLeft: titleMarginLeft, maxWidth:s(200) }]} numberOfLines={2}>
+      <Text allowFontScaling={true} style={[styles.title, titleStyle]} numberOfLines={2}>
         {title}
       </Text>
     </View>

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Switch, ScrollView, Platform, StyleSheet } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, ChevronLeft } from 'lucide-react-native';
 import MainLayout from '~/layouts/MainLayout';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
-import { useTranslation } from '~/localization';
+import { useTranslation, useLocalization } from '~/localization';
 
 const palette = {
     accent: '#CA251B',
@@ -16,6 +16,7 @@ const PrivacyScreen = () => {
     const [personalizedAds, setPersonalizedAds] = useState(true);
     const [locationAccess, setLocationAccess] = useState(true);
     const { t } = useTranslation();
+    const { isRTL } = useLocalization();
 
     const customHeader = (
         <View style={styles.header}>
@@ -82,7 +83,11 @@ const PrivacyScreen = () => {
                     <Text allowFontScaling={false} style={styles.linkText}>
                         {t('profile.privacy.links.policy')}
                     </Text>
-                    <ChevronRight size={s(18)} color={palette.accent} />
+                    {isRTL ? (
+                        <ChevronLeft size={s(18)} color={palette.accent} />
+                    ) : (
+                        <ChevronRight size={s(18)} color={palette.accent} />
+                    )}
                 </TouchableOpacity>
 
                 <View style={styles.separator} />
@@ -91,7 +96,11 @@ const PrivacyScreen = () => {
                     <Text allowFontScaling={false} style={styles.linkText}>
                         {t('profile.privacy.links.download')}
                     </Text>
-                    <ChevronRight size={s(18)} color={palette.accent} />
+                    {isRTL ? (
+                        <ChevronLeft size={s(18)} color={palette.accent} />
+                    ) : (
+                        <ChevronRight size={s(18)} color={palette.accent} />
+                    )}
                 </TouchableOpacity>
             </View>
         </ScrollView>

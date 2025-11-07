@@ -253,6 +253,144 @@ const fr: TranslationDictionary = {
       initial: 'Commencez à taper pour rechercher une rue, un bâtiment ou un quartier.',
       noResults: 'Aucun lieu correspondant. Essayez de préciser vos mots-clés.',
     },
+    loadingAddress: 'Chargement de votre emplacement...',
+    pinningLocation: 'Localisation exacte en cours…',
+    deliveryLocation: 'LIEU DE LIVRAISON',
+    useThisAddress: 'UTILISER CETTE ADRESSE',
+    keepEditingDetails: 'CONTINUER L\'ÉDITION',
+    savedAddresses: 'Adresses enregistrées',
+    savedAddressesSubtitle: 'Choisissez un lieu fréquent ou ajoutez un nouvel emplacement.',
+    noSavedAddresses: 'Vous n\'avez pas encore d\'adresses enregistrées. Épinglez un emplacement pour en ajouter une.',
+    selectedLabel: 'Sélectionné',
+    addNewAddress: 'Ajouter une nouvelle adresse',
+    searchPromptTitle: 'Rechercher un autre lieu',
+    searchPromptSubtitle: 'Faites glisser l\'épingle sur la carte ci-dessus ou recherchez une rue, un bâtiment ou un point de repère exact.',
+    searchPlaceholder: 'Rechercher votre lieu de livraison',
+    labelThisAddress: 'Étiqueter cette adresse comme',
+    addressDetailsHeading: 'Détails de l\'adresse',
+    markEntranceHeading: 'Marquer l\'entrée',
+    markEntranceHelper: 'Aidez notre livreur à vous trouver plus rapidement et en toute sécurité.',
+    saveAndContinue: 'Enregistrer et continuer',
+    adjustPinLocation: 'Ajuster l\'emplacement de l\'épingle',
+    addressTypes: {
+      home: {
+        label: 'Maison',
+        description: 'Maison, villa ou propriété autonome',
+      },
+      apartment: {
+        label: 'Appartement',
+        description: 'Immeuble ou résidence à logements multiples',
+      },
+      work: {
+        label: 'Travail',
+        description: 'Bureau, espace de coworking ou vitrine',
+      },
+      other: {
+        label: 'Autre',
+        description: 'Tout autre type d\'emplacement',
+      },
+    },
+    fields: {
+      houseNumber: {
+        label: 'Numéro de maison',
+        placeholder: 'par ex. 24 ou Villa Nour',
+      },
+      directions: {
+        label: 'Indications pour le livreur',
+        placeholder: 'Points de repère, couleur du portail…',
+      },
+      building: {
+        label: 'Bâtiment',
+        placeholder: 'Tour, bloc ou nom de résidence',
+      },
+      floor: {
+        label: 'Étage',
+        placeholder: 'par ex. 5ème',
+      },
+      unit: {
+        label: 'Appartement',
+        placeholder: 'par ex. 5B ou 17',
+      },
+      complement: {
+        label: 'Info complémentaire',
+        placeholder: 'Comment accéder à l\'interphone, etc.',
+      },
+      company: {
+        label: 'Entreprise ou organisation',
+        placeholder: 'Foodify, Inc.',
+      },
+      department: {
+        label: 'Département',
+        placeholder: 'par ex. Produit, RH',
+      },
+      contact: {
+        label: 'Contact réception',
+        placeholder: 'Nom ou téléphone pour la remise',
+      },
+      customName: {
+        label: 'Donnez-lui un nom',
+        placeholder: 'Ami, salle de sport, studio…',
+      },
+      notes: {
+        label: 'Notes pour le livreur',
+        placeholder: 'Décrivez l\'entrée ou le point de dépôt',
+      },
+    },
+    entranceOptions: {
+      leaveAtDoor: {
+        label: 'Laisser à la porte',
+        helper: 'Idéal quand quelqu\'un est à la maison',
+      },
+      callOnArrival: {
+        label: 'Appeler en arrivant',
+        helper: 'Nous vous appellerons à notre arrivée',
+      },
+      meetOutside: {
+        label: 'Me rencontrer dehors',
+        helper: 'Je rencontrerai le livreur au portail',
+      },
+      buzz: {
+        label: 'Sonner à l\'interphone',
+        helper: 'Fournissez le code ou le nom de l\'appartement si nécessaire',
+      },
+      security: {
+        label: 'S\'enregistrer avec la sécurité',
+        helper: 'Le livreur laissera une pièce d\'identité si nécessaire',
+      },
+      reception: {
+        label: 'Déposer à la réception',
+        helper: 'L\'accueil signe la livraison',
+      },
+      securityDesk: {
+        label: 'Laisser avec la sécurité',
+        helper: 'Parfait quand l\'accès est limité',
+      },
+      callUponArrival: {
+        label: 'Appeler en arrivant',
+        helper: 'Nous vous appelons avant de monter',
+      },
+      call: {
+        label: 'Appelez-moi à l\'arrivée',
+        helper: 'Idéal pour les rencontres ponctuelles',
+      },
+      text: {
+        label: 'Envoyer un SMS de mise à jour',
+        helper: 'Recevez un SMS rapide à l\'approche',
+      },
+    },
+    errors: {
+      preciseAddressUnavailable: 'Adresse précise indisponible',
+      couldNotReachMaps: 'Impossible de contacter Google Maps',
+      couldNotDetermineLocation: 'Impossible de déterminer votre emplacement actuel. Réessayez.',
+      locationPermissionDisabled: 'L\'autorisation de localisation est désactivée. Veuillez l\'activer dans les Paramètres.',
+      locationServicesOff: 'Activez les services de localisation de votre appareil pour continuer.',
+      needPermission: 'Nous avons besoin de votre permission pour afficher les restaurants à proximité.',
+      couldNotLoadAddresses: 'Impossible de charger vos adresses enregistrées.',
+      couldNotSaveAddress: 'Impossible d\'enregistrer cette adresse. Veuillez réessayer.',
+      noMatchingPlaces: 'Aucun lieu correspondant. Essayez de préciser vos mots-clés.',
+      couldNotRetrieveSuggestions: 'Impossible de récupérer les suggestions.',
+      couldNotLoadPlace: 'Impossible de charger le lieu sélectionné.',
+    },
   },
   search: {
     header: {
@@ -656,12 +794,14 @@ const fr: TranslationDictionary = {
       options: {
         en: 'Anglais',
         fr: 'Français',
+        ar: 'Arabe',
       },
       hints: {
         en: 'Recommandée pour les utilisateurs internationaux',
         fr: 'Idéale pour les francophones',
+        ar: 'Mise en page de droite à gauche pour les lecteurs arabes',
       },
-      note: "Votre sélection s'applique immédiatement dans l'application.",
+      note: "Votre sélection s'applique immédiatement dans l'application. Le changement vers/depuis l'arabe mettra à jour l'orientation de la mise en page.",
     },
     coupon: {
       title: 'Code promo',
