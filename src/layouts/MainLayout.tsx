@@ -356,11 +356,12 @@ export default function MainLayout({
       );
     }
 
+    // Solid color background when no image
     return (
-      <>
+      <View style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#CA251B' }}>
         {fullNode}
         {collapsedNode}
-      </>
+      </View>
     );
   };
 

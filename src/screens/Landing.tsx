@@ -7,9 +7,8 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { Search } from 'lucide-react-native';
+import { Search, MapPin, Utensils, ChevronDown } from 'lucide-react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
-import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,12 +20,11 @@ import Animated, {
   FadeIn,
   FadeInDown,
 } from 'react-native-reanimated';
-import Svg, { Circle, Line } from 'react-native-svg';
+import Svg, { Line } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 
 import MainLayout from '~/layouts/MainLayout';
-import Header from '~/components/Header';
 import RestaurantShowcaseCard from '~/components/RestaurantShowcaseCard';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useLocationOverlay from '~/hooks/useLocationOverlay';
@@ -38,33 +36,32 @@ import { getLocalizedName, getLocalizedDescriptionNullable } from '~/utils/local
 const screenWidth = Dimensions.get('screen').width;
 const screenHeight = Dimensions.get('screen').height;
 
-// Bubble configuration - 3 big, 2 small
+// Bubble configuration - adjusted sizes and positions to match reference
 const BUBBLES = [
-  { size: 80, x: screenWidth * 0.15, y: 60 }, // Big
-  { size: 50, x: screenWidth * 0.45, y: 30 }, // Small
-  { size: 90, x: screenWidth * 0.75, y: 70 }, // Big
-  { size: 60, x: screenWidth * 0.55, y: 150 }, // Small
-  { size: 85, x: screenWidth * 0.25, y: 180 }, // Big
+  { size: 110, x: screenWidth * 0.35, y: 60 }, // Large center-left
+  { size: 80, x: screenWidth * 0.15, y: 140 }, // Medium left
+  { size: 150, x: screenWidth * 0.35, y: 230 }, // Extra large bottom-left
+  { size: 120, x: screenWidth * 0.7, y: 130 }, // Large right
+  { size: 75, x: screenWidth * 0.75, y: 240 }, // Medium-small bottom-right
 ];
 
-const DELIVERY_ICON_SIZE = 40;
+const DELIVERY_ICON_SIZE = 50;
 const ANIMATION_DURATION = 8000; // 8 seconds for full journey
 
 // Calculate path points for smooth animation
 const calculatePathPoints = () => {
   const points: { x: number; y: number }[] = [];
-  BUBBLES.forEach((bubble, index) => {
+  BUBBLES.forEach((bubble) => {
     points.push({
       x: bubble.x,
       y: bubble.y,
     });
   });
 
-  // Add final point extending past the last bubble
-  const lastBubble = BUBBLES[BUBBLES.length - 1];
+  // Add final point extending to top-right for the pin icon
   points.push({
-    x: lastBubble.x + 100,
-    y: lastBubble.y + 50,
+    x: screenWidth * 0.85,
+    y: 40,
   });
 
   return points;
@@ -77,7 +74,7 @@ const AnimatedBubble = ({ bubble, index }: { bubble: (typeof BUBBLES)[0]; index:
   const opacity = useSharedValue(0);
 
   useEffect(() => {
-    const delay = index * 1500; // Each bubble appears 1.5 seconds after the previous
+    const delay = index * 1200; // Each bubble appears 1.2 seconds after the previous
 
     scale.value = withDelay(
       delay,
@@ -92,9 +89,6 @@ const AnimatedBubble = ({ bubble, index }: { bubble: (typeof BUBBLES)[0]; index:
     opacity: opacity.value,
   }));
 
-  const bubbleColor = index % 2 === 0 ? '#CA251B' : '#17213A';
-  const innerColor = index % 2 === 0 ? 'rgba(202, 37, 27, 0.3)' : 'rgba(23, 33, 58, 0.3)';
-
   return (
     <Animated.View
       style={[
@@ -105,59 +99,32 @@ const AnimatedBubble = ({ bubble, index }: { bubble: (typeof BUBBLES)[0]; index:
           borderRadius: bubble.size / 2,
           left: bubble.x - bubble.size / 2,
           top: bubble.y - bubble.size / 2,
-          backgroundColor: bubbleColor,
         },
         animatedStyle,
-      ]}>
-      <View
-        style={[
-          styles.bubbleInner,
-          {
-            width: bubble.size * 0.6,
-            height: bubble.size * 0.6,
-            borderRadius: (bubble.size * 0.6) / 2,
-            backgroundColor: innerColor,
-          },
-        ]}
-      />
-    </Animated.View>
+      ]}
+    />
   );
 };
 
 const DottedPath = () => {
   return (
-    <Svg width={screenWidth} height={250} style={styles.pathSvg}>
+    <Svg width={screenWidth} height={320} style={styles.pathSvg}>
       {PATH_POINTS.slice(0, -1).map((point, index) => {
         const nextPoint = PATH_POINTS[index + 1];
         if (!nextPoint) return null;
 
-        const midX = (point.x + nextPoint.x) / 2;
-        const midY = (point.y + nextPoint.y) / 2;
-
         return (
-          <React.Fragment key={`path-${index}`}>
-            <Line
-              x1={point.x}
-              y1={point.y}
-              x2={midX}
-              y2={midY}
-              stroke="#CA251B"
-              strokeWidth="3"
-              strokeDasharray="8,8"
-              opacity={0.6}
-            />
-            <Circle cx={midX} cy={midY} r="3" fill="#CA251B" opacity={0.8} />
-            <Line
-              x1={midX}
-              y1={midY}
-              x2={nextPoint.x}
-              y2={nextPoint.y}
-              stroke="#CA251B"
-              strokeWidth="3"
-              strokeDasharray="8,8"
-              opacity={0.6}
-            />
-          </React.Fragment>
+          <Line
+            key={`path-${index}`}
+            x1={point.x}
+            y1={point.y}
+            x2={nextPoint.x}
+            y2={nextPoint.y}
+            stroke="#FFFFFF"
+            strokeWidth="4"
+            strokeDasharray="12,8"
+            opacity={0.9}
+          />
         );
       })}
     </Svg>
@@ -194,27 +161,23 @@ const AnimatedDeliveryIcon = () => {
     const x = startPoint.x + (endPoint.x - startPoint.x) * segmentFraction;
     const y = startPoint.y + (endPoint.y - startPoint.y) * segmentFraction;
 
-    // Calculate rotation based on direction
-    const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
-    const rotation = (angle * 180) / Math.PI;
-
     return {
       transform: [
         { translateX: x - DELIVERY_ICON_SIZE / 2 },
         { translateY: y - DELIVERY_ICON_SIZE / 2 },
-        { rotate: `${rotation}deg` },
       ],
-      opacity: progress.value > 0 ? 1 : 0,
+      opacity: progress.value > 0.1 ? 1 : 0,
     };
   });
 
   return (
     <Animated.View style={[styles.deliveryIcon, animatedStyle]}>
-      <Image
-        source={require('../../assets/delivery.png')}
-        style={{ width: DELIVERY_ICON_SIZE, height: DELIVERY_ICON_SIZE }}
-        contentFit="contain"
-      />
+      <View style={styles.pinIconContainer}>
+        <MapPin size={s(28)} color="#CA251B" fill="#FFFFFF" strokeWidth={2} />
+        <View style={styles.pinIconInner}>
+          <Utensils size={s(14)} color="#CA251B" strokeWidth={2.5} />
+        </View>
+      </View>
     </Animated.View>
   );
 };
@@ -267,10 +230,10 @@ export default function LandingScreen() {
 
   const renderRestaurantCard = useCallback(
     ({ item, index }: { item: RestaurantDisplayDto; index: number }) => {
-      const delay = Math.min(index, 6) * 70;
+      const delay = Math.min(index, 4) * 50;
 
       return (
-        <Animated.View entering={FadeInDown.delay(delay).duration(450)} style={styles.carouselItem}>
+        <Animated.View entering={FadeInDown.delay(delay).duration(400)} style={styles.cardWrapper}>
           <RestaurantShowcaseCard
             name={getLocalizedName(item, locale)}
             description={getLocalizedDescriptionNullable(item, locale)}
@@ -282,7 +245,7 @@ export default function LandingScreen() {
             openingHours={item.openingHours}
             closingHours={item.closingHours}
             estimatedDeliveryTime={item.estimatedDeliveryTime}
-            width={screenWidth * 0.85}
+            width={screenWidth - s(32)}
             onPress={() =>
               navigation.navigate(
                 'RestaurantDetails' as never,
@@ -301,7 +264,7 @@ export default function LandingScreen() {
   const renderContent = () => {
     if (!hasValidCoordinates) {
       return (
-        <Animated.View entering={FadeIn.duration(500)} style={styles.placeholderContainer}>
+        <View style={styles.contentWrapper}>
           <AnimatedBubblePattern />
           <View style={styles.addressPrompt}>
             <Text allowFontScaling={false} style={styles.addressPromptTitle}>
@@ -319,27 +282,27 @@ export default function LandingScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </Animated.View>
+        </View>
       );
     }
 
     if (isLoading) {
       return (
-        <Animated.View entering={FadeIn.duration(500)} style={styles.loadingContainer}>
+        <View style={styles.contentWrapper}>
           <AnimatedBubblePattern />
           <View style={styles.loadingContent}>
-            <ActivityIndicator size="large" color="#CA251B" />
+            <ActivityIndicator size="large" color="#FFFFFF" />
             <Text allowFontScaling={false} style={styles.loadingText}>
               {t('home.loading', 'Loading restaurants...')}
             </Text>
           </View>
-        </Animated.View>
+        </View>
       );
     }
 
     if (isError) {
       return (
-        <Animated.View entering={FadeIn.duration(500)} style={styles.errorContainer}>
+        <View style={styles.contentWrapper}>
           <AnimatedBubblePattern />
           <View style={styles.errorContent}>
             <Text allowFontScaling={false} style={styles.errorText}>
@@ -354,30 +317,28 @@ export default function LandingScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </Animated.View>
+        </View>
       );
     }
 
     return (
-      <View style={styles.contentContainer}>
+      <View style={styles.contentWrapper}>
         <AnimatedBubblePattern />
 
-        <View style={styles.carouselSection}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>
-            {t('home.sections.restaurants', 'Discover Restaurants')}
-          </Text>
+        <View style={styles.restaurantSection}>
+          <View style={styles.sectionTitleCard}>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>
+              {t('home.sections.restaurants', 'Nearby Restaurants')}
+            </Text>
+          </View>
 
           <FlatList
             ref={listRef}
             data={restaurants}
             renderItem={renderRestaurantCard}
             keyExtractor={(item) => item.id.toString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            pagingEnabled
-            snapToInterval={screenWidth * 0.85 + 16}
-            decelerationRate="fast"
-            contentContainerStyle={styles.carouselContent}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.restaurantList}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text allowFontScaling={false} style={styles.emptyText}>
@@ -392,37 +353,38 @@ export default function LandingScreen() {
   };
 
   const customHeader = (
-    <Animated.View entering={FadeIn.duration(500)}>
-      <View style={styles.headerWrapper}>
-        <Header
-          title={t('home.header.chooseAddress')}
-          onBack={() => console.log('Landing screen - no back navigation')}
-          compact
-        />
-        <TouchableOpacity
-          style={styles.searchBar}
-          onPress={() => navigation.navigate('Search' as never)}>
-          <Text allowFontScaling={false} style={styles.searchPlaceholder}>
-            {t('home.search.prompt')}
-          </Text>
-          <Search size={s(18)} color="black" />
-        </TouchableOpacity>
-      </View>
+    <Animated.View entering={FadeIn.duration(500)} style={styles.headerContainer}>
+      <TouchableOpacity
+        style={styles.searchBar}
+        onPress={() => navigation.navigate('Search' as never)}>
+        <Text allowFontScaling={false} style={styles.searchPlaceholder}>
+          {t('home.search.prompt', 'Ready to eat?')}
+        </Text>
+        <Search size={s(24)} color="#666666" strokeWidth={2} />
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.addressButton} onPress={openLocationOverlay}>
+        <Text allowFontScaling={false} style={styles.addressText}>
+          {selectedAddress?.formattedAddress ?? t('home.header.chooseAddress', 'Choose Location')}
+        </Text>
+        <ChevronDown size={s(20)} color="#FFFFFF" />
+      </TouchableOpacity>
     </Animated.View>
   );
 
   return (
     <MainLayout
-      headerBackgroundImage={require('../../assets/pattern1.png')}
       showHeader
       showFooter
-      headerMaxHeight={vs(140)}
-      headerMinHeight={vs(100)}
+      headerMaxHeight={vs(160)}
+      headerMinHeight={vs(120)}
       customHeader={customHeader}
       onRefresh={refetch}
       isRefreshing={isRefetching}
       mainContent={<></>}
       ignoreMarginBottom
+      enableHeaderCollapse={false}
+      headerBackgroundImage={null}
       virtualizedListProps={{
         data: [{ key: 'content' }],
         ref: listRef as any,
@@ -430,38 +392,68 @@ export default function LandingScreen() {
         keyExtractor: (item) => item.key,
         showsVerticalScrollIndicator: false,
         contentContainerStyle: styles.listContent,
+        style: styles.redBackground,
       }}
     />
   );
 }
 
 const styles = ScaledSheet.create({
-  headerWrapper: {
-    padding: '6@s',
-    paddingTop: screenHeight < 700 ? vs(0) : vs(6),
+  redBackground: {
+    backgroundColor: '#CA251B',
+  },
+  headerContainer: {
+    paddingHorizontal: '20@s',
+    paddingTop: vs(10),
+    paddingBottom: vs(16),
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: '12@ms',
-    paddingHorizontal: '12@s',
-    paddingVertical: '8@vs',
-    marginTop: '6@vs',
+    backgroundColor: '#FFFFFF',
+    borderRadius: '50@ms',
+    paddingHorizontal: '20@s',
+    paddingVertical: '14@vs',
+    marginBottom: '16@vs',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   searchPlaceholder: {
-    color: 'gray',
+    color: '#999999',
     flex: 1,
-    fontSize: '13@ms',
+    fontSize: '16@ms',
+    fontWeight: '400',
+  },
+  addressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: '8@vs',
+  },
+  addressText: {
+    color: '#FFFFFF',
+    fontSize: '16@ms',
+    fontWeight: '600',
+    marginRight: '6@s',
   },
   listContent: {
-    paddingBottom: '32@vs',
+    flexGrow: 1,
+  },
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: '#CA251B',
   },
   patternContainer: {
     width: screenWidth,
-    height: 250,
-    marginVertical: '16@vs',
+    height: 320,
     position: 'relative',
+    backgroundColor: 'transparent',
   },
   pathSvg: {
     position: 'absolute',
@@ -470,18 +462,7 @@ const styles = ScaledSheet.create({
   },
   bubble: {
     position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  bubbleInner: {
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -490,48 +471,62 @@ const styles = ScaledSheet.create({
     width: DELIVERY_ICON_SIZE,
     height: DELIVERY_ICON_SIZE,
   },
-  placeholderContainer: {
-    flex: 1,
-    paddingHorizontal: '16@s',
+  pinIconContainer: {
+    width: DELIVERY_ICON_SIZE,
+    height: DELIVERY_ICON_SIZE,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  pinIconInner: {
+    position: 'absolute',
+    top: '6@vs',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addressPrompt: {
     paddingVertical: '36@vs',
+    paddingHorizontal: '24@s',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: '16@s',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: '24@ms',
+    borderTopRightRadius: '24@ms',
+    marginTop: '-20@vs',
   },
   addressPromptTitle: {
-    fontSize: '18@ms',
+    fontSize: '20@ms',
     fontWeight: '700',
     color: '#111827',
     textAlign: 'center',
   },
   addressPromptSubtitle: {
-    marginTop: '8@vs',
-    fontSize: '13@ms',
+    marginTop: '10@vs',
+    fontSize: '14@ms',
     color: '#64748B',
     textAlign: 'center',
   },
   addressPromptButton: {
-    marginTop: '18@vs',
-    paddingHorizontal: '20@s',
-    paddingVertical: '10@vs',
-    borderRadius: '20@ms',
+    marginTop: '20@vs',
+    paddingHorizontal: '28@s',
+    paddingVertical: '12@vs',
+    borderRadius: '25@ms',
     backgroundColor: '#CA251B',
   },
   addressPromptButtonLabel: {
-    fontSize: '14@ms',
+    fontSize: '15@ms',
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  loadingContainer: {
-    flex: 1,
-    paddingHorizontal: '16@s',
   },
   loadingContent: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: '40@vs',
+    paddingHorizontal: '24@s',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: '24@ms',
+    borderTopRightRadius: '24@ms',
+    marginTop: '-20@vs',
     gap: '16@vs',
   },
   loadingText: {
@@ -539,59 +534,66 @@ const styles = ScaledSheet.create({
     color: '#64748B',
     textAlign: 'center',
   },
-  errorContainer: {
-    flex: 1,
-    paddingHorizontal: '16@s',
-  },
   errorContent: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: '40@vs',
+    paddingHorizontal: '24@s',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: '24@ms',
+    borderTopRightRadius: '24@ms',
+    marginTop: '-20@vs',
     gap: '16@vs',
   },
   errorText: {
-    fontSize: '14@ms',
+    fontSize: '15@ms',
     color: '#17213A',
     textAlign: 'center',
+    fontWeight: '500',
   },
   retryButton: {
     backgroundColor: '#17213A',
-    paddingHorizontal: '20@s',
-    paddingVertical: '10@vs',
-    borderRadius: '18@ms',
+    paddingHorizontal: '24@s',
+    paddingVertical: '12@vs',
+    borderRadius: '20@ms',
   },
   retryLabel: {
     color: '#FFFFFF',
-    fontSize: '13@ms',
+    fontSize: '14@ms',
     fontWeight: '600',
   },
-  contentContainer: {
+  restaurantSection: {
     flex: 1,
-    paddingHorizontal: '16@s',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: '24@ms',
+    borderTopRightRadius: '24@ms',
+    marginTop: '-20@vs',
+    paddingTop: '24@vs',
   },
-  carouselSection: {
-    marginTop: '16@vs',
+  sectionTitleCard: {
+    paddingHorizontal: '20@s',
+    paddingBottom: '16@vs',
   },
   sectionTitle: {
-    fontSize: '20@ms',
+    fontSize: '22@ms',
     fontWeight: '700',
     color: '#17213A',
+  },
+  restaurantList: {
+    paddingHorizontal: '16@s',
+    paddingBottom: '20@vs',
+  },
+  cardWrapper: {
     marginBottom: '16@vs',
-  },
-  carouselContent: {
-    paddingVertical: '8@vs',
-  },
-  carouselItem: {
-    marginRight: '16@s',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: '40@vs',
-    paddingHorizontal: '16@s',
+    paddingHorizontal: '20@s',
   },
   emptyText: {
-    fontSize: '14@ms',
+    fontSize: '15@ms',
     color: '#64748B',
     textAlign: 'center',
   },
