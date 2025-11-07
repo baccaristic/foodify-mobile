@@ -33,7 +33,8 @@ import type { CartItem, CartItemOptionSelection } from '~/context/CartContext';
 import { moderateScale, vs } from 'react-native-size-matters';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 import { updateMenuItemFavoriteState } from '~/utils/restaurantFavorites';
-import { useTranslation } from '~/localization';
+import { useTranslation, useLocalization } from '~/localization';
+import { getLocalizedName, getLocalizedDescription } from '~/utils/localization';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
@@ -94,8 +95,11 @@ type MenuCardItem = RestaurantMenuItemDetails | RestaurantMenuItemSummary;
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
 const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({ item, onOpenModal }) => {
+  const { locale } = useLocalization();
   const promotionActive = hasActivePromotion(item);
   const displayPrice = formatCurrency(getMenuItemBasePrice(item));
+  const localizedName = getLocalizedName(item, locale);
+  const localizedDescription = getLocalizedDescription(item, locale);
 
   return (
     <TouchableOpacity
@@ -121,10 +125,10 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
 
       <View className="flex flex-col p-3">
         <Text allowFontScaling={false} className="text-sm font-bold text-[#17213A]" numberOfLines={1}>
-          {item.name}
+          {localizedName}
         </Text>
         <Text allowFontScaling={false} className="text-xs text-gray-500" numberOfLines={2}>
-          {item.description}
+          {localizedDescription}
         </Text>
 
         <View className="mt-2 flex-row items-center justify-between">
@@ -202,6 +206,7 @@ export default function RestaurantDetails() {
 
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { locale } = useLocalization();
   const { addItem, itemCount, items: cartItems, removeItem, restaurant: cartRestaurant } = useCart();
 
   const translateY = useSharedValue(modalHeight);
@@ -245,11 +250,11 @@ export default function RestaurantDetails() {
     }
 
     (restaurant.categories ?? []).forEach((category, index) => {
-      sections.push({ key: `category-${index}`, label: category.name });
+      sections.push({ key: `category-${index}`, label: getLocalizedName(category, locale) });
     });
 
     return sections;
-  }, [restaurant, t]);
+  }, [restaurant, t, locale]);
   const hasMenuSections = menuSections.length > 0;
 
   const formatDeliveryFeeLabel = useCallback(
@@ -511,11 +516,11 @@ export default function RestaurantDetails() {
         }
 
         addItem({
-          restaurant: { id: restaurant.id, name: restaurant.name },
+          restaurant: { id: restaurant.id, name: getLocalizedName(restaurant, locale) },
           menuItem: {
             id: selectedMenuItem.id,
-            name: selectedMenuItem.name,
-            description: selectedMenuItem.description,
+            name: getLocalizedName(selectedMenuItem, locale),
+            description: getLocalizedDescription(selectedMenuItem, locale),
             imageUrl: selectedMenuItem.imageUrl,
             price: getMenuItemBasePrice(selectedMenuItem),
           },
@@ -529,7 +534,7 @@ export default function RestaurantDetails() {
       setEditingCartItemId(null);
       setInitialDraftSelections(null);
     },
-    [addItem, editingCartItemId, removeItem, restaurant, selectedMenuItem]
+    [addItem, editingCartItemId, removeItem, restaurant, selectedMenuItem, locale]
   );
 
   const handleToggleRestaurantFavorite = useCallback(() => {
@@ -698,7 +703,7 @@ export default function RestaurantDetails() {
                 className="mb-4 text-lg font-semibold text-[#17213A]"
                 entering={createSectionHeaderEntrance(index + 1)}
               >
-                {category.name}
+                {getLocalizedName(category, locale)}
               </AnimatedText>
               <View className="flex-row flex-wrap justify-between gap-y-4">
                 {(category.items ?? []).map((item, itemIndex) => (
@@ -810,7 +815,7 @@ export default function RestaurantDetails() {
                 })}
             >
               <AnimatedText allowFontScaling={false} className="text-2xl font-bold text-[#17213A]">
-                {restaurant.name}
+                {getLocalizedName(restaurant, locale)}
               </AnimatedText>
               {restaurant.description ? (
                 <AnimatedText
@@ -826,7 +831,7 @@ export default function RestaurantDetails() {
                       transform: [{ translateY: 16 }],
                     })}
                 >
-                  {restaurant.description}
+                  {getLocalizedDescription(restaurant, locale)}
                 </AnimatedText>
               ) : null}
             </Animated.View>
@@ -893,10 +898,9 @@ export default function RestaurantDetails() {
             </AnimatedText>
             {restaurant.description ? (
               <Text allowFontScaling={false} className="text-sm text-[#17213A]">
-                {restaurant.description}
+                {getLocalizedDescription(restaurant, locale)}
               </Text>
             ) : null}
-            {renderHighlights()}
             <Animated.View
               className="ml-2 mt-2 flex flex-row items-center text-[#17213A]/40"
               entering={FadeInUp.springify()
@@ -992,7 +996,7 @@ export default function RestaurantDetails() {
           skeletonStyle={styles.collapsedIconImage}
         />
         <Text allowFontScaling={false} className="text-center text-lg font-bold text-gray-800">
-          {restaurant?.name ?? t('restaurantDetails.fallbackName')}
+          {getLocalizedName(restaurant as RestaurantDetailsResponse, locale) ?? t('restaurantDetails.fallbackName')}
         </Text>
       </View>
 

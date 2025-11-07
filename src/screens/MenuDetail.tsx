@@ -14,7 +14,8 @@ import type {
 } from '~/interfaces/Restaurant';
 import { BASE_API_URL } from '@env';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
-import { useTranslation } from '~/localization';
+import { useTranslation, useLocalization } from '~/localization';
+import { getLocalizedName, getLocalizedDescription } from '~/utils/localization';
 
 const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
@@ -121,31 +122,36 @@ const resolveImageSource = (imagePath?: string | null) => {
   return require('../../assets/baguette.png');
 };
 
-const OptionRow: React.FC<OptionRowProps> = ({ group, extra, isSelected, isLast, onToggle }) => (
-  <TouchableOpacity
-    onPress={() => onToggle(group, extra)}
-    className={`flex-row items-center justify-between py-3 ${isLast ? '' : 'border-b border-gray-100'}`}>
-    <View className="flex-1">
-      <Text
-        allowFontScaling={false}
-        className={`text-base font-semibold ${isSelected ? 'text-[#CA251B]' : 'text-gray-800'}`}>
-        {extra.name}
-      </Text>
-      {extra.price > 0 ? (
-        <Text allowFontScaling={false} className="mt-1 text-sm font-medium text-gray-500">
-          +{formatPrice(extra.price)}
-        </Text>
-      ) : null}
-    </View>
+const OptionRow: React.FC<OptionRowProps> = ({ group, extra, isSelected, isLast, onToggle }) => {
+  const { locale } = useLocalization();
+  const localizedExtraName = getLocalizedName(extra, locale);
 
-    <View
-      className={`h-8 w-8 items-center justify-center rounded-full ${
-        isSelected ? 'bg-[#CA251B]' : 'bg-[#FDE7E5]'
-      }`}>
-      {isSelected ? <Check size={18} color="white" /> : <Plus size={18} color={primaryColor} />}
-    </View>
-  </TouchableOpacity>
-);
+  return (
+    <TouchableOpacity
+      onPress={() => onToggle(group, extra)}
+      className={`flex-row items-center justify-between py-3 ${isLast ? '' : 'border-b border-gray-100'}`}>
+      <View className="flex-1">
+        <Text
+          allowFontScaling={false}
+          className={`text-base font-semibold ${isSelected ? 'text-[#CA251B]' : 'text-gray-800'}`}>
+          {localizedExtraName}
+        </Text>
+        {extra.price > 0 ? (
+          <Text allowFontScaling={false} className="mt-1 text-sm font-medium text-gray-500">
+            +{formatPrice(extra.price)}
+          </Text>
+        ) : null}
+      </View>
+
+      <View
+        className={`h-8 w-8 items-center justify-center rounded-full ${
+          isSelected ? 'bg-[#CA251B]' : 'bg-[#FDE7E5]'
+        }`}>
+        {isSelected ? <Check size={18} color="white" /> : <Plus size={18} color={primaryColor} />}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const resolveMinSelect = (group: RestaurantMenuOptionGroup) => {
   const baseMin = group.minSelect ?? 0;
@@ -247,6 +253,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { locale } = useLocalization();
 
   const getItemLabel = useCallback(
     (count: number) =>
@@ -378,11 +385,11 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       menuItem.optionGroups
         .map((group) => ({
           groupId: group.id,
-          groupName: group.name,
+          groupName: getLocalizedName(group, locale),
           extras: group.extras.filter((extra) => (selections[group.id] ?? []).includes(extra.id)),
         }))
         .filter((group) => group.extras.length > 0),
-    [menuItem.optionGroups]
+    [menuItem.optionGroups, locale]
   );
 
   const itemTotal = useMemo(() => basePrice + extrasTotal, [basePrice, extrasTotal]);
@@ -476,7 +483,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <ArrowLeft size={20} color={primaryColor} />
       </TouchableOpacity>
       <Text allowFontScaling={false} className="flex-1 text-center text-lg font-bold text-gray-800">
-        {menuItem.name}
+        {getLocalizedName(menuItem, locale)}
       </Text>
       <TouchableOpacity
         className="p-2"
@@ -497,7 +504,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
     >
       <Animated.View entering={createDetailSectionEntrance(0)}>
         <Text allowFontScaling={false} className="mt-2 text-3xl font-bold text-[#17213A]">
-          {menuItem.name}
+          {getLocalizedName(menuItem, locale)}
         </Text>
         <Animated.View entering={createDetailSectionEntrance(1)} className="mt-1 flex-row items-baseline gap-2">
           <Text allowFontScaling={false} className="text-xl font-bold text-[#CA251B]">
@@ -519,7 +526,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         {menuItem.description ? (
           <Animated.View entering={createDetailSectionEntrance(3)}>
             <Text allowFontScaling={false} className="mt-2 mb-4 text-sm text-[#17213A]">
-              {menuItem.description}
+              {getLocalizedDescription(menuItem, locale)}
             </Text>
           </Animated.View>
         ) : null}
@@ -579,7 +586,7 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       {menuItem.optionGroups.map((group, groupIndex) => (
         <Animated.View key={group.id} entering={createOptionGroupEntrance(groupIndex)} className="mb-8">
           <Text allowFontScaling={false} className="text-xl font-bold text-[#17213A]">
-            {group.name}
+            {getLocalizedName(group, locale)}
           </Text>
           <Animated.View entering={createDetailSectionEntrance(groupIndex)} className="mt-2 flex-row items-center gap-2">
             <Text allowFontScaling={false} className="text-sm text-gray-600">

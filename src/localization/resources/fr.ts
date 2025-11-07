@@ -244,6 +244,8 @@ const fr: TranslationDictionary = {
   },
   locationSearch: {
     placeholder: 'Entrez une rue, un bâtiment, etc.',
+    customLabelPlaceholder: 'Donnez un nom convivial à cet endroit',
+    customLabelTitle: 'Étiquette personnalisée',
     empty: {
       initial: 'Commencez à taper pour rechercher une rue, un bâtiment ou un quartier.',
       noResults: 'Aucun lieu correspondant. Essayez de préciser vos mots-clés.',
@@ -568,6 +570,16 @@ const fr: TranslationDictionary = {
     timestamp: {
       am: 'AM',
       pm: 'PM',
+    },
+  },
+  orderDetails: {
+    fallbacks: {
+      status: 'Livrée',
+      paymentMethod: 'Espèces',
+      addressTitle: 'Adresse de livraison',
+      addressUnavailable: 'Adresse non disponible',
+      itemName: 'Article',
+      restaurantName: 'Restaurant',
     },
   },
   profile: {

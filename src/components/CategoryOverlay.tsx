@@ -18,7 +18,8 @@ import type { CategoryRestaurantsResponse, RestaurantCategory, RestaurantDisplay
 import { BASE_API_URL } from "@env";
 import { LinearGradient } from "expo-linear-gradient";
 import useSelectedAddress from "~/hooks/useSelectedAddress";
-import { useTranslation } from "~/localization";
+import { useTranslation, useLocalization } from "~/localization";
+import { getLocalizedName } from "~/utils/localization";
 import { getCategoryLabelKey, toCategoryDisplayName } from "~/localization/categoryKeys";
 
 interface CategoryOverlayProps {
@@ -37,6 +38,7 @@ export default function CategoryOverlay({
     const navigation = useNavigation();
     const savedAddresse = useSelectedAddress();
     const { t } = useTranslation();
+    const { locale } = useLocalization();
     const userLatitude = savedAddresse.selectedAddress?.coordinates.latitude ?? null;
     const userLongitude = savedAddresse.selectedAddress?.coordinates.longitude ?? null;
     const hasLocation = userLatitude !== null && userLongitude !== null;
@@ -179,27 +181,27 @@ export default function CategoryOverlay({
                                 style={styles.promotionSticker}
                             >
                                 <Percent size={s(11)} color="#0F172A" />
-                                <Text allowFontScaling={false}style={styles.promotionText} numberOfLines={1}>
+                                <Text allowFontScaling={false} style={styles.promotionText} numberOfLines={1}>
                                     {item.promotionSummary}
                                 </Text>
                             </LinearGradient>
                         </View>
                     ) : null}
                     <View style={styles.cardBody}>
-                        <Text allowFontScaling={false}style={styles.cardTitle}>{item.name}</Text>
+                        <Text allowFontScaling={false} style={styles.cardTitle}>{getLocalizedName(item, locale)}</Text>
                         <View style={styles.cardRow}>
-                            <Text allowFontScaling={false}style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
+                            <Text allowFontScaling={false} style={styles.deliveryTime}>{item.type ?? t('categoryOverlay.defaultType')}</Text>
                             <View style={styles.ratingRow}>
                                 <Star size={s(14)} color="#FACC15" fill="#FACC15" />
-                                <Text allowFontScaling={false}style={styles.ratingText}>{ratingDisplay}</Text>
+                                <Text allowFontScaling={false} style={styles.ratingText}>{ratingDisplay}</Text>
                             </View>
                         </View>
-                        <Text allowFontScaling={false}style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee ?? 0)}</Text>
+                        <Text allowFontScaling={false} style={styles.deliveryFee}>{formatDeliveryFee(item.deliveryFee ?? 0)}</Text>
                     </View>
                 </TouchableOpacity>
             );
         },
-        [formatDeliveryFee, navigation, onClose, t]
+        [formatDeliveryFee, navigation, onClose, t, locale]
     );
 
     const listFooter = React.useMemo(
