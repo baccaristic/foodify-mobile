@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
 import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
-import { User, Phone, Mail, Lock, Star, Languages, ChevronRight, CalendarDays } from 'lucide-react-native';
+import { User, Phone, Mail, Lock, Star, Languages, ChevronRight, ChevronLeft, CalendarDays } from 'lucide-react-native';
 import MainLayout from '~/layouts/MainLayout';
 import useAuth from '~/hooks/useAuth';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
@@ -13,7 +13,7 @@ import ModifyPhoneOverlay from '~/components/ProfilSettings/ModifyPhoneOverlay';
 import ModifyPasswordOverlay from '~/components/ProfilSettings/ModifyPasswordOverlay';
 import ModifyDateOfBirthOverlay from '~/components/ProfilSettings/ModifyDateOfBirthOverlay';
 import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
-import { useTranslation } from '~/localization';
+import { useTranslation, useLocalization } from '~/localization';
 
 const palette = {
   accent: '#CA251B',
@@ -24,6 +24,7 @@ const ProfileSettingsScreen = () => {
   const { user } = useAuth();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { t } = useTranslation();
+  const { isRTL } = useLocalization();
   const displayName = user?.name ?? 'Flen Foulani';
   const displayEmail = user?.email ?? 'flenfoulani@email.com';
   const displayPhone = user?.phone ?? '987654432';
@@ -134,7 +135,11 @@ const ProfileSettingsScreen = () => {
               {t('profile.settings.actions.language')}
             </Text>
           </View>
-          <ChevronRight size={s(18)} color={palette.accent} />
+          {isRTL ? (
+            <ChevronLeft size={s(18)} color={palette.accent} />
+          ) : (
+            <ChevronRight size={s(18)} color={palette.accent} />
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>
