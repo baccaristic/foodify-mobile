@@ -147,36 +147,40 @@ const DottedPath = () => {
     opacity: opacity.value,
   }));
 
+  // Memoize dot positions to avoid recalculating on every render
+  const dots = React.useMemo(() => {
+    const result: Array<{ key: string; left: number; top: number }> = [];
+
+    PATH_POINTS.forEach((point, index) => {
+      if (index === PATH_POINTS.length - 1) return;
+
+      const nextPoint = PATH_POINTS[index + 1];
+      const segmentLength = Math.sqrt(
+        Math.pow(nextPoint.x - point.x, 2) + Math.pow(nextPoint.y - point.y, 2)
+      );
+      const numDots = Math.floor(segmentLength / 18);
+
+      for (let dotIndex = 0; dotIndex < numDots; dotIndex++) {
+        const progress = dotIndex / numDots;
+        const x = point.x + (nextPoint.x - point.x) * progress;
+        const y = point.y + (nextPoint.y - point.y) * progress;
+
+        result.push({
+          key: `${index}-${dotIndex}`,
+          left: x,
+          top: y,
+        });
+      }
+    });
+
+    return result;
+  }, []);
+
   return (
     <Animated.View style={[styles.pathContainer, animatedStyle]}>
-      {PATH_POINTS.map((point, index) => {
-        if (index === PATH_POINTS.length - 1) return null;
-
-        const nextPoint = PATH_POINTS[index + 1];
-        const segmentLength = Math.sqrt(
-          Math.pow(nextPoint.x - point.x, 2) + Math.pow(nextPoint.y - point.y, 2)
-        );
-        const numDots = Math.floor(segmentLength / 18);
-
-        return Array.from({ length: numDots }).map((_, dotIndex) => {
-          const progress = dotIndex / numDots;
-          const x = point.x + (nextPoint.x - point.x) * progress;
-          const y = point.y + (nextPoint.y - point.y) * progress;
-
-          return (
-            <View
-              key={`${index}-${dotIndex}`}
-              style={[
-                styles.dot,
-                {
-                  left: x,
-                  top: y,
-                },
-              ]}
-            />
-          );
-        });
-      })}
+      {dots.map((dot) => (
+        <View key={dot.key} style={[styles.dot, { left: dot.left, top: dot.top }]} />
+      ))}
     </Animated.View>
   );
 };
@@ -186,35 +190,30 @@ const BikeAnimation = () => {
   const rotation = useSharedValue(0);
 
   useEffect(() => {
-    const animateJourney = () => {
-      // Reset
-      progress.value = 0;
+    // Animate through the path with repeat
+    progress.value = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 0 }), // Reset to start
+        withTiming(1, {
+          duration: 4500,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        withDelay(1500, withTiming(1, { duration: 0 })) // Pause at end before restart
+      ),
+      -1, // Infinite repeat
+      false
+    );
 
-      // Animate through the path
-      progress.value = withTiming(1, {
-        duration: 4500,
-        easing: Easing.inOut(Easing.ease),
-      });
-
-      // Slight tilt animation for realism
-      rotation.value = withRepeat(
-        withSequence(
-          withTiming(-2, { duration: 300, easing: Easing.inOut(Easing.ease) }),
-          withTiming(2, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-          withTiming(-2, { duration: 300, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      );
-    };
-
-    // Start animation
-    animateJourney();
-
-    // Loop the journey
-    const interval = setInterval(animateJourney, 6000);
-
-    return () => clearInterval(interval);
+    // Slight tilt animation for realism
+    rotation.value = withRepeat(
+      withSequence(
+        withTiming(-2, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+        withTiming(2, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-2, { duration: 300, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
   }, [progress, rotation]);
 
   const animatedStyle = useAnimatedStyle(() => {
