@@ -84,6 +84,7 @@ interface MainLayoutProps {
   headerMaxHeight?: number;
   headerMinHeight?: number;
   headerBackgroundImage?: any;
+  headerBackgroundColor?: string;
   headerCollapsed?: boolean;
   enableHeaderCollapse?: boolean;
   enforceResponsiveHeaderSize?: boolean;
@@ -109,6 +110,7 @@ export default function MainLayout({
   headerMaxHeight,
   headerMinHeight,
   headerBackgroundImage,
+  headerBackgroundColor = '#CA251B',
   headerCollapsed = false,
   enableHeaderCollapse = true,
   enforceResponsiveHeaderSize = true,
@@ -358,7 +360,7 @@ export default function MainLayout({
 
     // Solid color background when no image
     return (
-      <View style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#CA251B' }}>
+      <View style={{ flex: 1, width: '100%', height: '100%', backgroundColor: headerBackgroundColor }}>
         {fullNode}
         {collapsedNode}
       </View>

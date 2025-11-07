@@ -328,7 +328,7 @@ export default function LandingScreen() {
         <View style={styles.restaurantSection}>
           <View style={styles.sectionTitleCard}>
             <Text allowFontScaling={false} style={styles.sectionTitle}>
-              {t('home.sections.restaurants', 'Nearby Restaurants')}
+              {t('home.sections.restaurants')}
             </Text>
           </View>
 
@@ -358,14 +358,14 @@ export default function LandingScreen() {
         style={styles.searchBar}
         onPress={() => navigation.navigate('Search' as never)}>
         <Text allowFontScaling={false} style={styles.searchPlaceholder}>
-          {t('home.search.prompt', 'Ready to eat?')}
+          {t('home.search.prompt')}
         </Text>
         <Search size={s(24)} color="#666666" strokeWidth={2} />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.addressButton} onPress={openLocationOverlay}>
         <Text allowFontScaling={false} style={styles.addressText}>
-          {selectedAddress?.formattedAddress ?? t('home.header.chooseAddress', 'Choose Location')}
+          {selectedAddress?.formattedAddress ?? t('home.header.chooseAddress')}
         </Text>
         <ChevronDown size={s(20)} color="#FFFFFF" />
       </TouchableOpacity>
@@ -385,6 +385,7 @@ export default function LandingScreen() {
       ignoreMarginBottom
       enableHeaderCollapse={false}
       headerBackgroundImage={null}
+      headerBackgroundColor="#CA251B"
       virtualizedListProps={{
         data: [{ key: 'content' }],
         ref: listRef as any,
