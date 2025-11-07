@@ -646,12 +646,14 @@ const en: TranslationDictionary = {
       options: {
         en: 'English',
         fr: 'Français',
+        ar: 'العربية',
       },
       hints: {
         en: 'Recommended for international users',
         fr: 'Idéal pour les francophones',
+        ar: 'Right-to-left layout for Arabic readers',
       },
-      note: 'Your selection updates instantly across the app.',
+      note: 'Your selection updates instantly across the app. Changing to/from Arabic will update the layout direction.',
     },
     coupon: {
       title: 'Coupon code',

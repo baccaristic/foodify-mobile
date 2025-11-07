@@ -656,12 +656,14 @@ const fr: TranslationDictionary = {
       options: {
         en: 'Anglais',
         fr: 'Français',
+        ar: 'Arabe',
       },
       hints: {
         en: 'Recommandée pour les utilisateurs internationaux',
         fr: 'Idéale pour les francophones',
+        ar: 'Mise en page de droite à gauche pour les lecteurs arabes',
       },
-      note: "Votre sélection s'applique immédiatement dans l'application.",
+      note: "Votre sélection s'applique immédiatement dans l'application. Le changement vers/depuis l'arabe mettra à jour l'orientation de la mise en page.",
     },
     coupon: {
       title: 'Code promo',

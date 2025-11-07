@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { I18nManager } from 'react-native';
 import * as ExpoLocalization from 'expo-localization';
 import type { Locale, TranslationDictionary, TranslationResources } from './types';
 import en from './resources/en';
@@ -71,6 +72,29 @@ const interpolate = (template: string, values?: Record<string, string | number>)
 
 export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [locale, setLocale] = useState<Locale>(resolveInitialLocale());
+  const [isRTL, setIsRTL] = useState<boolean>(resolveInitialLocale() === 'ar');
+
+  const handleSetLocale = useCallback((newLocale: Locale) => {
+    const shouldBeRTL = newLocale === 'ar';
+    
+    // Update RTL mode if it has changed
+    if (I18nManager.isRTL !== shouldBeRTL) {
+      I18nManager.forceRTL(shouldBeRTL);
+      I18nManager.allowRTL(shouldBeRTL);
+    }
+    
+    setIsRTL(shouldBeRTL);
+    setLocale(newLocale);
+  }, []);
+
+  // Initialize RTL on mount based on initial locale
+  useEffect(() => {
+    const shouldBeRTL = locale === 'ar';
+    if (I18nManager.isRTL !== shouldBeRTL) {
+      I18nManager.forceRTL(shouldBeRTL);
+      I18nManager.allowRTL(shouldBeRTL);
+    }
+  }, []);
 
   const translate = useCallback(
     (key: string, options?: TranslateOptions) => {
@@ -103,11 +127,11 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const value = useMemo<LocalizationContextValue>(
     () => ({
       locale,
-      setLocale,
+      setLocale: handleSetLocale,
       t: translate,
-      isRTL: ExpoLocalization.isRTL,
+      isRTL,
     }),
-    [locale, translate],
+    [locale, handleSetLocale, translate, isRTL],
   );
 
   return <LocalizationContext.Provider value={value}>{children}</LocalizationContext.Provider>;
