@@ -13,6 +13,9 @@ export const getLocalizedName = (
   },
   locale: Locale
 ): string => {
+  if (obj == null) {
+    return '';
+  }
   switch (locale) {
     case 'en':
       return obj.nameEn ?? obj.name;

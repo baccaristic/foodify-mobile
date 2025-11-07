@@ -703,7 +703,7 @@ export default function RestaurantDetails() {
                 className="mb-4 text-lg font-semibold text-[#17213A]"
                 entering={createSectionHeaderEntrance(index + 1)}
               >
-                {category.name}
+                {getLocalizedName(category, locale)}
               </AnimatedText>
               <View className="flex-row flex-wrap justify-between gap-y-4">
                 {(category.items ?? []).map((item, itemIndex) => (
@@ -901,7 +901,6 @@ export default function RestaurantDetails() {
                 {getLocalizedDescription(restaurant, locale)}
               </Text>
             ) : null}
-            {renderHighlights()}
             <Animated.View
               className="ml-2 mt-2 flex flex-row items-center text-[#17213A]/40"
               entering={FadeInUp.springify()
@@ -997,7 +996,7 @@ export default function RestaurantDetails() {
           skeletonStyle={styles.collapsedIconImage}
         />
         <Text allowFontScaling={false} className="text-center text-lg font-bold text-gray-800">
-          {restaurant?.name ?? t('restaurantDetails.fallbackName')}
+          {getLocalizedName(restaurant as RestaurantDetailsResponse, locale) ?? t('restaurantDetails.fallbackName')}
         </Text>
       </View>
 
