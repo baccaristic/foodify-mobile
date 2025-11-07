@@ -336,7 +336,7 @@ const ar: TranslationDictionary = {
       },
     },
     delivery: {
-      withFee: 'رسوم توصيل {{fee}}',
+      withFee: '{{fee}} د.ت',
       free: 'توصيل مجاني',
       estimatedTime: '{{time}} دقيقة',
     },

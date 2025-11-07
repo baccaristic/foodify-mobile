@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
+import { ArrowLeft, CalendarClock, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
@@ -20,7 +20,7 @@ import {
 } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
+import {Image} from 'expo-image';
 import MainLayout from '~/layouts/MainLayout';
 import FixedOrderBar from '~/components/FixedOrderBar';
 import MenuDetail from './MenuDetail';
@@ -294,7 +294,7 @@ export default function RestaurantDetails() {
   const formatDeliveryFeeLabel = useCallback(
     (fee: number) =>
       fee > 0
-        ? t('restaurantDetails.delivery.withFee', { values: { fee: formatCurrency(fee) } })
+        ? t('restaurantDetails.delivery.withFee', { values: { fee: fee } })
         : t('restaurantDetails.delivery.free'),
     [t]
   );
@@ -890,7 +890,7 @@ export default function RestaurantDetails() {
               })}>
             <View className="border-1 mt-2 flex flex-row items-center gap-4 rounded-xl border-black/5 bg-white px-4 py-2 shadow-xl">
               <View className="flex flex-row items-center gap-1 font-sans">
-                <Clock7 size={16} color="#CA251B" />
+                <CalendarClock size={16} color="#CA251B" />
                 <Text allowFontScaling={false} className="text-sm text-gray-700">
                   {restaurant.openingHours} - {restaurant.closingHours}
                 </Text>
@@ -910,11 +910,15 @@ export default function RestaurantDetails() {
                 </Text>
               </View>
 
-              <View className="flex flex-row items-center gap-1 font-sans">
-                <Text allowFontScaling={false} className="text-sm text-gray-700">
-                  {formatDeliveryFeeLabel(restaurant.deliveryFee)}
-                </Text>
-              </View>
+                <View className="flex flex-row items-center gap-1 font-sans">
+      <Image
+        source={require('../../assets/delivery.png')} // path to your PNG
+        style={{ width: 14, height: 14, resizeMode: 'contain' }}
+      />
+      <Text allowFontScaling={false} className="text-sm text-gray-700">
+        {formatDeliveryFeeLabel(restaurant.deliveryFee)}
+      </Text>
+    </View>
 
               {hasValidEstimatedDeliveryTime(restaurant.estimatedDeliveryTime) && (
                 <View className="flex flex-row items-center gap-1 font-sans">

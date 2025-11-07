@@ -338,7 +338,7 @@ const en: TranslationDictionary = {
       },
     },
     delivery: {
-      withFee: '{{fee}} delivery fee',
+      withFee: '{{fee}} DT',
       free: 'Free delivery',
       estimatedTime: '{{time}} min',
     },
