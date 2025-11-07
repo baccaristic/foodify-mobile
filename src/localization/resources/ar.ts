@@ -248,6 +248,144 @@ const ar: TranslationDictionary = {
       initial: 'ابدأ الكتابة للبحث عن شارع أو مبنى أو منطقة.',
       noResults: 'لا توجد أماكن مطابقة. حاول تحسين الكلمات المفتاحية.',
     },
+    loadingAddress: 'جاري تحميل موقعك...',
+    pinningLocation: 'تحديد الموقع الدقيق…',
+    deliveryLocation: 'موقع التوصيل',
+    useThisAddress: 'استخدم هذا العنوان',
+    keepEditingDetails: 'متابعة تعديل التفاصيل',
+    savedAddresses: 'العناوين المحفوظة',
+    savedAddressesSubtitle: 'اختر موقعًا متكررًا أو أضف موقعًا جديدًا.',
+    noSavedAddresses: 'ليس لديك عناوين محفوظة بعد. حدد موقعًا لإضافة واحد.',
+    selectedLabel: 'محدد',
+    addNewAddress: 'إضافة عنوان جديد',
+    searchPromptTitle: 'ابحث عن موقع مختلف',
+    searchPromptSubtitle: 'اسحب الدبوس على الخريطة أعلاه أو ابحث عن شارع أو مبنى أو معلم دقيق.',
+    searchPlaceholder: 'ابحث عن موقع التوصيل',
+    labelThisAddress: 'قم بتسمية هذا العنوان كـ',
+    addressDetailsHeading: 'تفاصيل العنوان',
+    markEntranceHeading: 'حدد المدخل',
+    markEntranceHelper: 'ساعد السائق في العثور عليك بشكل أسرع وأكثر أمانًا.',
+    saveAndContinue: 'حفظ والمتابعة',
+    adjustPinLocation: 'ضبط موقع الدبوس',
+    addressTypes: {
+      home: {
+        label: 'المنزل',
+        description: 'منزل، فيلا أو عقار مستقل',
+      },
+      apartment: {
+        label: 'شقة',
+        description: 'مبنى أو مجمع سكني متعدد الوحدات',
+      },
+      work: {
+        label: 'العمل',
+        description: 'مكتب، مساحة عمل مشتركة أو واجهة متجر',
+      },
+      other: {
+        label: 'أخرى',
+        description: 'أي نوع آخر من المواقع',
+      },
+    },
+    fields: {
+      houseNumber: {
+        label: 'رقم المنزل',
+        placeholder: 'مثال 24 أو فيلا نور',
+      },
+      directions: {
+        label: 'اتجاهات للسائق',
+        placeholder: 'معالم، لون البوابة…',
+      },
+      building: {
+        label: 'المبنى',
+        placeholder: 'برج، مجمع أو اسم المقر',
+      },
+      floor: {
+        label: 'الطابق',
+        placeholder: 'مثال الخامس',
+      },
+      unit: {
+        label: 'الشقة',
+        placeholder: 'مثال 5B أو 17',
+      },
+      complement: {
+        label: 'معلومات إضافية',
+        placeholder: 'كيفية الوصول إلى الجرس، إلخ.',
+      },
+      company: {
+        label: 'الشركة أو المنظمة',
+        placeholder: 'Foodify, Inc.',
+      },
+      department: {
+        label: 'القسم',
+        placeholder: 'مثال المنتج، الموارد البشرية',
+      },
+      contact: {
+        label: 'جهة اتصال الاستقبال',
+        placeholder: 'الاسم أو الهاتف للتسليم',
+      },
+      customName: {
+        label: 'أعطه اسمًا',
+        placeholder: 'صديق، نادي رياضي، استوديو…',
+      },
+      notes: {
+        label: 'ملاحظات للسائق',
+        placeholder: 'وصف المدخل أو نقطة التسليم',
+      },
+    },
+    entranceOptions: {
+      leaveAtDoor: {
+        label: 'اترك عند الباب',
+        helper: 'مثالي عندما يكون شخص ما في المنزل',
+      },
+      callOnArrival: {
+        label: 'اتصل عند الوصول',
+        helper: 'سنتصل بك عند وصولنا',
+      },
+      meetOutside: {
+        label: 'قابلني في الخارج',
+        helper: 'سألتقي بالسائق عند البوابة',
+      },
+      buzz: {
+        label: 'رن الجرس',
+        helper: 'قدم الرمز أو اسم الشقة إذا لزم الأمر',
+      },
+      security: {
+        label: 'سجل مع الأمن',
+        helper: 'سيترك السائق بطاقة هوية إذا لزم الأمر',
+      },
+      reception: {
+        label: 'ترك عند الاستقبال',
+        helper: 'يوقع مكتب الاستقبال على التسليم',
+      },
+      securityDesk: {
+        label: 'ترك مع الأمن',
+        helper: 'مثالي عندما يكون الوصول محدودًا',
+      },
+      callUponArrival: {
+        label: 'اتصل عند الوصول',
+        helper: 'سنتصل بك قبل الصعود',
+      },
+      call: {
+        label: 'اتصل بي عند الوصول',
+        helper: 'الأفضل للقاءات الفردية',
+      },
+      text: {
+        label: 'أرسل رسالة نصية',
+        helper: 'احصل على رسالة نصية سريعة عند الاقتراب',
+      },
+    },
+    errors: {
+      preciseAddressUnavailable: 'العنوان الدقيق غير متاح',
+      couldNotReachMaps: 'تعذر الوصول إلى خرائط Google',
+      couldNotDetermineLocation: 'تعذر تحديد موقعك الحالي. حاول مرة أخرى.',
+      locationPermissionDisabled: 'إذن الموقع معطل. يرجى تمكينه في الإعدادات.',
+      locationServicesOff: 'قم بتشغيل خدمات الموقع في جهازك للمتابعة.',
+      needPermission: 'نحتاج إلى إذنك لإظهار المطاعم القريبة.',
+      couldNotLoadAddresses: 'تعذر تحميل عناوينك المحفوظة.',
+      couldNotSaveAddress: 'تعذر حفظ هذا العنوان. يرجى المحاولة مرة أخرى.',
+      noMatchingPlaces: 'لا توجد أماكن مطابقة. حاول تحسين الكلمات المفتاحية.',
+      couldNotRetrieveSuggestions: 'تعذر استرداد الاقتراحات.',
+      couldNotLoadPlace: 'تعذر تحميل المكان المحدد.',
+    },
   },
   search: {
     header: {

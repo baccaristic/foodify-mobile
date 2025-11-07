@@ -248,6 +248,144 @@ const en: TranslationDictionary = {
       initial: 'Start typing to search for a street, building or area.',
       noResults: 'No matching places. Try refining the keywords.',
     },
+    loadingAddress: 'Loading your location...',
+    pinningLocation: 'Pinning exact spot…',
+    deliveryLocation: 'DELIVERY LOCATION',
+    useThisAddress: 'USE THIS ADDRESS',
+    keepEditingDetails: 'KEEP EDITING DETAILS',
+    savedAddresses: 'Saved addresses',
+    savedAddressesSubtitle: 'Choose a frequent spot or add a brand new location.',
+    noSavedAddresses: 'You have no saved addresses yet. Pin a spot to add one.',
+    selectedLabel: 'Selected',
+    addNewAddress: 'Add new address',
+    searchPromptTitle: 'Search for a different spot',
+    searchPromptSubtitle: 'Drag the pin on the map above or look up an exact street, building or landmark.',
+    searchPlaceholder: 'Search your delivery location',
+    labelThisAddress: 'Label this address as',
+    addressDetailsHeading: 'Address details',
+    markEntranceHeading: 'Mark the entrance',
+    markEntranceHelper: 'Help our rider find you faster and more safely.',
+    saveAndContinue: 'Save and continue',
+    adjustPinLocation: 'Adjust pin location',
+    addressTypes: {
+      home: {
+        label: 'Home',
+        description: 'House, villa or standalone property',
+      },
+      apartment: {
+        label: 'Apartment',
+        description: 'Multi-unit building or residence',
+      },
+      work: {
+        label: 'Work',
+        description: 'Office, co-working or store front',
+      },
+      other: {
+        label: 'Other',
+        description: 'Any other type of location',
+      },
+    },
+    fields: {
+      houseNumber: {
+        label: 'House number',
+        placeholder: 'e.g. 24 or Villa Nour',
+      },
+      directions: {
+        label: 'Directions for the rider',
+        placeholder: 'Landmarks, gate color…',
+      },
+      building: {
+        label: 'Building',
+        placeholder: 'Tower, block or residence name',
+      },
+      floor: {
+        label: 'Floor',
+        placeholder: 'e.g. 5th',
+      },
+      unit: {
+        label: 'Apartment',
+        placeholder: 'e.g. 5B or 17',
+      },
+      complement: {
+        label: 'Complementary info',
+        placeholder: 'How to reach the buzzer, etc.',
+      },
+      company: {
+        label: 'Company or organization',
+        placeholder: 'Foodify, Inc.',
+      },
+      department: {
+        label: 'Department',
+        placeholder: 'e.g. Product, HR',
+      },
+      contact: {
+        label: 'Reception contact',
+        placeholder: 'Name or phone for handoff',
+      },
+      customName: {
+        label: 'Give it a name',
+        placeholder: 'Friend, gym, studio…',
+      },
+      notes: {
+        label: 'Notes for the rider',
+        placeholder: 'Describe the entrance or drop point',
+      },
+    },
+    entranceOptions: {
+      leaveAtDoor: {
+        label: 'Leave at the door',
+        helper: 'Ideal when someone is home',
+      },
+      callOnArrival: {
+        label: 'Call when outside',
+        helper: 'We will ring you as we arrive',
+      },
+      meetOutside: {
+        label: 'Meet me outside',
+        helper: 'I will meet the rider at the gate',
+      },
+      buzz: {
+        label: 'Ring the buzzer',
+        helper: 'Provide code or apartment name if needed',
+      },
+      security: {
+        label: 'Check in with security',
+        helper: 'Rider will leave ID if required',
+      },
+      reception: {
+        label: 'Drop at reception',
+        helper: 'Front desk signs off the delivery',
+      },
+      securityDesk: {
+        label: 'Leave with security',
+        helper: 'Perfect when access is limited',
+      },
+      callUponArrival: {
+        label: 'Call when outside',
+        helper: 'We ring you before heading up',
+      },
+      call: {
+        label: 'Call me on arrival',
+        helper: 'Best for one-off meetups',
+      },
+      text: {
+        label: 'Send a text update',
+        helper: 'Get a quick SMS when close',
+      },
+    },
+    errors: {
+      preciseAddressUnavailable: 'Precise address unavailable',
+      couldNotReachMaps: 'Could not reach Google Maps',
+      couldNotDetermineLocation: 'We could not determine your current location. Try again.',
+      locationPermissionDisabled: 'Location permission is disabled. Please enable it in Settings.',
+      locationServicesOff: 'Turn on your device location services to continue.',
+      needPermission: 'We need your permission to show nearby restaurants.',
+      couldNotLoadAddresses: 'Could not load your saved addresses.',
+      couldNotSaveAddress: 'Could not save this address. Please try again.',
+      noMatchingPlaces: 'No matching places. Try refining the keywords.',
+      couldNotRetrieveSuggestions: 'Could not retrieve suggestions.',
+      couldNotLoadPlace: 'Could not load the selected place.',
+    },
   },
   search: {
     header: {
