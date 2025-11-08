@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { AlertTriangle, MapPin, Navigation } from 'lucide-react-native';
 import { moderateScale } from 'react-native-size-matters';
+import { useTranslation } from '~/localization';
 
 type AddressMismatchOverlayProps = {
   visible: boolean;
@@ -31,22 +32,18 @@ const AddressMismatchOverlay: React.FC<AddressMismatchOverlayProps> = ({
   onUpdateToCurrentLocation,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const handleBackdropPress = useCallback(() => {
     onCancel();
   }, [onCancel]);
 
   return (
-    <Modal
-      animationType="fade"
-      transparent
-      visible={visible}
-      onRequestClose={onCancel}
-    >
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onCancel}>
       <View style={styles.backdrop}>
         <TouchableWithoutFeedback onPress={handleBackdropPress}>
           <View style={StyleSheet.absoluteFill} />
         </TouchableWithoutFeedback>
-        
+
         <View style={styles.container}>
           {/* Warning Icon */}
           <View style={styles.iconContainer}>
@@ -57,12 +54,12 @@ const AddressMismatchOverlay: React.FC<AddressMismatchOverlayProps> = ({
 
           {/* Title */}
           <Text allowFontScaling={false} style={styles.title}>
-            Address Mismatch Detected
+            {t('addressMismatch.title')}
           </Text>
 
           {/* Description */}
           <Text allowFontScaling={false} style={styles.description}>
-            Your selected delivery address doesn&apos;t match your current GPS location. Please confirm your delivery location.
+            {t('addressMismatch.description')}
           </Text>
 
           {/* Address Cards */}
@@ -71,7 +68,7 @@ const AddressMismatchOverlay: React.FC<AddressMismatchOverlayProps> = ({
               <View style={styles.addressHeader}>
                 <MapPin size={moderateScale(16)} color="#6B7280" />
                 <Text allowFontScaling={false} style={styles.addressLabel}>
-                  Selected Address
+                  {t('addressMismatch.selectedAddress')}
                 </Text>
               </View>
               <Text allowFontScaling={false} style={styles.addressText} numberOfLines={2}>
@@ -83,8 +80,10 @@ const AddressMismatchOverlay: React.FC<AddressMismatchOverlayProps> = ({
               <View style={[styles.addressCard, styles.currentLocationCard]}>
                 <View style={styles.addressHeader}>
                   <Navigation size={moderateScale(16)} color={accentColor} />
-                  <Text allowFontScaling={false} style={[styles.addressLabel, styles.currentLocationLabel]}>
-                    Current GPS Location
+                  <Text
+                    allowFontScaling={false}
+                    style={[styles.addressLabel, styles.currentLocationLabel]}>
+                    {t('addressMismatch.currentGpsLocation')}
                   </Text>
                 </View>
                 <Text allowFontScaling={false} style={styles.addressText} numberOfLines={2}>
@@ -99,10 +98,9 @@ const AddressMismatchOverlay: React.FC<AddressMismatchOverlayProps> = ({
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={onContinueWithSelected}
-              style={[styles.button, styles.primaryButton]}
-            >
+              style={[styles.button, styles.primaryButton]}>
               <Text allowFontScaling={false} style={styles.primaryButtonText}>
-                Continue with Selected Address
+                {t('addressMismatch.continueWithSelected')}
               </Text>
             </TouchableOpacity>
 
@@ -110,10 +108,9 @@ const AddressMismatchOverlay: React.FC<AddressMismatchOverlayProps> = ({
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={onUpdateToCurrentLocation}
-                style={[styles.button, styles.secondaryButton]}
-              >
+                style={[styles.button, styles.secondaryButton]}>
                 <Text allowFontScaling={false} style={styles.secondaryButtonText}>
-                  Use Current Location
+                  {t('addressMismatch.useCurrentLocation')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -121,10 +118,9 @@ const AddressMismatchOverlay: React.FC<AddressMismatchOverlayProps> = ({
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={onCancel}
-              style={[styles.button, styles.tertiaryButton]}
-            >
+              style={[styles.button, styles.tertiaryButton]}>
               <Text allowFontScaling={false} style={styles.tertiaryButtonText}>
-                Cancel Order
+                {t('addressMismatch.cancelOrder')}
               </Text>
             </TouchableOpacity>
           </View>

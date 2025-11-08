@@ -1,15 +1,26 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { I18nManager } from 'react-native';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { I18nManager, Platform } from 'react-native';
 import * as ExpoLocalization from 'expo-localization';
+import * as SecureStore from 'expo-secure-store';
+import { reloadAppAsync } from 'expo';
 import type { Locale, TranslationDictionary, TranslationResources } from './types';
 import en from './resources/en';
 import fr from './resources/fr';
 import ar from './resources/ar';
 
+const LOCALE_STORAGE_KEY = 'user_preferred_locale';
+
 const resources: TranslationResources = {
   en,
   fr,
-  ar
+  ar,
 };
 
 type TranslateOptions = {
@@ -41,7 +52,20 @@ const getNestedValue = (dictionary: TranslationDictionary, key: string): string 
   return typeof current === 'string' ? current : undefined;
 };
 
-const resolveInitialLocale = (): Locale => {
+const resolveInitialLocale = async (): Promise<Locale> => {
+  // First, try to load the user's preferred locale from storage
+  try {
+    const storedLocale = await SecureStore.getItemAsync(LOCALE_STORAGE_KEY);
+    if (storedLocale && (storedLocale === 'en' || storedLocale === 'fr' || storedLocale === 'ar')) {
+      return storedLocale as Locale;
+    }
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('Failed to load stored locale:', error);
+    }
+  }
+
+  // Fall back to device locale if no stored preference
   const locales = ExpoLocalization.getLocales();
   if (locales.length > 0) {
     const primary = locales[0];
@@ -80,21 +104,72 @@ const interpolate = (template: string, values?: Record<string, string | number>)
 };
 
 export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const initialLocale = resolveInitialLocale();
-  const [locale, setLocale] = useState<Locale>(initialLocale);
-  const [isRTL, setIsRTL] = useState<boolean>(() => initializeRTL(initialLocale));
+  const [locale, setLocale] = useState<Locale>('en'); // Default to 'en' until we load from storage
+  const [isRTL, setIsRTL] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSetLocale = useCallback((newLocale: Locale) => {
+  // Load the stored locale on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStoredLocale = async () => {
+      const initialLocale = await resolveInitialLocale();
+      if (!cancelled) {
+        setLocale(initialLocale);
+        setIsRTL(initializeRTL(initialLocale));
+        setIsLoading(false);
+      }
+    };
+
+    loadStoredLocale();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSetLocale = useCallback(async (newLocale: Locale) => {
     const shouldBeRTL = newLocale === 'ar';
-    
+    const currentIsRTL = I18nManager.isRTL;
+
+    // Store the new locale preference
+    try {
+      await SecureStore.setItemAsync(LOCALE_STORAGE_KEY, newLocale);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('Failed to store locale preference:', error);
+      }
+    }
+
+    // Check if RTL direction needs to change
+    const needsRTLUpdate = currentIsRTL !== shouldBeRTL;
+
     // Update RTL mode if it has changed
-    if (I18nManager.isRTL !== shouldBeRTL) {
+    if (needsRTLUpdate) {
       I18nManager.forceRTL(shouldBeRTL);
       I18nManager.allowRTL(shouldBeRTL);
+
+      // Reload the app to apply RTL changes
+      // This is necessary because React Native requires an app reload for RTL changes to take effect
+      if (Platform.OS !== 'web') {
+        // Set the locale in state first so it persists after reload
+        setLocale(newLocale);
+        setIsRTL(shouldBeRTL);
+
+        // Trigger app reload after a short delay to ensure state is saved
+        setTimeout(() => {
+          reloadAppAsync('Language direction changed');
+        }, 100);
+      } else {
+        // On web, just update the state without reload
+        setIsRTL(shouldBeRTL);
+        setLocale(newLocale);
+      }
+    } else {
+      // No RTL change needed, just update locale
+      setIsRTL(shouldBeRTL);
+      setLocale(newLocale);
     }
-    
-    setIsRTL(shouldBeRTL);
-    setLocale(newLocale);
   }, []);
 
   const translate = useCallback(
@@ -122,7 +197,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       return interpolate(key, options?.values);
     },
-    [locale],
+    [locale]
   );
 
   const value = useMemo<LocalizationContextValue>(
@@ -134,6 +209,11 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }),
     [locale, handleSetLocale, translate, isRTL],
   );
+
+  // Show a loading state while we're loading the initial locale
+  if (isLoading) {
+    return null;
+  }
 
   return <LocalizationContext.Provider value={value}>{children}</LocalizationContext.Provider>;
 };
@@ -154,5 +234,5 @@ export const useTranslation = () => {
 export const availableLocales: { value: Locale; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'fr', label: 'Français' },
-  {value: 'ar', label: 'العربية'}
+  { value: 'ar', label: 'العربية' },
 ];

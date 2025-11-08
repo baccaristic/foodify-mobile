@@ -53,6 +53,28 @@ const ar: TranslationDictionary = {
       },
     },
   },
+  systemStatus: {
+    titles: {
+      available: 'التوصيلات تعمل بسلاسة',
+      busy: 'المندوبون مشغولون حاليًا',
+      noDriversAvailable: 'لا يوجد مندوبون متاحون',
+    },
+    messages: {
+      busy: 'يمكنك تقديم طلبك، لكن أوقات التوصيل قد تكون أطول من المعتاد. نقدر صبرك.',
+      noDriversAvailable:
+        'نحن غير قادرين مؤقتًا على قبول طلبات توصيل جديدة. يرجى التحقق مرة أخرى بعد قليل.',
+    },
+    appreciatePatience: 'نقدر صبرك.',
+  },
+  addressMismatch: {
+    title: 'تم اكتشاف عدم تطابق العنوان',
+    description: 'عنوان التوصيل المحدد لا يتطابق مع موقع GPS الحالي. يرجى تأكيد موقع التوصيل.',
+    selectedAddress: 'العنوان المحدد',
+    currentGpsLocation: 'موقع GPS الحالي',
+    continueWithSelected: 'المتابعة بالعنوان المحدد',
+    useCurrentLocation: 'استخدام الموقع الحالي',
+    cancelOrder: 'إلغاء الطلب',
+  },
   filters: {
     title: 'المرشحات',
     clear: 'مسح الكل',
