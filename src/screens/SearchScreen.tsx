@@ -15,7 +15,7 @@ import {
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NavigationProp, ParamListBase, useNavigation } from '@react-navigation/native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
-import { Search, SlidersHorizontal, Star } from 'lucide-react-native';
+import { Search, SlidersHorizontal, Star, Lock } from 'lucide-react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -23,6 +23,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import MainLayout from '~/layouts/MainLayout';
 import Header from '~/components/Header';
 import FiltersOverlay from '~/components/FiltersOverlay';
@@ -140,6 +141,7 @@ const RestaurantCard = ({ data, onPress }: { data: RestaurantSearchItem; onPress
     imageUrl,
     deliveryFee,
     estimatedDeliveryTime,
+    open,
   } = data;
   const { t } = useTranslation();
   const { locale } = useLocalization();
@@ -162,6 +164,8 @@ const RestaurantCard = ({ data, onPress }: { data: RestaurantSearchItem; onPress
     return deliveryTimeRange;
   }, [estimatedDeliveryTime, deliveryTimeRange, t]);
 
+  const isClosed = open === false;
+
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
       <Image source={imageSource} style={styles.cardImage} />
@@ -169,6 +173,19 @@ const RestaurantCard = ({ data, onPress }: { data: RestaurantSearchItem; onPress
       {isTopChoice && (
         <View style={styles.badgeTopRight}>
           <Star size={s(16)} color="white" fill="#CA251B" />
+        </View>
+      )}
+
+      {isClosed && (
+        <View style={styles.closedOverlayContainer}>
+          <LinearGradient
+            colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.75)']}
+            style={styles.closedGradient}>
+            <Lock size={s(20)} color="white" />
+            <Text allowFontScaling={false} style={styles.closedText}>
+              {t('restaurantCard.currentlyClosed')}
+            </Text>
+          </LinearGradient>
         </View>
       )}
 
@@ -1036,6 +1053,28 @@ const styles = ScaledSheet.create({
     borderRadius: '50@ms',
     padding: '4@s',
     elevation: 3,
+  },
+  closedOverlayContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closedGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '6@vs',
+  },
+  closedText: {
+    fontSize: '14@ms',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   cardBody: { padding: '10@s' },
   cardTitle: {

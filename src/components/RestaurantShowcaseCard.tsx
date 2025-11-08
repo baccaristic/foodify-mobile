@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { ScaledSheet, s } from 'react-native-size-matters';
 import { Image } from 'expo-image';
-import { ArrowRight, Star, UtensilsCrossed } from 'lucide-react-native';
+import { ArrowRight, Star, UtensilsCrossed, Lock } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { BASE_API_URL } from '@env';
 
 import { useTranslation } from '~/localization';
@@ -33,6 +34,7 @@ export interface RestaurantShowcaseCardProps {
   width?: number | string;
   height?: number | string;
   style?: StyleProp<ViewStyle>;
+  open?: boolean;
 }
 
 const toNumericRating = (rating?: string | number | null) => {
@@ -67,6 +69,7 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
   width,
   height,
   style,
+  open = true,
 }) => {
   const { t } = useTranslation();
   const numericRating = useMemo(() => toNumericRating(rating), [rating]);
@@ -115,6 +118,8 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
     return resolveImageSource(imageUrl ?? fallbackImageUrl);
   }, [fallbackImageUrl, imageUrl]);
 
+  const isClosed = open === false;
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -157,6 +162,23 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
           <ArrowRight size={s(16)} color="white" />
         </View>
       </View>
+      {isClosed && (
+        <LinearGradient
+          colors={['rgba(0, 0, 0, 0.7)', 'rgba(0, 0, 0, 0.85)']}
+          style={styles.closedOverlay}>
+          <View style={styles.closedContent}>
+            <Lock size={s(32)} color="white" />
+            <Text allowFontScaling={false} style={styles.closedTitle}>
+              {t('restaurantCard.currentlyClosed')}
+            </Text>
+            {openingHours ? (
+              <Text allowFontScaling={false} style={styles.closedSubtitle}>
+                {t('restaurantCard.opensAt', { values: {time: openingHours }})}
+              </Text>
+            ) : null}
+          </View>
+        </LinearGradient>
+      )}
     </TouchableOpacity>
   );
 };
@@ -222,5 +244,26 @@ const styles = ScaledSheet.create({
   hint: {
     fontSize: '12@ms',
     color: '#F8FAFC',
+  },
+  closedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closedContent: {
+    alignItems: 'center',
+    gap: '8@vs',
+  },
+  closedTitle: {
+    fontSize: '16@ms',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  closedSubtitle: {
+    fontSize: '14@ms',
+    fontWeight: '500',
+    color: '#E2E8F0',
+    textAlign: 'center',
   },
 });

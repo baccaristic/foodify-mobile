@@ -492,6 +492,10 @@ const fr: TranslationDictionary = {
     },
     fallbackName: 'Restaurant',
   },
+  restaurantCard: {
+    currentlyClosed: 'Actuellement fermé',
+    opensAt: 'Ouvre à {{time}}',
+  },
   checkout: {
     title: 'Ma commande',
     defaults: {
