@@ -54,6 +54,7 @@ import {
   getNearbyRecentOrderRestaurants,
   getNearbyRestaurantsPage,
   getNearbyTopRestaurants,
+  getSponsoredRestaurants,
 } from '~/api/restaurants';
 import { getDeliveryNetworkStatus } from '~/api/delivery';
 import { PageResponse, RestaurantCategory, RestaurantDisplayDto } from '~/interfaces/Restaurant';
@@ -68,6 +69,7 @@ import { getLocalizedName, getLocalizedDescriptionNullable } from '~/utils/local
 import { getCategoryLabelKey, toCategoryDisplayName } from '~/localization/categoryKeys';
 import HomeSkeleton from '~/components/skeletons/HomeSkeleton';
 import SkeletonPulse from '~/components/skeletons/SkeletonPulse';
+import SponsoredRestaurantCard from '~/components/SponsoredRestaurantCard';
 
 type QuickCategoryItem = {
   key: string;
@@ -291,6 +293,19 @@ export default function HomePage() {
     staleTime: 60_000,
   });
 
+  const sponsoredQuery = useQuery<PageResponse<RestaurantDisplayDto>>({
+    queryKey: ['sponsored-restaurants', userLatitude, userLongitude],
+    queryFn: () =>
+      getSponsoredRestaurants({
+        lat: userLatitude as number,
+        lng: userLongitude as number,
+        page: 0,
+        pageSize: 20,
+      }),
+    enabled: hasValidCoordinates,
+    staleTime: 60_000,
+  });
+
   const restaurantsQuery = useInfiniteQuery<PageResponse<RestaurantDisplayDto>>({
     queryKey: ['nearby-restaurants', 'list', userLatitude, userLongitude],
     queryFn: ({ pageParam = INITIAL_PAGE }) =>
@@ -365,6 +380,16 @@ export default function HomePage() {
     [restaurantsQuery.data]
   );
 
+  const sponsoredRestaurants = useMemo(() => {
+    const items = sponsoredQuery.data?.items ?? [];
+    // Sort by position field (ascending order - lower position comes first)
+    return [...items].sort((a, b) => {
+      const posA = a.position ?? Number.MAX_SAFE_INTEGER;
+      const posB = b.position ?? Number.MAX_SAFE_INTEGER;
+      return posA - posB;
+    });
+  }, [sponsoredQuery.data]);
+
   const promotionRestaurants = useMemo(
     () => promotionsQuery.data?.pages.flatMap((page) => page.items ?? []) ?? [],
     [promotionsQuery.data]
@@ -383,6 +408,7 @@ export default function HomePage() {
         restaurants: RestaurantDisplayDto[];
       }
     | { type: 'carouselSection'; key: string; title: string; restaurants: RestaurantDisplayDto[] }
+    | { type: 'sponsoredSection'; key: string; title: string; restaurants: RestaurantDisplayDto[] }
     | { type: 'othersHeader'; key: string; title: string }
     | { type: 'restaurant'; key: string; restaurant: RestaurantDisplayDto; position: number };
 
@@ -395,6 +421,15 @@ export default function HomePage() {
         key: 'top',
         title: toSectionLabel('top', t),
         restaurants: topRestaurants,
+      });
+    }
+
+    if (sponsoredRestaurants.length > 0) {
+      items.push({
+        type: 'sponsoredSection',
+        key: 'sponsored',
+        title: t('home.sections.sponsored'),
+        restaurants: sponsoredRestaurants,
       });
     }
 
@@ -434,25 +469,35 @@ export default function HomePage() {
     }
 
     return items;
-  }, [favoriteRestaurants, otherRestaurants, recentOrderRestaurants, t, topRestaurants]);
+  }, [
+    favoriteRestaurants,
+    otherRestaurants,
+    recentOrderRestaurants,
+    sponsoredRestaurants,
+    t,
+    topRestaurants,
+  ]);
 
   const isLoading =
     topQuery.isLoading ||
     favoritesQuery.isLoading ||
     recentOrdersQuery.isLoading ||
-    restaurantsQuery.isLoading;
+    restaurantsQuery.isLoading ||
+    sponsoredQuery.isLoading;
 
   const isError =
     topQuery.isError ||
     favoritesQuery.isError ||
     recentOrdersQuery.isError ||
-    restaurantsQuery.isError;
+    restaurantsQuery.isError ||
+    sponsoredQuery.isError;
 
   const isRefetching =
     topQuery.isRefetching ||
     favoritesQuery.isRefetching ||
     recentOrdersQuery.isRefetching ||
-    restaurantsQuery.isRefetching;
+    restaurantsQuery.isRefetching ||
+    sponsoredQuery.isRefetching;
 
   const isFetchingNextPage = restaurantsQuery.isFetchingNextPage;
 
@@ -476,8 +521,16 @@ export default function HomePage() {
       favoritesQuery.refetch(),
       recentOrdersQuery.refetch(),
       restaurantsQuery.refetch(),
+      sponsoredQuery.refetch(),
     ]);
-  }, [favoritesQuery, hasValidCoordinates, recentOrdersQuery, restaurantsQuery, topQuery]);
+  }, [
+    favoritesQuery,
+    hasValidCoordinates,
+    recentOrdersQuery,
+    restaurantsQuery,
+    sponsoredQuery,
+    topQuery,
+  ]);
 
   const renderRestaurantCard = useCallback(
     (restaurant: RestaurantDisplayDto, options?: { width?: number | string; index?: number }) => {
@@ -633,6 +686,41 @@ export default function HomePage() {
         );
       }
 
+      if (item.type === 'sponsoredSection') {
+        return (
+          <View style={styles.mainWrapper}>
+            <View style={styles.sectionHeader}>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>
+                {item.title}
+              </Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselList}>
+              {item.restaurants.map((restaurant, index) => (
+                <View key={`sponsored-${restaurant.id}`}>
+                  <SponsoredRestaurantCard
+                    restaurantId={restaurant.id}
+                    name={getLocalizedName(restaurant, locale)}
+                    logoUrl={restaurant.iconUrl}
+                    position={restaurant.position ?? index}
+                    onPress={() =>
+                      navigation.navigate(
+                        'RestaurantDetails' as never,
+                        {
+                          restaurantId: restaurant.id,
+                        } as never
+                      )
+                    }
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        );
+      }
+
       if (item.type === 'carouselSection') {
         return (
           <View style={styles.mainWrapper}>
@@ -678,7 +766,7 @@ export default function HomePage() {
         </View>
       );
     },
-    [compactRestaurantCardWidth, renderRestaurantCard, renderTopPickCard]
+    [compactRestaurantCardWidth, locale, navigation, renderRestaurantCard, renderTopPickCard]
   );
 
   const renderListEmpty = useCallback(() => {
