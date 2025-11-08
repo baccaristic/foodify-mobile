@@ -57,13 +57,13 @@ const SponsoredRestaurantCard: React.FC<SponsoredRestaurantCardProps> = ({
                   : require('../../assets/baguette.png')
               }
               style={styles.logo}
-              contentFit="contain"
+              contentFit="cover"
             />
           </View>
-          <Text allowFontScaling={false} style={styles.name} numberOfLines={2}>
-            {name}
-          </Text>
         </View>
+        <Text allowFontScaling={false} style={styles.name} numberOfLines={1}>
+          {name}
+        </Text>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -71,51 +71,48 @@ const SponsoredRestaurantCard: React.FC<SponsoredRestaurantCardProps> = ({
 
 const styles = ScaledSheet.create({
   container: {
-    marginRight: '12@s',
+    marginRight: '16@s',
+    alignItems: 'center',
   },
   cardWrapper: {
     // This wrapper applies the animation
   },
   card: {
-    width: '140@s',
-    height: '160@vs',
+    width: '100@s',
+    height: '100@s',
     backgroundColor: '#FFFFFF',
     borderRadius: '16@ms',
-    padding: '12@s',
     alignItems: 'center',
     justifyContent: 'center',
     // 3D shadow effects
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 10,
-    // Additional depth with border
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden',
   },
   logoContainer: {
-    width: '90@s',
-    height: '90@vs',
-    borderRadius: '12@ms',
-    backgroundColor: '#F8FAFC',
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '8@vs',
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
   },
   logo: {
     width: '100%',
     height: '100%',
   },
   name: {
+    marginTop: '8@vs',
     fontSize: '12@ms',
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#111827',
     textAlign: 'center',
+    maxWidth: '100@s',
   },
 });
 

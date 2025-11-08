@@ -415,21 +415,21 @@ export default function HomePage() {
   const listData = useMemo(() => {
     const items: NearbyListItem[] = [];
 
-    if (topRestaurants.length > 0) {
-      items.push({
-        type: 'topSection',
-        key: 'top',
-        title: toSectionLabel('top', t),
-        restaurants: topRestaurants,
-      });
-    }
-
     if (sponsoredRestaurants.length > 0) {
       items.push({
         type: 'sponsoredSection',
         key: 'sponsored',
         title: t('home.sections.sponsored'),
         restaurants: sponsoredRestaurants,
+      });
+    }
+
+    if (topRestaurants.length > 0) {
+      items.push({
+        type: 'topSection',
+        key: 'top',
+        title: toSectionLabel('top', t),
+        restaurants: topRestaurants,
       });
     }
 
