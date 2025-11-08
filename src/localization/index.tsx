@@ -10,7 +10,7 @@ import ar from './resources/ar';
 const resources: TranslationResources = {
   en,
   fr,
-  ar
+  ar,
 };
 
 type TranslateOptions = {
@@ -88,22 +88,22 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const handleSetLocale = useCallback((newLocale: Locale) => {
     const shouldBeRTL = newLocale === 'ar';
     const currentIsRTL = I18nManager.isRTL;
-    
+
     // Check if RTL direction needs to change
     const needsRTLUpdate = currentIsRTL !== shouldBeRTL;
-    
+
     // Update RTL mode if it has changed
     if (needsRTLUpdate) {
       I18nManager.forceRTL(shouldBeRTL);
       I18nManager.allowRTL(shouldBeRTL);
-      
+
       // Reload the app to apply RTL changes
       // This is necessary because React Native requires an app reload for RTL changes to take effect
       if (Platform.OS !== 'web') {
         // Set the locale in state first so it persists after reload
         setLocale(newLocale);
         setIsRTL(shouldBeRTL);
-        
+
         // Trigger app reload after a short delay to ensure state is saved
         setTimeout(() => {
           reloadAppAsync('Language direction changed');
@@ -145,7 +145,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       return interpolate(key, options?.values);
     },
-    [locale],
+    [locale]
   );
 
   const value = useMemo<LocalizationContextValue>(
@@ -155,7 +155,7 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       t: translate,
       isRTL,
     }),
-    [locale, handleSetLocale, translate, isRTL],
+    [locale, handleSetLocale, translate, isRTL]
   );
 
   return <LocalizationContext.Provider value={value}>{children}</LocalizationContext.Provider>;
@@ -177,5 +177,5 @@ export const useTranslation = () => {
 export const availableLocales: { value: Locale; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'fr', label: 'Français' },
-  {value: 'ar', label: 'العربية'}
+  { value: 'ar', label: 'العربية' },
 ];

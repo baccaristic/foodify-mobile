@@ -61,13 +61,15 @@ const en: TranslationDictionary = {
     },
     messages: {
       busy: 'You can still place your order, but delivery times may be longer than usual. We appreciate your patience.',
-      noDriversAvailable: "We're temporarily unable to accept new delivery orders. Please check back again in a little while.",
+      noDriversAvailable:
+        "We're temporarily unable to accept new delivery orders. Please check back again in a little while.",
     },
     appreciatePatience: 'We appreciate your patience.',
   },
   addressMismatch: {
     title: 'Address Mismatch Detected',
-    description: "Your selected delivery address doesn't match your current GPS location. Please confirm your delivery location.",
+    description:
+      "Your selected delivery address doesn't match your current GPS location. Please confirm your delivery location.",
     selectedAddress: 'Selected Address',
     currentGpsLocation: 'Current GPS Location',
     continueWithSelected: 'Continue with Selected Address',
@@ -280,7 +282,8 @@ const en: TranslationDictionary = {
     selectedLabel: 'Selected',
     addNewAddress: 'Add new address',
     searchPromptTitle: 'Search for a different spot',
-    searchPromptSubtitle: 'Drag the pin on the map above or look up an exact street, building or landmark.',
+    searchPromptSubtitle:
+      'Drag the pin on the map above or look up an exact street, building or landmark.',
     searchPlaceholder: 'Search your delivery location',
     labelThisAddress: 'Label this address as',
     addressDetailsHeading: 'Address details',

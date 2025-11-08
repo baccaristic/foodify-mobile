@@ -73,8 +73,7 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
       transparent
       animationType="fade"
       onRequestClose={onRequestClose ?? (() => undefined)}
-      statusBarTranslucent
-    >
+      statusBarTranslucent>
       <View style={styles.backdrop}>
         <TouchableOpacity
           style={styles.scrim}
@@ -89,8 +88,7 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
               onPress={onRequestClose ?? (() => undefined)}
               accessibilityRole="button"
               accessibilityLabel="Close system status overlay"
-              style={styles.closeButton}
-            >
+              style={styles.closeButton}>
               <X size={s(18)} color="#0F172A" />
             </TouchableOpacity>
           </View>

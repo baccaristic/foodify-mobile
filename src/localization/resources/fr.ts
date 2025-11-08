@@ -60,17 +60,19 @@ const fr: TranslationDictionary = {
       noDriversAvailable: 'Aucun livreur disponible',
     },
     messages: {
-      busy: 'Vous pouvez toujours passer votre commande, mais les délais de livraison peuvent être plus longs que d\'habitude. Nous apprécions votre patience.',
-      noDriversAvailable: 'Nous ne pouvons temporairement pas accepter de nouvelles commandes de livraison. Veuillez revenir dans quelques instants.',
+      busy: "Vous pouvez toujours passer votre commande, mais les délais de livraison peuvent être plus longs que d'habitude. Nous apprécions votre patience.",
+      noDriversAvailable:
+        'Nous ne pouvons temporairement pas accepter de nouvelles commandes de livraison. Veuillez revenir dans quelques instants.',
     },
     appreciatePatience: 'Nous apprécions votre patience.',
   },
   addressMismatch: {
-    title: 'Différence d\'adresse détectée',
-    description: 'Votre adresse de livraison sélectionnée ne correspond pas à votre position GPS actuelle. Veuillez confirmer votre lieu de livraison.',
+    title: "Différence d'adresse détectée",
+    description:
+      'Votre adresse de livraison sélectionnée ne correspond pas à votre position GPS actuelle. Veuillez confirmer votre lieu de livraison.',
     selectedAddress: 'Adresse sélectionnée',
     currentGpsLocation: 'Position GPS actuelle',
-    continueWithSelected: 'Continuer avec l\'adresse sélectionnée',
+    continueWithSelected: "Continuer avec l'adresse sélectionnée",
     useCurrentLocation: 'Utiliser la position actuelle',
     cancelOrder: 'Annuler la commande',
   },
@@ -278,21 +280,23 @@ const fr: TranslationDictionary = {
     pinningLocation: 'Localisation exacte en cours…',
     deliveryLocation: 'LIEU DE LIVRAISON',
     useThisAddress: 'UTILISER CETTE ADRESSE',
-    keepEditingDetails: 'CONTINUER L\'ÉDITION',
+    keepEditingDetails: "CONTINUER L'ÉDITION",
     savedAddresses: 'Adresses enregistrées',
     savedAddressesSubtitle: 'Choisissez un lieu fréquent ou ajoutez un nouvel emplacement.',
-    noSavedAddresses: 'Vous n\'avez pas encore d\'adresses enregistrées. Épinglez un emplacement pour en ajouter une.',
+    noSavedAddresses:
+      "Vous n'avez pas encore d'adresses enregistrées. Épinglez un emplacement pour en ajouter une.",
     selectedLabel: 'Sélectionné',
     addNewAddress: 'Ajouter une nouvelle adresse',
     searchPromptTitle: 'Rechercher un autre lieu',
-    searchPromptSubtitle: 'Faites glisser l\'épingle sur la carte ci-dessus ou recherchez une rue, un bâtiment ou un point de repère exact.',
+    searchPromptSubtitle:
+      "Faites glisser l'épingle sur la carte ci-dessus ou recherchez une rue, un bâtiment ou un point de repère exact.",
     searchPlaceholder: 'Rechercher votre lieu de livraison',
     labelThisAddress: 'Étiqueter cette adresse comme',
-    addressDetailsHeading: 'Détails de l\'adresse',
-    markEntranceHeading: 'Marquer l\'entrée',
+    addressDetailsHeading: "Détails de l'adresse",
+    markEntranceHeading: "Marquer l'entrée",
     markEntranceHelper: 'Aidez notre livreur à vous trouver plus rapidement et en toute sécurité.',
     saveAndContinue: 'Enregistrer et continuer',
-    adjustPinLocation: 'Ajuster l\'emplacement de l\'épingle',
+    adjustPinLocation: "Ajuster l'emplacement de l'épingle",
     addressTypes: {
       home: {
         label: 'Maison',
@@ -308,7 +312,7 @@ const fr: TranslationDictionary = {
       },
       other: {
         label: 'Autre',
-        description: 'Tout autre type d\'emplacement',
+        description: "Tout autre type d'emplacement",
       },
     },
     fields: {
@@ -334,7 +338,7 @@ const fr: TranslationDictionary = {
       },
       complement: {
         label: 'Info complémentaire',
-        placeholder: 'Comment accéder à l\'interphone, etc.',
+        placeholder: "Comment accéder à l'interphone, etc.",
       },
       company: {
         label: 'Entreprise ou organisation',
@@ -354,13 +358,13 @@ const fr: TranslationDictionary = {
       },
       notes: {
         label: 'Notes pour le livreur',
-        placeholder: 'Décrivez l\'entrée ou le point de dépôt',
+        placeholder: "Décrivez l'entrée ou le point de dépôt",
       },
     },
     entranceOptions: {
       leaveAtDoor: {
         label: 'Laisser à la porte',
-        helper: 'Idéal quand quelqu\'un est à la maison',
+        helper: "Idéal quand quelqu'un est à la maison",
       },
       callOnArrival: {
         label: 'Appeler en arrivant',
@@ -371,43 +375,45 @@ const fr: TranslationDictionary = {
         helper: 'Je rencontrerai le livreur au portail',
       },
       buzz: {
-        label: 'Sonner à l\'interphone',
-        helper: 'Fournissez le code ou le nom de l\'appartement si nécessaire',
+        label: "Sonner à l'interphone",
+        helper: "Fournissez le code ou le nom de l'appartement si nécessaire",
       },
       security: {
-        label: 'S\'enregistrer avec la sécurité',
-        helper: 'Le livreur laissera une pièce d\'identité si nécessaire',
+        label: "S'enregistrer avec la sécurité",
+        helper: "Le livreur laissera une pièce d'identité si nécessaire",
       },
       reception: {
         label: 'Déposer à la réception',
-        helper: 'L\'accueil signe la livraison',
+        helper: "L'accueil signe la livraison",
       },
       securityDesk: {
         label: 'Laisser avec la sécurité',
-        helper: 'Parfait quand l\'accès est limité',
+        helper: "Parfait quand l'accès est limité",
       },
       callUponArrival: {
         label: 'Appeler en arrivant',
         helper: 'Nous vous appelons avant de monter',
       },
       call: {
-        label: 'Appelez-moi à l\'arrivée',
+        label: "Appelez-moi à l'arrivée",
         helper: 'Idéal pour les rencontres ponctuelles',
       },
       text: {
         label: 'Envoyer un SMS de mise à jour',
-        helper: 'Recevez un SMS rapide à l\'approche',
+        helper: "Recevez un SMS rapide à l'approche",
       },
     },
     errors: {
       preciseAddressUnavailable: 'Adresse précise indisponible',
       couldNotReachMaps: 'Impossible de contacter Google Maps',
       couldNotDetermineLocation: 'Impossible de déterminer votre emplacement actuel. Réessayez.',
-      locationPermissionDisabled: 'L\'autorisation de localisation est désactivée. Veuillez l\'activer dans les Paramètres.',
+      locationPermissionDisabled:
+        "L'autorisation de localisation est désactivée. Veuillez l'activer dans les Paramètres.",
       locationServicesOff: 'Activez les services de localisation de votre appareil pour continuer.',
-      needPermission: 'Nous avons besoin de votre permission pour afficher les restaurants à proximité.',
+      needPermission:
+        'Nous avons besoin de votre permission pour afficher les restaurants à proximité.',
       couldNotLoadAddresses: 'Impossible de charger vos adresses enregistrées.',
-      couldNotSaveAddress: 'Impossible d\'enregistrer cette adresse. Veuillez réessayer.',
+      couldNotSaveAddress: "Impossible d'enregistrer cette adresse. Veuillez réessayer.",
       noMatchingPlaces: 'Aucun lieu correspondant. Essayez de préciser vos mots-clés.',
       couldNotRetrieveSuggestions: 'Impossible de récupérer les suggestions.',
       couldNotLoadPlace: 'Impossible de charger le lieu sélectionné.',
