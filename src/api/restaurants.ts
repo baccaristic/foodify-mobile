@@ -52,17 +52,14 @@ export const getNearbyFavoriteRestaurants = async ({
   lng,
 }: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
   const { clientDate, clientTime } = getCurrentClientDateTime();
-  const { data } = await client.get<RestaurantDisplayDto[]>(
-    '/client/nearby/favorites',
-    {
-      params: {
-        lat,
-        lng,
-        clientDate,
-        clientTime,
-      },
-    }
-  );
+  const { data } = await client.get<RestaurantDisplayDto[]>('/client/nearby/favorites', {
+    params: {
+      lat,
+      lng,
+      clientDate,
+      clientTime,
+    },
+  });
 
   return data;
 };
@@ -72,17 +69,14 @@ export const getNearbyRecentOrderRestaurants = async ({
   lng,
 }: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
   const { clientDate, clientTime } = getCurrentClientDateTime();
-  const { data } = await client.get<RestaurantDisplayDto[]>(
-    '/client/nearby/orders',
-    {
-      params: {
-        lat,
-        lng,
-        clientDate,
-        clientTime,
-      },
-    }
-  );
+  const { data } = await client.get<RestaurantDisplayDto[]>('/client/nearby/orders', {
+    params: {
+      lat,
+      lng,
+      clientDate,
+      clientTime,
+    },
+  });
 
   return data;
 };
@@ -94,9 +88,7 @@ export const getNearbyRestaurantsPage = async ({
   pageSize,
 }: NearbyRestaurantsPageParams): Promise<PageResponse<RestaurantDisplayDto>> => {
   const safePage =
-    typeof page === 'number' && Number.isFinite(page) && page >= 0
-      ? Math.floor(page)
-      : 0;
+    typeof page === 'number' && Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
   const safePageSize =
     typeof pageSize === 'number' && Number.isFinite(pageSize) && pageSize > 0
       ? Math.floor(pageSize)
@@ -151,7 +143,46 @@ export const getNearbyPromotionsPage = async ({
   return data;
 };
 
-export const getRestaurantDetails = async ({ id, lat, lng }: { id: number; lat: number; lng: number }): Promise<RestaurantDetailsResponse> => {
+export const getSponsoredRestaurants = async ({
+  lat,
+  lng,
+  page,
+  pageSize,
+}: NearbyRestaurantsPageParams): Promise<PageResponse<RestaurantDisplayDto>> => {
+  const safePage =
+    typeof page === 'number' && Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+  const safePageSize =
+    typeof pageSize === 'number' && Number.isFinite(pageSize) && pageSize > 0
+      ? Math.floor(pageSize)
+      : 20;
+
+  const { clientDate, clientTime } = getCurrentClientDateTime();
+  const { data } = await client.get<PageResponse<RestaurantDisplayDto>>(
+    '/client/restaurants/promotions',
+    {
+      params: {
+        lat,
+        lng,
+        page: safePage,
+        pageSize: safePageSize,
+        clientDate,
+        clientTime,
+      },
+    }
+  );
+
+  return data;
+};
+
+export const getRestaurantDetails = async ({
+  id,
+  lat,
+  lng,
+}: {
+  id: number;
+  lat: number;
+  lng: number;
+}): Promise<RestaurantDetailsResponse> => {
   const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<RestaurantDetailsResponse>(`/client/restaurant/${id}`, {
     params: {
@@ -188,9 +219,7 @@ export const getCategoryRestaurants = async ({
   sort,
 }: CategoryRestaurantsParams): Promise<CategoryRestaurantsResponse> => {
   const safePage =
-    typeof page === 'number' && Number.isFinite(page) && page >= 0
-      ? Math.floor(page)
-      : 0;
+    typeof page === 'number' && Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
   const safeSize =
     typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 10;
 
@@ -230,7 +259,7 @@ export const getRestaurantDeliveryFee = async ({
         clientDate,
         clientTime,
       },
-    },
+    }
   );
 
   return data;

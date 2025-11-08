@@ -197,6 +197,8 @@ export interface RestaurantDisplayDto {
   cuisineCategories?: RestaurantCategory[];
   estimatedDeliveryTime?: number;
   open?: boolean;
+  sponsored?: boolean;
+  position?: number;
 }
 
 export interface PageResponse<T> {

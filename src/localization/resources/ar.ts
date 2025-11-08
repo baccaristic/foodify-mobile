@@ -144,6 +144,7 @@ const ar: TranslationDictionary = {
       favorites: 'مفضلاتك',
       orders: 'طلب مرة أخرى',
       restaurants: 'المطاعم القريبة',
+      sponsored: 'المدعومة',
     },
     rating: {
       new: 'جديد',

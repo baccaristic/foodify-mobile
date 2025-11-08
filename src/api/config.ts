@@ -1,4 +1,4 @@
-﻿import client from './client';
+import client from './client';
 
 export interface ServiceFeeConfigResponse {
   amount: number;

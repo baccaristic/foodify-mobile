@@ -145,6 +145,7 @@ const fr: TranslationDictionary = {
       favorites: 'Vos favoris à proximité',
       orders: 'Commander à nouveau',
       restaurants: 'Restaurants à proximité',
+      sponsored: 'Sponsorisé',
     },
     rating: {
       new: 'Nouveau',
