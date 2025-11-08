@@ -133,7 +133,7 @@ const RestaurantRatingOverlay = () => {
     onSuccess: (response) => {
       setErrorMessage(null);
       setRating(response);
-      updateOrder({ orderId: response.orderId, restaurantRating: response });
+      updateOrder(null);
       queryClient.invalidateQueries({ queryKey: ['client', 'my-orders'] }).catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ['orders', 'ongoing'] }).catch(() => undefined);
       close();

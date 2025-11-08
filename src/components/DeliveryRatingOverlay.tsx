@@ -158,7 +158,7 @@ const DeliveryRatingOverlay = () => {
       setErrorMessage(null);
       setRating(response);
       setComments(response.comments ?? '');
-      updateOrder({ orderId: response.orderId, rating: response });
+      updateOrder(null);
       queryClient.invalidateQueries({ queryKey: ['client', 'my-orders'] }).catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ['orders', 'ongoing'] }).catch(() => undefined);
       close();
