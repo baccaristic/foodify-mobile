@@ -485,6 +485,10 @@ const en: TranslationDictionary = {
     },
     fallbackName: 'Restaurant',
   },
+  restaurantCard: {
+    currentlyClosed: 'Currently closed',
+    opensAt: 'Opens at {{time}}',
+  },
   checkout: {
     title: 'My order',
     defaults: {

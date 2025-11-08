@@ -108,9 +108,14 @@ type MenuCardItem = RestaurantMenuItemDetails | RestaurantMenuItemSummary;
 
 const formatCurrency = (value: number) => `${value.toFixed(3).replace('.', ',')} DT`;
 
-const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number) => void }> = ({
+const MenuItemCard: React.FC<{ 
+  item: MenuCardItem; 
+  onOpenModal: (itemId: number) => void;
+  isDisabled?: boolean;
+}> = ({
   item,
   onOpenModal,
+  isDisabled = false,
 }) => {
   const { locale, isRTL } = useLocalization();
   const promotionActive = hasActivePromotion(item);
@@ -122,7 +127,9 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
     <TouchableOpacity
       style={{ width: width / 2 - 24 }}
       className="flex flex-col overflow-hidden rounded-xl bg-white shadow-md"
-      onPress={() => onOpenModal(item.id)}>
+      onPress={() => onOpenModal(item.id)}
+      disabled={isDisabled}
+      activeOpacity={isDisabled ? 1 : 0.7}>
       <View className="relative">
         <RemoteImageWithSkeleton
           imagePath={item.imageUrl}
@@ -130,6 +137,9 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
           imageStyle={styles.menuImage}
           skeletonStyle={styles.menuImage}
         />
+        {isDisabled && (
+          <View className="absolute inset-0 bg-black/40" />
+        )}
         {promotionActive && item.promotionLabel ? (
           <View 
             className="absolute top-2 rounded-full bg-[#CA251B]/90 px-2 py-1"
@@ -143,7 +153,7 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
         ) : null}
       </View>
 
-      <View className="flex flex-col p-3">
+      <View className="flex flex-col p-3" style={isDisabled ? { opacity: 0.5 } : undefined}>
         <Text
           allowFontScaling={false}
           className="text-sm font-bold text-[#17213A]"
@@ -163,7 +173,9 @@ const MenuItemCard: React.FC<{ item: MenuCardItem; onOpenModal: (itemId: number)
 
           <TouchableOpacity
             className="rounded-full bg-[#CA251B] p-1.5 text-white shadow-md"
-            onPress={() => onOpenModal(item.id)}>
+            onPress={() => onOpenModal(item.id)}
+            disabled={isDisabled}
+            activeOpacity={isDisabled ? 1 : 0.7}>
             <Plus size={18} color="white" />
           </TouchableOpacity>
         </View>
@@ -501,6 +513,11 @@ export default function RestaurantDetails() {
         return false;
       }
 
+      // Prevent opening menu items when restaurant is closed
+      if (restaurant.open === false) {
+        return false;
+      }
+
       const detailedItem = allMenuItems.find((item) => item.id === itemId);
       if (detailedItem) {
         setSelectedMenuItem(detailedItem);
@@ -752,7 +769,7 @@ export default function RestaurantDetails() {
                 {(category.items ?? []).map((item, itemIndex) => (
                   <View key={item.id} className="shadow-3xl overflow-hidden rounded-3xl">
                     <Animated.View entering={createMenuCardEntrance(itemIndex)}>
-                      <MenuItemCard item={item} onOpenModal={handleOpen} />
+                      <MenuItemCard item={item} onOpenModal={handleOpen} isDisabled={restaurant.open === false} />
                     </Animated.View>
                   </View>
                 ))}
@@ -878,6 +895,32 @@ export default function RestaurantDetails() {
               ) : null}
             </Animated.View>
           </Animated.View>
+
+          {restaurant.open === false && (
+            <Animated.View
+              className="mt-4 flex-row items-center justify-center gap-2 rounded-lg bg-red-50 px-4 py-3"
+              entering={FadeInUp.springify()
+                .mass(0.9)
+                .stiffness(140)
+                .damping(18)
+                .delay(160)
+                .withInitialValues({
+                  opacity: 0,
+                  transform: [{ translateY: 20 }],
+                })}>
+              <Lock size={20} color="#CA251B" />
+              <View className="flex-1">
+                <Text allowFontScaling={false} className="text-sm font-semibold text-[#CA251B]">
+                  {t('restaurantCard.currentlyClosed')}
+                </Text>
+                {restaurant.openingHours ? (
+                  <Text allowFontScaling={false} className="text-xs text-gray-600">
+                    {t('restaurantCard.opensAt', { time: restaurant.openingHours })}
+                  </Text>
+                ) : null}
+              </View>
+            </Animated.View>
+          )}
 
           <Animated.View
             className="mt-4 flex flex-row items-center justify-center text-xs text-[#17213A]"

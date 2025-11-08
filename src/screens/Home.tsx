@@ -497,6 +497,7 @@ export default function HomePage() {
             openingHours={restaurant.openingHours}
             closingHours={restaurant.closingHours}
             estimatedDeliveryTime={restaurant.estimatedDeliveryTime}
+            open={restaurant.open}
             width={cardWidth}
             onPress={() =>
               navigation.navigate(

@@ -137,6 +137,7 @@ export interface RestaurantDetailsResponse {
   cuisineCategories?: RestaurantCategory[];
   favorite?: boolean;
   estimatedDeliveryTime?: number;
+  open?: boolean;
 }
 
 export interface RestaurantSummary {
@@ -169,6 +170,7 @@ export interface RestaurantSummary {
   categories?: RestaurantCategory[];
   cuisineCategories?: RestaurantCategory[];
   estimatedDeliveryTime?: number;
+  open?: boolean;
 }
 
 export interface RestaurantDisplayDto {
@@ -194,6 +196,7 @@ export interface RestaurantDisplayDto {
   promotionSummary?: string | null;
   cuisineCategories?: RestaurantCategory[];
   estimatedDeliveryTime?: number;
+  open?: boolean;
 }
 
 export interface PageResponse<T> {
@@ -235,6 +238,7 @@ export interface RestaurantSearchItem {
   promotedMenuItems?: MenuItemPromotion[];
   categories?: RestaurantCategory[];
   estimatedDeliveryTime?: number;
+  open?: boolean;
 }
 
 export interface RestaurantSearchResponse {
@@ -282,6 +286,7 @@ export interface RestaurantDisplay {
   promotionSummary?: string | null;
   categories?: RestaurantCategory[] | null;
   estimatedDeliveryTime?: number;
+  open?: boolean;
 }
 
 export interface CategoryRestaurantsResponse {

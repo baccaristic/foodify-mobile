@@ -483,6 +483,10 @@ const ar: TranslationDictionary = {
     },
     fallbackName: 'مطعم',
   },
+  restaurantCard: {
+    currentlyClosed: 'مغلق حاليا',
+    opensAt: 'يفتح في {{time}}',
+  },
   checkout: {
     title: 'طلبي',
     defaults: {

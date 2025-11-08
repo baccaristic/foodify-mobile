@@ -242,6 +242,7 @@ const FavoritesScreen = () => {
                     openingHours={restaurant.openingHours}
                     closingHours={restaurant.closingHours}
                     estimatedDeliveryTime={restaurant.estimatedDeliveryTime}
+                    open={restaurant.open}
                     width={restaurantCardWidth}
                     onPress={() =>
                       navigation.navigate(
