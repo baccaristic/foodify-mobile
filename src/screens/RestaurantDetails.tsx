@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CalendarClock, Clock7, Heart, MapPin, Plus, Star } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, CalendarClock, Clock7, Heart, Lock, MapPin, Plus, Star } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { LayoutChangeEvent, ScrollView as ScrollViewType } from 'react-native';
