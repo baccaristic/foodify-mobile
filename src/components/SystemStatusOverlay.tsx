@@ -3,6 +3,7 @@ import { Modal, View, Text, TouchableOpacity, Image } from 'react-native';
 import { ScaledSheet, s, vs } from 'react-native-size-matters';
 import { X } from 'lucide-react-native';
 import type { DeliveryNetworkStatus } from '~/interfaces/DeliveryStatus';
+import { useTranslation } from '~/localization';
 
 interface SystemStatusOverlayProps {
   visible: boolean;
@@ -11,32 +12,41 @@ interface SystemStatusOverlayProps {
   onRequestClose?: () => void;
 }
 
-const STATUS_TITLES: Record<DeliveryNetworkStatus, string> = {
-  AVAILABLE: 'Deliveries are running smoothly',
-  BUSY: 'Riders are busy right now',
-  NO_DRIVERS_AVAILABLE: 'No drivers available',
-};
-
-const STATUS_MESSAGES: Partial<Record<DeliveryNetworkStatus, string>> = {
-  BUSY:
-    'You can still place your order, but delivery times may be longer than usual. We appreciate your patience.',
-  NO_DRIVERS_AVAILABLE:
-    "We're temporarily unable to accept new delivery orders. Please check back again in a little while.",
-};
-
 const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
   visible,
   status,
   message,
   onRequestClose,
 }) => {
+  const { t } = useTranslation();
+
+  const statusTitle = useMemo(() => {
+    switch (status) {
+      case 'AVAILABLE':
+        return t('systemStatus.titles.available');
+      case 'BUSY':
+        return t('systemStatus.titles.busy');
+      case 'NO_DRIVERS_AVAILABLE':
+        return t('systemStatus.titles.noDriversAvailable');
+      default:
+        return t('systemStatus.titles.available');
+    }
+  }, [status, t]);
+
   const subtitle = useMemo(() => {
     if (message && message.trim().length > 0) {
       return message;
     }
 
-    return STATUS_MESSAGES[status] ?? '';
-  }, [message, status]);
+    switch (status) {
+      case 'BUSY':
+        return t('systemStatus.messages.busy');
+      case 'NO_DRIVERS_AVAILABLE':
+        return t('systemStatus.messages.noDriversAvailable');
+      default:
+        return '';
+    }
+  }, [message, status, t]);
 
   const { primaryMessage, emphasisMessage } = useMemo(() => {
     if (!subtitle) {
@@ -44,7 +54,7 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
     }
 
     const trimmed = subtitle.trim();
-    const emphasisSentence = 'We appreciate your patience.';
+    const emphasisSentence = t('systemStatus.appreciatePatience');
 
     if (trimmed.includes(emphasisSentence)) {
       const primary = trimmed.replace(emphasisSentence, '').trim();
@@ -55,7 +65,7 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
     }
 
     return { primaryMessage: trimmed, emphasisMessage: '' };
-  }, [subtitle]);
+  }, [subtitle, t]);
 
   return (
     <Modal
@@ -86,7 +96,7 @@ const SystemStatusOverlay: React.FC<SystemStatusOverlayProps> = ({
           </View>
           <View style={styles.content}>
             <Text allowFontScaling={false} style={styles.title}>
-              {STATUS_TITLES[status]}
+              {statusTitle}
             </Text>
             {primaryMessage ? (
               <Text allowFontScaling={false} style={styles.subtitle}>

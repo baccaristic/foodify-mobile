@@ -53,6 +53,27 @@ const fr: TranslationDictionary = {
       },
     },
   },
+  systemStatus: {
+    titles: {
+      available: 'Les livraisons se déroulent bien',
+      busy: 'Les livreurs sont occupés en ce moment',
+      noDriversAvailable: 'Aucun livreur disponible',
+    },
+    messages: {
+      busy: 'Vous pouvez toujours passer votre commande, mais les délais de livraison peuvent être plus longs que d\'habitude. Nous apprécions votre patience.',
+      noDriversAvailable: 'Nous ne pouvons temporairement pas accepter de nouvelles commandes de livraison. Veuillez revenir dans quelques instants.',
+    },
+    appreciatePatience: 'Nous apprécions votre patience.',
+  },
+  addressMismatch: {
+    title: 'Différence d\'adresse détectée',
+    description: 'Votre adresse de livraison sélectionnée ne correspond pas à votre position GPS actuelle. Veuillez confirmer votre lieu de livraison.',
+    selectedAddress: 'Adresse sélectionnée',
+    currentGpsLocation: 'Position GPS actuelle',
+    continueWithSelected: 'Continuer avec l\'adresse sélectionnée',
+    useCurrentLocation: 'Utiliser la position actuelle',
+    cancelOrder: 'Annuler la commande',
+  },
   filters: {
     title: 'Filtres',
     clear: 'Tout effacer',

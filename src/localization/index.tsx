@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { I18nManager } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 import * as ExpoLocalization from 'expo-localization';
+import { reloadAppAsync } from 'expo';
 import type { Locale, TranslationDictionary, TranslationResources } from './types';
 import en from './resources/en';
 import fr from './resources/fr';
@@ -86,15 +87,37 @@ export const LocalizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const handleSetLocale = useCallback((newLocale: Locale) => {
     const shouldBeRTL = newLocale === 'ar';
+    const currentIsRTL = I18nManager.isRTL;
+    
+    // Check if RTL direction needs to change
+    const needsRTLUpdate = currentIsRTL !== shouldBeRTL;
     
     // Update RTL mode if it has changed
-    if (I18nManager.isRTL !== shouldBeRTL) {
+    if (needsRTLUpdate) {
       I18nManager.forceRTL(shouldBeRTL);
       I18nManager.allowRTL(shouldBeRTL);
+      
+      // Reload the app to apply RTL changes
+      // This is necessary because React Native requires an app reload for RTL changes to take effect
+      if (Platform.OS !== 'web') {
+        // Set the locale in state first so it persists after reload
+        setLocale(newLocale);
+        setIsRTL(shouldBeRTL);
+        
+        // Trigger app reload after a short delay to ensure state is saved
+        setTimeout(() => {
+          reloadAppAsync('Language direction changed');
+        }, 100);
+      } else {
+        // On web, just update the state without reload
+        setIsRTL(shouldBeRTL);
+        setLocale(newLocale);
+      }
+    } else {
+      // No RTL change needed, just update locale
+      setIsRTL(shouldBeRTL);
+      setLocale(newLocale);
     }
-    
-    setIsRTL(shouldBeRTL);
-    setLocale(newLocale);
   }, []);
 
   const translate = useCallback(
