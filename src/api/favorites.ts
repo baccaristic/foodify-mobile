@@ -1,3 +1,4 @@
+import { getCurrentClientDateTime } from '~/utils/dateTime';
 import client from './client';
 import type { ClientFavoritesResponse } from '~/interfaces/Favorites';
 
@@ -18,6 +19,12 @@ export const unfavoriteMenuItem = async (menuItemId: number): Promise<void> => {
 };
 
 export const getClientFavorites = async (): Promise<ClientFavoritesResponse> => {
-  const { data } = await client.get<ClientFavoritesResponse>('/client/favorites');
+  const { clientDate, clientTime } = getCurrentClientDateTime();
+  const { data } = await client.get<ClientFavoritesResponse>('/client/favorites', {
+    params: {
+      clientDate,
+      clientTime,
+    }
+  });
   return data;
 };
