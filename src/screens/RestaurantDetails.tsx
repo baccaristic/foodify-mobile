@@ -514,7 +514,7 @@ export default function RestaurantDetails() {
       }
 
       // Prevent opening menu items when restaurant is closed
-      if (restaurant.open === false) {
+      if (restaurant.isOpen === false) {
         return false;
       }
 
@@ -769,7 +769,7 @@ export default function RestaurantDetails() {
                 {(category.items ?? []).map((item, itemIndex) => (
                   <View key={item.id} className="shadow-3xl overflow-hidden rounded-3xl">
                     <Animated.View entering={createMenuCardEntrance(itemIndex)}>
-                      <MenuItemCard item={item} onOpenModal={handleOpen} isDisabled={restaurant.open === false} />
+                      <MenuItemCard item={item} onOpenModal={handleOpen} isDisabled={restaurant.isOpen === false} />
                     </Animated.View>
                   </View>
                 ))}
@@ -896,7 +896,7 @@ export default function RestaurantDetails() {
             </Animated.View>
           </Animated.View>
 
-          {restaurant.open === false && (
+          {restaurant.isOpen === false && (
             <Animated.View
               className="mt-4 flex-row items-center justify-center gap-2 rounded-lg bg-red-50 px-4 py-3"
               entering={FadeInUp.springify()
@@ -915,7 +915,7 @@ export default function RestaurantDetails() {
                 </Text>
                 {restaurant.openingHours ? (
                   <Text allowFontScaling={false} className="text-xs text-gray-600">
-                    {t('restaurantCard.opensAt', { time: restaurant.openingHours })}
+                    {t('restaurantCard.opensAt', {values: { time: restaurant.openingHours }})}
                   </Text>
                 ) : null}
               </View>

@@ -137,7 +137,7 @@ export interface RestaurantDetailsResponse {
   cuisineCategories?: RestaurantCategory[];
   favorite?: boolean;
   estimatedDeliveryTime?: number;
-  open?: boolean;
+  isOpen?: boolean;
 }
 
 export interface RestaurantSummary {

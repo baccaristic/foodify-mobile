@@ -173,7 +173,7 @@ const RestaurantShowcaseCard: React.FC<RestaurantShowcaseCardProps> = ({
             </Text>
             {openingHours ? (
               <Text allowFontScaling={false} style={styles.closedSubtitle}>
-                {t('restaurantCard.opensAt', { time: openingHours })}
+                {t('restaurantCard.opensAt', { values: {time: openingHours }})}
               </Text>
             ) : null}
           </View>
