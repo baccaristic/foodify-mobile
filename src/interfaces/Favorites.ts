@@ -17,6 +17,8 @@ export interface FavoriteRestaurant {
   closingHours: string;
   latitude: number;
   longitude: number;
+  open?: boolean;
+  estimatedDeliveryTime?: any;
 }
 
 export interface FavoriteMenuItem {
