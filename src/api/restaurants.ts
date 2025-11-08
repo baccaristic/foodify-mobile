@@ -9,6 +9,7 @@ import type {
   RestaurantSearchParams,
   RestaurantSearchResponse,
 } from '~/interfaces/Restaurant';
+import { getCurrentClientDateTime } from '~/utils/dateTime';
 
 interface CategoryRestaurantsParams {
   lat: number;
@@ -33,10 +34,13 @@ export const getNearbyTopRestaurants = async ({
   lat,
   lng,
 }: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<RestaurantDisplayDto[]>('/client/nearby/top', {
     params: {
       lat,
       lng,
+      clientDate,
+      clientTime,
     },
   });
 
@@ -47,12 +51,15 @@ export const getNearbyFavoriteRestaurants = async ({
   lat,
   lng,
 }: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<RestaurantDisplayDto[]>(
     '/client/nearby/favorites',
     {
       params: {
         lat,
         lng,
+        clientDate,
+        clientTime,
       },
     }
   );
@@ -64,12 +71,15 @@ export const getNearbyRecentOrderRestaurants = async ({
   lat,
   lng,
 }: NearbyCoordinatesParams): Promise<RestaurantDisplayDto[]> => {
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<RestaurantDisplayDto[]>(
     '/client/nearby/orders',
     {
       params: {
         lat,
         lng,
+        clientDate,
+        clientTime,
       },
     }
   );
@@ -92,6 +102,7 @@ export const getNearbyRestaurantsPage = async ({
       ? Math.floor(pageSize)
       : 20;
 
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<PageResponse<RestaurantDisplayDto>>(
     '/client/nearby/restaurants',
     {
@@ -100,6 +111,8 @@ export const getNearbyRestaurantsPage = async ({
         lng,
         page: safePage,
         pageSize: safePageSize,
+        clientDate,
+        clientTime,
       },
     }
   );
@@ -120,6 +133,7 @@ export const getNearbyPromotionsPage = async ({
       ? Math.floor(pageSize)
       : 20;
 
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<PageResponse<RestaurantDisplayDto>>(
     '/client/nearby/promotions',
     {
@@ -128,6 +142,8 @@ export const getNearbyPromotionsPage = async ({
         lng,
         page: safePage,
         pageSize: safePageSize,
+        clientDate,
+        clientTime,
       },
     }
   );
@@ -136,10 +152,13 @@ export const getNearbyPromotionsPage = async ({
 };
 
 export const getRestaurantDetails = async ({ id, lat, lng }: { id: number; lat: number; lng: number }): Promise<RestaurantDetailsResponse> => {
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<RestaurantDetailsResponse>(`/client/restaurant/${id}`, {
     params: {
       lat,
       lng,
+      clientDate,
+      clientTime,
     },
   });
   return data;
@@ -148,8 +167,13 @@ export const getRestaurantDetails = async ({ id, lat, lng }: { id: number; lat: 
 export const searchRestaurants = async (
   params: RestaurantSearchParams
 ): Promise<RestaurantSearchResponse> => {
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<RestaurantSearchResponse>(`/client/restaurants/search`, {
-    params,
+    params: {
+      ...params,
+      clientDate,
+      clientTime,
+    },
   });
 
   return data;
@@ -170,6 +194,7 @@ export const getCategoryRestaurants = async ({
   const safeSize =
     typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 10;
 
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<CategoryRestaurantsResponse>(`/client/filter/categorie`, {
     params: {
       lat,
@@ -178,6 +203,8 @@ export const getCategoryRestaurants = async ({
       page: safePage,
       size: safeSize,
       sort,
+      clientDate,
+      clientTime,
     },
   });
 
@@ -193,12 +220,15 @@ export const getRestaurantDeliveryFee = async ({
   lat: number;
   lng: number;
 }): Promise<RestaurantDeliveryFeeResponse> => {
+  const { clientDate, clientTime } = getCurrentClientDateTime();
   const { data } = await client.get<RestaurantDeliveryFeeResponse>(
     `/client/restaurants/${restaurantId}/delivery-fee`,
     {
       params: {
         lat,
         lng,
+        clientDate,
+        clientTime,
       },
     },
   );
