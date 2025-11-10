@@ -15,6 +15,13 @@ import {
   MapPin,
   OctagonX,
   X,
+  Bike,
+  User,
+  Mail,
+  Phone,
+  Clock,
+  MapPinned,
+  AlertCircle,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { moderateScale } from "react-native-size-matters";
@@ -34,6 +41,7 @@ const { height } = Dimensions.get("window");
 const accentColor = "#CA251B";
 const primaryColor = "#17213A";
 const borderColor = "#E8E9EC";
+const textSecondary = "#6B7280";
 
 const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
   const navigation = useNavigation<any>();
@@ -106,6 +114,32 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
   const orderId = order.id;
   const driverName = order.driverName ?? null;
   const restaurantNameForRating = order.restaurantName ?? null;
+
+  // Extract rider/driver data
+  const deliveryData = (order as any).delivery || {};
+  const riderData = deliveryData.driver || deliveryData.courier || {};
+  const riderId = riderData.id || (order as any).driverId || null;
+  const riderName = riderData.name || order.driverName || null;
+  const riderPhone = riderData.phone || order.driverPhone || null;
+  const riderEmail = riderData.email || null;
+  const riderStatus = riderData.status || "Active";
+  const riderCommission = riderData.commission || null;
+  const riderCurrentTask = riderData.currentTask || "En Route to pickup";
+  const riderDeliveryTiming = riderData.deliveryTiming || null;
+  const riderCurrentLocation = riderData.currentLocation || null;
+  const riderLastUpdate = riderData.lastUpdate || null;
+
+  // Extract client data
+  const clientData = (order as any).client || {};
+  const clientId = clientData.id || order.clientId || null;
+  const clientName = clientData.name || order.clientName || null;
+  const clientPhone = clientData.phone || order.clientPhone || null;
+  const clientEmail = clientData.email || null;
+  const clientStatus = clientData.status || "Connected";
+  const clientZone = clientData.zone || savedAddress.zone || "Ariana";
+  const clientAddress = clientData.address || addressValue || null;
+  const clientAlerts = clientData.alerts || 0;
+  const clientIsActive = clientData.isActive !== false;
 
   const handleReorder = () => {
     if (!order || !restaurant?.id) return;
@@ -252,6 +286,182 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
               </View>
               <Text allowFontScaling={false} style={styles.addressText}>{addressValue}</Text>
             </View>
+
+            {/* Rider Section */}
+            {riderName && (
+              <>
+                <Text allowFontScaling={false} style={styles.sectionTitle}>Rider</Text>
+                <View style={styles.card}>
+                  <View style={styles.riderHeader}>
+                    <View style={styles.riderInfo}>
+                      <Bike size={20} color={accentColor} style={{ marginRight: 8 }} />
+                      <View>
+                        <Text allowFontScaling={false} style={styles.riderName}>{riderName}</Text>
+                        <Text allowFontScaling={false} style={styles.statusBadge}>{riderStatus}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.detailsButton}
+                      onPress={() => {
+                        // Navigate to rider details if needed
+                      }}
+                    >
+                      <Text allowFontScaling={false} style={styles.detailsButtonText}>See Rider Details</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {riderId && (
+                    <View style={styles.infoRow}>
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Rider ID:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{riderId}</Text>
+                    </View>
+                  )}
+
+                  {riderLastUpdate && (
+                    <View style={styles.infoRow}>
+                      <Clock size={14} color={textSecondary} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Last Update:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{riderLastUpdate}</Text>
+                    </View>
+                  )}
+
+                  {riderCommission && (
+                    <View style={styles.infoRow}>
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Rider&apos;s commission:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{formatCurrency(extractNum(riderCommission))}</Text>
+                    </View>
+                  )}
+
+                  {riderCurrentTask && (
+                    <View style={styles.infoRow}>
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Current Task:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{riderCurrentTask}</Text>
+                    </View>
+                  )}
+
+                  {riderDeliveryTiming && (
+                    <View style={styles.infoRow}>
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Delivery Timing:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{riderDeliveryTiming}</Text>
+                    </View>
+                  )}
+
+                  {riderEmail && (
+                    <View style={styles.infoRow}>
+                      <Mail size={14} color={textSecondary} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>E-mail:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{riderEmail}</Text>
+                    </View>
+                  )}
+
+                  {riderPhone && (
+                    <View style={styles.infoRow}>
+                      <Phone size={14} color={textSecondary} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Phone Number:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{riderPhone}</Text>
+                    </View>
+                  )}
+
+                  {riderCurrentLocation && (
+                    <View style={styles.infoRow}>
+                      <MapPinned size={14} color={textSecondary} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Current location:</Text>
+                      <Text allowFontScaling={false} style={[styles.infoValue, { flex: 1 }]}>{riderCurrentLocation}</Text>
+                    </View>
+                  )}
+
+                  {riderCurrentLocation && (
+                    <TouchableOpacity 
+                      style={styles.seeMapsButton}
+                      onPress={() => {
+                        // Open maps with location
+                      }}
+                    >
+                      <MapPin size={16} color={accentColor} />
+                      <Text allowFontScaling={false} style={styles.seeMapsText}>See Maps</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
+
+            {/* Client Section */}
+            {clientName && (
+              <>
+                <Text allowFontScaling={false} style={styles.sectionTitle}>Client</Text>
+                <View style={styles.card}>
+                  <View style={styles.clientHeader}>
+                    <View style={styles.clientInfo}>
+                      <User size={20} color={accentColor} style={{ marginRight: 8 }} />
+                      <View>
+                        <Text allowFontScaling={false} style={styles.clientName}>{clientName}</Text>
+                        <Text allowFontScaling={false} style={styles.statusBadge}>{clientStatus}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.detailsButton}
+                      onPress={() => {
+                        // Navigate to client details if needed
+                      }}
+                    >
+                      <Text allowFontScaling={false} style={styles.detailsButtonText}>See Client Details</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {clientId && (
+                    <View style={styles.infoRow}>
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Client ID:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{clientId}</Text>
+                    </View>
+                  )}
+
+                  {clientIsActive && (
+                    <View style={styles.infoRow}>
+                      <Text allowFontScaling={false} style={styles.activeBadge}>Active</Text>
+                    </View>
+                  )}
+
+                  {clientEmail && (
+                    <View style={styles.infoRow}>
+                      <Mail size={14} color={textSecondary} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>E-mail:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{clientEmail}</Text>
+                    </View>
+                  )}
+
+                  {clientZone && (
+                    <View style={styles.infoRow}>
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Zone:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{clientZone}</Text>
+                    </View>
+                  )}
+
+                  {clientPhone && (
+                    <View style={styles.infoRow}>
+                      <Phone size={14} color={textSecondary} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Phone Number:</Text>
+                      <Text allowFontScaling={false} style={styles.infoValue}>{clientPhone}</Text>
+                    </View>
+                  )}
+
+                  {clientAddress && (
+                    <View style={styles.infoRow}>
+                      <MapPinned size={14} color={textSecondary} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Address:</Text>
+                      <Text allowFontScaling={false} style={[styles.infoValue, { flex: 1 }]}>{clientAddress}</Text>
+                    </View>
+                  )}
+
+                  {clientAlerts > 0 && (
+                    <View style={styles.infoRow}>
+                      <AlertCircle size={14} color={accentColor} style={{ marginRight: 4 }} />
+                      <Text allowFontScaling={false} style={styles.infoLabel}>Alerts:</Text>
+                      <Text allowFontScaling={false} style={[styles.infoValue, { color: accentColor, fontWeight: "700" }]}>{clientAlerts}</Text>
+                    </View>
+                  )}
+                </View>
+              </>
+            )}
 
             <Text allowFontScaling={false} style={styles.sectionTitle}>Order Summary</Text>
             <View style={styles.summaryCard}>
@@ -464,6 +674,95 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   reorderText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  // Rider and Client section styles
+  riderHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  riderInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  riderName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: primaryColor,
+  },
+  statusBadge: {
+    fontSize: 12,
+    color: "#10B981",
+    marginTop: 2,
+  },
+  detailsButton: {
+    backgroundColor: accentColor,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  detailsButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 6,
+  },
+  infoLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginRight: 8,
+  },
+  infoValue: {
+    fontSize: 13,
+    color: primaryColor,
+    fontWeight: "600",
+  },
+  activeBadge: {
+    fontSize: 12,
+    color: "#10B981",
+    fontWeight: "600",
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  seeMapsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: accentColor,
+  },
+  seeMapsText: {
+    color: accentColor,
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  clientHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  clientInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: primaryColor,
+  },
 });
 
 export default OrderDetailsOverlay;
