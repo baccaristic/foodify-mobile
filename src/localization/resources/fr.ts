@@ -981,6 +981,13 @@ const fr: TranslationDictionary = {
     },
     faq: {
       title: 'FAQ',
+      states: {
+        loadingTitle: 'Récupération des dernières questions...',
+        errorTitle: 'Impossible de charger la FAQ.',
+        errorSubtitle: 'Vérifiez votre connexion puis réessayez.',
+        emptyTitle: 'Aucune question disponible pour le moment',
+        emptySubtitle: 'Revenez bientôt pour découvrir nos réponses.',
+      },
       sections: {
         orderingPayments: {
           title: 'Commandes et paiements',

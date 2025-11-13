@@ -949,6 +949,13 @@ const ar: TranslationDictionary = {
     },
     faq: {
       title: 'الأسئلة الشائعة',
+      states: {
+        loadingTitle: 'نجلب أحدث الأسئلة...',
+        errorTitle: 'تعذّر علينا تحميل قسم الأسئلة الشائعة.',
+        errorSubtitle: 'تحقق من اتصالك ثم أعد المحاولة.',
+        emptyTitle: 'لا توجد أسئلة متاحة بعد',
+        emptySubtitle: 'عد لاحقًا للاطلاع على آخر التحديثات.',
+      },
       sections: {
         orderingPayments: {
           title: 'الطلبات والدفع',

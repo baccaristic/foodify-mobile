@@ -963,6 +963,13 @@ const en: TranslationDictionary = {
     },
     faq: {
       title: 'FAQ',
+      states: {
+        loadingTitle: 'Fetching the latest questions...',
+        errorTitle: 'We couldn\'t load the FAQs.',
+        errorSubtitle: 'Check your connection and try again.',
+        emptyTitle: 'No FAQs available yet',
+        emptySubtitle: 'Please check back soon.',
+      },
       sections: {
         orderingPayments: {
           title: 'Ordering & payments',
