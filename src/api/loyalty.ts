@@ -57,4 +57,10 @@ export const redeemCouponWithPoints = async (payload: RedeemCouponRequest) => {
   };
 };
 
+export const redeemCouponWithCode = async (payload: {couponCode: string}) => {
+  const { data } = await client.post<boolean>('/loyalty/coupons/redeem-code', payload);
+  return data;
+};
+  
+
 export type { CouponDto, RedeemCouponRequest };

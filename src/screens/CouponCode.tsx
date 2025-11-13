@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, NavigationProp, ParamListBase, RouteProp } from '@react-navigation/native';
 import { ArrowLeft, CheckCircle2, Gift, XCircle } from 'lucide-react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { getLoyaltyCoupons } from '~/api/loyalty';
-import type { CouponDto } from '~/interfaces/Loyalty';
+import { getLoyaltyCoupons, redeemCouponWithCode, redeemCouponWithPoints } from '~/api/loyalty';
+import type { CouponDto, RedeemCouponRequest } from '~/interfaces/Loyalty';
 import { useTranslation } from '~/localization';
+import queryClient from '~/api/queryClient';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -33,6 +34,27 @@ const CouponCode: React.FC = () => {
   const route = useRoute<CouponRoute>();
   const [couponCode, setCouponCode] = useState(route.params?.currentCode ?? '');
   const [status, setStatus] = useState<CouponStatus>('idle');
+  const { mutateAsync: redeem, isPending } = useMutation({
+    mutationFn: (payload: {couponCode: string}) =>
+      redeemCouponWithCode(payload),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ["loyalty", "balance"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["loyalty", "transactions"],
+      });
+      if (result) {
+        setStatus("success");
+        await queryClient.invalidateQueries({ queryKey: ["loyalty", "coupons"] });
+      }
+      else {
+        setStatus("error");
+      }
+    },
+    onError: (err) => {
+      console.error("❌ Failed to redeem coupon:", err);
+      setStatus("error");
+    },
+  });
   const { t } = useTranslation();
 
   const {
@@ -76,23 +98,8 @@ const CouponCode: React.FC = () => {
   };
 
   const handleCheckCoupon = () => {
-    if (!couponCode.trim()) {
-      setStatus('error');
-      return;
-    }
-
-    const normalizedCode = couponCode.trim().toUpperCase();
-    setCouponCode(normalizedCode);
-
-    const match = coupons.find((coupon) => coupon.code.toUpperCase() === normalizedCode);
-
-    if (match && match.active && !match.redeemed) {
-      setStatus('success');
-      applyCoupon(match);
-      return;
-    }
-
-    setStatus('error');
+    redeem({ couponCode: couponCode });
+  
   };
 
   const renderCoupon = ({ item }: { item: CouponDto }) => {
