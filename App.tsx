@@ -46,6 +46,7 @@ import { SystemStatusOverlayProvider } from '~/context/SystemStatusOverlayContex
 import DeliveredCelebrationOverlay from '~/components/DeliveredCelebrationOverlay';
 import DeliveryRatingOverlay from '~/components/DeliveryRatingOverlay';
 import RestaurantRatingOverlay from '~/components/RestaurantRatingOverlay';
+import { LiveActivityManager } from '~/components/LiveActivityManager';
 import useAuth from '~/hooks/useAuth';
 import { checkLocationAccess } from '~/services/locationAccess';
 import { checkPushNotificationPermissions } from '~/services/notifications';
@@ -261,6 +262,7 @@ export default function App() {
             <AuthProvider>
               <EmailSignupProvider>
                 <OngoingOrderProvider>
+                  <LiveActivityManager />
                   <DeliveryRatingOverlayProvider>
                     <RestaurantRatingOverlayProvider>
                       <WebSocketProvider>
