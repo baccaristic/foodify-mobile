@@ -45,17 +45,10 @@ export function useLiveActivity() {
   const previousOrderIdRef = useRef<string | number | null>(null);
   const isInitializedRef = useRef(false);
 
-  // Resolve the latest status from order
+  // Resolve the latest status from order (use direct status, not statusHistory)
   const currentStatus = useMemo(() => {
     if (!order) {
       return null;
-    }
-
-    if (order.statusHistory?.length) {
-      const lastEntry = order.statusHistory[order.statusHistory.length - 1];
-      if (lastEntry?.newStatus) {
-        return String(lastEntry.newStatus).toUpperCase();
-      }
     }
 
     return order.status ? String(order.status).toUpperCase() : null;
