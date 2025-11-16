@@ -12,8 +12,8 @@ import { useNavigation, useRoute, NavigationProp, ParamListBase, RouteProp } fro
 import { ArrowLeft, CheckCircle2, Gift, XCircle } from 'lucide-react-native';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import { getLoyaltyCoupons, redeemCouponWithCode, redeemCouponWithPoints } from '~/api/loyalty';
-import type { CouponDto, RedeemCouponRequest } from '~/interfaces/Loyalty';
+import { getLoyaltyCoupons, redeemCouponWithCode } from '~/api/loyalty';
+import type { CouponDto } from '~/interfaces/Loyalty';
 import { useTranslation } from '~/localization';
 import queryClient from '~/api/queryClient';
 

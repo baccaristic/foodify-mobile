@@ -7,11 +7,11 @@ export default ({ config }) => ({
       projectId: "30360ea1-a3f9-4d6d-8a97-452dbfe713a6"
     }
   },
-  name: "my-expo-app",
+  name: "Foodify App",
   slug: "my-expo-app",
   version: "1.0.0",
   orientation: "portrait",
-  icon: "./assets/icon.png",
+  icon: "./assets/logo.png",
   userInterfaceStyle: "light",
   splash: {
     image: "./assets/splash.png",
@@ -32,6 +32,7 @@ export default ({ config }) => ({
   ],
   ios: {
     supportsTablet: true,
+    bundleIdentifier: "tn.foodify.foodifyapp",
     config: {
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     },
