@@ -134,10 +134,12 @@ export function useLiveActivity() {
     // If there's no order, end any active Live Activity
     if (!order || !order.orderId) {
       if (liveActivityService.hasActiveActivity()) {
-        endLiveActivity();
-        isInitializedRef.current = false;
-        previousStatusRef.current = null;
-        previousOrderIdRef.current = null;
+        (async () => {
+          await liveActivityService.endActivity();
+          isInitializedRef.current = false;
+          previousStatusRef.current = null;
+          previousOrderIdRef.current = null;
+        })();
       }
       return;
     }
@@ -162,7 +164,16 @@ export function useLiveActivity() {
     // Handle different scenarios
     if (isNewOrder) {
       // Start a new Live Activity for the new order
-      startLiveActivity();
+      const statusLabel = getStatusLabel(currentStatus);
+      const attributes = createLiveActivityAttributes(order, statusLabel, orderTotal);
+      
+      if (attributes) {
+        const contentState = createLiveActivityContentState(order, statusLabel);
+        (async () => {
+          await liveActivityService.startActivity(attributes, contentState);
+        })();
+      }
+      
       isInitializedRef.current = true;
       previousOrderIdRef.current = currentOrderId;
       previousStatusRef.current = currentStatus;
@@ -171,29 +182,40 @@ export function useLiveActivity() {
       if (liveActivityService.hasActiveActivity()) {
         // Wait a moment before ending to show the final status
         setTimeout(() => {
-          endLiveActivity();
+          liveActivityService.endActivity();
           isInitializedRef.current = false;
           previousStatusRef.current = null;
         }, 3000);
       }
     } else if (hasStatusChanged) {
       // Update Live Activity when status changes
-      updateLiveActivity();
+      const statusLabel = getStatusLabel(currentStatus);
+      const contentState = createLiveActivityContentState(order, statusLabel);
+      
+      if (liveActivityService.hasActiveActivity()) {
+        (async () => {
+          await liveActivityService.updateActivity(contentState);
+        })();
+      }
+      
       previousStatusRef.current = currentStatus;
     } else if (!liveActivityService.hasActiveActivity() && !isTerminalStatus) {
       // If there's no active activity but there should be one, start it
-      startLiveActivity();
+      const statusLabel = getStatusLabel(currentStatus);
+      const attributes = createLiveActivityAttributes(order, statusLabel, orderTotal);
+      
+      if (attributes) {
+        const contentState = createLiveActivityContentState(order, statusLabel);
+        (async () => {
+          await liveActivityService.startActivity(attributes, contentState);
+        })();
+      }
+      
       isInitializedRef.current = true;
       previousOrderIdRef.current = currentOrderId;
       previousStatusRef.current = currentStatus;
     }
-  }, [
-    order,
-    currentStatus,
-    startLiveActivity,
-    updateLiveActivity,
-    endLiveActivity,
-  ]);
+  }, [order, currentStatus, orderTotal, getStatusLabel]);
 
   // Cleanup on unmount
   useEffect(() => {
