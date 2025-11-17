@@ -33,6 +33,9 @@ export default ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "tn.foodify.foodifyapp",
+    infoPlist: {
+      NSSupportsLiveActivities: true,
+    },
     config: {
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     },
