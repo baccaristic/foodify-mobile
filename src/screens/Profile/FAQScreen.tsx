@@ -163,7 +163,7 @@ const FAQScreen = () => {
 
   const customHeader = (
     <View style={styles.header}>
-      <HeaderWithBackButton title={t('profile.faq.title')} titleMarginLeft={s(110)} />
+      <HeaderWithBackButton title={t('profile.faq.title')} />
     </View>
   );
 

@@ -40,7 +40,7 @@ const ProfileSettingsScreen = () => {
 
   const customHeader = (
     <View style={styles.header}>
-      <HeaderWithBackButton title={t('profile.settings.title')} titleMarginLeft={s(60)} />
+      <HeaderWithBackButton title={t('profile.settings.title')} />
     </View>
   );
 

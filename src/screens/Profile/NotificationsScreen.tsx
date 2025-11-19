@@ -252,7 +252,7 @@ export default function NotificationsScreen() {
 
   const customHeader = (
     <View style={styles.header}>
-      <HeaderWithBackButton title={t('profile.notifications.title')} titleMarginLeft={s(70)} />
+      <HeaderWithBackButton title={t('profile.notifications.title')}  />
     </View>
   );
 

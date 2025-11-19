@@ -9,7 +9,6 @@ interface HeaderWithBackButtonProps {
   title: string;
   onBack?: () => void;
   showBorder?: boolean;
-  titleMarginLeft?: number;
 
 }
 
@@ -17,7 +16,7 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
   title,
   onBack,
   showBorder = false,
-  titleMarginLeft=s(60),
+
 }) => {
   const navigation = useNavigation();
   const { isRTL } = useLocalization();
@@ -30,9 +29,7 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
     }
   };
 
-  const titleStyle = isRTL 
-    ? { marginRight: titleMarginLeft, maxWidth: s(200) } 
-    : { marginLeft: titleMarginLeft, maxWidth: s(200) };
+
 
   return (
     <View
@@ -53,7 +50,7 @@ const HeaderWithBackButton: React.FC<HeaderWithBackButtonProps> = ({
         )}
       </TouchableOpacity>
 
-      <Text allowFontScaling={true} style={[styles.title, titleStyle]} numberOfLines={2}>
+      <Text allowFontScaling={true} style={styles.title} numberOfLines={2}>
         {title}
       </Text>
     </View>
@@ -85,9 +82,11 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
   },
   title: {
+    flex: 1,
     fontSize: '18@ms',
     fontWeight: '700',
+    textAlign: 'center',
     color: '#17213A',
-     maxWidth:s(300)
+    maxWidth: s(300)
   },
 });

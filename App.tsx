@@ -61,7 +61,7 @@ import LanguageSettingsScreen from '~/screens/Profile/LanguageSettingsScreen';
 import LoyaltyRewardsScreen from '~/screens/Profile/LoyaltyRewardsScreen';
 import { LocalizationProvider } from '~/localization';
 import ConvertPointsScreen from '~/screens/Profile/ConvertPointsScreen';
-
+import CashPointsScreen from '~/screens/Profile/CashPointsScreen';
 const Stack = createNativeStackNavigator();
 
 const LoadingView = () => (
@@ -153,16 +153,16 @@ const RootNavigator = () => {
     ? needsLocationPermission
       ? 'auth-stack-location'
       : needsNotificationPermission
-      ? 'auth-stack-notification'
-      : 'auth-stack'
+        ? 'auth-stack-notification'
+        : 'auth-stack'
     : 'guest-stack';
 
   const initialRouteName = user
     ? needsLocationPermission
       ? 'LocationPermission'
       : needsNotificationPermission
-      ? 'Notification'
-      : 'Home'
+        ? 'Notification'
+        : 'Home'
     : 'Guest';
 
   return (
@@ -172,78 +172,80 @@ const RootNavigator = () => {
         initialRouteName={initialRouteName}
         screenOptions={{ headerShown: false, animation: 'fade' }}
       >
-      {user ? (
-        <>
-          <Stack.Screen name="Guest" component={AuthScreen} />
-          <Stack.Screen
-            name="LocationPermission"
-            initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}
-          >
-            {(props) => (
-              <LocationPermissionScreen
-                {...props}
-                onComplete={() => setNeedsLocationPermission(false)}
-                onSkip={() => setNeedsLocationPermission(false)}
-              />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="Notification">
-            {() => (
-              <Notification
-                onComplete={() => setNeedsNotificationPermission(false)}
-                onSkip={() => setNeedsNotificationPermission(false)}
-              />
-            )}
-          </Stack.Screen>
-          <Stack.Screen name="Home" component={Home} />
-          <Stack.Screen name="Search" component={SearchScreen} />
-          <Stack.Screen name="Cart" component={Cart} />
-          <Stack.Screen name="CheckoutOrder" component={CheckoutOrder} />
-          <Stack.Screen name="OrderTracking" component={OrderTracking} />
-          <Stack.Screen name="LiveChat" component={LiveChatScreen} />
-          <Stack.Screen name="CouponCode" component={CouponCode} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
-          <Stack.Screen name="RestaurantDetails" component={RestaurantDetails} />
-          <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
-          <Stack.Screen name="FAQ" component={FAQScreen} />
-          <Stack.Screen name="ManagePrivacy" component={PrivacyScreen} />
-          <Stack.Screen name="CouponCodes" component={CouponCodeScreen} />
-          <Stack.Screen name="LoyaltyRewards" component={LoyaltyRewardsScreen} />
-          <Stack.Screen name="ConvertPoints" component={ConvertPointsScreen} />
-          <Stack.Screen name="ProfilSettings" component={ProfileSettingsScreen} />
-          <Stack.Screen name="Favorites" component={FavoritesScreen} />
-          <Stack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="Guest" component={AuthScreen} />
-          <Stack.Group>
-            <Stack.Screen name="Login" component={EmailLogin} />
-            <Stack.Screen name="LocationAccess" component={LocationAccess} />
-            <Stack.Screen name="NameEntry" component={NameEntry} />
-            <Stack.Screen name="PhoneVerificationCode" component={PhoneVerificationCode} />
+        {user ? (
+          <>
+            <Stack.Screen name="Guest" component={AuthScreen} />
             <Stack.Screen
-              name="EmailPhoneVerificationCode"
-              component={EmailPhoneVerificationCode}
-            />
-            <Stack.Screen name="PhoneNumberEntry" component={PhoneNumberEntry} />
-            <Stack.Screen name="AcceptTerms" component={AcceptTerms} />
-            <Stack.Screen name="SignUpEmailPassword" component={SignUpEmailPassword} />
-            <Stack.Screen name="PhoneEmailEntry" component={PhoneEmailEntry} />
-            <Stack.Screen
-              name="PhoneEmailVerificationCode"
-              component={PhoneEmailVerificationCode}
-            />
-            <Stack.Screen name="PhoneNameEntry" component={PhoneNameEntry} />
-            <Stack.Screen name="PhoneAcceptTerms" component={PhoneAcceptTerms} />
-            <Stack.Screen name="EmailVerificationCode" component={EmailVerificationCode} />
-            <Stack.Screen name="Notification" component={Notification} />
-          </Stack.Group>
-        </>
-      )}
+              name="LocationPermission"
+              initialParams={{ nextRoute: 'Notification', resetOnComplete: false }}
+            >
+              {(props) => (
+                <LocationPermissionScreen
+                  {...props}
+                  onComplete={() => setNeedsLocationPermission(false)}
+                  onSkip={() => setNeedsLocationPermission(false)}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Notification">
+              {() => (
+                <Notification
+                  onComplete={() => setNeedsNotificationPermission(false)}
+                  onSkip={() => setNeedsNotificationPermission(false)}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Home" component={Home} />
+            <Stack.Screen name="Search" component={SearchScreen} />
+            <Stack.Screen name="Cart" component={Cart} />
+            <Stack.Screen name="CheckoutOrder" component={CheckoutOrder} />
+            <Stack.Screen name="OrderTracking" component={OrderTracking} />
+            <Stack.Screen name="LiveChat" component={LiveChatScreen} />
+            <Stack.Screen name="CouponCode" component={CouponCode} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+            <Stack.Screen name="RestaurantDetails" component={RestaurantDetails} />
+            <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+            <Stack.Screen name="FAQ" component={FAQScreen} />
+            <Stack.Screen name="ManagePrivacy" component={PrivacyScreen} />
+            <Stack.Screen name="CouponCodes" component={CouponCodeScreen} />
+            <Stack.Screen name="LoyaltyRewards" component={LoyaltyRewardsScreen} />
+            <Stack.Screen name="ConvertPoints" component={ConvertPointsScreen} />
+            <Stack.Screen name="ProfilSettings" component={ProfileSettingsScreen} />
+            <Stack.Screen name="Favorites" component={FavoritesScreen} />
+            <Stack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
+            <Stack.Screen name="CashPoints" component={CashPointsScreen} />
+
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Guest" component={AuthScreen} />
+            <Stack.Group>
+              <Stack.Screen name="Login" component={EmailLogin} />
+              <Stack.Screen name="LocationAccess" component={LocationAccess} />
+              <Stack.Screen name="NameEntry" component={NameEntry} />
+              <Stack.Screen name="PhoneVerificationCode" component={PhoneVerificationCode} />
+              <Stack.Screen
+                name="EmailPhoneVerificationCode"
+                component={EmailPhoneVerificationCode}
+              />
+              <Stack.Screen name="PhoneNumberEntry" component={PhoneNumberEntry} />
+              <Stack.Screen name="AcceptTerms" component={AcceptTerms} />
+              <Stack.Screen name="SignUpEmailPassword" component={SignUpEmailPassword} />
+              <Stack.Screen name="PhoneEmailEntry" component={PhoneEmailEntry} />
+              <Stack.Screen
+                name="PhoneEmailVerificationCode"
+                component={PhoneEmailVerificationCode}
+              />
+              <Stack.Screen name="PhoneNameEntry" component={PhoneNameEntry} />
+              <Stack.Screen name="PhoneAcceptTerms" component={PhoneAcceptTerms} />
+              <Stack.Screen name="EmailVerificationCode" component={EmailVerificationCode} />
+              <Stack.Screen name="Notification" component={Notification} />
+            </Stack.Group>
+          </>
+        )}
       </Stack.Navigator>
       <DeliveredCelebrationOverlay />
       <DeliveryRatingOverlay />

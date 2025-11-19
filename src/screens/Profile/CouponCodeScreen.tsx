@@ -143,7 +143,7 @@ const CouponCodeScreen: React.FC = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View style={styles.header}>
-        <HeaderWithBackButton title={t('profile.coupon.title')} titleMarginLeft={s(70)} />
+        <HeaderWithBackButton title={t('profile.coupon.title')} />
       </View>
 
       <FlatList
