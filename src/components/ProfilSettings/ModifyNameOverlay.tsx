@@ -79,7 +79,7 @@ const ModifyNameOverlay = ({ onClose }: { onClose: () => void }) => {
       <View style={{ flex: 1,backgroundColor: '#fff',paddingTop: insets.top }}>
         <View style={styles.header}>
 
-          <HeaderWithBackButton title={t('profile.modals.name.title')} onBack={onClose} titleMarginLeft={moderateScale(70)}/>
+          <HeaderWithBackButton title={t('profile.modals.name.title')} onBack={onClose} />
         </View>
         <View style={styles.inner}>
           <Text allowFontScaling={false} style={styles.currentLabel}>

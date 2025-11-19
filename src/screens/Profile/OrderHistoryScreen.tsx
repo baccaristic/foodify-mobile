@@ -250,7 +250,7 @@ const OrderHistoryScreen = () => {
 
   const customHeader = (
     <View style={styles.header}>
-      <HeaderWithBackButton title={t('profile.orderHistory.title')} titleMarginLeft={s(70)} />
+      <HeaderWithBackButton title={t('profile.orderHistory.title')}  />
     </View>
   );
 

@@ -20,7 +20,7 @@ const PrivacyScreen = () => {
 
     const customHeader = (
         <View style={styles.header}>
-            <HeaderWithBackButton title={t('profile.privacy.title')} titleMarginLeft={s(70)} />
+            <HeaderWithBackButton title={t('profile.privacy.title')} />
         </View>
     );
 

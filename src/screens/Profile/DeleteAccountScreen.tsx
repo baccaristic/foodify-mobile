@@ -27,7 +27,7 @@ export default function DeleteAccountScreen() {
 
     const customHeader = (
         <View style={styles.header}>
-            <HeaderWithBackButton title={t('profile.deleteAccount.title')} titleMarginLeft={s(40)} />
+            <HeaderWithBackButton title={t('profile.deleteAccount.title')}  />
         </View>
     );
 
