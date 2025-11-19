@@ -53,7 +53,7 @@ const SponsoredRestaurantCard: React.FC<SponsoredRestaurantCardProps> = ({
             <Image
               source={
                 logoUrl
-                  ? { uri: `${BASE_API_URL}/auth/image/${logoUrl}` }
+                  ? { uri: logoUrl }
                   : require('../../assets/baguette.png')
               }
               style={styles.logo}

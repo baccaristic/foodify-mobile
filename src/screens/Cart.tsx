@@ -21,7 +21,7 @@ const EMPTY_CART_IMAGE = require('../../assets/empty-cart.png');
 
 const resolveImageSource = (imagePath?: string | null) => {
   if (imagePath) {
-    return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
+    return { uri: imagePath };
   }
   return FALLBACK_IMAGE;
 };

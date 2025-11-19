@@ -13,7 +13,7 @@ const fallbackImage = require('../../assets/baguette.png');
 
 const resolveImageSource = (imagePath?: string | null) => {
   if (imagePath) {
-    return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
+    return { uri: imagePath };
   }
 
   return fallbackImage;

@@ -1546,7 +1546,7 @@ const OrderTrackingScreen: React.FC = () => {
             <View style={styles.summaryHeaderLeft}>
               {restaurantAvatarUri ? (
                 <Image
-                  source={{ uri: `${BASE_API_URL}/auth/image/${restaurantAvatarUri}` }}
+                  source={{ uri: restaurantAvatarUri }}
                   style={styles.summaryRestaurantImage}
                 />
               ) : (

@@ -147,7 +147,7 @@ const RestaurantCard = ({ data, onPress }: { data: RestaurantSearchItem; onPress
   const { locale } = useLocalization();
   const localizedName = getLocalizedName(data, locale);
 
-  const imageSource = imageUrl ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` } : FALLBACK_IMAGE;
+  const imageSource = imageUrl ? { uri: imageUrl } : FALLBACK_IMAGE;
   const formattedRating = Number.isFinite(rating) ? `${rating}/5` : '-';
   const formatDeliveryFee = useCallback(
     (fee: number) =>
@@ -236,7 +236,7 @@ const PromotedMenuItemCard = ({
   const localizedName = getLocalizedName(item, locale);
   const { promotionLabel, price, promotionPrice, imageUrl } = item;
   const imageSource = imageUrl
-    ? { uri: `${BASE_API_URL}/auth/image/${imageUrl}` }
+    ? { uri: imageUrl }
     : FALLBACK_MENU_IMAGE;
   const hasPromoPrice = typeof promotionPrice === 'number' && Number.isFinite(promotionPrice);
 

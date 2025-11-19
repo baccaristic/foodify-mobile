@@ -39,7 +39,7 @@ const RemoteImageWithSkeleton: React.FC<RemoteImageWithSkeletonProps> = ({
       ) : null}
       {hasImage && !hasError ? (
         <Image
-          source={{ uri: `${BASE_API_URL}/auth/image/${imagePath}` }}
+          source={{ uri: imagePath! }}
           style={[StyleSheet.absoluteFillObject, imageStyle]}
           contentFit={contentFit}
           onLoad={() => setIsLoaded(true)}

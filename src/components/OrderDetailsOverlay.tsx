@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   Modal,
   View,
@@ -153,7 +153,7 @@ const OrderDetailsOverlay: React.FC<Props> = ({ visible, onClose, order }) => {
             <View style={styles.header}>
               <Image
                 source={
-                  image ? { uri: `${BASE_API_URL}/auth/image/${image}` } : require("../../assets/TEST.png")
+                  image ? { uri: image} : require("../../assets/TEST.png")
                 }
                 style={styles.headerImage}
               />

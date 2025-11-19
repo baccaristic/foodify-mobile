@@ -166,7 +166,7 @@ export default function CategoryOverlay({
                     <Image
                         source={
                             item.imageUrl
-                                ? { uri: `${BASE_API_URL}/auth/image/${item.imageUrl}` }
+                                ? { uri: item.imageUrl }
                                 : require("../../assets/baguette.png")
                         }
                         style={styles.cardImage}

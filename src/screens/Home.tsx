@@ -636,7 +636,7 @@ export default function HomePage() {
               <Image
                 source={
                   topPickImagePath
-                    ? { uri: `${BASE_API_URL}/auth/image/${topPickImagePath}` }
+                    ? { uri: topPickImagePath }
                     : require('../../assets/baguette.png')
                 }
                 style={styles.topPickImage}

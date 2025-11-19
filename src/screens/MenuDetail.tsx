@@ -117,7 +117,7 @@ const formatPrice = (p: number) => `${p.toFixed(3).replace('.', ',')} DT`;
 
 const resolveImageSource = (imagePath?: string | null) => {
   if (imagePath) {
-    return { uri: `${BASE_API_URL}/auth/image/${imagePath}` };
+    return { uri: imagePath };
   }
   return require('../../assets/baguette.png');
 };
