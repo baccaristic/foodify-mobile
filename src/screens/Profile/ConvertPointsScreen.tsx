@@ -369,7 +369,7 @@ export default function ConvertPointsScreen() {
     <View style={styles.header}>
       <HeaderWithBackButton
         title={t("profile.convert.headerTitle")}
-        titleMarginLeft={s(70)}
+        
       />
     </View>
   );

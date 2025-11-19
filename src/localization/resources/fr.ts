@@ -806,6 +806,10 @@ const fr: TranslationDictionary = {
         },
       },
     },
+    Cash: {
+      title: "points d'argent",
+    },
+
     settings: {
       title: 'Paramètres du profil',
       sections: {

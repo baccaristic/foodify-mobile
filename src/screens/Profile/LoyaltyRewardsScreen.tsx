@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { ScaledSheet, moderateScale, s, verticalScale, vs } from "react-native-size-matters";
-import { ArrowRight } from "lucide-react-native";
+import { ArrowRight, ArrowLeft, QrCode } from "lucide-react-native";
 import MainLayout from "~/layouts/MainLayout";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ import { getLoyaltyBalance, getLoyaltyTransactions } from "~/api/loyalty";
 import type { LoyaltyTransactionDto } from "~/interfaces/Loyalty";
 import HeaderWithBackButton from "~/components/HeaderWithBackButton";
 import { Image, ImageBackground } from "expo-image";
-import { useTranslation } from "~/localization";
+import { useTranslation, useLocalization } from "~/localization";
 
 const FOODY_IMAGE = require('../../../assets/foodypoints.png');
 const WHEEL_IMAGE = require('../../../assets/luckywheel.png');
@@ -41,6 +41,21 @@ const formatPointsValue = (value: number) => {
 export default function FoodyPointsScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
+
+  const { isRTL } = useLocalization();
+
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  };
+
+  const handleQrCode = () => {
+    navigation.navigate('CashPoints' as never);
+  };
+
+
   const {
     data: balance,
     isFetching: isBalanceFetching,
@@ -100,7 +115,7 @@ export default function FoodyPointsScreen() {
       );
       if (earnedMatch) {
         return t("profile.loyalty.transactionDescriptions.earnedForOrder", {
-          values: {orderId: earnedMatch[1].trim()}
+          values: { orderId: earnedMatch[1].trim() }
         });
       }
 
@@ -110,7 +125,7 @@ export default function FoodyPointsScreen() {
       if (redeemedMatch) {
         return t("profile.loyalty.transactionDescriptions.redeemedForCoupon", {
           values: {
-couponCode: redeemedMatch[1].trim(),
+            couponCode: redeemedMatch[1].trim(),
           }
         });
       }
@@ -142,136 +157,163 @@ couponCode: redeemedMatch[1].trim(),
   };
 
   const mainContent = (
-  <ScrollView
-    style={{ flex: 1 }}
-    contentContainerStyle={{
-      flexGrow: 1,
-      paddingHorizontal: moderateScale(16),
-    }}
-    refreshControl={
-      <RefreshControl
-        refreshing={refreshing}
-        colors={[accentColor]}
-        onRefresh={() => {
-          refetchBalance();
-          refetchTransactions();
-        }}
-      />
-    }
-    showsVerticalScrollIndicator={false}
-  >
-    <View style={{ flex: 1 }}>
-      <View style={styles.logoContainer}>
-        <Image
-          source={FOODY_IMAGE}
-          style={{ width: 160, height: 160 }}
-          contentFit="contain"
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingHorizontal: moderateScale(16),
+      }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          colors={[accentColor]}
+          onRefresh={() => {
+            refetchBalance();
+            refetchTransactions();
+          }}
         />
-      </View>
-
-      <Text allowFontScaling={false} style={styles.tagline}>
-        {t("profile.loyaltyDetails.tagline")}
-      </Text>
-
-      <View style={styles.pointsCard}>
-        <View>
-          <Text allowFontScaling={false} style={styles.smallLabel}>
-            {t("profile.loyaltyDetails.totalPoints")}
-          </Text>
-          <Text allowFontScaling={false} style={styles.bigValue}>
-            {totalPoints}
-          </Text>
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ flex: 1 }}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={FOODY_IMAGE}
+            style={{ width: 160, height: 160 }}
+            contentFit="contain"
+          />
         </View>
 
-        <TouchableOpacity
-          style={styles.convertBtn}
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('ConvertPoints' as never)}
-        >
-          <Text allowFontScaling={false} style={styles.convertText}>
-            {t("profile.loyaltyDetails.convertCta")}
-          </Text>
-          <ArrowRight size={s(16)} color="#CA251B" />
-        </TouchableOpacity>
-      </View>
+        <Text allowFontScaling={false} style={styles.tagline}>
+          {t("profile.loyaltyDetails.tagline")}
+        </Text>
 
-      <View style={styles.dualRow}>
-        <View style={styles.dualBox}>
-          <Text allowFontScaling={false} style={styles.smallGray}>
-            {t("profile.loyaltyDetails.totalEarned")}
-          </Text>
-          <Text allowFontScaling={false} style={styles.mediumDark}>
-            {totalEarned}
-          </Text>
-        </View>
-
-        <View style={styles.dualBox}>
-          <Text allowFontScaling={false} style={styles.smallGray}>
-            {t("profile.loyaltyDetails.totalSpent")}
-          </Text>
-          <Text allowFontScaling={false} style={styles.mediumDark}>
-            {totalSpent}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.luckyCard}>
-        <ImageBackground
-          source={WHEEL_IMAGE}
-          style={{ width: 160, height: 160 }}
-          contentFit="contain"
-        />
-        <Image
-          source={BACKGROUND_WHEEL_IMAGE}
-          style={styles.backgroundImage}
-          contentFit="cover"
-        />
-
-        <View style={styles.luckyCardText}>
-          <Text allowFontScaling={false} style={styles.availableText}>
-            {t("profile.loyaltyDetails.availableIn")}
-          </Text>
-          <View style={styles.luckyBadge}>
-            <Text allowFontScaling={false} style={styles.badgeText}>
-              {t("profile.loyaltyDetails.availabilityBadge", { values: { count: 2 } })}
+        <View style={styles.pointsCard}>
+          <View>
+            <Text allowFontScaling={false} style={styles.smallLabel}>
+              {t("profile.loyaltyDetails.totalPoints")}
+            </Text>
+            <Text allowFontScaling={false} style={styles.bigValue}>
+              {totalPoints}
             </Text>
           </View>
-          <Text allowFontScaling={false} style={styles.luckyHint}>
-            {t("profile.loyaltyDetails.stayTuned")}
+
+          <TouchableOpacity
+            style={styles.convertBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('ConvertPoints' as never)}
+          >
+            <Text allowFontScaling={false} style={styles.convertText}>
+              {t("profile.loyaltyDetails.convertCta")}
+            </Text>
+            <ArrowRight size={s(16)} color="#CA251B" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.dualRow}>
+          <View style={styles.dualBox}>
+            <Text allowFontScaling={false} style={styles.smallGray}>
+              {t("profile.loyaltyDetails.totalEarned")}
+            </Text>
+            <Text allowFontScaling={false} style={styles.mediumDark}>
+              {totalEarned}
+            </Text>
+          </View>
+
+          <View style={styles.dualBox}>
+            <Text allowFontScaling={false} style={styles.smallGray}>
+              {t("profile.loyaltyDetails.totalSpent")}
+            </Text>
+            <Text allowFontScaling={false} style={styles.mediumDark}>
+              {totalSpent}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.luckyCard}>
+          <ImageBackground
+            source={WHEEL_IMAGE}
+            style={{ width: 160, height: 160 }}
+            contentFit="contain"
+          />
+          <Image
+            source={BACKGROUND_WHEEL_IMAGE}
+            style={styles.backgroundImage}
+            contentFit="cover"
+          />
+
+          <View style={styles.luckyCardText}>
+            <Text allowFontScaling={false} style={styles.availableText}>
+              {t("profile.loyaltyDetails.availableIn")}
+            </Text>
+            <View style={styles.luckyBadge}>
+              <Text allowFontScaling={false} style={styles.badgeText}>
+                {t("profile.loyaltyDetails.availabilityBadge", { values: { count: 2 } })}
+              </Text>
+            </View>
+            <Text allowFontScaling={false} style={styles.luckyHint}>
+              {t("profile.loyaltyDetails.stayTuned")}
+            </Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.howButton}>
+          <Text allowFontScaling={false} style={styles.howText}>
+            {t("profile.loyaltyDetails.howItWorks")}
           </Text>
+        </TouchableOpacity>
+
+        <View style={styles.transactionsList}>
+          {isTransactionsFetching ? (
+            <ActivityIndicator color={accentColor} />
+          ) : sortedTransactions.length === 0 ? (
+            <Text allowFontScaling={false} style={styles.emptyText}>
+              {t("profile.loyalty.transactionsEmpty")}
+            </Text>
+          ) : (
+            sortedTransactions.map(renderTransaction)
+          )}
         </View>
       </View>
-
-      <TouchableOpacity style={styles.howButton}>
-        <Text allowFontScaling={false} style={styles.howText}>
-          {t("profile.loyaltyDetails.howItWorks")}
-        </Text>
-      </TouchableOpacity>
-
-      <View style={styles.transactionsList}>
-        {isTransactionsFetching ? (
-          <ActivityIndicator color={accentColor} />
-        ) : sortedTransactions.length === 0 ? (
-          <Text allowFontScaling={false} style={styles.emptyText}>
-            {t("profile.loyalty.transactionsEmpty")}
-          </Text>
-        ) : (
-          sortedTransactions.map(renderTransaction)
-        )}
-      </View>
-    </View>
-  </ScrollView>
-);
+    </ScrollView>
+  );
 
 
   const header = (
     <View style={styles.header}>
-      <HeaderWithBackButton
-        title={t("profile.loyaltyDetails.headerTitle")}
-        titleMarginLeft={s(70)}
-      />
+      <View style={styles.headerInner}>
+        <TouchableOpacity
+          onPress={handleBack}
+          activeOpacity={0.8}
+          style={styles.backButton}
+        >
+          {isRTL ? (
+            <ArrowRight color="#CA251B" size={s(26)} />
+          ) : (
+            <ArrowLeft color="#CA251B" size={s(26)} />
+          )}
+        </TouchableOpacity>
+
+        <Text
+          allowFontScaling={true}
+          style={styles.headerTitle1}
+          numberOfLines={2}
+        >
+          {t("profile.loyaltyDetails.headerTitle")}
+        </Text>
+
+        <TouchableOpacity
+          onPress={handleQrCode}
+          activeOpacity={0.8}
+          style={styles.qrButton}
+        >
+          <QrCode color="#CA251B" size={s(24)} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
+
+
 
   return (
     <MainLayout
@@ -456,5 +498,49 @@ const styles = ScaledSheet.create({
     textAlign: "center",
     marginTop: "20@vs",
   },
+
+
+  headerInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: "16@s",
+    paddingVertical: "8@vs",
+  },
+
+  backButton: {
+    width: "40@s",
+    height: "40@s",
+    borderRadius: "20@s",
+    borderWidth: 1,
+    borderColor: accentColor,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  backButtonRTL: {
+    marginLeft: "auto",
+  },
+  qrButton: {
+    width: "40@s",
+    height: "40@s",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: "auto",
+  },
+
+  qrButtonLTR: {
+    marginLeft: "auto",
+
+  },
+
+
+  headerTitle1: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: "18@ms",
+    fontWeight: "700",
+    color: headerColor,
+  },
+
+
 });
 

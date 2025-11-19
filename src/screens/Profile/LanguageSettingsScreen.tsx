@@ -27,7 +27,7 @@ const LanguageSettingsScreen = () => {
 
   const customHeader = (
     <View style={styles.header}>
-      <HeaderWithBackButton title={t('profile.language.title')} titleMarginLeft={s(80)} />
+      <HeaderWithBackButton title={t('profile.language.title')}  />
     </View>
   );
 

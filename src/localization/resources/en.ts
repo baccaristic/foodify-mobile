@@ -806,6 +806,9 @@ const en: TranslationDictionary = {
         language: 'Language',
       },
     },
+    Cash: {
+      title: "Cash Points",
+    },
     language: {
       title: 'Language',
       heading: 'Choose your language',

@@ -149,7 +149,7 @@ const FavoritesScreen = () => {
     <View style={styles.header}>
       <HeaderWithBackButton
         title={t('profile.favorites.title')}
-        titleMarginLeft={s(90)}
+        
         onBack={() => navigation.goBack()}
       />
     </View>
