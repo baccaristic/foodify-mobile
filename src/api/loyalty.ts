@@ -4,6 +4,8 @@ import type {
   LoyaltyBalanceResponse,
   LoyaltyTransactionDto,
   RedeemCouponRequest,
+  PointPayementRequest,
+  PointsPaymentResponse
 } from '~/interfaces/Loyalty';
 
 const parseNumeric = (value: string | number | null | undefined) => {
@@ -62,5 +64,22 @@ export const redeemCouponWithCode = async (payload: {couponCode: string}) => {
   return data;
 };
   
+
+export const scanPointsPayment = async (payload: PointPayementRequest) => {
+  const { data } = await client.post<PointsPaymentResponse>(
+    '/payments/points/client/scan',
+    payload,
+  );
+  return data;
+};
+
+
+export const getPointsPaymentsHistory = async () => {
+  const { data } = await client.get<PointsPaymentResponse[]>(
+    '/payments/points/client/history',
+  );
+  return data;
+};
+
 
 export type { CouponDto, RedeemCouponRequest };

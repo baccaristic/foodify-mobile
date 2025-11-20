@@ -33,3 +33,24 @@ export interface RedeemCouponRequest {
   type: CouponType;
   discountPercent?: number;
 }
+
+export interface PointPayementRequest {
+  paymentToken: string;
+}
+
+
+export interface PointsPaymentResponse {
+  id: number;
+  restaurantId: number;
+  restaurantName: string;
+  clientId: number;
+  clientName: string;
+  amountTnd: number;
+  pointsAmount: number;
+  paymentToken: string;
+  status: 'PENDING' | 'COMPLETED' | 'EXPIRED';
+  createdAt: string;
+  completedAt: string | null;
+  expiresAt: string;
+  qrCodeImage: string;
+}

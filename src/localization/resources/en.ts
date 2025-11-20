@@ -813,8 +813,12 @@ const en: TranslationDictionary = {
       equal: ' Equal to :',
       qrScan: 'Scan QR code',
       permissionQr: 'Camera permission is required to scan QR codes.',
-      allowCamera:'Allow camera',
-
+      allowCamera: 'Allow camera',
+      success: 'Success',
+      ptsWith: 'Points with the value of',
+      transferred: 'Transferred to the restaurant account',
+      fail: 'Failure',
+      insufficient: "Insufficient points in\nyour account",
     },
     language: {
       title: 'Language',
