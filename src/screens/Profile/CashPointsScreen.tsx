@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import HeaderWithBackButton from '~/components/HeaderWithBackButton';
-import {useLocalization, useTranslation } from '~/localization';
+import { useLocalization, useTranslation } from '~/localization';
 import { ScaledSheet, moderateScale, s, vs } from 'react-native-size-matters';
 import MainLayout from '~/layouts/MainLayout';
 import { Image } from "expo-image";
 import { useQuery } from "@tanstack/react-query";
-import { getLoyaltyBalance } from "~/api/loyalty";
+import { getLoyaltyBalance, getPointsPaymentsHistory } from "~/api/loyalty";
 import QrCodeOverlay from '~/components/QrCodeOverlay';
+import QrResultOverlay from '~/components/QrResultOverlay';
+import { PointsPaymentResponse } from '~/interfaces/Loyalty';
 
 const FOODY_IMAGE = require('../../../assets/foodypoints.png');
 
@@ -30,8 +32,15 @@ const palette = {
 
 const CashPointsScreen = () => {
 
-    const { locale, setLocale } = useLocalization();
+    const { isRTL } = useLocalization();
+
+
     const [showQrOverlay, setShowQrOverlay] = useState(false);
+    const [qrResult, setQrResult] = useState<{ status: 'success' | 'error'; amountTnd?: number } | null>(null);
+
+
+
+
     const { t } = useTranslation();
     const {
         data: balance,
@@ -41,14 +50,51 @@ const CashPointsScreen = () => {
         queryKey: ["loyalty", "balance"],
         queryFn: getLoyaltyBalance,
     });
+    const {
+        data: paymentsHistory = [],
+        isFetching: isHistoryFetching,
+        refetch: refetchHistory,
+    } = useQuery({
+        queryKey: ["pointsPayments", "history"],
+        queryFn: getPointsPaymentsHistory,
+    });
+
 
     const rawPoints = Number(balance?.balance ?? 0);
     const totalPoints = formatPointsValue(rawPoints);
     const equivalentTnd = formatPointsValue(rawPoints * 0.01);
 
-    const refreshing = isBalanceFetching;
+    const refreshing = isBalanceFetching || isHistoryFetching;
 
+    const renderPayment = (item: PointsPaymentResponse) => {
+        const formattedAmountTnd = formatPointsValue(item.amountTnd);
+        const formattedPoints = formatPointsValue(item.pointsAmount);
+        const date = new Date(item.createdAt);
+        const formattedDate = new Intl.DateTimeFormat(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }).format(date);
 
+        return (
+            <View style={styles.transactionRow} key={item.id}>
+                <View style={{ flex: 1 }}>
+                    <Text allowFontScaling={false} style={styles.transactionTitle}>
+                        {item.restaurantName} ({formattedAmountTnd} dt)
+                    </Text>
+                    <Text allowFontScaling={false} style={styles.transactionDate}>
+                        {formattedDate}
+                    </Text>
+                </View>
+
+                <Text
+                    allowFontScaling={false}
+                    style={[styles.transactionValue, { color: palette.accent }]}
+                >
+                    {formattedPoints}pt
+                </Text>
+            </View>
+        );
+    };
 
     const customHeader = (
         <View style={styles.header}>
@@ -69,6 +115,7 @@ const CashPointsScreen = () => {
                     colors={[palette.accent]}
                     onRefresh={() => {
                         refetchBalance();
+                        refetchHistory();
                     }}
                 />
             }
@@ -84,11 +131,16 @@ const CashPointsScreen = () => {
                         contentFit="contain"
                     />
                 </View>
-                <Text allowFontScaling={false} style={styles.payWithText}>
+                <Text
+                    allowFontScaling={false}
+                    style={[styles.payWithText, isRTL && styles.payWithTextRTL]}
+                >
                     {t("profile.Cash.payWith")}
                 </Text>
 
-                <View style={styles.pointsCard}>
+
+                <View style={[styles.pointsCard, isRTL && styles.pointsCardRTL]}>
+
                     <View>
                         <Text allowFontScaling={false} style={styles.smallLabel}>
                             {t("profile.Cash.total")}
@@ -100,17 +152,29 @@ const CashPointsScreen = () => {
                         </Text>
                     </View>
 
-                    <View style={{ alignItems: 'flex-end' }}>
+                    <View style={[styles.equalContainer, isRTL && styles.equalContainerRTL]}>
                         <View style={styles.equalRow}>
-
-                            <Text allowFontScaling={false} style={styles.equalLabel}>
-                                {t("profile.Cash.equal")}
-                            </Text>
-                            <Text allowFontScaling={false} style={styles.equalValue}>
-                                {equivalentTnd} dt
-
-                            </Text>
+                            {isRTL ? (
+                                <>
+                                    <Text allowFontScaling={false} style={styles.equalValue}>
+                                        {equivalentTnd} dt
+                                    </Text>
+                                    <Text allowFontScaling={false} style={styles.equalLabel}>
+                                        {t("profile.Cash.equal")}
+                                    </Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Text allowFontScaling={false} style={styles.equalLabel}>
+                                        {t("profile.Cash.equal")}
+                                    </Text>
+                                    <Text allowFontScaling={false} style={styles.equalValue}>
+                                        {equivalentTnd} dt
+                                    </Text>
+                                </>
+                            )}
                         </View>
+
                     </View>
 
                 </View>
@@ -121,6 +185,18 @@ const CashPointsScreen = () => {
                         {t("profile.Cash.qrScan")}
                     </Text>
                 </TouchableOpacity>
+                <View style={styles.transactionsList}>
+                    {isHistoryFetching ? (
+                        <ActivityIndicator color={palette.accent} />
+                    ) : paymentsHistory.length === 0 ? (
+                        <Text allowFontScaling={false} style={styles.emptyText}>
+                            {t("profile.Cash.historyEmpty")}
+                        </Text>
+                    ) : (
+                        paymentsHistory.map(renderPayment)
+                    )}
+                </View>
+
 
 
             </View>
@@ -154,7 +230,30 @@ const CashPointsScreen = () => {
                         bottom: 0,
                     }}
                 >
-                    <QrCodeOverlay onClose={() => setShowQrOverlay(false)} />
+                    <QrCodeOverlay
+                        onClose={() => setShowQrOverlay(false)}
+                        onResult={(result) => {
+                            setShowQrOverlay(false);
+                            setQrResult(result);
+                        }}
+                    />
+                </View>
+            )}
+            {qrResult && (
+                <View
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                    }}
+                >
+                    <QrResultOverlay
+                        status={qrResult.status}
+                        amountTnd={qrResult.amountTnd}
+                        onClose={() => setQrResult(null)}
+                    />
                 </View>
             )}
         </>
@@ -177,6 +276,22 @@ const styles = ScaledSheet.create({
         color: palette.accentDark,
         fontWeight: '500',
     },
+    payWithTextRTL: {
+        textAlign: 'right',
+    },
+
+    pointsCardRTL: {
+        flexDirection: 'row-reverse',
+    },
+
+    equalContainer: {
+        alignItems: 'flex-end',
+    },
+
+    equalContainerRTL: {
+        alignItems: 'flex-start',
+    },
+
     pointsCard: {
         marginTop: '16@vs',
         backgroundColor: '#FFFFFF',
@@ -234,6 +349,35 @@ const styles = ScaledSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: s(4),
+    },
+    transactionsList: {
+        marginTop: '18@vs',
+    },
+    transactionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: '10@vs',
+        borderBottomWidth: 1,
+        borderBottomColor: palette.accent,
+    },
+    transactionTitle: {
+        color: palette.accentDark,
+        fontSize: '14@ms',
+        fontWeight: '600',
+    },
+    transactionDate: {
+        color: '#6B7280',
+        fontSize: '12@ms',
+    },
+    transactionValue: {
+        fontSize: '15@ms',
+        fontWeight: '700',
+    },
+    emptyText: {
+        color: '#6B7280',
+        textAlign: 'center',
+        marginTop: '20@vs',
     },
 
 

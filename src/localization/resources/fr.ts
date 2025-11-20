@@ -813,8 +813,12 @@ const fr: TranslationDictionary = {
       equal: 'Égal à :',
       qrScan: 'Scannez le code QR',
       permissionQr: "L'autorisation de l'appareil photo est requise pour scanner les codes QR.",
-      allowCamera:'Autoriser la caméra',
-
+      allowCamera: 'Autoriser la caméra',
+      success: 'succès',
+      ptsWith: 'Points avec la valeur de',
+      transferred: 'ont été transférés sur le compte du restaurant',
+      fail: 'Échec',
+      insufficient: "Points insuffisants sur votre compte",
     },
 
     settings: {

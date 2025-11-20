@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -6,8 +6,7 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { moderateScale, ScaledSheet, verticalScale } from 'react-native-size-matters';
 
 import { useTranslation } from '~/localization';
@@ -15,17 +14,65 @@ import { useTranslation } from '~/localization';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CircleX } from 'lucide-react-native';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { scanPointsPayment } from '~/api/loyalty';
 const palette = {
     accent: '#CA251B',
     dark: '#17213A',
 };
 
-const QrCodeOverlay = ({ onClose }: { onClose: () => void }) => {
+const QrCodeOverlay = ({
+    onClose,
+    onResult,
+}: {
+    onClose: () => void;
+    onResult: (result: { status: 'success' | 'error'; amountTnd?: number }) => void;
+}) => {
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
 
     const [permission, requestPermission] = useCameraPermissions();
+    const [hasScanned, setHasScanned] = useState(false);
 
+
+    const { mutateAsync: scan, isPending } = useMutation({
+        mutationFn: (payload: { paymentToken: string }) =>
+            scanPointsPayment(payload),
+        onSuccess: (response) => {
+            onResult({
+                status: 'success',
+                amountTnd: response.amountTnd,
+            });
+        },
+        onError: () => {
+            onResult({ status: 'error' });
+        },
+    });
+
+
+    const handleBarcodeScanned = useCallback(
+        (result: BarcodeScanningResult) => {
+            if (hasScanned || isPending) {
+                return;
+            }
+
+            const data = result.data;
+            if (!data) {
+                return;
+            }
+
+            setHasScanned(true);
+
+            const token = String(data);
+
+           
+            onClose();
+
+            
+            scan({ paymentToken: token });
+        },
+        [hasScanned, isPending, onClose, scan],
+    );
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -46,7 +93,13 @@ const QrCodeOverlay = ({ onClose }: { onClose: () => void }) => {
 
                     {permission?.granted ? (
                         <View style={styles.cameraWrapper}>
-                            <CameraView style={styles.camera} facing="back" />
+                            <CameraView
+                                style={styles.camera}
+                                facing="back"
+                                onBarcodeScanned={handleBarcodeScanned}
+                                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                            />
+
                         </View>
                     ) : (
                         <View style={styles.permissionContainer}>
