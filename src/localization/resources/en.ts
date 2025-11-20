@@ -808,6 +808,13 @@ const en: TranslationDictionary = {
     },
     Cash: {
       title: "Cash Points",
+      payWith: "Pay with foody points",
+      total: "Total points",
+      equal: ' Equal to :',
+      qrScan: 'Scan QR code',
+      permissionQr: 'Camera permission is required to scan QR codes.',
+      allowCamera:'Allow camera',
+
     },
     language: {
       title: 'Language',

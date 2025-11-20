@@ -812,6 +812,12 @@ const ar: TranslationDictionary = {
     },
     Cash:{
       title:'النقاط النقدية',
+      payWith:'ادفع مع نقاط فودي',
+      total:'مجموع النقاط',
+      equal:':يساوي ',
+      qrScan:'مسح رمز الاستجابة السريعة',
+      permissionQr:'مطلوب إذن الكاميرا لمسح رموز ريال قطري.',
+      allowCamera:'السماح للكاميرا',
     },
     coupon: {
       title: 'رمز القسيمة',
