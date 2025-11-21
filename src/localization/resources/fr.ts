@@ -8,6 +8,7 @@ const fr: TranslationDictionary = {
     back: 'Retour',
     confirm: 'Confirmer',
     continue: 'Continuer',
+    next: 'Suivant',
     retry: 'Réessayer',
     search: 'Rechercher',
     checkout: 'Commander',

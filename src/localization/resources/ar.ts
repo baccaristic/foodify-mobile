@@ -8,6 +8,7 @@ const ar: TranslationDictionary = {
     back: 'الرجوع',
     confirm: 'تأكيد',
     continue: 'المتابعة',
+    next: 'التالي',
     retry: 'إعادة المحاولة',
     search: 'بحث',
     checkout: 'الدفع',

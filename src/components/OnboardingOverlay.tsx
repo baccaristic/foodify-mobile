@@ -11,6 +11,7 @@ import { BlurView } from 'expo-blur';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { X, ArrowRight } from 'lucide-react-native';
 import { useOnboarding, OnboardingStep } from '~/context/OnboardingContext';
+import { useTranslation } from '~/localization';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({
   highlightArea,
 }) => {
   const { currentStep } = useOnboarding();
+  const { t } = useTranslation();
 
   if (currentStep !== step) {
     return null;
@@ -143,7 +145,7 @@ const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({
             </View>
             <Text style={styles.tooltipDescription}>{description}</Text>
             <TouchableOpacity style={styles.nextButton} onPress={onNext}>
-              <Text style={styles.nextButtonText}>Next</Text>
+              <Text style={styles.nextButtonText}>{t('common.next')}</Text>
               <ArrowRight size={18} color="white" />
             </TouchableOpacity>
           </View>

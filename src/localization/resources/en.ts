@@ -8,6 +8,7 @@ const en: TranslationDictionary = {
     back: 'Back',
     confirm: 'Confirm',
     continue: 'Continue',
+    next: 'Next',
     retry: 'Retry',
     search: 'Search',
     checkout: 'Checkout',

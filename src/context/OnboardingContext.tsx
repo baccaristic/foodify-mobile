@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
-
-const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
+import { ONBOARDING_COMPLETED_KEY } from '~/constants/onboarding';
 
 export type OnboardingStep =
   | 'restaurant_menu_item'

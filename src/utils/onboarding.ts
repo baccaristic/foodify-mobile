@@ -1,6 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-
-const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
+import { ONBOARDING_COMPLETED_KEY } from '~/constants/onboarding';
 
 /**
  * Reset onboarding status - useful for testing
