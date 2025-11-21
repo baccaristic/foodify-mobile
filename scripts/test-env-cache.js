@@ -22,13 +22,21 @@ console.log(originalEnvContent);
 const originalCacheKey = getCacheKeyFromContent(originalEnvContent);
 console.log(`\n🔑 Original cache key: ${originalCacheKey}`);
 
-// Test 1: Modify .env with value change
-const modifiedEnvContent = originalEnvContent.replace(
-  'https://mobile.foodifytn.app/api',
-  'https://test.example.com/api'
-);
+// Test 1: Modify .env with value change (simulate changing first env variable)
+const lines = originalEnvContent.split('\n');
+const firstEnvLine = lines.find((line) => line.trim() && !line.trim().startsWith('#'));
+let modifiedEnvContent = originalEnvContent;
+
+if (firstEnvLine && firstEnvLine.includes('=')) {
+  const [key, value] = firstEnvLine.split('=');
+  const newValue = value.includes('example.com')
+    ? 'https://test.foodify.app'
+    : 'https://example.com';
+  modifiedEnvContent = originalEnvContent.replace(firstEnvLine, `${key}=${newValue}`);
+}
+
 const modifiedCacheKey = getCacheKeyFromContent(modifiedEnvContent);
-console.log(`\n✏️  Modified .env (changed BASE_API_URL)`);
+console.log(`\n✏️  Modified .env (changed value in first env variable)`);
 console.log(`🔑 Modified cache key: ${modifiedCacheKey}`);
 
 // Test 2: Modify with comment addition

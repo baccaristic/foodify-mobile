@@ -15,7 +15,7 @@ module.exports = function (api) {
       cacheKey = `babel-cache-${hash}`;
     }
   } catch (error) {
-    console.warn('Warning: Could not read .env file for cache invalidation');
+    console.warn('Warning: Could not read .env file for cache invalidation:', error.message);
   }
 
   api.cache.using(() => cacheKey);
