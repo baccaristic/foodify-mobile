@@ -11,5 +11,10 @@ module.exports = defineConfig([
     rules: {
       'react/display-name': 'off',
     },
+    settings: {
+      'import/resolver': {
+        'babel-module': {},
+      },
+    },
   },
 ]);
