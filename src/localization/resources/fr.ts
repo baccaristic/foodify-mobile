@@ -1423,6 +1423,32 @@ const fr: TranslationDictionary = {
       },
     },
   },
+  onboarding: {
+    restaurantMenuItem: {
+      title: 'Sélectionner un article',
+      description: 'Appuyez sur n\'importe quel article du menu pour voir ses détails et personnaliser votre commande.',
+    },
+    menuDetailExtras: {
+      title: 'Personnalisez votre commande',
+      description: 'Choisissez parmi les extras et options disponibles pour personnaliser votre repas exactement comme vous l\'aimez.',
+    },
+    menuDetailPlus: {
+      title: 'Ajuster la quantité',
+      description: 'Utilisez les boutons plus et moins pour commander plusieurs articles avec différentes personnalisations.',
+    },
+    menuDetailAddCart: {
+      title: 'Ajouter au panier',
+      description: 'Une fois satisfait de votre sélection, appuyez ici pour l\'ajouter à votre panier.',
+    },
+    fixedOrderBar: {
+      title: 'Voir votre panier',
+      description: 'Vos articles sont prêts ! Appuyez ici pour consulter votre commande et passer à la caisse.',
+    },
+    cartCheckout: {
+      title: 'Finaliser votre commande',
+      description: 'Vérifiez vos articles et appuyez sur commander lorsque vous êtes prêt à passer votre commande.',
+    },
+  },
 };
 
 export default fr;

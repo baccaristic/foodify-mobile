@@ -1373,6 +1373,32 @@ const ar: TranslationDictionary = {
       },
     },
   },
+  onboarding: {
+    restaurantMenuItem: {
+      title: 'اختر عنصر من القائمة',
+      description: 'انقر على أي عنصر في القائمة لعرض تفاصيله وتخصيص طلبك.',
+    },
+    menuDetailExtras: {
+      title: 'خصص طلبك',
+      description: 'اختر من الإضافات والخيارات المتاحة لتخصيص وجبتك بالطريقة التي تفضلها تمامًا.',
+    },
+    menuDetailPlus: {
+      title: 'اضبط الكمية',
+      description: 'استخدم أزرار الزائد والناقص لطلب عناصر متعددة بتخصيصات مختلفة.',
+    },
+    menuDetailAddCart: {
+      title: 'أضف إلى السلة',
+      description: 'بمجرد أن تكون راضيًا عن اختيارك، انقر هنا لإضافته إلى سلتك.',
+    },
+    fixedOrderBar: {
+      title: 'عرض سلتك',
+      description: 'عناصرك جاهزة! انقر هنا لمراجعة طلبك والمتابعة إلى الدفع.',
+    },
+    cartCheckout: {
+      title: 'أكمل طلبك',
+      description: 'راجع عناصرك وانقر على إتمام الطلب عندما تكون جاهزًا لتقديم طلبك.',
+    },
+  },
 };
 
 export default ar;

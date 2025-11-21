@@ -1395,6 +1395,32 @@ const en: TranslationDictionary = {
       },
     },
   },
+  onboarding: {
+    restaurantMenuItem: {
+      title: 'Select a Menu Item',
+      description: 'Tap on any menu item to view its details and customize your order.',
+    },
+    menuDetailExtras: {
+      title: 'Customize Your Order',
+      description: 'Choose from available extras and options to personalize your meal exactly how you like it.',
+    },
+    menuDetailPlus: {
+      title: 'Adjust Quantity',
+      description: 'Use the plus and minus buttons to order multiple items with different customizations.',
+    },
+    menuDetailAddCart: {
+      title: 'Add to Cart',
+      description: 'Once you\'re satisfied with your selection, tap here to add it to your cart.',
+    },
+    fixedOrderBar: {
+      title: 'View Your Cart',
+      description: 'Your items are ready! Tap here to review your order and proceed to checkout.',
+    },
+    cartCheckout: {
+      title: 'Complete Your Order',
+      description: 'Review your items and tap checkout when you\'re ready to place your order.',
+    },
+  },
 };
 
 export default en;

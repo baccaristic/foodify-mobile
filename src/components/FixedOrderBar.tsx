@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { View, TouchableOpacity, Text, StyleProp, ViewStyle } from 'react-native';
 
 import { useCart } from '~/context/CartContext';
@@ -14,14 +14,14 @@ export interface FixedOrderBarProps {
   disabled?: boolean;
 }
 
-const FixedOrderBar: React.FC<FixedOrderBarProps> = ({
+const FixedOrderBar = forwardRef<View, FixedOrderBarProps>(({
   total,
   itemCount,
   onSeeCart,
   style,
   buttonLabel,
   disabled,
-}) => {
+}, ref) => {
   const { subtotal, itemCount: cartItemCount } = useCart();
   const { t } = useTranslation();
   const formatCurrency = useCurrencyFormatter();
@@ -40,6 +40,8 @@ const FixedOrderBar: React.FC<FixedOrderBarProps> = ({
 
   return (
     <View
+      ref={ref}
+      collapsable={false}
       className="absolute left-0 right-0 z-50 flex-row items-center justify-between bg-white px-4 py-3 "
       style={[
       style,
@@ -63,6 +65,6 @@ const FixedOrderBar: React.FC<FixedOrderBarProps> = ({
       </TouchableOpacity>
     </View>
   );
-};
+});
 
 export default FixedOrderBar;
