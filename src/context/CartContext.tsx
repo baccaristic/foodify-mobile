@@ -103,10 +103,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const extrasTotal = calculateExtrasTotal(extras);
       const pricePerItem = menuItem.price + extrasTotal;
 
-      const baseState: CartState =
-        prev.restaurant && prev.restaurant.id !== restaurant.id && forceReplace
-          ? { restaurant, items: [] }
-          : { restaurant: restaurant, items: [...prev.items] };
+      // Clear cart when adding from different restaurant and force replace is enabled
+      const isDifferentRestaurant = prev.restaurant && prev.restaurant.id !== restaurant.id;
+      const shouldReplaceCart = isDifferentRestaurant && forceReplace;
+      
+      const baseState: CartState = shouldReplaceCart
+        ? { restaurant, items: [] }
+        : { restaurant: restaurant, items: [...prev.items] };
 
       const existingIndex = baseState.items.findIndex((item) => item.configurationKey === configurationKey);
 
@@ -260,7 +263,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       confirmRestaurantChange,
       cancelRestaurantChange,
     }),
-    [state.restaurant, items, itemCount, subtotal, addItem, updateItemQuantity, removeItem, clearCart, showRestaurantChangeWarning, pendingAddItem, confirmRestaurantChange, cancelRestaurantChange]
+    [
+      state.restaurant,
+      items,
+      itemCount,
+      subtotal,
+      addItem,
+      updateItemQuantity,
+      removeItem,
+      clearCart,
+      showRestaurantChangeWarning,
+      pendingAddItem,
+      confirmRestaurantChange,
+      cancelRestaurantChange,
+    ]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
