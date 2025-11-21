@@ -75,6 +75,22 @@ const ar: TranslationDictionary = {
     useCurrentLocation: 'استخدام الموقع الحالي',
     cancelOrder: 'إلغاء الطلب',
   },
+  restaurantChange: {
+    title: 'تغيير المطعم؟',
+    description:
+      'لديك عناصر من {{currentRestaurant}} في سلتك. إضافة عناصر من {{newRestaurant}} سيزيل العناصر الحالية من سلتك. يمكنك الطلب من مطعم واحد فقط في كل مرة.',
+    currentCart: 'السلة الحالية',
+    discardAndContinue: 'تجاهل والمتابعة',
+    keepCurrent: 'الاحتفاظ بالسلة الحالية',
+  },
+  ongoingOrderWarning: {
+    title: 'تم اكتشاف طلب جار',
+    description:
+      'لديك بالفعل طلب نشط جارٍ. يرجى الانتظار حتى اكتمال طلبك الحالي قبل تقديم طلب جديد.',
+    info: 'يمكن أن يكون هناك طلب واحد نشط في كل مرة',
+    viewOrder: 'عرض الطلب الحالي',
+    dismiss: 'حسنًا',
+  },
   filters: {
     title: 'المرشحات',
     clear: 'مسح الكل',

@@ -76,6 +76,22 @@ const en: TranslationDictionary = {
     useCurrentLocation: 'Use Current Location',
     cancelOrder: 'Cancel Order',
   },
+  restaurantChange: {
+    title: 'Change Restaurant?',
+    description:
+      'You have items from {{currentRestaurant}} in your cart. Adding items from {{newRestaurant}} will remove your current cart items. You can only order from one restaurant at a time.',
+    currentCart: 'Current cart',
+    discardAndContinue: 'Discard and Continue',
+    keepCurrent: 'Keep Current Cart',
+  },
+  ongoingOrderWarning: {
+    title: 'Ongoing Order Detected',
+    description:
+      'You already have an active order in progress. Please wait until your current order is completed before placing a new one.',
+    info: 'Only one order can be active at a time',
+    viewOrder: 'View Current Order',
+    dismiss: 'Got it',
+  },
   filters: {
     title: 'Filters',
     clear: 'Clear all',
