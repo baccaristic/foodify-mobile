@@ -76,6 +76,22 @@ const fr: TranslationDictionary = {
     useCurrentLocation: 'Utiliser la position actuelle',
     cancelOrder: 'Annuler la commande',
   },
+  restaurantChange: {
+    title: 'Changer de restaurant ?',
+    description:
+      'Vous avez des articles de {{currentRestaurant}} dans votre panier. Ajouter des articles de {{newRestaurant}} supprimera les articles actuels de votre panier. Vous ne pouvez commander que dans un seul restaurant à la fois.',
+    currentCart: 'Panier actuel',
+    discardAndContinue: 'Abandonner et continuer',
+    keepCurrent: 'Garder le panier actuel',
+  },
+  ongoingOrderWarning: {
+    title: 'Commande en cours détectée',
+    description:
+      'Vous avez déjà une commande active en cours. Veuillez attendre que votre commande actuelle soit terminée avant d\'en passer une nouvelle.',
+    info: 'Une seule commande peut être active à la fois',
+    viewOrder: 'Voir la commande actuelle',
+    dismiss: 'Compris',
+  },
   filters: {
     title: 'Filtres',
     clear: 'Tout effacer',

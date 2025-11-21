@@ -58,6 +58,10 @@ interface CartContextValue {
   updateItemQuantity: (itemId: string, quantity: number) => void;
   removeItem: (itemId: string) => void;
   clearCart: () => void;
+  showRestaurantChangeWarning: boolean;
+  pendingAddItem: AddCartItemPayload | null;
+  confirmRestaurantChange: () => void;
+  cancelRestaurantChange: () => void;
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -84,8 +88,10 @@ const calculateExtrasTotal = (extras: CartItemOptionSelection[]) =>
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<CartState>(initialState);
+  const [showRestaurantChangeWarning, setShowRestaurantChangeWarning] = useState(false);
+  const [pendingAddItem, setPendingAddItem] = useState<AddCartItemPayload | null>(null);
 
-  const addItem = useCallback((payload: AddCartItemPayload) => {
+  const addItemInternal = useCallback((payload: AddCartItemPayload, forceReplace = false) => {
     const { restaurant, menuItem, quantity, extras } = payload;
 
     if (quantity <= 0) {
@@ -97,10 +103,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const extrasTotal = calculateExtrasTotal(extras);
       const pricePerItem = menuItem.price + extrasTotal;
 
-      const baseState: CartState =
-        prev.restaurant && prev.restaurant.id !== restaurant.id
-          ? { restaurant, items: [] }
-          : { restaurant: restaurant, items: [...prev.items] };
+      // Clear cart when adding from different restaurant and force replace is enabled
+      const isDifferentRestaurant = prev.restaurant && prev.restaurant.id !== restaurant.id;
+      const shouldReplaceCart = isDifferentRestaurant && forceReplace;
+      
+      const baseState: CartState = shouldReplaceCart
+        ? { restaurant, items: [] }
+        : { restaurant: restaurant, items: [...prev.items] };
 
       const existingIndex = baseState.items.findIndex((item) => item.configurationKey === configurationKey);
 
@@ -143,6 +152,40 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         items: [...baseState.items, newItem],
       };
     });
+  }, []);
+
+  const addItem = useCallback((payload: AddCartItemPayload) => {
+    const { restaurant, quantity } = payload;
+
+    if (quantity <= 0) {
+      return;
+    }
+
+    // Check current state to decide whether to show warning
+    const currentRestaurant = state.restaurant;
+    const hasItems = state.items.length > 0;
+    
+    if (currentRestaurant && currentRestaurant.id !== restaurant.id && hasItems) {
+      // Different restaurant with items in cart - show warning
+      setShowRestaurantChangeWarning(true);
+      setPendingAddItem(payload);
+    } else {
+      // Same restaurant or empty cart - add directly
+      addItemInternal(payload, false);
+    }
+  }, [addItemInternal, state.restaurant, state.items.length]);
+
+  const confirmRestaurantChange = useCallback(() => {
+    if (pendingAddItem) {
+      addItemInternal(pendingAddItem, true);
+      setPendingAddItem(null);
+    }
+    setShowRestaurantChangeWarning(false);
+  }, [pendingAddItem, addItemInternal]);
+
+  const cancelRestaurantChange = useCallback(() => {
+    setPendingAddItem(null);
+    setShowRestaurantChangeWarning(false);
   }, []);
 
   const updateItemQuantity = useCallback((itemId: string, quantity: number) => {
@@ -215,8 +258,25 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       updateItemQuantity,
       removeItem,
       clearCart,
+      showRestaurantChangeWarning,
+      pendingAddItem,
+      confirmRestaurantChange,
+      cancelRestaurantChange,
     }),
-    [state.restaurant, items, itemCount, subtotal, addItem, updateItemQuantity, removeItem, clearCart]
+    [
+      state.restaurant,
+      items,
+      itemCount,
+      subtotal,
+      addItem,
+      updateItemQuantity,
+      removeItem,
+      clearCart,
+      showRestaurantChangeWarning,
+      pendingAddItem,
+      confirmRestaurantChange,
+      cancelRestaurantChange,
+    ]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

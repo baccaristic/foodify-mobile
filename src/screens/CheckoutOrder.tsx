@@ -41,6 +41,7 @@ import { GOOGLE_MAPS_API_KEY } from '@env';
 
 import { useCart } from '~/context/CartContext';
 import AddressMismatchOverlay from '~/components/AddressMismatchOverlay';
+import OngoingOrderWarningOverlay from '~/components/OngoingOrderWarningOverlay';
 import { getCurrentCoordinates } from '~/services/locationAccess';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
 import useAuth from '~/hooks/useAuth';
@@ -504,6 +505,7 @@ const CheckoutOrder: React.FC = () => {
   const [isDeliveryQuoteLoading, setIsDeliveryQuoteLoading] = useState(false);
   const [deliveryQuoteError, setDeliveryQuoteError] = useState<DeliveryQuoteError | null>(null);
   const [showAddressMismatchOverlay, setShowAddressMismatchOverlay] = useState(false);
+  const [showOngoingOrderWarning, setShowOngoingOrderWarning] = useState(false);
   const [currentGpsLocation, setCurrentGpsLocation] =
     useState<Location.LocationObjectCoords | null>(null);
   const [currentGpsAddress, setCurrentGpsAddress] = useState<string | null>(null);
@@ -1887,6 +1889,12 @@ const CheckoutOrder: React.FC = () => {
       return;
     }
 
+    // Check if there's an ongoing order first
+    if (ongoingOrder && ongoingOrder.orderId) {
+      setShowOngoingOrderWarning(true);
+      return;
+    }
+
     const coordinates = validateBeforeSubmission();
     if (!coordinates) {
       return;
@@ -1902,7 +1910,7 @@ const CheckoutOrder: React.FC = () => {
     setPendingCoordinates(coordinates);
     setTipOverlayError(null);
     setIsTipModalVisible(true);
-  }, [isViewMode, validateBeforeSubmission, checkAddressMismatch, showAddressMismatchOverlay]);
+  }, [isViewMode, ongoingOrder, validateBeforeSubmission, checkAddressMismatch, showAddressMismatchOverlay]);
 
   const handleTipOverlayConfirm = useCallback(() => {
     if (isViewMode) {
@@ -2543,6 +2551,16 @@ const CheckoutOrder: React.FC = () => {
         onContinueWithSelected={handleAddressMismatchContinue}
         onUpdateToCurrentLocation={handleAddressMismatchUpdateLocation}
         onCancel={handleAddressMismatchCancel}
+      />
+      <OngoingOrderWarningOverlay
+        visible={!isViewMode && showOngoingOrderWarning}
+        onViewOrder={() => {
+          setShowOngoingOrderWarning(false);
+          if (ongoingOrder?.orderId) {
+            navigation.navigate('OrderTracking', { orderId: ongoingOrder.orderId });
+          }
+        }}
+        onDismiss={() => setShowOngoingOrderWarning(false)}
       />
     </SafeAreaView>
   );
