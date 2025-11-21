@@ -10,7 +10,8 @@
     "lint": "eslint \"**/*.{js,jsx,ts,tsx}\" && prettier -c \"**/*.{js,jsx,ts,tsx,json}\"",
     "format": "eslint \"**/*.{js,jsx,ts,tsx}\" --fix && prettier \"**/*.{js,jsx,ts,tsx,json}\" --write",
     "web": "expo start --web",
-    "clear-cache": "expo start --clear"
+    "clear-cache": "expo start --clear",
+    "test:env-cache": "node scripts/test-env-cache.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
