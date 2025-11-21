@@ -819,6 +819,7 @@ const fr: TranslationDictionary = {
       transferred: 'ont été transférés sur le compte du restaurant',
       fail: 'Échec',
       insufficient: "Points insuffisants sur votre compte",
+      historyEmpty: "Vous n'avez pas encore d'historique de points d'argent.",
     },
 
     settings: {

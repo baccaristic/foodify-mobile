@@ -823,6 +823,7 @@ const ar: TranslationDictionary = {
       transferred: "تم تحويلها إلى حساب المطعم",
       fail: 'فشل',
       insufficient: "رصيد نقاطك غير كافٍ",
+      historyEmpty: "لا توجد معاملات بعد.",
 
     },
     coupon: {

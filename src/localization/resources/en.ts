@@ -819,6 +819,7 @@ const en: TranslationDictionary = {
       transferred: 'Transferred to the restaurant account',
       fail: 'Failure',
       insufficient: "Insufficient points in\nyour account",
+      historyEmpty: "No previous transactions found.",
     },
     language: {
       title: 'Language',
