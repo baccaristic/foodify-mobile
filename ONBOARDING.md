@@ -1,7 +1,7 @@
 # Onboarding Wizard Feature
 
 ## Overview
-The onboarding wizard guides first-time users through the complete app workflow: browsing restaurants, selecting menu items, customizing orders, checking out, and tracking delivery.
+The onboarding wizard guides first-time users through the complete app workflow: browsing restaurants, selecting menu items, customizing orders, checking out, tracking delivery, and managing their profile.
 
 ## Architecture
 
@@ -25,7 +25,11 @@ The onboarding wizard guides first-time users through the complete app workflow:
 9. `checkout_place_order` - Highlights place order button
 10. `order_tracking_status` - Auto-advances when viewing order
 11. `order_tracking_delivery_code` - Highlights delivery verification code (IN_DELIVERY status)
-12. `completed` - Onboarding finished
+12. `profile_points` - Highlights loyalty points balance
+13. `profile_loyalty` - Highlights loyalty rewards menu item
+14. `profile_favorites` - Highlights favorites menu item
+15. `profile_settings` - Highlights settings menu item
+16. `completed` - Onboarding finished
 
 #### OnboardingOverlay (`src/components/OnboardingOverlay.tsx`)
 - Renders a semi-transparent overlay with blur effect
@@ -65,6 +69,14 @@ The onboarding wizard guides first-time users through the complete app workflow:
 - Highlights place order button
 - When in view mode with IN_DELIVERY status, highlights delivery verification code
 - Auto-advances order_tracking_status step after 1 second
+- Advances to profile_points step after delivery code
+
+#### ProfileScreen.tsx
+- Highlights loyalty points badge at top of profile
+- Highlights loyalty rewards menu item (with special emphasis on points)
+- Highlights favorites menu item
+- Highlights settings menu item
+- Completes onboarding after settings step
 
 #### FixedOrderBar.tsx
 - Modified to support ref forwarding for measurement
@@ -89,6 +101,10 @@ Translation keys:
 - `onboarding.checkoutPlaceOrder.*`
 - `onboarding.orderTrackingStatus.*`
 - `onboarding.orderTrackingDeliveryCode.*`
+- `onboarding.profilePoints.*`
+- `onboarding.profileLoyalty.*`
+- `onboarding.profileFavorites.*`
+- `onboarding.profileSettings.*`
 
 ## User Flow
 
@@ -114,7 +130,13 @@ Translation keys:
 20. **Order tracking opens (status auto-advances after 1s)**
 21. **When order reaches IN_DELIVERY status, delivery code is highlighted**
 22. **User understands they need to share this code with the driver**
-23. **Onboarding completes**
+23. **User navigates to Profile tab**
+24. **Loyalty points balance is highlighted (especially emphasized)**
+25. **Loyalty rewards menu item is highlighted**
+26. **User can tap to explore rewards and point conversion**
+27. **Favorites menu item is highlighted**
+28. **Profile settings menu item is highlighted**
+29. **Onboarding completes after settings step**
 
 ## Technical Details
 
@@ -156,8 +178,13 @@ To test the complete onboarding flow:
    - Place order
 6. Order tracking opens automatically (status step auto-advances)
 7. When order status becomes IN_DELIVERY, view the order to see delivery code highlighted
-8. Verify each step advances correctly
-9. Test skip functionality at any point
+8. Navigate to Profile tab to continue onboarding:
+   - Points balance highlight
+   - Loyalty rewards menu item
+   - Favorites menu item
+   - Settings menu item
+9. Verify each step advances correctly
+10. Test skip functionality at any point
 
 To reset onboarding:
 - Clear SecureStore key `onboarding_completed`
