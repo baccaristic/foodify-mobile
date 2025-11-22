@@ -9,7 +9,7 @@ import {
   InteractionManager,
   PixelRatio,
 } from 'react-native';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
 import {
   Heart,
   CreditCard,
@@ -31,6 +31,7 @@ import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
 import { useTranslation } from '~/localization';
 import { getLoyaltyBalance } from '~/api/loyalty';
 import { useOnboarding } from '~/context/OnboardingContext';
+import type { OnboardingStep } from '~/context/OnboardingContext';
 import { useElementMeasurement } from '~/hooks/useElementMeasurement';
 import OnboardingOverlay from '~/components/OnboardingOverlay';
 const palette = {
@@ -239,7 +240,34 @@ const ProfileScreen = () => {
 
   const sections = useProfileSections(t, loyaltySummary);
 
-  // Measure elements for onboarding
+  // Check if we should show profile onboarding when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!isOnboardingActive) {
+        return;
+      }
+
+      // Check if we're at a profile step
+      const profileSteps: OnboardingStep[] = ['profile_points', 'profile_loyalty', 'profile_favorites', 'profile_settings'];
+      if (currentStep && profileSteps.includes(currentStep)) {
+        // Trigger measurement after a short delay to ensure UI is ready
+        const timer = setTimeout(() => {
+          if (currentStep === 'profile_points') {
+            measurePoints();
+          } else if (currentStep === 'profile_loyalty') {
+            measureLoyalty();
+          } else if (currentStep === 'profile_favorites') {
+            measureFavorites();
+          } else if (currentStep === 'profile_settings') {
+            measureSettings();
+          }
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }, [isOnboardingActive, currentStep, measurePoints, measureLoyalty, measureFavorites, measureSettings])
+  );
+
+  // Trigger profile onboarding measurement when on profile steps
   React.useEffect(() => {
     if (!isOnboardingActive) {
       return;
