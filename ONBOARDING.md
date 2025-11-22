@@ -1,7 +1,7 @@
 # Onboarding Wizard Feature
 
 ## Overview
-The onboarding wizard guides first-time users through the app's core workflow: browsing restaurants, selecting menu items, customizing orders, and checking out.
+The onboarding wizard guides first-time users through the complete app workflow: browsing restaurants, selecting menu items, customizing orders, checking out, and tracking delivery.
 
 ## Architecture
 
@@ -20,7 +20,12 @@ The onboarding wizard guides first-time users through the app's core workflow: b
 4. `menu_detail_add_cart` - Highlights add to cart button
 5. `fixed_order_bar` - Highlights go to cart button
 6. `cart_checkout` - Highlights checkout button
-7. `completed` - Onboarding finished
+7. `checkout_address` - Highlights delivery address section
+8. `checkout_payment` - Highlights payment method selection
+9. `checkout_place_order` - Highlights place order button
+10. `order_tracking_status` - Auto-advances when viewing order
+11. `order_tracking_delivery_code` - Highlights delivery verification code (IN_DELIVERY status)
+12. `completed` - Onboarding finished
 
 #### OnboardingOverlay (`src/components/OnboardingOverlay.tsx`)
 - Renders a semi-transparent overlay with blur effect
@@ -52,7 +57,14 @@ The onboarding wizard guides first-time users through the app's core workflow: b
 
 #### Cart.tsx
 - Highlights checkout button
-- Completes onboarding when checkout is tapped
+- Advances to next step when checkout is tapped (continues to CheckoutOrder)
+
+#### CheckoutOrder.tsx
+- Highlights delivery address section
+- Highlights payment method selection
+- Highlights place order button
+- When in view mode with IN_DELIVERY status, highlights delivery verification code
+- Auto-advances order_tracking_status step after 1 second
 
 #### FixedOrderBar.tsx
 - Modified to support ref forwarding for measurement
@@ -72,6 +84,11 @@ Translation keys:
 - `onboarding.menuDetailAddCart.*`
 - `onboarding.fixedOrderBar.*`
 - `onboarding.cartCheckout.*`
+- `onboarding.checkoutAddress.*`
+- `onboarding.checkoutPayment.*`
+- `onboarding.checkoutPlaceOrder.*`
+- `onboarding.orderTrackingStatus.*`
+- `onboarding.orderTrackingDeliveryCode.*`
 
 ## User Flow
 
@@ -87,7 +104,17 @@ Translation keys:
 10. Go to cart button is highlighted in fixed order bar
 11. User goes to cart
 12. Checkout button is highlighted
-13. User taps checkout (onboarding completes)
+13. User taps checkout
+14. **Delivery address section is highlighted**
+15. **User reviews/changes address**
+16. **Payment method is highlighted**
+17. **User selects payment method**
+18. **Place order button is highlighted**
+19. **User places order**
+20. **Order tracking opens (status auto-advances after 1s)**
+21. **When order reaches IN_DELIVERY status, delivery code is highlighted**
+22. **User understands they need to share this code with the driver**
+23. **Onboarding completes**
 
 ## Technical Details
 
@@ -99,6 +126,7 @@ Translation keys:
 - Elements are measured 300-500ms after step changes
 - Allows for animations and rendering to complete
 - Ensures accurate positioning of spotlight
+- Order tracking status step auto-advances after 1 second
 
 ### Spotlight Effect
 - Uses overlays to create dark regions around highlighted element
@@ -112,18 +140,29 @@ Translation keys:
 
 ## Testing
 
-To test the onboarding flow:
+To test the complete onboarding flow:
 1. Clear app data or use new device
 2. Launch app and sign in
 3. Navigate to a restaurant
 4. Onboarding should start automatically
-5. Follow the highlighted steps
-6. Verify each step advances correctly
-7. Test skip functionality
+5. Follow the highlighted steps through:
+   - Menu item selection
+   - Item customization
+   - Add to cart
+   - View cart
+   - Checkout
+   - Address confirmation
+   - Payment method selection
+   - Place order
+6. Order tracking opens automatically (status step auto-advances)
+7. When order status becomes IN_DELIVERY, view the order to see delivery code highlighted
+8. Verify each step advances correctly
+9. Test skip functionality at any point
 
 To reset onboarding:
 - Clear SecureStore key `onboarding_completed`
 - Or reinstall app
+- Or use `resetOnboarding()` utility function from `src/utils/onboarding.ts`
 
 ## Future Enhancements
 
