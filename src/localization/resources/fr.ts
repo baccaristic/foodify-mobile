@@ -1449,6 +1449,26 @@ const fr: TranslationDictionary = {
       title: 'Finaliser votre commande',
       description: 'Vérifiez vos articles et appuyez sur commander lorsque vous êtes prêt à passer votre commande.',
     },
+    checkoutAddress: {
+      title: 'Confirmer l\'adresse de livraison',
+      description: 'Assurez-vous que votre adresse de livraison est correcte. Vous pouvez la modifier en appuyant sur le bouton ci-dessus.',
+    },
+    checkoutPayment: {
+      title: 'Choisir le mode de paiement',
+      description: 'Sélectionnez comment vous souhaitez payer votre commande - par carte ou en espèces à la livraison.',
+    },
+    checkoutPlaceOrder: {
+      title: 'Passer votre commande',
+      description: 'Tout semble bon ? Appuyez ici pour confirmer et passer votre commande !',
+    },
+    orderTrackingStatus: {
+      title: 'Suivre votre commande',
+      description: 'Suivez le parcours de votre commande de la préparation à la livraison. Vous pouvez voir les mises à jour en temps réel ici.',
+    },
+    orderTrackingDeliveryCode: {
+      title: 'Code de vérification de livraison',
+      description: 'Lorsque votre commande arrive, partagez ce code avec le livreur pour confirmer la réception.',
+    },
   },
 };
 

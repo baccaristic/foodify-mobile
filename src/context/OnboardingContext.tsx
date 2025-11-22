@@ -9,6 +9,11 @@ export type OnboardingStep =
   | 'menu_detail_add_cart'
   | 'fixed_order_bar'
   | 'cart_checkout'
+  | 'checkout_address'
+  | 'checkout_payment'
+  | 'checkout_place_order'
+  | 'order_tracking_status'
+  | 'order_tracking_delivery_code'
   | 'completed';
 
 interface OnboardingContextValue {
@@ -30,6 +35,11 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'menu_detail_add_cart',
   'fixed_order_bar',
   'cart_checkout',
+  'checkout_address',
+  'checkout_payment',
+  'checkout_place_order',
+  'order_tracking_status',
+  'order_tracking_delivery_code',
   'completed',
 ];
 

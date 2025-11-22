@@ -1421,6 +1421,26 @@ const en: TranslationDictionary = {
       title: 'Complete Your Order',
       description: 'Review your items and tap checkout when you\'re ready to place your order.',
     },
+    checkoutAddress: {
+      title: 'Confirm Delivery Address',
+      description: 'Make sure your delivery address is correct. You can change it by tapping the button above.',
+    },
+    checkoutPayment: {
+      title: 'Choose Payment Method',
+      description: 'Select how you want to pay for your order - by card or cash on delivery.',
+    },
+    checkoutPlaceOrder: {
+      title: 'Place Your Order',
+      description: 'Everything looks good? Tap here to confirm and place your order!',
+    },
+    orderTrackingStatus: {
+      title: 'Track Your Order',
+      description: 'Follow your order\'s journey from preparation to delivery. You can see real-time updates here.',
+    },
+    orderTrackingDeliveryCode: {
+      title: 'Delivery Verification Code',
+      description: 'When your order arrives, share this code with the delivery driver to confirm receipt.',
+    },
   },
 };
 

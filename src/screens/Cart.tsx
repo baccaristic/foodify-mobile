@@ -274,7 +274,7 @@ export default function Cart() {
           itemCount={totalItems}
           onSeeCart={() => {
             if (currentStep === 'cart_checkout') {
-              completeOnboarding();
+              nextStep();
             }
             navigation.navigate('CheckoutOrder');
           }}
@@ -290,7 +290,7 @@ export default function Cart() {
           step="cart_checkout"
           title={t('onboarding.cartCheckout.title')}
           description={t('onboarding.cartCheckout.description')}
-          onNext={completeOnboarding}
+          onNext={nextStep}
           onSkip={skipOnboarding}
           highlightArea={checkoutButtonMeasurement}
         />
