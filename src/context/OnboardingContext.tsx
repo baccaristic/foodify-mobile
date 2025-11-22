@@ -14,6 +14,10 @@ export type OnboardingStep =
   | 'checkout_place_order'
   | 'order_tracking_status'
   | 'order_tracking_delivery_code'
+  | 'profile_points'
+  | 'profile_loyalty'
+  | 'profile_favorites'
+  | 'profile_settings'
   | 'completed';
 
 interface OnboardingContextValue {
@@ -40,6 +44,10 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'checkout_place_order',
   'order_tracking_status',
   'order_tracking_delivery_code',
+  'profile_points',
+  'profile_loyalty',
+  'profile_favorites',
+  'profile_settings',
   'completed',
 ];
 

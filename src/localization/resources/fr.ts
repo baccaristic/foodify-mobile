@@ -1469,6 +1469,22 @@ const fr: TranslationDictionary = {
       title: 'Code de vérification de livraison',
       description: 'Lorsque votre commande arrive, partagez ce code avec le livreur pour confirmer la réception.',
     },
+    profilePoints: {
+      title: 'Vos points de fidélité',
+      description: 'Ici vous pouvez voir votre solde de points actuel. Gagnez des points à chaque commande et utilisez-les pour des récompenses !',
+    },
+    profileLoyalty: {
+      title: 'Récompenses de fidélité',
+      description: 'Appuyez ici pour voir et échanger vos récompenses de fidélité, convertir des points ou consulter vos avantages.',
+    },
+    profileFavorites: {
+      title: 'Vos favoris',
+      description: 'Accédez à vos restaurants et plats préférés ici pour commander rapidement.',
+    },
+    profileSettings: {
+      title: 'Paramètres du profil',
+      description: 'Gérez les paramètres de votre compte, les notifications, les préférences de langue et plus encore depuis ici.',
+    },
   },
 };
 

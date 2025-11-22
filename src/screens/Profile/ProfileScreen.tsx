@@ -30,6 +30,9 @@ import useAuth from '~/hooks/useAuth';
 import LetteredAvatar from '~/components/ProfilSettings/LetteredAvatar';
 import { useTranslation } from '~/localization';
 import { getLoyaltyBalance } from '~/api/loyalty';
+import { useOnboarding } from '~/context/OnboardingContext';
+import { useElementMeasurement } from '~/hooks/useElementMeasurement';
+import OnboardingOverlay from '~/components/OnboardingOverlay';
 const palette = {
   accent: '#CA251B',
   accentDark: '#17213A',
@@ -128,6 +131,12 @@ const ProfileScreen = () => {
   const { user, logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { t } = useTranslation();
+  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+  const { elementRef: pointsRef, measurement: pointsMeasurement, measureElement: measurePoints } = useElementMeasurement();
+  const { elementRef: loyaltyRef, measurement: loyaltyMeasurement, measureElement: measureLoyalty } = useElementMeasurement();
+  const { elementRef: favoritesRef, measurement: favoritesMeasurement, measureElement: measureFavorites } = useElementMeasurement();
+  const { elementRef: settingsRef, measurement: settingsMeasurement, measureElement: measureSettings } = useElementMeasurement();
+  
   const { data: loyaltyBalance, isLoading: isBalanceLoading } = useQuery({
     queryKey: ['loyalty', 'balance'],
     queryFn: getLoyaltyBalance,
@@ -230,6 +239,27 @@ const ProfileScreen = () => {
 
   const sections = useProfileSections(t, loyaltySummary);
 
+  // Measure elements for onboarding
+  React.useEffect(() => {
+    if (!isOnboardingActive) {
+      return;
+    }
+    
+    if (currentStep === 'profile_points') {
+      const timer = setTimeout(measurePoints, 500);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'profile_loyalty') {
+      const timer = setTimeout(measureLoyalty, 500);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'profile_favorites') {
+      const timer = setTimeout(measureFavorites, 500);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'profile_settings') {
+      const timer = setTimeout(measureSettings, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, isOnboardingActive, measurePoints, measureLoyalty, measureFavorites, measureSettings]);
+
   const heroHeader = (
     <View style={styles.headerContent}>
       <View style={styles.topRow}>
@@ -269,7 +299,10 @@ const ProfileScreen = () => {
         </View>
 
         <View style={styles.pointsContainer}>
-          <View style={styles.pointsBadge}>
+          <View 
+            ref={pointsRef}
+            collapsable={false}
+            style={styles.pointsBadge}>
             <Text allowFontScaling={false} style={styles.pointsValue}>
               {pointsLabel}
             </Text>
@@ -331,18 +364,35 @@ const ProfileScreen = () => {
               </Text>
               {section.items.map((item) => {
                 const Icon = item.icon;
+                const isLoyaltyItem = item.route === 'LoyaltyRewards';
+                const isFavoritesItem = item.route === 'Favorites';
+                const isSettingsItem = item.route === 'ProfilSettings';
+                
                 return (
-                  <TouchableOpacity
+                  <View
                     key={item.label}
-                    activeOpacity={0.85}
-                    style={styles.row}
-                    onPress={() => item.route && handleNavigate(item.route)}
+                    ref={isLoyaltyItem ? loyaltyRef : isFavoritesItem ? favoritesRef : isSettingsItem ? settingsRef : null}
+                    collapsable={false}
                   >
-                    <View style={styles.rowLeft}>
-                      <View style={styles.iconShell}>
-                        <Icon size={s(18)} color={palette.accent} />
-                      </View>
-                      <Text allowFontScaling={false} style={styles.rowLabel}>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      style={styles.row}
+                      onPress={() => {
+                        if (isLoyaltyItem && currentStep === 'profile_loyalty') {
+                          nextStep();
+                        } else if (isFavoritesItem && currentStep === 'profile_favorites') {
+                          nextStep();
+                        } else if (isSettingsItem && currentStep === 'profile_settings') {
+                          completeOnboarding();
+                        }
+                        item.route && handleNavigate(item.route);
+                      }}
+                    >
+                      <View style={styles.rowLeft}>
+                        <View style={styles.iconShell}>
+                          <Icon size={s(18)} color={palette.accent} />
+                        </View>
+                        <Text allowFontScaling={false} style={styles.rowLabel}>
                         {item.label}
                       </Text>
                     </View>
@@ -352,13 +402,59 @@ const ProfileScreen = () => {
                       </Text>
                     )}
                   </TouchableOpacity>
+                </View>
                 );
               })}
             </View>
           ))}
         </View>
       }
-    />
+    >
+      {/* Onboarding Overlays */}
+      {isOnboardingActive && currentStep === 'profile_points' && pointsMeasurement && (
+        <OnboardingOverlay
+          step="profile_points"
+          title={t('onboarding.profilePoints.title')}
+          description={t('onboarding.profilePoints.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={pointsMeasurement}
+        />
+      )}
+      
+      {isOnboardingActive && currentStep === 'profile_loyalty' && loyaltyMeasurement && (
+        <OnboardingOverlay
+          step="profile_loyalty"
+          title={t('onboarding.profileLoyalty.title')}
+          description={t('onboarding.profileLoyalty.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={loyaltyMeasurement}
+        />
+      )}
+      
+      {isOnboardingActive && currentStep === 'profile_favorites' && favoritesMeasurement && (
+        <OnboardingOverlay
+          step="profile_favorites"
+          title={t('onboarding.profileFavorites.title')}
+          description={t('onboarding.profileFavorites.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={favoritesMeasurement}
+        />
+      )}
+      
+      {isOnboardingActive && currentStep === 'profile_settings' && settingsMeasurement && (
+        <OnboardingOverlay
+          step="profile_settings"
+          title={t('onboarding.profileSettings.title')}
+          description={t('onboarding.profileSettings.description')}
+          onNext={completeOnboarding}
+          onSkip={skipOnboarding}
+          highlightArea={settingsMeasurement}
+        />
+      )}
+    </MainLayout>
   );
 };
 

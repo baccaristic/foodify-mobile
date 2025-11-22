@@ -1441,6 +1441,22 @@ const en: TranslationDictionary = {
       title: 'Delivery Verification Code',
       description: 'When your order arrives, share this code with the delivery driver to confirm receipt.',
     },
+    profilePoints: {
+      title: 'Your Loyalty Points',
+      description: 'Here you can see your current points balance. Earn points with every order and use them for rewards!',
+    },
+    profileLoyalty: {
+      title: 'Loyalty Rewards',
+      description: 'Tap here to view and redeem your loyalty rewards, convert points, or check your benefits.',
+    },
+    profileFavorites: {
+      title: 'Your Favorites',
+      description: 'Access your favorite restaurants and menu items here for quick ordering.',
+    },
+    profileSettings: {
+      title: 'Profile Settings',
+      description: 'Manage your account settings, notifications, language preferences, and more from here.',
+    },
   },
 };
 
