@@ -16,6 +16,9 @@ import { BASE_API_URL } from '@env';
 import { getMenuItemBasePrice, hasActivePromotion } from '~/utils/menuPricing';
 import { useTranslation, useLocalization } from '~/localization';
 import { getLocalizedName, getLocalizedDescription } from '~/utils/localization';
+import { useOnboarding } from '~/context/OnboardingContext';
+import { useElementMeasurement } from '~/hooks/useElementMeasurement';
+import OnboardingOverlay from '~/components/OnboardingOverlay';
 
 const { width } = Dimensions.get('window');
 const primaryColor = '#CA251B';
@@ -254,6 +257,12 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { locale } = useLocalization();
+  const { isOnboardingActive, currentStep, nextStep, skipOnboarding } = useOnboarding();
+  
+  // Measurements for onboarding highlights
+  const { elementRef: extrasGroupRef, measurement: extrasGroupMeasurement, measureElement: measureExtrasGroup } = useElementMeasurement();
+  const { elementRef: plusButtonRef, measurement: plusButtonMeasurement, measureElement: measurePlusButton } = useElementMeasurement();
+  const { elementRef: addButtonRef, measurement: addButtonMeasurement, measureElement: measureAddButton } = useElementMeasurement();
 
   const getItemLabel = useCallback(
     (count: number) =>
@@ -323,6 +332,20 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
     setDrafts(createDraftsFromInitialSelections(menuItem, initialDraftSelections));
     setActiveIndex(0);
   }, [initialDraftSelections, menuItem]);
+
+  // Measure elements for onboarding
+  useEffect(() => {
+    if (currentStep === 'menu_detail_extras') {
+      const timer = setTimeout(measureExtrasGroup, 500);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'menu_detail_plus') {
+      const timer = setTimeout(measurePlusButton, 500);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'menu_detail_add_cart') {
+      const timer = setTimeout(measureAddButton, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, measureExtrasGroup, measurePlusButton, measureAddButton]);
 
   const activeDraft = drafts[activeIndex];
   const hasPromotion = useMemo(() => hasActivePromotion(menuItem), [menuItem]);
@@ -584,7 +607,12 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
       </Animated.View>
 
       {menuItem.optionGroups.map((group, groupIndex) => (
-        <Animated.View key={group.id} entering={createOptionGroupEntrance(groupIndex)} className="mb-8">
+        <Animated.View 
+          key={group.id} 
+          entering={createOptionGroupEntrance(groupIndex)} 
+          className="mb-8"
+          ref={groupIndex === 0 ? extrasGroupRef : null}
+          collapsable={false}>
           <Text allowFontScaling={false} className="text-xl font-bold text-[#17213A]">
             {getLocalizedName(group, locale)}
           </Text>
@@ -655,9 +683,18 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         <Text allowFontScaling={false} className="mx-6 text-2xl font-bold">
           {drafts.length}
         </Text>
-        <TouchableOpacity onPress={handleIncreaseDrafts} className="rounded-full border border-[#CA251B] bg-[#CA251B] p-2">
-          <Plus size={24} color="white" />
-        </TouchableOpacity>
+        <View ref={plusButtonRef} collapsable={false}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (currentStep === 'menu_detail_plus') {
+                nextStep();
+              }
+              handleIncreaseDrafts();
+            }} 
+            className="rounded-full border border-[#CA251B] bg-[#CA251B] p-2">
+            <Plus size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       {!allValid ? (
@@ -668,29 +705,36 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         </Animated.View>
       ) : null}
 
-      <TouchableOpacity
-        className={`w-full rounded-xl py-4 shadow-lg ${allValid ? 'bg-[#CA251B]' : 'bg-gray-300'}`}
-        onPress={handleAdd}
-        disabled={!allValid}
-      >
-        <Animated.View entering={createDetailSectionEntrance(8)} className="items-center">
-          <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
-            {t('menuDetail.summary', {
-              values: {
-                action: resolvedActionLabel,
-                count: drafts.length,
-                item: getItemLabel(drafts.length),
-                price: formatPrice(cartTotal),
-              },
-            })}
-          </Text>
-          {hasPromotion ? (
-            <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-white/80 line-through">
-              {formatPrice(originalCartTotal)}
+      <View ref={addButtonRef} collapsable={false}>
+        <TouchableOpacity
+          className={`w-full rounded-xl py-4 shadow-lg ${allValid ? 'bg-[#CA251B]' : 'bg-gray-300'}`}
+          onPress={() => {
+            if (currentStep === 'menu_detail_add_cart') {
+              nextStep();
+            }
+            handleAdd();
+          }}
+          disabled={!allValid}
+        >
+          <Animated.View entering={createDetailSectionEntrance(8)} className="items-center">
+            <Text allowFontScaling={false} className="text-center text-lg font-bold text-white">
+              {t('menuDetail.summary', {
+                values: {
+                  action: resolvedActionLabel,
+                  count: drafts.length,
+                  item: getItemLabel(drafts.length),
+                  price: formatPrice(cartTotal),
+                },
+              })}
             </Text>
-          ) : null}
-        </Animated.View>
-      </TouchableOpacity>
+            {hasPromotion ? (
+              <Text allowFontScaling={false} className="mt-1 text-sm font-semibold text-white/80 line-through">
+                {formatPrice(originalCartTotal)}
+              </Text>
+            ) : null}
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 
@@ -706,6 +750,40 @@ const MenuDetail: React.FC<MenuDetailProps> = ({
         headerMinHeight={160}
       />
       {orderBar}
+
+      {/* Onboarding Overlays */}
+      {isOnboardingActive && currentStep === 'menu_detail_extras' && extrasGroupMeasurement && (
+        <OnboardingOverlay
+          step="menu_detail_extras"
+          title={t('onboarding.menuDetailExtras.title')}
+          description={t('onboarding.menuDetailExtras.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={extrasGroupMeasurement}
+        />
+      )}
+      
+      {isOnboardingActive && currentStep === 'menu_detail_plus' && plusButtonMeasurement && (
+        <OnboardingOverlay
+          step="menu_detail_plus"
+          title={t('onboarding.menuDetailPlus.title')}
+          description={t('onboarding.menuDetailPlus.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={plusButtonMeasurement}
+        />
+      )}
+      
+      {isOnboardingActive && currentStep === 'menu_detail_add_cart' && addButtonMeasurement && (
+        <OnboardingOverlay
+          step="menu_detail_add_cart"
+          title={t('onboarding.menuDetailAddCart.title')}
+          description={t('onboarding.menuDetailAddCart.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={addButtonMeasurement}
+        />
+      )}
     </View>
   );
 };

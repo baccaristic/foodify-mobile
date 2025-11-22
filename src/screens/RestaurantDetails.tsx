@@ -50,6 +50,9 @@ import {
 import { useTranslation, useLocalization } from '~/localization';
 import { getLocalizedName, getLocalizedDescription } from '~/utils/localization';
 import useSelectedAddress from '~/hooks/useSelectedAddress';
+import { useOnboarding } from '~/context/OnboardingContext';
+import { useElementMeasurement } from '~/hooks/useElementMeasurement';
+import OnboardingOverlay from '~/components/OnboardingOverlay';
 
 const { width, height: screenHeight } = Dimensions.get('screen');
 const modalHeight = screenHeight;
@@ -252,6 +255,9 @@ export default function RestaurantDetails() {
     removeItem,
     restaurant: cartRestaurant,
   } = useCart();
+  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, startOnboarding } = useOnboarding();
+  const { elementRef: firstMenuItemRef, measurement: firstMenuItemMeasurement, measureElement: measureFirstMenuItem } = useElementMeasurement();
+  const { elementRef: fixedOrderBarRef, measurement: fixedOrderBarMeasurement, measureElement: measureFixedOrderBar } = useElementMeasurement();
 
   const translateY = useSharedValue(modalHeight);
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -426,6 +432,33 @@ export default function RestaurantDetails() {
 
     setHandledMenuItemParamKey(`${key}-${didOpen ? 'opened' : 'missing'}`);
   }, [handleOpenMenuItem, handledMenuItemParamKey, menuItemIdFromParams, restaurant]);
+
+  // Start onboarding when restaurant loads with menu items
+  useEffect(() => {
+    if (restaurant && !isOnboardingActive && currentStep === null) {
+      const hasMenuItems = restaurant.topSales?.length || restaurant.categories?.some(cat => cat.items?.length);
+      if (hasMenuItems) {
+        // Delay to ensure UI is rendered
+        const timer = setTimeout(() => {
+          startOnboarding();
+          // Measure first menu item after short delay
+          setTimeout(measureFirstMenuItem, 300);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [restaurant, isOnboardingActive, currentStep, startOnboarding, measureFirstMenuItem]);
+
+  // Remeasure first menu item when step changes to restaurant_menu_item
+  useEffect(() => {
+    if (currentStep === 'restaurant_menu_item') {
+      const timer = setTimeout(measureFirstMenuItem, 300);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'fixed_order_bar') {
+      const timer = setTimeout(measureFixedOrderBar, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, measureFirstMenuItem, measureFixedOrderBar]);
 
   const handleMenuContentLayout = useCallback((event: LayoutChangeEvent) => {
     menuContentOffsetRef.current = event.nativeEvent.layout.y;
@@ -732,9 +765,21 @@ export default function RestaurantDetails() {
 
         <View className="mb-4 flex-row flex-wrap justify-between gap-y-4">
           {restaurant.topSales.map((item, index) => (
-            <View key={item.id} className="shadow-3xl overflow-hidden rounded-3xl">
+            <View 
+              key={item.id} 
+              className="shadow-3xl overflow-hidden rounded-3xl"
+              ref={index === 0 ? firstMenuItemRef : null}
+              collapsable={false}>
               <Animated.View entering={createMenuCardEntrance(index)}>
-                <MenuItemCard item={item} onOpenModal={handleOpen} />
+                <MenuItemCard 
+                  item={item} 
+                  onOpenModal={(itemId) => {
+                    if (currentStep === 'restaurant_menu_item') {
+                      nextStep();
+                    }
+                    handleOpen(itemId);
+                  }} 
+                />
               </Animated.View>
             </View>
           ))}
@@ -766,13 +811,29 @@ export default function RestaurantDetails() {
                 {getLocalizedName(category, locale)}
               </AnimatedText>
               <View className="flex-row flex-wrap justify-between gap-y-4">
-                {(category.items ?? []).map((item, itemIndex) => (
-                  <View key={item.id} className="shadow-3xl overflow-hidden rounded-3xl">
-                    <Animated.View entering={createMenuCardEntrance(itemIndex)}>
-                      <MenuItemCard item={item} onOpenModal={handleOpen} isDisabled={restaurant.isOpen === false} />
-                    </Animated.View>
-                  </View>
-                ))}
+                {(category.items ?? []).map((item, itemIndex) => {
+                  const isFirstItem = index === 0 && itemIndex === 0 && !restaurant.topSales?.length;
+                  return (
+                    <View 
+                      key={item.id} 
+                      className="shadow-3xl overflow-hidden rounded-3xl"
+                      ref={isFirstItem ? firstMenuItemRef : null}
+                      collapsable={false}>
+                      <Animated.View entering={createMenuCardEntrance(itemIndex)}>
+                        <MenuItemCard 
+                          item={item} 
+                          onOpenModal={(itemId) => {
+                            if (currentStep === 'restaurant_menu_item') {
+                              nextStep();
+                            }
+                            handleOpen(itemId);
+                          }} 
+                          isDisabled={restaurant.isOpen === false} 
+                        />
+                      </Animated.View>
+                    </View>
+                  );
+                })}
               </View>
             </Animated.View>
           );
@@ -1188,7 +1249,13 @@ export default function RestaurantDetails() {
 
       {hasCartItems && !isModalVisible && (
         <FixedOrderBar
-          onSeeCart={handleSeeCart}
+          ref={fixedOrderBarRef}
+          onSeeCart={() => {
+            if (currentStep === 'fixed_order_bar') {
+              nextStep();
+            }
+            handleSeeCart();
+          }}
           style={{ bottom: moderateScale(72) + insets.bottom }}
         />
       )}
@@ -1221,6 +1288,29 @@ export default function RestaurantDetails() {
             />
           </Animated.View>
         </>
+      )}
+
+      {/* Onboarding Overlay */}
+      {isOnboardingActive && currentStep === 'restaurant_menu_item' && firstMenuItemMeasurement && (
+        <OnboardingOverlay
+          step="restaurant_menu_item"
+          title={t('onboarding.restaurantMenuItem.title')}
+          description={t('onboarding.restaurantMenuItem.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={firstMenuItemMeasurement}
+        />
+      )}
+
+      {isOnboardingActive && currentStep === 'fixed_order_bar' && fixedOrderBarMeasurement && (
+        <OnboardingOverlay
+          step="fixed_order_bar"
+          title={t('onboarding.fixedOrderBar.title')}
+          description={t('onboarding.fixedOrderBar.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={fixedOrderBarMeasurement}
+        />
       )}
     </View>
   );

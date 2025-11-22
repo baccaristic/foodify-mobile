@@ -8,6 +8,7 @@ const fr: TranslationDictionary = {
     back: 'Retour',
     confirm: 'Confirmer',
     continue: 'Continuer',
+    next: 'Suivant',
     retry: 'Réessayer',
     search: 'Rechercher',
     checkout: 'Commander',
@@ -1421,6 +1422,68 @@ const fr: TranslationDictionary = {
           },
         },
       },
+    },
+  },
+  onboarding: {
+    restaurantMenuItem: {
+      title: 'Sélectionner un article',
+      description: 'Appuyez sur n\'importe quel article du menu pour voir ses détails et personnaliser votre commande.',
+    },
+    menuDetailExtras: {
+      title: 'Personnalisez votre commande',
+      description: 'Choisissez parmi les extras et options disponibles pour personnaliser votre repas exactement comme vous l\'aimez.',
+    },
+    menuDetailPlus: {
+      title: 'Ajuster la quantité',
+      description: 'Utilisez les boutons plus et moins pour commander plusieurs articles avec différentes personnalisations.',
+    },
+    menuDetailAddCart: {
+      title: 'Ajouter au panier',
+      description: 'Une fois satisfait de votre sélection, appuyez ici pour l\'ajouter à votre panier.',
+    },
+    fixedOrderBar: {
+      title: 'Voir votre panier',
+      description: 'Vos articles sont prêts ! Appuyez ici pour consulter votre commande et passer à la caisse.',
+    },
+    cartCheckout: {
+      title: 'Finaliser votre commande',
+      description: 'Vérifiez vos articles et appuyez sur commander lorsque vous êtes prêt à passer votre commande.',
+    },
+    checkoutAddress: {
+      title: 'Confirmer l\'adresse de livraison',
+      description: 'Assurez-vous que votre adresse de livraison est correcte. Vous pouvez la modifier en appuyant sur le bouton ci-dessus.',
+    },
+    checkoutPayment: {
+      title: 'Choisir le mode de paiement',
+      description: 'Sélectionnez comment vous souhaitez payer votre commande - par carte ou en espèces à la livraison.',
+    },
+    checkoutPlaceOrder: {
+      title: 'Passer votre commande',
+      description: 'Tout semble bon ? Appuyez ici pour confirmer et passer votre commande !',
+    },
+    orderTrackingStatus: {
+      title: 'Suivre votre commande',
+      description: 'Suivez le parcours de votre commande de la préparation à la livraison. Vous pouvez voir les mises à jour en temps réel ici.',
+    },
+    orderTrackingDeliveryCode: {
+      title: 'Code de vérification de livraison',
+      description: 'Lorsque votre commande arrive, partagez ce code avec le livreur pour confirmer la réception.',
+    },
+    profilePoints: {
+      title: 'Vos points de fidélité',
+      description: 'Ici vous pouvez voir votre solde de points actuel. Gagnez des points à chaque commande et utilisez-les pour des récompenses !',
+    },
+    profileLoyalty: {
+      title: 'Récompenses de fidélité',
+      description: 'Appuyez ici pour voir et échanger vos récompenses de fidélité, convertir des points ou consulter vos avantages.',
+    },
+    profileFavorites: {
+      title: 'Vos favoris',
+      description: 'Accédez à vos restaurants et plats préférés ici pour commander rapidement.',
+    },
+    profileSettings: {
+      title: 'Paramètres du profil',
+      description: 'Gérez les paramètres de votre compte, les notifications, les préférences de langue et plus encore depuis ici.',
     },
   },
 };

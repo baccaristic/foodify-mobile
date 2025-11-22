@@ -8,6 +8,7 @@ const en: TranslationDictionary = {
     back: 'Back',
     confirm: 'Confirm',
     continue: 'Continue',
+    next: 'Next',
     retry: 'Retry',
     search: 'Search',
     checkout: 'Checkout',
@@ -1393,6 +1394,68 @@ const en: TranslationDictionary = {
           },
         },
       },
+    },
+  },
+  onboarding: {
+    restaurantMenuItem: {
+      title: 'Select a Menu Item',
+      description: 'Tap on any menu item to view its details and customize your order.',
+    },
+    menuDetailExtras: {
+      title: 'Customize Your Order',
+      description: 'Choose from available extras and options to personalize your meal exactly how you like it.',
+    },
+    menuDetailPlus: {
+      title: 'Adjust Quantity',
+      description: 'Use the plus and minus buttons to order multiple items with different customizations.',
+    },
+    menuDetailAddCart: {
+      title: 'Add to Cart',
+      description: 'Once you\'re satisfied with your selection, tap here to add it to your cart.',
+    },
+    fixedOrderBar: {
+      title: 'View Your Cart',
+      description: 'Your items are ready! Tap here to review your order and proceed to checkout.',
+    },
+    cartCheckout: {
+      title: 'Complete Your Order',
+      description: 'Review your items and tap checkout when you\'re ready to place your order.',
+    },
+    checkoutAddress: {
+      title: 'Confirm Delivery Address',
+      description: 'Make sure your delivery address is correct. You can change it by tapping the button above.',
+    },
+    checkoutPayment: {
+      title: 'Choose Payment Method',
+      description: 'Select how you want to pay for your order - by card or cash on delivery.',
+    },
+    checkoutPlaceOrder: {
+      title: 'Place Your Order',
+      description: 'Everything looks good? Tap here to confirm and place your order!',
+    },
+    orderTrackingStatus: {
+      title: 'Track Your Order',
+      description: 'Follow your order\'s journey from preparation to delivery. You can see real-time updates here.',
+    },
+    orderTrackingDeliveryCode: {
+      title: 'Delivery Verification Code',
+      description: 'When your order arrives, share this code with the delivery driver to confirm receipt.',
+    },
+    profilePoints: {
+      title: 'Your Loyalty Points',
+      description: 'Here you can see your current points balance. Earn points with every order and use them for rewards!',
+    },
+    profileLoyalty: {
+      title: 'Loyalty Rewards',
+      description: 'Tap here to view and redeem your loyalty rewards, convert points, or check your benefits.',
+    },
+    profileFavorites: {
+      title: 'Your Favorites',
+      description: 'Access your favorite restaurants and menu items here for quick ordering.',
+    },
+    profileSettings: {
+      title: 'Profile Settings',
+      description: 'Manage your account settings, notifications, language preferences, and more from here.',
     },
   },
 };

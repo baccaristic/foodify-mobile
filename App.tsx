@@ -43,6 +43,7 @@ import { OngoingOrderProvider } from '~/context/OngoingOrderContext';
 import { DeliveryRatingOverlayProvider } from '~/context/DeliveryRatingOverlayContext';
 import { RestaurantRatingOverlayProvider } from '~/context/RestaurantRatingOverlayContext';
 import { SystemStatusOverlayProvider } from '~/context/SystemStatusOverlayContext';
+import { OnboardingProvider } from '~/context/OnboardingContext';
 import DeliveredCelebrationOverlay from '~/components/DeliveredCelebrationOverlay';
 import DeliveryRatingOverlay from '~/components/DeliveryRatingOverlay';
 import RestaurantRatingOverlay from '~/components/RestaurantRatingOverlay';
@@ -263,27 +264,29 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <NavigationContainer>
             <AuthProvider>
-              <EmailSignupProvider>
-                <OngoingOrderProvider>
-                  <DeliveryRatingOverlayProvider>
-                    <RestaurantRatingOverlayProvider>
-                      <WebSocketProvider>
-                        <PhoneSignupProvider>
-                          <SelectedAddressProvider>
-                            <CartProvider>
-                              <LocationOverlayProvider>
-                                <SystemStatusOverlayProvider>
-                                  <RootNavigator />
-                                </SystemStatusOverlayProvider>
-                              </LocationOverlayProvider>
-                            </CartProvider>
-                          </SelectedAddressProvider>
-                        </PhoneSignupProvider>
-                      </WebSocketProvider>
-                    </RestaurantRatingOverlayProvider>
-                  </DeliveryRatingOverlayProvider>
-                </OngoingOrderProvider>
-              </EmailSignupProvider>
+              <OnboardingProvider>
+                <EmailSignupProvider>
+                  <OngoingOrderProvider>
+                    <DeliveryRatingOverlayProvider>
+                      <RestaurantRatingOverlayProvider>
+                        <WebSocketProvider>
+                          <PhoneSignupProvider>
+                            <SelectedAddressProvider>
+                              <CartProvider>
+                                <LocationOverlayProvider>
+                                  <SystemStatusOverlayProvider>
+                                    <RootNavigator />
+                                  </SystemStatusOverlayProvider>
+                                </LocationOverlayProvider>
+                              </CartProvider>
+                            </SelectedAddressProvider>
+                          </PhoneSignupProvider>
+                        </WebSocketProvider>
+                      </RestaurantRatingOverlayProvider>
+                    </DeliveryRatingOverlayProvider>
+                  </OngoingOrderProvider>
+                </EmailSignupProvider>
+              </OnboardingProvider>
             </AuthProvider>
           </NavigationContainer>
         </QueryClientProvider>

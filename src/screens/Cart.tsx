@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Trash2, Minus, Plus } from 'lucide-react-native';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
@@ -14,6 +14,9 @@ import { useCurrencyFormatter } from '~/localization/hooks';
 import { BASE_API_URL } from '@env';
 import { useCart } from '~/context/CartContext';
 import type { CartItem } from '~/context/CartContext';
+import { useOnboarding } from '~/context/OnboardingContext';
+import { useElementMeasurement } from '~/hooks/useElementMeasurement';
+import OnboardingOverlay from '~/components/OnboardingOverlay';
 
 const primaryColor = '#CA251B';
 const FALLBACK_IMAGE = require('../../assets/baguette.png');
@@ -112,6 +115,9 @@ export default function Cart() {
   const { items, restaurant, subtotal, itemCount, updateItemQuantity, removeItem, clearCart } = useCart();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+  const { elementRef: checkoutButtonRef, measurement: checkoutButtonMeasurement, measureElement: measureCheckoutButton } = useElementMeasurement();
+  
   const hasItems = items.length > 0;
   const restaurantName = restaurant?.name ?? t('cart.defaultRestaurantName');
   const totalItems = itemCount;
@@ -122,6 +128,14 @@ export default function Cart() {
   const itemSummaryPrefix = t('cart.itemSummaryPrefix', {
     values: { count: totalItems, productLabel },
   });
+
+  // Measure checkout button for onboarding
+  useEffect(() => {
+    if (currentStep === 'cart_checkout') {
+      const timer = setTimeout(measureCheckoutButton, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, measureCheckoutButton]);
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
     updateItemQuantity(itemId, newQuantity);
@@ -255,12 +269,30 @@ export default function Cart() {
       />
       {hasItems && (
         <FixedOrderBar
+          ref={checkoutButtonRef}
           total={totalOrderPrice}
           itemCount={totalItems}
-          onSeeCart={() => navigation.navigate('CheckoutOrder')}
+          onSeeCart={() => {
+            if (currentStep === 'cart_checkout') {
+              nextStep();
+            }
+            navigation.navigate('CheckoutOrder');
+          }}
           buttonLabel={t('common.checkout')}
           style={{ bottom: moderateScale(72) + insets.bottom }}
           disabled={!hasItems}
+        />
+      )}
+
+      {/* Onboarding Overlay */}
+      {isOnboardingActive && currentStep === 'cart_checkout' && checkoutButtonMeasurement && (
+        <OnboardingOverlay
+          step="cart_checkout"
+          title={t('onboarding.cartCheckout.title')}
+          description={t('onboarding.cartCheckout.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={checkoutButtonMeasurement}
         />
       )}
     </View>

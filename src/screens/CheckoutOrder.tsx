@@ -57,6 +57,9 @@ import { useTranslation } from '~/localization';
 import { useCurrencyFormatter } from '~/localization/hooks';
 import { moderateScale } from 'react-native-size-matters';
 import { useServiceFeeAmount } from '~/hooks/useServiceFee';
+import { useOnboarding } from '~/context/OnboardingContext';
+import { useElementMeasurement } from '~/hooks/useElementMeasurement';
+import OnboardingOverlay from '~/components/OnboardingOverlay';
 
 const sectionTitleColor = '#17213A';
 const accentColor = '#CA251B';
@@ -475,6 +478,12 @@ const CheckoutOrder: React.FC = () => {
     hasFetched: hasFetchedOngoing,
     updateOrder: updateOngoingOrder,
   } = useOngoingOrder();
+  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+  const { elementRef: addressSectionRef, measurement: addressSectionMeasurement, measureElement: measureAddressSection } = useElementMeasurement();
+  const { elementRef: paymentSectionRef, measurement: paymentSectionMeasurement, measureElement: measurePaymentSection } = useElementMeasurement();
+  const { elementRef: placeOrderButtonRef, measurement: placeOrderButtonMeasurement, measureElement: measurePlaceOrderButton } = useElementMeasurement();
+  const { elementRef: deliveryCodeRef, measurement: deliveryCodeMeasurement, measureElement: measureDeliveryCode } = useElementMeasurement();
+  
   const hasClosedViewModeRef = useRef(false);
   const [itemsExpanded, setItemsExpanded] = useState(true);
   const [allergiesExpanded, setAllergiesExpanded] = useState(false);
@@ -766,6 +775,49 @@ const CheckoutOrder: React.FC = () => {
       isCancelled = true;
     };
   }, [isViewMode]);
+
+  // Measure elements for onboarding
+  useEffect(() => {
+    if (!isOnboardingActive) {
+      return;
+    }
+    
+    // For view mode (order tracking)
+    if (isViewMode) {
+      if (currentStep === 'order_tracking_delivery_code' && viewOrder?.status === 'IN_DELIVERY') {
+        const timer = setTimeout(measureDeliveryCode, 500);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+    
+    // For checkout mode
+    if (currentStep === 'checkout_address') {
+      const timer = setTimeout(measureAddressSection, 500);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'checkout_payment') {
+      const timer = setTimeout(measurePaymentSection, 500);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 'checkout_place_order') {
+      const timer = setTimeout(measurePlaceOrderButton, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, isOnboardingActive, isViewMode, viewOrder?.status, measureAddressSection, measurePaymentSection, measurePlaceOrderButton, measureDeliveryCode]);
+
+  // Auto-advance onboarding when viewing order (skip order_tracking_status and go to delivery code if IN_DELIVERY)
+  useEffect(() => {
+    if (!isOnboardingActive || !isViewMode) {
+      return;
+    }
+    
+    if (currentStep === 'order_tracking_status') {
+      // Auto advance to next step after a brief moment
+      const timer = setTimeout(() => {
+        nextStep();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, isOnboardingActive, isViewMode, nextStep]);
 
   type ViewModeAggregates = {
     lineSubtotal: number;
@@ -2126,7 +2178,7 @@ const CheckoutOrder: React.FC = () => {
           ) : null}
 
           <View className="mt-6">
-            <View className="flex-row items-center justify-between">
+            <View ref={addressSectionRef} collapsable={false}>
               <Text
                 allowFontScaling={false}
                 className="text-base font-bold"
@@ -2136,7 +2188,12 @@ const CheckoutOrder: React.FC = () => {
               {!isViewMode ? (
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={handleOpenLocationSelection}
+                  onPress={() => {
+                    if (currentStep === 'checkout_address') {
+                      nextStep();
+                    }
+                    handleOpenLocationSelection();
+                  }}
                   className="rounded-full bg-[#FDE7E5] px-6 py-3">
                   <Text allowFontScaling={false} className=" font-semibold text-[#CA251B]">
                     {t('checkout.address.changeCta')}
@@ -2231,7 +2288,7 @@ const CheckoutOrder: React.FC = () => {
             )}
           </View>
 
-          <View className="mt-6">
+          <View className="mt-6" ref={paymentSectionRef} collapsable={false}>
             <Text
               allowFontScaling={false}
               className="text-base font-bold"
@@ -2253,7 +2310,12 @@ const CheckoutOrder: React.FC = () => {
             ) : (
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setIsPaymentModalVisible(true)}
+                onPress={() => {
+                  if (currentStep === 'checkout_payment') {
+                    nextStep();
+                  }
+                  setIsPaymentModalVisible(true);
+                }}
                 className="mt-3 flex-row items-center justify-between rounded-3xl border border-[#F0F1F3] bg-white px-5 py-4">
                 <View className="flex-row items-center">
                   <SelectedPaymentIcon size={22} color={accentColor} />
@@ -2449,7 +2511,10 @@ const CheckoutOrder: React.FC = () => {
             </View>
           </View>
           {isViewMode && viewOrder?.status === 'IN_DELIVERY' && (
-            <View className="mt-4 rounded-3xl border border-[#F0F1F3] bg-white p-5">
+            <View 
+              ref={deliveryCodeRef} 
+              collapsable={false}
+              className="mt-4 rounded-3xl border border-[#F0F1F3] bg-white p-5">
               <Text
                 allowFontScaling={false}
                 className="mb-3 text-center text-lg font-bold"
@@ -2490,21 +2555,28 @@ const CheckoutOrder: React.FC = () => {
               {submissionError}
             </Text>
           ) : null}
-          <TouchableOpacity
-            activeOpacity={0.9}
-            className={`rounded-full px-6 py-4 ${canSubmit ? 'bg-[#CA251B]' : 'bg-[#F1F2F4]'}`}
-            disabled={!canSubmit}
-            onPress={handleConfirmOrder}>
-            {isSubmitting ? (
-              <ActivityIndicator color={canSubmit ? '#FFFFFF' : '#9CA3AF'} />
-            ) : (
-              <Text
-                allowFontScaling={false}
-                className={`text-center text-base font-semibold ${canSubmit ? 'text-white' : 'text-[#9CA3AF]'}`}>
-                {t('checkout.actions.confirm')}
-              </Text>
-            )}
-          </TouchableOpacity>
+          <View ref={placeOrderButtonRef} collapsable={false}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              className={`rounded-full px-6 py-4 ${canSubmit ? 'bg-[#CA251B]' : 'bg-[#F1F2F4]'}`}
+              disabled={!canSubmit}
+              onPress={() => {
+                if (currentStep === 'checkout_place_order') {
+                  nextStep();
+                }
+                handleConfirmOrder();
+              }}>
+              {isSubmitting ? (
+                <ActivityIndicator color={canSubmit ? '#FFFFFF' : '#9CA3AF'} />
+              ) : (
+                <Text
+                  allowFontScaling={false}
+                  className={`text-center text-base font-semibold ${canSubmit ? 'text-white' : 'text-[#9CA3AF]'}`}>
+                  {t('checkout.actions.confirm')}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       ) : null}
 
@@ -2562,6 +2634,51 @@ const CheckoutOrder: React.FC = () => {
         }}
         onDismiss={() => setShowOngoingOrderWarning(false)}
       />
+      
+      {/* Onboarding Overlays */}
+      {!isViewMode && isOnboardingActive && currentStep === 'checkout_address' && addressSectionMeasurement && (
+        <OnboardingOverlay
+          step="checkout_address"
+          title={t('onboarding.checkoutAddress.title')}
+          description={t('onboarding.checkoutAddress.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={addressSectionMeasurement}
+        />
+      )}
+      
+      {!isViewMode && isOnboardingActive && currentStep === 'checkout_payment' && paymentSectionMeasurement && (
+        <OnboardingOverlay
+          step="checkout_payment"
+          title={t('onboarding.checkoutPayment.title')}
+          description={t('onboarding.checkoutPayment.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={paymentSectionMeasurement}
+        />
+      )}
+      
+      {!isViewMode && isOnboardingActive && currentStep === 'checkout_place_order' && placeOrderButtonMeasurement && (
+        <OnboardingOverlay
+          step="checkout_place_order"
+          title={t('onboarding.checkoutPlaceOrder.title')}
+          description={t('onboarding.checkoutPlaceOrder.description')}
+          onNext={nextStep}
+          onSkip={skipOnboarding}
+          highlightArea={placeOrderButtonMeasurement}
+        />
+      )}
+      
+      {isViewMode && isOnboardingActive && currentStep === 'order_tracking_delivery_code' && deliveryCodeMeasurement && (
+        <OnboardingOverlay
+          step="order_tracking_delivery_code"
+          title={t('onboarding.orderTrackingDeliveryCode.title')}
+          description={t('onboarding.orderTrackingDeliveryCode.description')}
+          onNext={completeOnboarding}
+          onSkip={skipOnboarding}
+          highlightArea={deliveryCodeMeasurement}
+        />
+      )}
     </SafeAreaView>
   );
 };
