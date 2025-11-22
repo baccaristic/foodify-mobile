@@ -48,6 +48,11 @@ export interface ClientSummaryDto {
   name: string;
   phone?: string | null;
   email?: string | null;
+  status?: string | null;
+  zone?: string | null;
+  address?: string | null;
+  alerts?: number | null;
+  isActive?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -105,6 +110,13 @@ export interface DriverSummaryDto {
   id: number;
   name: string;
   phone?: string | null;
+  email?: string | null;
+  status?: string | null;
+  commission?: MonetaryAmount | null;
+  currentTask?: string | null;
+  deliveryTiming?: string | null;
+  currentLocation?: string | null;
+  lastUpdate?: string | null;
   [key: string]: unknown;
 }
 
