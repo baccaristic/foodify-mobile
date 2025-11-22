@@ -25,6 +25,7 @@ interface OnboardingContextValue {
   currentStep: OnboardingStep | null;
   isLoading: boolean;
   startOnboarding: () => void;
+  startOnboardingFromStep: (step: OnboardingStep) => void;
   nextStep: () => void;
   skipOnboarding: () => void;
   completeOnboarding: () => void;
@@ -81,6 +82,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setCurrentStep(ONBOARDING_STEPS[0]);
   }, [hasCompletedOnboarding]);
 
+  const startOnboardingFromStep = useCallback((step: OnboardingStep) => {
+    setIsOnboardingActive(true);
+    setCurrentStep(step);
+  }, []);
+
   const nextStep = useCallback(() => {
     setCurrentStep((prev) => {
       if (!prev) return null;
@@ -118,6 +124,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     currentStep,
     isLoading,
     startOnboarding,
+    startOnboardingFromStep,
     nextStep,
     skipOnboarding,
     completeOnboarding,

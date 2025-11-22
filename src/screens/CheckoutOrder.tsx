@@ -2674,7 +2674,7 @@ const CheckoutOrder: React.FC = () => {
           step="order_tracking_delivery_code"
           title={t('onboarding.orderTrackingDeliveryCode.title')}
           description={t('onboarding.orderTrackingDeliveryCode.description')}
-          onNext={nextStep}
+          onNext={completeOnboarding}
           onSkip={skipOnboarding}
           highlightArea={deliveryCodeMeasurement}
         />

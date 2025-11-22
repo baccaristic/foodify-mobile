@@ -34,6 +34,8 @@ import { useOnboarding } from '~/context/OnboardingContext';
 import type { OnboardingStep } from '~/context/OnboardingContext';
 import { useElementMeasurement } from '~/hooks/useElementMeasurement';
 import OnboardingOverlay from '~/components/OnboardingOverlay';
+import * as SecureStore from 'expo-secure-store';
+import { PROFILE_ONBOARDING_COMPLETED_KEY } from '~/constants/onboarding';
 const palette = {
   accent: '#CA251B',
   accentDark: '#17213A',
@@ -132,7 +134,8 @@ const ProfileScreen = () => {
   const { user, logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { t } = useTranslation();
-  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding } = useOnboarding();
+  const { isOnboardingActive, currentStep, nextStep, skipOnboarding, completeOnboarding, startOnboardingFromStep } = useOnboarding();
+  const [hasCheckedProfileOnboarding, setHasCheckedProfileOnboarding] = useState(false);
   const { elementRef: pointsRef, measurement: pointsMeasurement, measureElement: measurePoints } = useElementMeasurement();
   const { elementRef: loyaltyRef, measurement: loyaltyMeasurement, measureElement: measureLoyalty } = useElementMeasurement();
   const { elementRef: favoritesRef, measurement: favoritesMeasurement, measureElement: measureFavorites } = useElementMeasurement();
@@ -233,12 +236,42 @@ const ProfileScreen = () => {
 
   const displayName = user?.name ?? 'Guest User';
 
+  const handleCompleteProfileOnboarding = useCallback(async () => {
+    try {
+      await SecureStore.setItemAsync(PROFILE_ONBOARDING_COMPLETED_KEY, 'true');
+      completeOnboarding();
+    } catch (error) {
+      console.error('Error saving profile onboarding completion:', error);
+      completeOnboarding();
+    }
+  }, [completeOnboarding]);
+
   const loyaltySummary = useMemo(
     () => (isBalanceLoading && !loyaltyBalance ? null : pointsLabel),
     [isBalanceLoading, loyaltyBalance, pointsLabel],
   );
 
   const sections = useProfileSections(t, loyaltySummary);
+
+  // Check if profile onboarding has been completed and start it on first visit
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkProfileOnboarding = async () => {
+        try {
+          const completed = await SecureStore.getItemAsync(PROFILE_ONBOARDING_COMPLETED_KEY);
+          if (completed !== 'true' && !isOnboardingActive && !hasCheckedProfileOnboarding) {
+            setHasCheckedProfileOnboarding(true);
+            // Start profile onboarding from the first profile step
+            startOnboardingFromStep('profile_points');
+          }
+        } catch (error) {
+          console.error('Error checking profile onboarding status:', error);
+        }
+      };
+
+      checkProfileOnboarding();
+    }, [isOnboardingActive, hasCheckedProfileOnboarding, startOnboardingFromStep])
+  );
 
   // Check if we should show profile onboarding when screen is focused
   useFocusEffect(
@@ -411,7 +444,7 @@ const ProfileScreen = () => {
                         } else if (isFavoritesItem && currentStep === 'profile_favorites') {
                           nextStep();
                         } else if (isSettingsItem && currentStep === 'profile_settings') {
-                          completeOnboarding();
+                          handleCompleteProfileOnboarding();
                         }
                         item.route && handleNavigate(item.route);
                       }}
@@ -477,7 +510,7 @@ const ProfileScreen = () => {
           step="profile_settings"
           title={t('onboarding.profileSettings.title')}
           description={t('onboarding.profileSettings.description')}
-          onNext={completeOnboarding}
+          onNext={handleCompleteProfileOnboarding}
           onSkip={skipOnboarding}
           highlightArea={settingsMeasurement}
         />
